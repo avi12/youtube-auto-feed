@@ -235,7 +235,6 @@ export async function updateVideoInDom(videoId: string, freshSnapshot: VideoSnap
       await document.startViewTransition(applyUpdate).finished;
     } finally {
       elPolymerItem.style.viewTransitionName = "";
-      triggerAnimation(elPolymerItem, "ytsua-updated");
     }
   } else {
     applyUpdate();
