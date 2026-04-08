@@ -12,11 +12,13 @@ const operaBinaryByPlatform: Partial<Record<NodeJS.Platform, string>> = {
   linux: "/usr/bin/opera"
 };
 
-const operaProfileSrcByPlatform: Partial<Record<NodeJS.Platform, string>> = {
-  win32: join(process.env.APPDATA!, "Opera Software", "Opera Stable"),
-  darwin: join(process.env.HOME!, "Library/Application Support/com.operasoftware.Opera"),
-  linux: join(process.env.HOME!, ".config/opera")
-};
+function operaProfileSrc() {
+  switch (process.platform) {
+    case "win32": return join(process.env.APPDATA!, "Opera Software", "Opera Stable");
+    case "darwin": return join(process.env.HOME!, "Library/Application Support/com.operasoftware.Opera");
+    default: return join(process.env.HOME!, ".config/opera");
+  }
+}
 
 const USER_DATA_DEST = resolve(import.meta.dirname, "../Opera Data WXT");
 
@@ -25,7 +27,7 @@ function setupProfile() {
     return;
   }
 
-  const src = operaProfileSrcByPlatform[process.platform] ?? "";
+  const src = operaProfileSrc();
   execSync(
     process.platform === "win32"
       ? `xcopy "${src}" "${USER_DATA_DEST}" /E /I /Q /Y`
