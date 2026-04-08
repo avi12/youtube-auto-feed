@@ -762,9 +762,6 @@ export async function removeVideosFromDom(videoIds: string[]) {
     elStaggerStyle.remove();
     clearItemViewTransitionNames(elDirectItems);
     clearItemViewTransitionNames(elSectionsAfterFirstRemoved);
-    for (const elItem of allGridElements) {
-      elItem.classList.add("ytsua-force-visible");
-    }
   }
 }
 
