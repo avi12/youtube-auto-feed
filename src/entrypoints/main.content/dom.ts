@@ -511,6 +511,7 @@ export async function removeVideosFromDom(videoIds: string[]) {
       continue;
     }
 
+    const shelfTitle = deepString(shelfData, "title", "runs", "0", "text");
     const shelfVideoIdSet = new Set(shelfVideoIds);
     const shelfContents = deepArray(shelfData, "contents");
     const filteredShelfContents = shelfContents.filter(
@@ -541,7 +542,11 @@ export async function removeVideosFromDom(videoIds: string[]) {
       if (elSection) {
         elSection.classList.add("ytsua-section-removing");
         await new Promise<void>(resolve => {
-          elSection.addEventListener("transitionend", () => resolve(), { once: true });
+          const timer = setTimeout(resolve, 400);
+          elSection.addEventListener("transitionend", () => {
+            clearTimeout(timer);
+            resolve();
+          }, { once: true });
         });
 
         const elSectionParent = elSection.parentElement;
@@ -566,8 +571,36 @@ export async function removeVideosFromDom(videoIds: string[]) {
         const elStaggerStyle = buildStaggerStyle(elItemsAfterSection);
         document.head.append(elStaggerStyle);
 
+        const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
         try {
-          await document.startViewTransition(() => elSection.remove()).finished;
+          await document.startViewTransition(() => {
+            if (elGrid && isPolymerElement(elGrid) && isRecord(elGrid.data)) {
+              const currentGridContents = deepArray(elGrid.data, "contents");
+              const filteredGridContents = currentGridContents.filter(item => {
+                const sectionContent = deepRecord(item, "richSectionRenderer", "content");
+                if (!isRecord(sectionContent)) {
+                  return true;
+                }
+
+                const shelf = isRecord(sectionContent.richShelfRenderer)
+                  ? sectionContent.richShelfRenderer
+                  : isRecord(sectionContent.shelfRenderer)
+                    ? sectionContent.shelfRenderer
+                    : null;
+                if (!shelf) {
+                  return true;
+                }
+
+                const title = deepString(shelf, "title", "runs", "0", "text");
+                return !shelfTitle || !title || title !== shelfTitle;
+              });
+              if (filteredGridContents.length < currentGridContents.length) {
+                elGrid.set("data.contents", filteredGridContents);
+                return;
+              }
+            }
+            elSection.remove();
+          }).finished;
         } finally {
           elStaggerStyle.remove();
           clearItemViewTransitionNames(elItemsAfterSection);

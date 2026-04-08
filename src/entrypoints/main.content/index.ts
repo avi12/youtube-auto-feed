@@ -199,49 +199,8 @@ export default defineContentScript({
       await detectAndApplyChanges(freshSnapshots);
     }
 
-    async function fetchFreshPageData() {
-      if (!isOnSubscriptionsPage() || !isDomReady) {
-        sessionStorage.setItem("ytsua-debug", `skip: page=${isOnSubscriptionsPage()} ready=${isDomReady}`);
-        return;
-      }
-
-      const response = await fetch("https://www.youtube.com/feed/subscriptions").catch(() => null);
-      if (!response) {
-        sessionStorage.setItem("ytsua-debug", "fetch failed");
-        return;
-      }
-
-      const html = await response.text();
-      const startMarker = "var ytInitialData = ";
-      const startIndex = html.indexOf(startMarker);
-      if (startIndex === -1) {
-        sessionStorage.setItem("ytsua-debug", "no marker");
-        return;
-      }
-
-      const jsonStart = startIndex + startMarker.length;
-      const endMarker = ";</script>";
-      const endIndex = html.indexOf(endMarker, jsonStart);
-      if (endIndex === -1) {
-        sessionStorage.setItem("ytsua-debug", "no end");
-        return;
-      }
-
-      const pageData: unknown = JSON.parse(html.slice(jsonStart, endIndex));
-      if (!isInnerTubeBrowseResponse(pageData)) {
-        sessionStorage.setItem("ytsua-debug", "not browse response");
-        return;
-      }
-
-      const freshSnapshots = parseApiResponse(pageData);
-      sessionStorage.setItem("ytsua-debug", `parsed=${freshSnapshots.length} snap=${lastSnapshot.size}`);
-      if (freshSnapshots.length > 0) {
-        await detectAndApplyChanges(freshSnapshots);
-      }
-    }
-
     function handleSubscriptionChange() {
-      void fetchFreshPageData();
+      void fetchFreshVideos();
     }
 
     function stopMonitoring() {
