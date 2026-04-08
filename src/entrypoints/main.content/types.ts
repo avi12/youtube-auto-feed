@@ -1,0 +1,232 @@
+// ── YouTube InnerTube API response types ─────────────────────────────────────
+
+export interface InnerTubeThumbnail {
+  url: string;
+  width?: number;
+  height?: number;
+}
+
+export enum BadgeStyle {
+  LiveNow = "BADGE_STYLE_TYPE_LIVE_NOW",
+  Upcoming = "BADGE_STYLE_TYPE_UPCOMING"
+}
+
+export interface InnerTubeMetadataBadge { metadataBadgeRenderer?: { style: BadgeStyle; }; }
+
+export enum OverlayStyle {
+  Live = "LIVE",
+  Upcoming = "UPCOMING"
+}
+
+export interface InnerTubeThumbnailOverlay { thumbnailOverlayTimeStatusRenderer?: { style: OverlayStyle; }; }
+
+export interface InnerTubeReelWatchEndpoint {
+  videoId: string;
+  playerParams?: string;
+  params?: string;
+  sequenceProvider?: string;
+  sequenceParams?: string;
+  ustreamerConfig?: string;
+}
+
+export interface InnerTubeVideoRenderer {
+  videoId: string;
+  title: {
+    runs?: Array<{ text: string; }>;
+    simpleText?: string;
+  };
+  thumbnail: { thumbnails: InnerTubeThumbnail[]; };
+  badges?: InnerTubeMetadataBadge[];
+  thumbnailOverlays?: InnerTubeThumbnailOverlay[];
+  viewCountText?: {
+    simpleText?: string;
+    runs?: Array<{ text: string; }>;
+  };
+  shortViewCountText?: { simpleText?: string; };
+  publishedTimeText?: { simpleText?: string; };
+  navigationEndpoint?: { reelWatchEndpoint?: InnerTubeReelWatchEndpoint; };
+}
+
+// ── lockupViewModel (new YouTube UI format) ───────────────────────────────────
+
+export enum LockupContentType {
+  Video = "LOCKUP_CONTENT_TYPE_VIDEO",
+  Shorts = "LOCKUP_CONTENT_TYPE_SHORTS"
+}
+
+export interface LockupViewModel {
+  contentId: string;
+  contentType: LockupContentType;
+  contentImage?: {
+    thumbnailViewModel?: {
+      image?: {
+        sources?: Array<{
+          url: string;
+          width?: number;
+          height?: number;
+        }>;
+      };
+    };
+  };
+  metadata?: {
+    lockupMetadataViewModel?: {
+      title?: { content?: string; };
+      metadata?: { contentMetadataViewModel?: { metadataRows?: Array<{ metadataParts?: Array<{ text?: { content?: string; }; }>; }>; }; };
+    };
+  };
+}
+
+// ── shortsLockupViewModel (Shorts shelf in subscriptions feed) ───────────────
+
+export interface ShortsLockupViewModel {
+  entityId?: string;
+  accessibilityText?: string;
+  onTap?: { innertubeCommand?: { reelWatchEndpoint?: { videoId: string; }; }; };
+  overlayMetadata?: {
+    primaryText?: { content?: string; };
+    secondaryText?: { content?: string; };
+  };
+  thumbnail?: { sources?: Array<{ url: string; width?: number; height?: number; }>; };
+}
+
+// ── Shelf / grid renderers ────────────────────────────────────────────────────
+
+export interface InnerTubeRichItemContent {
+  videoRenderer?: InnerTubeVideoRenderer;
+  gridVideoRenderer?: InnerTubeVideoRenderer;
+  lockupViewModel?: LockupViewModel;
+  shortsLockupViewModel?: ShortsLockupViewModel;
+}
+
+export interface InnerTubeRichShelfRenderer {
+  title: { runs: Array<{ text: string; }>; };
+  contents: Array<{ richItemRenderer?: { content: InnerTubeRichItemContent; }; }>;
+}
+
+export interface InnerTubeShelfRenderer {
+  title: { runs: Array<{ text: string; }>; };
+  content: {
+    horizontalListRenderer?: {
+      items: Array<{
+        videoRenderer?: InnerTubeVideoRenderer;
+        gridVideoRenderer?: InnerTubeVideoRenderer;
+      }>;
+    };
+    gridRenderer?: {
+      items: Array<{
+        videoRenderer?: InnerTubeVideoRenderer;
+        gridVideoRenderer?: InnerTubeVideoRenderer;
+      }>;
+    };
+  };
+}
+
+export interface InnerTubeRichGridItem {
+  richSectionRenderer?: { content: { richShelfRenderer?: InnerTubeRichShelfRenderer; shelfRenderer?: InnerTubeShelfRenderer; }; };
+  richItemRenderer?: { content: InnerTubeRichItemContent; };
+}
+
+export interface InnerTubeBrowseResponse {
+  contents: {
+    twoColumnBrowseResultsRenderer: {
+      tabs: Array<{
+        tabRenderer: {
+          content: {
+            richGridRenderer?: { contents: InnerTubeRichGridItem[]; };
+            sectionListRenderer?: { contents: Array<{ itemSectionRenderer?: { contents: Array<{ shelfRenderer?: InnerTubeShelfRenderer; }>; }; }>; };
+          };
+        };
+      }>;
+    };
+  };
+}
+
+// ── YouTube InnerTube client config ───────────────────────────────────────────
+
+export type InnerTubeClientName =
+  | "WEB"
+  | "MWEB"
+  | "ANDROID"
+  | "IOS"
+  | "TVHTML5"
+  | "TV_UNPLUGGED"
+  | "WEB_EMBEDDED_PLAYER"
+  | "WEB_CREATOR";
+
+export type InnerTubePlatform = "DESKTOP" | "MOBILE" | "TV";
+
+export type InnerTubeClientFormFactor =
+  | "UNKNOWN_FORM_FACTOR"
+  | "SMALL_FORM_FACTOR"
+  | "LARGE_FORM_FACTOR"
+  | "AUTOMOTIVE_FORM_FACTOR";
+
+export type InnerTubeUserInterfaceTheme =
+  | "USER_INTERFACE_THEME_DARK"
+  | "USER_INTERFACE_THEME_LIGHT";
+
+export interface InnerTubeContext {
+  client: {
+    clientName: InnerTubeClientName;
+    clientVersion: string;
+    hl?: string;
+    gl?: string;
+    remoteHost?: string;
+    deviceMake?: string;
+    deviceModel?: string;
+    visitorData?: string;
+    userAgent?: string;
+    osName?: string;
+    osVersion?: string;
+    originalUrl?: string;
+    platform?: InnerTubePlatform;
+    clientFormFactor?: InnerTubeClientFormFactor;
+    windowWidthPoints?: number;
+    configInfo?: { appInstallData?: string; };
+    screenDensityFloat?: number;
+    userInterfaceTheme?: InnerTubeUserInterfaceTheme;
+    timeZone?: string;
+    browserName?: string;
+    browserVersion?: string;
+    memoryTotalKbytes?: number;
+    acceptHeader?: string;
+    deviceExperimentId?: string;
+    rolloutToken?: string;
+  };
+  user?: { lockedSafetyMode?: boolean; };
+  request?: { useSsl?: boolean; };
+  clickTracking?: { clickTrackingParams?: string; };
+}
+
+export interface YouTubeInnertubeConfig {
+  INNERTUBE_CLIENT_VERSION?: string;
+  INNERTUBE_CONTEXT?: InnerTubeContext;
+  HL?: string;
+  GL?: string;
+}
+
+// ── Extension types ───────────────────────────────────────────────────────────
+
+export enum VideoStatus {
+  Video = "video",
+  Upcoming = "upcoming",
+  Live = "live",
+  Short = "short"
+}
+
+export interface VideoSnapshot {
+  videoId: string;
+  title: string;
+  thumbnailUrl: string;
+  status: VideoStatus;
+  viewCountText: string;
+  publishedTimeText: string;
+  sectionTitle: string;
+  rawRenderer: InnerTubeVideoRenderer | LockupViewModel | ShortsLockupViewModel;
+}
+
+export interface PolymerElement extends HTMLElement {
+  data: unknown;
+  set(path: string, value: unknown): void;
+  splice(path: string, start: number, deleteCount: number, ...items: unknown[]): unknown[];
+}
