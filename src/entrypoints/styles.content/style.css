@@ -1,0 +1,83 @@
+@keyframes ytsua-slide-in {
+  from {
+    opacity: 0;
+    scale: 0.92;
+    translate: -72px 0;
+  }
+
+  to {
+    opacity: 1;
+    scale: none;
+    translate: none;
+  }
+}
+
+@keyframes ytsua-slide-out {
+  from {
+    opacity: 1;
+    scale: none;
+    translate: none;
+  }
+
+  to {
+    opacity: 0;
+    scale: 0.92;
+    translate: -72px 0;
+  }
+}
+
+@keyframes ytsua-pulse {
+  0%,
+  100% {
+    border-radius: 6px;
+    box-shadow: 0 0 0 2px transparent;
+  }
+
+  40% {
+    border-radius: 6px;
+    box-shadow: 0 0 0 2px rgb(255 0 0 / 55%);
+  }
+}
+
+.ytsua-new {
+  animation:
+    ytsua-slide-in 380ms cubic-bezier(0.2, 0, 0, 1)
+    calc(var(--ytsua-new-index, 0) * min(160ms / max(var(--ytsua-new-count, 1) - 1, 1), 40ms))
+    both;
+}
+
+.ytsua-updated {
+  animation: ytsua-pulse 900ms ease both;
+}
+
+.ytsua-force-visible {
+  opacity: 1 !important;
+}
+
+.ytsua-section-removing {
+  opacity: 0;
+  transition:
+    opacity 350ms ease,
+    translate 350ms ease;
+  translate: 0 20px;
+}
+
+::view-transition-old(*),
+::view-transition-new(*) {
+  animation-duration: 380ms;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+}
+
+::view-transition-group(*) {
+  animation-duration: 380ms;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.yt-content-metadata-view-model__metadata-row {
+  font-variant-numeric: tabular-nums;
+}
