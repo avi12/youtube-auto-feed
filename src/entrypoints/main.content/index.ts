@@ -32,6 +32,7 @@ export default defineContentScript({
     let pendingApiSnapshots: VideoSnapshot[] | null = null;
     let pendingApiSnapshotsTime = 0;
     let pollingTimer: ReturnType<typeof setInterval> | null = null;
+    let focusDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
     function handleBrowseResponse(event: Event) {
       if (!isOnSubscriptionsPage() || !(event instanceof CustomEvent)) {
@@ -115,6 +116,7 @@ export default defineContentScript({
         }
       }
 
+      const isLayoutChange = videoIdsToRemove.length > 0 || videosToAdd.length > 0;
       lastSnapshot = freshMap;
 
       const timeOrderedSnapshots = freshSnapshots.toSorted(
@@ -129,6 +131,8 @@ export default defineContentScript({
       if (gridVideos.length > 0) {
         await addVideosToGridDom(gridVideos, timeOrderedSnapshots);
       }
+
+      return isLayoutChange;
     }
 
     async function computeAuthorizationHeader() {
@@ -152,22 +156,22 @@ export default defineContentScript({
 
     async function fetchFreshVideos() {
       if (!isOnSubscriptionsPage() || !isDomReady) {
-        return;
+        return false;
       }
 
       const config = yt?.config_;
       if (!config) {
-        return;
+        return false;
       }
 
       const { INNERTUBE_CONTEXT } = config;
       if (!INNERTUBE_CONTEXT) {
-        return;
+        return false;
       }
 
       const authorizationHeader = await computeAuthorizationHeader();
       if (!authorizationHeader) {
-        return;
+        return false;
       }
 
       const response = await fetch("https://www.youtube.com/youtubei/v1/browse", {
@@ -183,30 +187,60 @@ export default defineContentScript({
         })
       }).catch(() => null);
       if (!response) {
-        return;
+        return false;
       }
 
       const browseData: unknown = await response.json().catch(() => null);
       if (!isInnerTubeBrowseResponse(browseData)) {
-        return;
+        return false;
       }
 
       const freshSnapshots = parseApiResponse(browseData);
       if (freshSnapshots.length === 0) {
-        return;
+        return false;
       }
 
-      await detectAndApplyChanges(freshSnapshots);
+      return detectAndApplyChanges(freshSnapshots);
     }
 
     function handleSubscriptionChange() {
       void fetchFreshVideos();
     }
 
+    function restartPolling() {
+      pollingTimer = setInterval(() => {
+        void fetchFreshVideos();
+      }, 5000);
+    }
+
+    function handlePageFocus() {
+      if (document.hidden || !isOnSubscriptionsPage() || !isDomReady) {
+        return;
+      }
+
+      if (focusDebounceTimer !== null) {
+        clearTimeout(focusDebounceTimer);
+      }
+
+      focusDebounceTimer = setTimeout(() => {
+        focusDebounceTimer = null;
+        if (pollingTimer !== null) {
+          clearInterval(pollingTimer);
+          pollingTimer = null;
+        }
+        void fetchFreshVideos().then(() => restartPolling());
+      }, 300);
+    }
+
     function stopMonitoring() {
       removeEventListener("ytsua-browse-response", handleBrowseResponse);
       removeEventListener("ytsua-subscription-change", handleSubscriptionChange);
+      document.removeEventListener("visibilitychange", handlePageFocus);
       broadcastChannel.onmessage = null;
+      if (focusDebounceTimer !== null) {
+        clearTimeout(focusDebounceTimer);
+        focusDebounceTimer = null;
+      }
       if (pollingTimer !== null) {
         clearInterval(pollingTimer);
         pollingTimer = null;
@@ -223,10 +257,9 @@ export default defineContentScript({
     function startMonitoring() {
       addEventListener("ytsua-browse-response", handleBrowseResponse);
       addEventListener("ytsua-subscription-change", handleSubscriptionChange);
+      document.addEventListener("visibilitychange", handlePageFocus);
       broadcastChannel.onmessage = handleSubscriptionChange;
-      pollingTimer = setInterval(() => {
-        void fetchFreshVideos();
-      }, 5000);
+      restartPolling();
     }
 
     function applyDomBaseline() {
