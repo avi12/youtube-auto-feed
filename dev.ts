@@ -1,202 +1,271 @@
-import { spawn, execSync, type ChildProcess } from "node:child_process";
-import { watch, existsSync } from "node:fs";
+/**
+ * Dev server: production builds (with source maps) + browser with sideloaded extension.
+ * On file changes: rebuilds, reloads the extension via CDP, then reloads YouTube tabs.
+ *
+ * Usage: bun dev.ts
+ */
+
+import { build } from "wxt";
+import chokidar from "chokidar";
+import { debounce } from "perfect-debounce";
 import { resolve, join } from "node:path";
+import { existsSync, cpSync, mkdirSync } from "node:fs";
+import { homedir, platform } from "node:os";
+import { spawn } from "node:child_process";
 
-const PROFILE = "Default";
-const DEBUG_PORT = 9227;
-const DEBOUNCE_MS = 400;
-const EXTENSION_DIR = resolve(import.meta.dirname, ".output/opera-mv3");
-const SRC_DIR = resolve(import.meta.dirname, "src");
-const USER_DATA_DEST = resolve(import.meta.dirname, "../Opera Data WXT");
+const PROJECT_ROOT = resolve(import.meta.dirname);
+const LANGUAGE = process.env.LANG ?? "en";
 const START_URL = "https://www.youtube.com/feed/subscriptions";
+const CDP_PORT = 9227;
+const REBUILD_DEBOUNCE_MS = 800;
+const BROWSER: "chrome" | "opera" = "opera";
 
-const operaBinaryByPlatform: Partial<Record<NodeJS.Platform, string>> = {
-  win32: join(process.env.LOCALAPPDATA!, "Programs", "Opera", "opera.exe"),
-  darwin: "/Applications/Opera.app/Contents/MacOS/Opera",
-  linux: "/usr/bin/opera"
-};
+// ── Browser configurations ─────────────────────────────────────────────────
 
-function operaProfileSrc() {
-  switch (process.platform) {
-    case "win32": return join(process.env.APPDATA!, "Opera Software", "Opera Stable");
-    case "darwin": return join(process.env.HOME!, "Library/Application Support/com.operasoftware.Opera");
-    default: return join(process.env.HOME!, ".config/opera");
+interface BrowserConfig {
+  name: string;
+  wxtBrowser: "chrome" | "opera";
+  outputDirectory: string;
+  profileDirectory: string;
+  binaryPath: string;
+  profileSource: string;
+}
+
+function chromeConfig(): BrowserConfig {
+  const binaryPath = (() => {
+    switch (platform()) {
+      case "win32": return join(process.env.PROGRAMFILES ?? "", "Google", "Chrome", "Application", "chrome.exe");
+      case "darwin": return "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+      default: return "/usr/bin/google-chrome";
+    }
+  })();
+
+  const profileSource = (() => {
+    switch (platform()) {
+      case "win32": return join(process.env.LOCALAPPDATA ?? "", "Google", "Chrome", "User Data");
+      case "darwin": return join(homedir(), "Library", "Application Support", "Google", "Chrome");
+      default: return join(homedir(), ".config", "google-chrome");
+    }
+  })();
+
+  return {
+    name: "Chrome",
+    wxtBrowser: "chrome",
+    outputDirectory: resolve(PROJECT_ROOT, ".output/chrome-mv3"),
+    profileDirectory: resolve(PROJECT_ROOT, "User Data"),
+    binaryPath,
+    profileSource
+  };
+}
+
+function operaConfig(): BrowserConfig {
+  const binaryPath = (() => {
+    switch (platform()) {
+      case "win32": return join(process.env.LOCALAPPDATA ?? "", "Programs", "Opera", "opera.exe");
+      case "darwin": return "/Applications/Opera.app/Contents/MacOS/Opera";
+      default: return "/usr/bin/opera";
+    }
+  })();
+
+  const profileSource = (() => {
+    switch (platform()) {
+      case "win32": return join(process.env.APPDATA ?? "", "Opera Software", "Opera Stable");
+      case "darwin": return join(homedir(), "Library", "Application Support", "com.operasoftware.Opera");
+      default: return join(homedir(), ".config", "opera");
+    }
+  })();
+
+  return {
+    name: "Opera",
+    wxtBrowser: "opera",
+    outputDirectory: resolve(PROJECT_ROOT, ".output/opera-mv3"),
+    profileDirectory: resolve(PROJECT_ROOT, "Opera Profile"),
+    binaryPath,
+    profileSource
+  };
+}
+
+function browserConfig() {
+  switch (BROWSER) {
+    case "chrome": return chromeConfig();
+    case "opera": return operaConfig();
   }
 }
 
-function killOpera() {
-  try {
-    if (process.platform === "win32") {
-      execSync(
-        `powershell -NoProfile -Command "Get-WmiObject Win32_Process -Filter \\"name='opera.exe'\\" | Where-Object { $_.CommandLine -like '*Opera Data WXT*' } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -EA SilentlyContinue }"`,
-        { stdio: "ignore" }
-      );
-    } else {
-      execSync(`pkill -f "${USER_DATA_DEST}" 2>/dev/null || true`, { stdio: "ignore" });
-    }
-  } catch {}
-}
+// ── Profile setup ──────────────────────────────────────────────────────────
 
-function setupProfile() {
-  if (existsSync(USER_DATA_DEST)) {
+function setupDevProfile(config: BrowserConfig) {
+  const { profileDirectory, profileSource, name } = config;
+
+  if (existsSync(profileDirectory)) {
     return;
   }
 
-  const src = operaProfileSrc();
-  execSync(
-    process.platform === "win32"
-      ? `xcopy "${src}" "${USER_DATA_DEST}" /E /I /Q /Y`
-      : `cp -r "${src}" "${USER_DATA_DEST}"`,
-    { stdio: "ignore" }
-  );
-}
-
-function build() {
-  return new Promise<boolean>(resolve => {
-    const child = spawn("bun", ["run", "wxt", "build", "-b", "opera"], { stdio: "pipe", shell: true });
-    let output = "";
-    child.stdout.on("data", (data: Buffer) => { output += data.toString(); });
-    child.stderr.on("data", (data: Buffer) => { output += data.toString(); });
-    child.on("close", code => {
-      if (code !== 0) {
-        console.error("Build failed:\n" + output.slice(-500));
-      } else {
-        console.log("Build succeeded");
-      }
-      resolve(code === 0);
-    });
-  });
-}
-
-function launchBrowser(): ChildProcess {
-  const operaBinary = operaBinaryByPlatform[process.platform] ?? "opera";
-  const child = spawn(operaBinary, [
-    `--user-data-dir=${USER_DATA_DEST}`,
-    `--profile-directory=${PROFILE}`,
-    `--remote-debugging-port=${DEBUG_PORT}`,
-    "--disable-blink-features=AutomationControlled",
-    "--no-first-run",
-    "--no-default-browser-check",
-    `--load-extension=${EXTENSION_DIR}`,
-    START_URL
-  ], { detached: true, stdio: "ignore" });
-
-  child.unref();
-  return child;
-}
-
-async function waitForBrowser(maxAttempts = 30): Promise<boolean> {
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    try {
-      const response = await fetch(`http://localhost:${DEBUG_PORT}/json/version`);
-      if (response.ok) {
-        return true;
-      }
-    } catch {}
-    await new Promise<void>(resolve => setTimeout(resolve, 1000));
+  if (!existsSync(profileSource)) {
+    mkdirSync(profileDirectory, { recursive: true });
+    return;
   }
-  return false;
+
+  console.log(`Copying ${name} profile from ${profileSource}...`);
+  cpSync(profileSource, profileDirectory, { recursive: true });
+  console.log("Profile copy complete.");
 }
 
-let browserProcess: ChildProcess | null = null;
+// ── Browser launch ─────────────────────────────────────────────────────────
 
-async function sendCdp(websocketUrl: string, method: string, params: Record<string, unknown> = {}) {
-  return new Promise<void>((resolve, reject) => {
-    const timeout = setTimeout(() => { websocket.close(); reject(new Error("CDP timeout")); }, 5000);
-    const websocket = new WebSocket(websocketUrl);
-    websocket.onopen = () => websocket.send(JSON.stringify({ id: 1, method, params }));
-    websocket.onmessage = (event) => {
-      if (JSON.parse(String(event.data)).id === 1) { clearTimeout(timeout); websocket.close(); resolve(); }
-    };
-    websocket.onerror = () => { clearTimeout(timeout); reject(new Error("CDP error")); };
+function launchBrowser(config: BrowserConfig) {
+  const browserProcess = spawn(config.binaryPath, [
+    `--user-data-dir=${config.profileDirectory}`,
+    `--load-extension=${config.outputDirectory}`,
+    `--remote-debugging-port=${CDP_PORT}`,
+    `--lang=${LANGUAGE}`,
+    "--disable-blink-features=AutomationControlled",
+    START_URL
+  ], {
+    stdio: "ignore",
+    detached: true
   });
+
+  browserProcess.unref();
+  return browserProcess;
+}
+
+// ── CDP helpers ────────────────────────────────────────────────────────────
+
+function sendCdpCommand(webSocketUrl: string, method: string, params: Record<string, unknown> = {}) {
+  return new Promise<void>((resolve) => {
+    const websocket = new WebSocket(webSocketUrl);
+    websocket.onopen = () => {
+      websocket.send(JSON.stringify({ id: 1, method, params }));
+    };
+    websocket.onmessage = (event) => {
+      const data = JSON.parse(String(event.data));
+      if (data.id === 1) {
+        websocket.close();
+        resolve();
+      }
+    };
+    websocket.onerror = () => resolve();
+  });
+}
+
+interface CdpTarget {
+  id: string;
+  type: string;
+  title: string;
+  url: string;
+  webSocketDebuggerUrl?: string;
+}
+
+async function getCdpTargets() {
+  const response = await fetch(`http://localhost:${CDP_PORT}/json`);
+  return await response.json() as CdpTarget[];
 }
 
 async function reloadExtension() {
-  try {
-    const listResponse = await fetch(`http://localhost:${DEBUG_PORT}/json/list`);
-    const targets: { url: string; webSocketDebuggerUrl: string; type: string }[] = await listResponse.json();
+  const targets = await getCdpTargets();
+  const serviceWorker = targets.find(
+    target => target.type === "service_worker" && target.url.startsWith("chrome-extension://")
+  );
 
-    const backgroundTarget = targets.find(
-      target => (target.type === "service_worker" || target.type === "background_page") && target.url.startsWith("chrome-extension://")
-    );
+  if (serviceWorker?.webSocketDebuggerUrl) {
+    await sendCdpCommand(serviceWorker.webSocketDebuggerUrl, "Runtime.evaluate", {
+      expression: "chrome.runtime.reload()"
+    });
+    return;
+  }
 
-    if (backgroundTarget) {
-      await sendCdp(backgroundTarget.webSocketDebuggerUrl, "Runtime.evaluate", {
-        expression: "browser.runtime.reload()"
-      }).catch(() => {});
-    }
+  const backgroundPage = targets.find(
+    target => target.type === "background_page" && target.url.startsWith("chrome-extension://")
+  );
 
-    await new Promise<void>(resolve => setTimeout(resolve, 2000));
-
-    const freshList = await fetch(`http://localhost:${DEBUG_PORT}/json/list`);
-    const freshTargets: typeof targets = await freshList.json();
-
-    for (const page of freshTargets.filter(target => target.type === "page" && target.url.includes("youtube.com"))) {
-      await sendCdp(page.webSocketDebuggerUrl, "Page.reload", {}).catch(() => {});
-    }
-
-    console.log("Extension reloaded + pages refreshed");
-  } catch (error) {
-    console.warn("Reload failed, restarting browser:", String(error));
-    killOpera();
-    browserProcess = launchBrowser();
+  if (backgroundPage?.webSocketDebuggerUrl) {
+    await sendCdpCommand(backgroundPage.webSocketDebuggerUrl, "Runtime.evaluate", {
+      expression: "chrome.runtime.reload()"
+    });
   }
 }
+
+async function reloadYouTubeTabs() {
+  const targets = await getCdpTargets();
+
+  for (const target of targets) {
+    if (target.type !== "page" || !target.url.includes("youtube.com") || !target.webSocketDebuggerUrl) {
+      continue;
+    }
+    await sendCdpCommand(target.webSocketDebuggerUrl, "Page.reload");
+  }
+}
+
+async function reloadExtensionAndTabs() {
+  try {
+    await reloadExtension();
+    await reloadYouTubeTabs();
+  } catch {
+    // CDP not available yet
+  }
+}
+
+// ── Build ──────────────────────────────────────────────────────────────────
+
+async function buildExtension(config: BrowserConfig) {
+  await build({
+    root: PROJECT_ROOT,
+    browser: config.wxtBrowser,
+    manifestVersion: 3,
+    vite: () => ({ build: { sourcemap: true } })
+  });
+}
+
+// ── Main ───────────────────────────────────────────────────────────────────
 
 async function main() {
-  killOpera();
-  setupProfile();
+  process.chdir(PROJECT_ROOT);
 
-  console.log("Building extension...");
-  if (!await build()) {
-    process.exit(1);
-  }
+  const config = browserConfig();
+  setupDevProfile(config);
 
-  console.log("Launching Opera...");
-  browserProcess = launchBrowser();
+  console.log(`Building extension for ${config.name}...`);
+  await buildExtension(config);
+  console.log("Build complete.\n");
 
-  console.log("Waiting for Opera to start...");
-  if (!await waitForBrowser()) {
-    console.error("Opera failed to start");
-    process.exit(1);
-  }
-  console.log("Opera ready on port " + DEBUG_PORT);
+  const browserProcess = launchBrowser(config);
+  console.log(`${config.name} launched with extension sideloaded.`);
+  console.log("Watching for file changes...\n");
 
-  let debounceTimer: ReturnType<typeof setTimeout> | null = null;
-  let isBuilding = false;
-
-  const watcher = watch(SRC_DIR, { recursive: true }, (_event, filename) => {
-    if (!filename || isBuilding) {
-      return;
-    }
-
-    if (debounceTimer) {
-      clearTimeout(debounceTimer);
-    }
-
-    debounceTimer = setTimeout(async () => {
-      isBuilding = true;
-      console.log(`\nFile changed: ${filename}`);
-      if (await build()) {
-        await reloadExtension();
-      }
-      isBuilding = false;
-    }, DEBOUNCE_MS);
+  const watcher = chokidar.watch("src", {
+    cwd: PROJECT_ROOT,
+    ignoreInitial: true,
+    usePolling: true,
+    interval: 500
   });
 
-  console.log(`\nWatching ${SRC_DIR} for changes...`);
-  console.log("Press Ctrl+C to stop.\n");
+  const onFileChange = debounce(async (_event: string, filePath: string) => {
+    console.log(`\nChange detected: ${filePath}`);
+    console.log("Rebuilding...");
+    try {
+      await buildExtension(config);
+      await reloadExtensionAndTabs();
+      console.log(`Reloaded at ${new Date().toLocaleTimeString()}`);
+    } catch (error) {
+      console.error("Rebuild failed:", error);
+    }
+  }, REBUILD_DEBOUNCE_MS);
 
-  function cleanup() {
-    console.log("\nShutting down...");
-    watcher.close();
-    killOpera();
-    process.exit(0);
+  watcher.on("all", (event, filePath) => onFileChange(event, filePath));
+
+  for (const signal of ["SIGINT", "SIGTERM"] as const) {
+    process.on(signal, () => {
+      void watcher.close();
+      browserProcess.kill();
+      process.exit(0);
+    });
   }
 
-  process.on("SIGINT", cleanup);
-  process.on("SIGTERM", cleanup);
+  await new Promise(() => {});
 }
 
-main();
+main().catch(error => {
+  console.error("Fatal:", error);
+  process.exit(1);
+});
