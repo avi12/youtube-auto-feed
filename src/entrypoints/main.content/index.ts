@@ -1,13 +1,10 @@
-import {
-  addVideoToDom,
-  addVideosToGridDom,
-  findShelfForSection,
-  moveVideosToFront,
-  readDomSnapshot,
-  removeVideosFromDom,
-  repositionVideoInSection,
-  updateVideoInDom
-} from "./dom";
+import { addVideosToGridDom } from "./dom/add-grid";
+import { addVideoToDom } from "./dom/add-shelf";
+import { moveVideosToFront } from "./dom/move";
+import { findShelfForSection, readDomSnapshot } from "./dom/query";
+import { removeVideosFromDom } from "./dom/remove";
+import { repositionVideoInSection } from "./dom/reposition";
+import { updateVideoInDom } from "./dom/update";
 import {
   deepArray,
   deepRecord,
