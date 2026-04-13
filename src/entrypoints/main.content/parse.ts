@@ -163,6 +163,7 @@ export function parseSecondsAgo(publishedTimeText: string) {
 
 export function parseApiResponse(data: InnerTubeBrowseResponse) {
   const snapshots: VideoSnapshot[] = [];
+  const seenVideoIds = new Set<string>();
   try {
     const tabContent = data.contents.twoColumnBrowseResultsRenderer.tabs[0]?.tabRenderer.content;
 
@@ -176,7 +177,8 @@ export function parseApiResponse(data: InnerTubeBrowseResponse) {
         snapshot = parseShortsLockupViewModel(shortsLockup, sectionTitle);
       }
 
-      if (snapshot) {
+      if (snapshot && !seenVideoIds.has(snapshot.videoId)) {
+        seenVideoIds.add(snapshot.videoId);
         snapshots.push(snapshot);
       }
     }
