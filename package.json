@@ -1,6 +1,6 @@
 {
   "name": "youtube-feed-live",
-  "description": "Live-updates the YouTube channel feed as videos are published, removed, or change state — no page reload needed.",
+  "description": "Live-updates the YouTube channel feed as videos are published, removed, or change state - no page reload needed.",
   "private": true,
   "version": "0.0.0",
   "type": "module",
