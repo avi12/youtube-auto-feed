@@ -33,6 +33,28 @@
     both;
 }
 
+@keyframes ytsua-pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.6; }
+  100% { opacity: 1; }
+}
+
+.ytsua-updated {
+  animation: ytsua-pulse 400ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes ytsua-shelf-overflow-exit {
+  from {
+    opacity: 1;
+    translate: none;
+  }
+
+  to {
+    opacity: 0;
+    translate: var(--ytsua-overflow-translate, -80% 40%);
+  }
+}
+
 .ytsua-section-removing {
   opacity: 0;
   transition:
