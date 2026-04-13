@@ -2,9 +2,10 @@ import {
   addVideoToDom,
   addVideosToGridDom,
   findShelfForSection,
-  moveVideoToFront,
+  moveVideosToFront,
   readDomSnapshot,
   removeVideosFromDom,
+  repositionVideoInSection,
   updateVideoInDom
 } from "./dom";
 import {
@@ -16,11 +17,7 @@ import {
   videoIdFromData
 } from "./helpers";
 import { isInnerTubeBrowseResponse, parseApiResponse, parseSecondsAgo } from "./parse";
-import { type VideoSnapshot, type YouTubeInnertubeConfig, VideoStatus } from "./types";
-
-declare global {
-  const yt: { config_?: YouTubeInnertubeConfig } | undefined;
-}
+import { type VideoSnapshot, VideoStatus } from "./types";
 
 export default defineContentScript({
   matches: ["https://www.youtube.com/*"],
@@ -94,14 +91,26 @@ export default defineContentScript({
       }
 
       const videosToAdd: VideoSnapshot[] = [];
+      const videosToReposition: VideoSnapshot[] = [];
+      const videosToMoveToFront: VideoSnapshot[] = [];
       for (const [videoId, fresh] of freshMap) {
+        if (!currentDomIds.has(videoId)) {
+          videosToAdd.push(fresh);
+          continue;
+        }
+
         const previous = lastSnapshot.get(videoId);
         if (!previous) {
-          if (!currentDomIds.has(videoId)) {
-            videosToAdd.push(fresh);
-          }
-        } else if (previous.status === VideoStatus.Upcoming && fresh.status === VideoStatus.Live) {
-          void moveVideoToFront(videoId, fresh);
+          continue;
+        }
+
+        if (previous.status === VideoStatus.Upcoming && fresh.status === VideoStatus.Live) {
+          videosToMoveToFront.push(fresh);
+        } else if (
+          (previous.status === VideoStatus.Live || previous.status === VideoStatus.Upcoming) &&
+          fresh.status === VideoStatus.Video
+        ) {
+          videosToReposition.push(fresh);
         } else {
           const isTitleChanged = previous.title !== fresh.title;
           const isThumbnailChanged = previous.thumbnailUrl !== fresh.thumbnailUrl;
@@ -116,12 +125,17 @@ export default defineContentScript({
         }
       }
 
-      const isLayoutChange = videoIdsToRemove.length > 0 || videosToAdd.length > 0;
+      const isLayoutChange = videoIdsToRemove.length > 0 || videosToAdd.length > 0 || videosToReposition.length > 0;
       lastSnapshot = freshMap;
 
       const timeOrderedSnapshots = freshSnapshots.toSorted(
         (videoA, videoB) => parseSecondsAgo(videoA.publishedTimeText) - parseSecondsAgo(videoB.publishedTimeText)
       );
+
+      for (const video of videosToReposition) {
+        const sectionVideos = freshSnapshots.filter(snapshot => snapshot.sectionTitle === video.sectionTitle);
+        await repositionVideoInSection(video, sectionVideos, lastSnapshot);
+      }
 
       const shelfVideos = videosToAdd.filter(video => !!findShelfForSection(video.sectionTitle));
       const gridVideos = videosToAdd.filter(video => !findShelfForSection(video.sectionTitle));
@@ -132,26 +146,11 @@ export default defineContentScript({
         await addVideosToGridDom(gridVideos, timeOrderedSnapshots);
       }
 
-      return isLayoutChange;
-    }
-
-    async function computeAuthorizationHeader() {
-      const cookiePair = document.cookie
-        .split("; ")
-        .find(row => row.startsWith("SAPISID="));
-      if (!cookiePair) {
-        return null;
+      if (videosToMoveToFront.length > 0) {
+        await moveVideosToFront(videosToMoveToFront, freshSnapshots);
       }
 
-      const sapisid = cookiePair.slice("SAPISID=".length);
-      const timestamp = Math.floor(Date.now() / 1000);
-      const message = `${timestamp} ${sapisid} https://www.youtube.com`;
-      const encoded = new TextEncoder().encode(message);
-      const hashBuffer = await crypto.subtle.digest("SHA-1", encoded);
-      const hashHex = Array.from(new Uint8Array(hashBuffer))
-        .map(byte => byte.toString(16).padStart(2, "0"))
-        .join("");
-      return `SAPISIDHASH ${timestamp}_${hashHex}`;
+      return isLayoutChange;
     }
 
     async function fetchFreshVideos() {
@@ -159,38 +158,59 @@ export default defineContentScript({
         return false;
       }
 
-      const config = yt?.config_;
-      if (!config) {
-        return false;
-      }
-
-      const { INNERTUBE_CONTEXT } = config;
-      if (!INNERTUBE_CONTEXT) {
-        return false;
-      }
-
-      const authorizationHeader = await computeAuthorizationHeader();
-      if (!authorizationHeader) {
-        return false;
-      }
-
-      const response = await fetch("https://www.youtube.com/youtubei/v1/browse", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": authorizationHeader,
-          "X-YTSUA": "1"
-        },
-        body: JSON.stringify({
-          context: INNERTUBE_CONTEXT,
-          browseId: "FEsubscriptions"
-        })
+      const response = await fetch("https://www.youtube.com/feed/subscriptions", {
+        credentials: "include"
       }).catch(() => null);
       if (!response) {
         return false;
       }
 
-      const browseData: unknown = await response.json().catch(() => null);
+      const html = await response.text().catch(() => null);
+      if (!html) {
+        return false;
+      }
+
+      const startMarker = "var ytInitialData = ";
+      const iStart = html.indexOf(startMarker);
+      if (iStart < 0) {
+        return false;
+      }
+
+      let iEnd = iStart + startMarker.length;
+      let braceDepth = 0;
+      for (; iEnd < html.length; iEnd++) {
+        const character = html[iEnd];
+        if (character === "{") {
+          braceDepth++;
+        } else if (character === "}") {
+          braceDepth--;
+          if (braceDepth === 0) {
+            iEnd++;
+            break;
+          }
+        } else if (character === '"') {
+          iEnd++;
+          while (iEnd < html.length && html[iEnd] !== '"') {
+            if (html[iEnd] === "\\") {
+              iEnd++;
+            }
+            iEnd++;
+          }
+        }
+      }
+
+      const match = braceDepth === 0 ? html.slice(iStart + startMarker.length, iEnd) : null;
+      if (!match) {
+        return false;
+      }
+
+      let browseData: unknown;
+      try {
+        browseData = JSON.parse(match);
+      } catch {
+        return false;
+      }
+
       if (!isInnerTubeBrowseResponse(browseData)) {
         return false;
       }
@@ -200,7 +220,11 @@ export default defineContentScript({
         return false;
       }
 
-      return detectAndApplyChanges(freshSnapshots);
+      try {
+        return await detectAndApplyChanges(freshSnapshots);
+      } catch {
+        return false;
+      }
     }
 
     function handleSubscriptionChange() {
@@ -208,6 +232,9 @@ export default defineContentScript({
     }
 
     function restartPolling() {
+      if (pollingTimer !== null) {
+        clearInterval(pollingTimer);
+      }
       pollingTimer = setInterval(() => {
         void fetchFreshVideos();
       }, 5000);
@@ -228,7 +255,7 @@ export default defineContentScript({
           clearInterval(pollingTimer);
           pollingTimer = null;
         }
-        void fetchFreshVideos().then(() => restartPolling());
+        void fetchFreshVideos().finally(() => restartPolling());
       }, 300);
     }
 
@@ -339,3 +366,4 @@ export default defineContentScript({
     handleNavigation();
   }
 });
+
