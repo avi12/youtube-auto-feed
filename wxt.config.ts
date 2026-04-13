@@ -1,13 +1,16 @@
 import {
-  defineConfig 
+  defineConfig
 } from "wxt";
 
 export default defineConfig({
   manifest: {
-    name: "YouTube Subscriptions Updater",
+    name: "YouTube Feed Live",
     version: "1.0.0",
     description:
-      "Polls the YouTube Subscriptions feed every 5 seconds and updates the UI when videos are added, removed, or changed."
+      "Live-updates the YouTube channel feed as videos are published, removed, or change state — no page reload needed.",
+    gecko: {
+      id: "youtube-feed-live@avi12.com"
+    }
   },
   srcDir: "src",
   publicDir: "src/public",
