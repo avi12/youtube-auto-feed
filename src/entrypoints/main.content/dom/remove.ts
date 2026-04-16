@@ -28,10 +28,6 @@ export async function removeVideosFromDom(videoIds: string[]) {
   await removeGridItems(items, videoIds);
 }
 
-export async function removeVideoFromDom(videoId: string) {
-  return removeVideosFromDom([videoId]);
-}
-
 function collectItems(videoIdSet: Set<string>): ItemInfo[] {
   const items: ItemInfo[] = [];
 

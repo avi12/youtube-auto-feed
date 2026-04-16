@@ -8,11 +8,11 @@ export function isPolymerElement(element: Element): element is PolymerElement {
   return "data" in element;
 }
 
-export function isIndexable(value: unknown): value is Record<string, unknown> {
+function isIndexable(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
-export function dig(object: unknown, ...path: string[]) {
+function dig(object: unknown, ...path: string[]) {
   let current = object;
   for (const key of path) {
     if (!isIndexable(current)) {

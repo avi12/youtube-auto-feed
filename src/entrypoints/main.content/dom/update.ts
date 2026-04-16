@@ -58,9 +58,6 @@ export async function updateVideoInDom(videoId: string, freshSnapshot: VideoSnap
 
   if (isVisualChange) {
     elPolymerItem.style.viewTransitionName = `ytsua-item-${videoId}`;
-  }
-
-  if (isVisualChange) {
     try {
       await document.startViewTransition(applyUpdate).finished;
     } finally {

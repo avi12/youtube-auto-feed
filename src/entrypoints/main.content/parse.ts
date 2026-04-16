@@ -161,27 +161,37 @@ export function parseSecondsAgo(publishedTimeText: string) {
   return value * (secondsPerUnit[unit] ?? 0);
 }
 
+function collectSnapshot(
+  sectionTitle: string,
+  snapshots: VideoSnapshot[],
+  seenVideoIds: Set<string>,
+  renderer?: InnerTubeVideoRenderer,
+  lockup?: LockupViewModel,
+  shortsLockup?: ShortsLockupViewModel
+) {
+  let snapshot = null;
+  if (renderer) {
+    snapshot = parseRenderer(renderer, sectionTitle);
+  } else if (lockup) {
+    snapshot = parseLockupViewModel(lockup, sectionTitle);
+  } else if (shortsLockup) {
+    snapshot = parseShortsLockupViewModel(shortsLockup, sectionTitle);
+  }
+
+  if (snapshot && !seenVideoIds.has(snapshot.videoId)) {
+    seenVideoIds.add(snapshot.videoId);
+    snapshots.push(snapshot);
+  }
+}
+
 export function parseApiResponse(data: InnerTubeBrowseResponse) {
   const snapshots: VideoSnapshot[] = [];
   const seenVideoIds = new Set<string>();
   try {
     const tabContent = data.contents.twoColumnBrowseResultsRenderer.tabs[0]?.tabRenderer.content;
 
-    function pushSnapshot(sectionTitle: string, renderer?: InnerTubeVideoRenderer, lockup?: LockupViewModel, shortsLockup?: ShortsLockupViewModel) {
-      let snapshot = null;
-      if (renderer) {
-        snapshot = parseRenderer(renderer, sectionTitle);
-      } else if (lockup) {
-        snapshot = parseLockupViewModel(lockup, sectionTitle);
-      } else if (shortsLockup) {
-        snapshot = parseShortsLockupViewModel(shortsLockup, sectionTitle);
-      }
-
-      if (snapshot && !seenVideoIds.has(snapshot.videoId)) {
-        seenVideoIds.add(snapshot.videoId);
-        snapshots.push(snapshot);
-      }
-    }
+    const pushSnapshot = (sectionTitle: string, renderer?: InnerTubeVideoRenderer, lockup?: LockupViewModel, shortsLockup?: ShortsLockupViewModel) =>
+      collectSnapshot(sectionTitle, snapshots, seenVideoIds, renderer, lockup, shortsLockup);
 
     let currentSectionTitle = "";
     for (const item of tabContent?.richGridRenderer?.contents ?? []) {
