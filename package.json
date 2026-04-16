@@ -1,6 +1,6 @@
 {
-  "name": "youtube-feed-live",
-  "description": "Live-updates the YouTube channel feed as videos are published, removed, or change state - no page reload needed.",
+  "name": "youtube-raw-feed",
+  "description": "Keeps your YouTube subscriptions feed current as videos are published, removed, or change state - no page reload needed.",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -21,12 +21,12 @@
     "@stylistic/eslint-plugin": "^5.10.0",
     "eslint": "^10.2.0",
     "eslint-plugin-perfectionist": "^5.8.0",
-    "globals": "^17.4.0",
+    "globals": "^17.5.0",
     "postcss-html": "^1.8.1",
-    "stylelint": "^17.6.0",
-    "stylelint-config-ccb": "^3.31.1",
+    "stylelint": "^17.8.0",
+    "stylelint-config-ccb": "^3.31.2",
     "typescript": "^6.0.2",
-    "typescript-eslint": "^8.58.0",
-    "wxt": "^0.20.20"
+    "typescript-eslint": "^8.58.2",
+    "wxt": "^0.20.22"
   }
 }

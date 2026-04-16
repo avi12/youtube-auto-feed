@@ -4,13 +4,13 @@ import {
 
 export default defineConfig({
   manifest: {
-    name: "YouTube Feed Live",
+    name: "YouTube Raw Feed",
     version: "1.0.0",
     description:
-      "Live-updates the YouTube channel feed as videos are published, removed, or change state - no page reload needed.",
+      "Keeps your YouTube subscriptions feed current as videos are published, removed, or change state - no page reload needed.",
     browser_specific_settings: {
       gecko: {
-        id: "youtube-feed-live@avi12.com"
+        id: "youtube-raw-feed@avi12.com"
       }
     }
   },
