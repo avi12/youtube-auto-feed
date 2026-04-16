@@ -1,7 +1,7 @@
 import { assignItemViewTransitionNames, buildStaggerStyle, clearItemViewTransitionNames } from "../animations";
 import { deepArray, isPolymerElement, isRecord } from "../helpers";
 import type { PolymerElement } from "../types";
-import { filterOutRichItems } from "./content";
+import { filterOutRichItems } from "./rich-item";
 import type { ItemInfo } from "./remove";
 
 export async function removeGridItems(items: ItemInfo[], allRequestedVideoIds: string[]) {

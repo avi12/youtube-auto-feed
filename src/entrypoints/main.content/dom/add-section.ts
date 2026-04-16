@@ -5,7 +5,7 @@ import {
 } from "../animations";
 import { deepArray, isPolymerElement, isRecord } from "../helpers";
 import type { VideoSnapshot } from "../types";
-import { buildRichItem } from "./renderer";
+import { buildRichItem } from "./build";
 
 export async function addSectionToDom(sectionTitle: string, videos: VideoSnapshot[]) {
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");

@@ -1,9 +1,9 @@
 import { assignItemViewTransitionNames, clearItemViewTransitionNames, triggerAnimation } from "../animations";
 import { deepArray, deepRecord, isPolymerElement, isRecord } from "../helpers";
 import type { VideoSnapshot } from "../types";
-import { filterOutRichItems, sortByFreshOrder, videoIdFromRichItem } from "./content";
+import { filterOutRichItems, sortByFreshOrder, videoIdFromRichItem } from "./rich-item";
 import { findItemElement, findShelfForSection } from "./query";
-import { buildRichItem } from "./renderer";
+import { buildRichItem } from "./build";
 import { updateVideoInDom } from "./update";
 
 export async function moveVideosToFront(videos: VideoSnapshot[], allFreshSnapshots: VideoSnapshot[]) {

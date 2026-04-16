@@ -4,7 +4,7 @@ import {
   clearItemViewTransitionNames
 } from "../animations";
 import { deepArray, deepRecord, deepString, isPolymerElement, isRecord } from "../helpers";
-import { filterOutRichItems } from "./content";
+import { filterOutRichItems } from "./rich-item";
 import type { ItemInfo } from "./remove";
 
 type ShelfGroup = { videoIds: string[]; elOnScreenItems: HTMLElement[]; };

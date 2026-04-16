@@ -7,8 +7,8 @@ import {
 import { deepArray, isPolymerElement, isRecord, videoIdFromData } from "../helpers";
 import { type PolymerElement, type VideoSnapshot } from "../types";
 import { addSectionToDom } from "./add-section";
-import { sortByFreshOrder, videoIdFromRichItem } from "./content";
-import { buildRichItem } from "./renderer";
+import { sortByFreshOrder, videoIdFromRichItem } from "./rich-item";
+import { buildRichItem } from "./build";
 
 export async function addVideosToGridDom(videosToAdd: VideoSnapshot[], allFreshSnapshots: VideoSnapshot[]) {
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");

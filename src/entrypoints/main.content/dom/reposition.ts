@@ -1,9 +1,9 @@
 import { assignItemViewTransitionNames, clearItemViewTransitionNames } from "../animations";
 import { deepArray, deepRecord, isPolymerElement, videoIdFromData } from "../helpers";
 import { type VideoSnapshot, VideoStatus } from "../types";
-import { findRichItemIndex, videoIdFromRichItem } from "./content";
+import { findRichItemIndex, videoIdFromRichItem } from "./rich-item";
 import { findItemElement, findShelfForSection } from "./query";
-import { buildRichItem } from "./renderer";
+import { buildRichItem } from "./build";
 import { updateVideoInDom } from "./update";
 
 export async function repositionVideoInSection(

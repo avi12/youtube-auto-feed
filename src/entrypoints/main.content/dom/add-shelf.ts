@@ -7,7 +7,7 @@ import { deepArray, isPolymerElement, isRecord, videoIdFromData } from "../helpe
 import { type VideoSnapshot, VideoStatus } from "../types";
 import { addSectionToDom } from "./add-section";
 import { findItemElement, findShelfForSection, leadingLiveCount } from "./query";
-import { buildRichItem } from "./renderer";
+import { buildRichItem } from "./build";
 
 export async function addVideoToDom(freshSnapshot: VideoSnapshot, allFreshSnapshots: VideoSnapshot[], snapshot: Map<string, VideoSnapshot>) {
   const {
