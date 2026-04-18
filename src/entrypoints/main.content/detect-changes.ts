@@ -1,16 +1,17 @@
-import { addVideosToGridDom } from "./dom/add-grid";
+import { addVideosToGridDom, cleanOrphanedGridItems } from "./dom/add-grid";
 import { addVideoToDom } from "./dom/add-shelf";
 import { moveVideosToFront } from "./dom/move";
 import { findShelfForSection } from "./dom/query";
 import { removeVideosFromDom } from "./dom/remove";
 import { repositionVideoInSection } from "./dom/reposition";
 import { updateVideoInDom } from "./dom/update";
-import { deepArray, deepRecord, isPolymerElement, isRecord, videoIdFromData } from "./helpers";
+import { deepArray, deepRecord, deepString, isPolymerElement, isRecord, videoIdFromData } from "./helpers";
 import { parseSecondsAgo } from "./parse";
 import { type VideoSnapshot, VideoStatus } from "./types";
 
-function readDomVideoIds() {
-  const domIds = new Set<string>();
+function readCurrentVideoIds() {
+  const videoIds = new Set<string>();
+
   for (const elItem of document.querySelectorAll<HTMLElement>("ytd-rich-item-renderer")) {
     if (!isPolymerElement(elItem)) {
       continue;
@@ -18,12 +19,8 @@ function readDomVideoIds() {
 
     const videoId = videoIdFromData(elItem.data);
     if (videoId) {
-      domIds.add(videoId);
+      videoIds.add(videoId);
     }
-  }
-
-  if (domIds.size > 0) {
-    return domIds;
   }
 
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
@@ -31,12 +28,54 @@ function readDomVideoIds() {
     for (const item of deepArray(elGrid.data, "contents")) {
       const videoId = videoIdFromData(deepRecord(item, "richItemRenderer"));
       if (videoId) {
-        domIds.add(videoId);
+        videoIds.add(videoId);
+        continue;
+      }
+      for (const shelfItem of deepArray(item, "richSectionRenderer", "content", "richShelfRenderer", "contents")) {
+        const shelfVideoId = videoIdFromData(deepRecord(shelfItem, "richItemRenderer"));
+        if (shelfVideoId) {
+          videoIds.add(shelfVideoId);
+        }
+      }
+      for (const listItem of [
+        ...deepArray(item, "richSectionRenderer", "content", "shelfRenderer", "content", "horizontalListRenderer", "items"),
+        ...deepArray(item, "richSectionRenderer", "content", "shelfRenderer", "content", "gridRenderer", "items")
+      ]) {
+        const listVideoId = deepString(listItem, "videoRenderer", "videoId") || deepString(listItem, "gridVideoRenderer", "videoId");
+        if (listVideoId) videoIds.add(listVideoId);
       }
     }
   }
 
-  return domIds;
+  for (const elShelf of document.querySelectorAll<HTMLElement>("ytd-shelf-renderer")) {
+    if (!isPolymerElement(elShelf)) {
+      continue;
+    }
+
+    const shelfContent = deepRecord(elShelf.data, "content");
+    for (const listItem of [
+      ...deepArray(shelfContent, "horizontalListRenderer", "items"),
+      ...deepArray(shelfContent, "gridRenderer", "items")
+    ]) {
+      const listVideoId = deepString(listItem, "videoRenderer", "videoId") || deepString(listItem, "gridVideoRenderer", "videoId");
+      if (listVideoId) videoIds.add(listVideoId);
+    }
+  }
+
+  for (const elShelf of document.querySelectorAll<HTMLElement>("ytd-rich-shelf-renderer")) {
+    if (!isPolymerElement(elShelf)) {
+      continue;
+    }
+
+    for (const item of deepArray(elShelf.data, "contents")) {
+      const videoId = videoIdFromData(deepRecord(item, "richItemRenderer"));
+      if (videoId) {
+        videoIds.add(videoId);
+      }
+    }
+  }
+
+  return videoIds;
 }
 
 export async function detectAndApplyChanges(
@@ -56,13 +95,13 @@ export async function detectAndApplyChanges(
     await removeVideosFromDom(videoIdsToRemove);
   }
 
-  const currentDomIds = readDomVideoIds();
+  const currentVideoIds = readCurrentVideoIds();
 
   const videosToAdd: VideoSnapshot[] = [];
   const videosToReposition: VideoSnapshot[] = [];
   const videosToMoveToFront: VideoSnapshot[] = [];
   for (const [videoId, fresh] of freshMap) {
-    if (!currentDomIds.has(videoId)) {
+    if (!currentVideoIds.has(videoId)) {
       videosToAdd.push(fresh);
       continue;
     }
@@ -85,8 +124,9 @@ export async function detectAndApplyChanges(
       const isStatusChanged = previous.status !== fresh.status;
       const isViewCountChanged = previous.viewCountText !== fresh.viewCountText;
       const isTimestampChanged = previous.publishedTimeText !== fresh.publishedTimeText;
+      const isChannelLiveChanged = previous.isChannelLive !== fresh.isChannelLive;
       const isVisualChange = isTitleChanged || isThumbnailChanged || isStatusChanged;
-      const isAnyChange = isVisualChange || isViewCountChanged || isTimestampChanged;
+      const isAnyChange = isVisualChange || isViewCountChanged || isTimestampChanged || isChannelLiveChanged;
       if (isAnyChange) {
         void updateVideoInDom(videoId, fresh, isVisualChange);
       }
@@ -116,6 +156,8 @@ export async function detectAndApplyChanges(
   if (videosToMoveToFront.length > 0) {
     await moveVideosToFront(videosToMoveToFront, freshSnapshots);
   }
+
+  cleanOrphanedGridItems();
 
   return { isLayoutChange, snapshot: freshMap };
 }
