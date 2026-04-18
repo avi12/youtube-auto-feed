@@ -54,6 +54,11 @@ export enum LockupContentType {
   Shorts = "LOCKUP_CONTENT_TYPE_SHORTS"
 }
 
+export enum LockupBadgeStyle {
+  Live = "THUMBNAIL_OVERLAY_BADGE_STYLE_LIVE",
+  Upcoming = "THUMBNAIL_OVERLAY_BADGE_STYLE_UPCOMING",
+}
+
 export interface LockupViewModel {
   contentId: string;
   contentType: LockupContentType;
@@ -66,12 +71,27 @@ export interface LockupViewModel {
           height?: number;
         }>;
       };
+      overlays?: Array<{
+        thumbnailBottomOverlayViewModel?: {
+          badges?: Array<{
+            thumbnailBadgeViewModel?: {
+              badgeStyle?: LockupBadgeStyle;
+              text?: string;
+            };
+          }>;
+        };
+      }>;
     };
   };
   metadata?: {
     lockupMetadataViewModel?: {
       title?: { content?: string; };
       metadata?: { contentMetadataViewModel?: { metadataRows?: Array<{ metadataParts?: Array<{ text?: { content?: string; }; }>; }>; }; };
+      image?: {
+        decoratedAvatarViewModel?: {
+          liveData?: { liveBadgeText?: string; };
+        };
+      };
     };
   };
 }
@@ -221,6 +241,7 @@ export interface VideoSnapshot {
   status: VideoStatus;
   viewCountText: string;
   publishedTimeText: string;
+  isChannelLive: boolean;
   sectionTitle: string;
   rawRenderer: InnerTubeVideoRenderer | LockupViewModel | ShortsLockupViewModel;
 }

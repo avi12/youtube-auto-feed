@@ -3,6 +3,7 @@ import {
   BadgeStyle,
   type InnerTubeBrowseResponse,
   type InnerTubeVideoRenderer,
+  LockupBadgeStyle,
   LockupContentType,
   type LockupViewModel,
   OverlayStyle,
@@ -83,9 +84,23 @@ export function parseRenderer(renderer: InnerTubeVideoRenderer, sectionTitle: st
     status: statusFromRenderer(renderer),
     viewCountText: viewCountFromRenderer(renderer),
     publishedTimeText: publishedTimeText?.simpleText ?? "",
+    isChannelLive: false,
     sectionTitle,
     rawRenderer: renderer
   } satisfies VideoSnapshot;
+}
+
+function statusFromLockup(lockup: LockupViewModel) {
+  if (lockup.contentType === LockupContentType.Shorts) return VideoStatus.Short;
+  const overlays = lockup.contentImage?.thumbnailViewModel?.overlays ?? [];
+  for (const overlay of overlays) {
+    for (const badge of overlay.thumbnailBottomOverlayViewModel?.badges ?? []) {
+      const style = badge.thumbnailBadgeViewModel?.badgeStyle;
+      if (style === LockupBadgeStyle.Live) return VideoStatus.Live;
+      if (style === LockupBadgeStyle.Upcoming) return VideoStatus.Upcoming;
+    }
+  }
+  return VideoStatus.Video;
 }
 
 export function parseLockupViewModel(lockup: LockupViewModel, sectionTitle: string) {
@@ -107,7 +122,8 @@ export function parseLockupViewModel(lockup: LockupViewModel, sectionTitle: stri
   const metaParts = metaRows?.[1]?.metadataParts;
   const viewCountText = metaParts?.[0]?.text?.content ?? "";
   const publishedTimeText = metaParts?.[1]?.text?.content ?? "";
-  const status = contentType === LockupContentType.Shorts ? VideoStatus.Short : VideoStatus.Video;
+  const status = statusFromLockup(lockup);
+  const isChannelLive = !!metaViewModel?.image?.decoratedAvatarViewModel?.liveData?.liveBadgeText;
   return {
     videoId: contentId,
     title,
@@ -115,6 +131,7 @@ export function parseLockupViewModel(lockup: LockupViewModel, sectionTitle: stri
     status,
     viewCountText,
     publishedTimeText,
+    isChannelLive,
     sectionTitle,
     rawRenderer: lockup
   } satisfies VideoSnapshot;
@@ -136,6 +153,7 @@ export function parseShortsLockupViewModel(shortsLockup: ShortsLockupViewModel, 
     status: VideoStatus.Short,
     viewCountText,
     publishedTimeText: "",
+    isChannelLive: false,
     sectionTitle,
     rawRenderer: shortsLockup
   } satisfies VideoSnapshot;
