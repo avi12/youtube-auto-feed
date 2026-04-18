@@ -7,6 +7,7 @@ import { deepArray, isPolymerElement, isRecord, videoIdFromData } from "../helpe
 import { type VideoSnapshot, VideoStatus } from "../types";
 import { addSectionToDom } from "./add-section";
 import { findItemElement, findShelfForSection, leadingLiveCount } from "./query";
+import { videoIdFromRichItem } from "./rich-item";
 import { buildRichItem } from "./build";
 
 export async function addVideoToDom(freshSnapshot: VideoSnapshot, allFreshSnapshots: VideoSnapshot[], snapshot: Map<string, VideoSnapshot>) {
@@ -24,6 +25,11 @@ export async function addVideoToDom(freshSnapshot: VideoSnapshot, allFreshSnapsh
     return;
   }
 
+  const shelfContents = deepArray(elShelf.data, "contents");
+  if (shelfContents.some(item => videoIdFromRichItem(item) === videoId)) {
+    return;
+  }
+
   const iApiInsert = Math.max(0, sectionVideos.findIndex(video => video.videoId === videoId));
   const iInsert = status !== VideoStatus.Live
     ? Math.max(iApiInsert, leadingLiveCount(elShelf, snapshot))
@@ -31,7 +37,6 @@ export async function addVideoToDom(freshSnapshot: VideoSnapshot, allFreshSnapsh
   const elExistingItems = elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer");
   assignItemViewTransitionNames(elExistingItems);
 
-  const shelfContents = deepArray(elShelf.data, "contents");
   const newShelfContents = [...shelfContents];
   newShelfContents.splice(iInsert, 0, buildRichItem(rawRenderer));
 
