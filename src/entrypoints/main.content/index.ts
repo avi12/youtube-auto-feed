@@ -12,6 +12,7 @@ export default defineContentScript({
   main() {
     let lastSnapshot = new Map<string, VideoSnapshot>();
     let isDomReady = false;
+    let isApplyingChanges = false;
     let contentObserver: MutationObserver | null = null;
     let pendingApiSnapshots: VideoSnapshot[] | null = null;
     let pendingApiSnapshotsTime = 0;
@@ -19,9 +20,15 @@ export default defineContentScript({
     let focusDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
     async function applyChanges(freshSnapshots: VideoSnapshot[]) {
-      const { isLayoutChange, snapshot } = await detectAndApplyChanges(lastSnapshot, freshSnapshots);
-      lastSnapshot = snapshot;
-      return isLayoutChange;
+      if (isApplyingChanges) return false;
+      isApplyingChanges = true;
+      try {
+        const { isLayoutChange, snapshot } = await detectAndApplyChanges(lastSnapshot, freshSnapshots);
+        lastSnapshot = snapshot;
+        return isLayoutChange;
+      } finally {
+        isApplyingChanges = false;
+      }
     }
 
     function handleBrowseResponse(event: Event) {
