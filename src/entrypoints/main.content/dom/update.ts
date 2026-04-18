@@ -44,6 +44,8 @@ export async function updateVideoInDom(videoId: string, freshSnapshot: VideoSnap
     } else if (isRecord(content.lockupViewModel)) {
       elPolymerItem.set("data.content.lockupViewModel", rawRenderer);
       updateLockupMetadata(elPolymerItem, freshSnapshot.viewCountText, freshSnapshot.publishedTimeText);
+    } else if (isRecord(content.shortsLockupViewModel)) {
+      elPolymerItem.set("data.content.shortsLockupViewModel", rawRenderer);
     } else if (isRecord(content.videoRenderer)) {
       elPolymerItem.set("data.content.videoRenderer", rawRenderer);
     } else if (isRecord(content.gridVideoRenderer)) {
