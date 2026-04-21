@@ -1,5 +1,5 @@
 <svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
-  <!-- Dark charcoal outer frame -->
+  <!-- Dark rounded square (corners are transparent in PNG) -->
   <rect width="128" height="128" rx="22" fill="#212121"/>
 
   <!-- Red badge -->
