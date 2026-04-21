@@ -5,7 +5,7 @@ import { moveVideosToFront } from "./dom/move";
 import { findShelfForSection } from "./dom/query";
 import { removeVideosFromDom } from "./dom/remove";
 import { repositionVideoInSection } from "./dom/reposition";
-import { updateVideoInDom } from "./dom/update";
+import { batchUpdateVideosInDom, updateVideoInDom } from "./dom/update";
 import {
   deepArray, deepRecord, deepString, isPolymerElement, isRecord, videoIdFromData 
 } from "./helpers";
@@ -127,16 +127,15 @@ export async function detectAndApplyChanges(
       videoIdsToRemove.push(videoId);
       videosToAdd.push(fresh);
     } else {
-      const isTitleChanged = previous.title !== fresh.title;
-      const isThumbnailChanged = previous.thumbnailUrl !== fresh.thumbnailUrl;
-      const isStatusChanged = previous.status !== fresh.status;
-      const isViewCountChanged = previous.viewCountText !== fresh.viewCountText;
-      const isTimestampChanged = previous.publishedTimeText !== fresh.publishedTimeText;
-      const isChannelLiveChanged = previous.isChannelLive !== fresh.isChannelLive;
-      const isVisualChange = isTitleChanged || isThumbnailChanged || isStatusChanged;
-      const isAnyChange = isVisualChange || isViewCountChanged || isTimestampChanged || isChannelLiveChanged;
+      const isAnyChange =
+        previous.title !== fresh.title ||
+        previous.thumbnailUrl !== fresh.thumbnailUrl ||
+        previous.status !== fresh.status ||
+        previous.viewCountText !== fresh.viewCountText ||
+        previous.publishedTimeText !== fresh.publishedTimeText ||
+        previous.isChannelLive !== fresh.isChannelLive;
       if (isAnyChange) {
-        void updateVideoInDom(videoId, fresh, isVisualChange);
+        void updateVideoInDom(videoId, fresh);
       }
     }
   }
@@ -187,4 +186,38 @@ export async function detectAndApplyChanges(
   }
 
   return { isLayoutChange, snapshot: freshMap };
+}
+
+export async function detectAndApplyMetadataChanges(
+  previousSnapshot: Map<string, VideoSnapshot>,
+  freshSnapshots: VideoSnapshot[]
+) {
+  const updatedSnapshot = new Map(previousSnapshot);
+  const changedVideos: VideoSnapshot[] = [];
+
+  for (const fresh of freshSnapshots) {
+    const previous = previousSnapshot.get(fresh.videoId);
+    if (!previous) {
+      continue;
+    }
+
+    const isChanged =
+      previous.title !== fresh.title ||
+      previous.thumbnailUrl !== fresh.thumbnailUrl ||
+      previous.status !== fresh.status ||
+      previous.viewCountText !== fresh.viewCountText ||
+      previous.publishedTimeText !== fresh.publishedTimeText ||
+      previous.isChannelLive !== fresh.isChannelLive;
+
+    if (isChanged) {
+      changedVideos.push(fresh);
+      updatedSnapshot.set(fresh.videoId, fresh);
+    }
+  }
+
+  if (changedVideos.length > 0) {
+    await batchUpdateVideosInDom(changedVideos);
+  }
+
+  return updatedSnapshot;
 }

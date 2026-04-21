@@ -1,7 +1,7 @@
 import { fetchInitialVideos } from "./api/fetch";
 import { isInnerTubeBrowseResponse } from "./api/guards";
 import { parseApiResponse } from "./api/parse";
-import { detectAndApplyChanges } from "./detect-changes";
+import { detectAndApplyChanges, detectAndApplyMetadataChanges } from "./detect-changes";
 import { readDomSnapshot } from "./dom/query";
 import { isOnSubscriptionsPage } from "./helpers";
 import { isDomContentReady } from "./readiness";
@@ -10,7 +10,7 @@ import { type VideoSnapshot } from "./types";
 export default defineContentScript({
   matches: ["https://www.youtube.com/*"],
   world: "MAIN",
-  main() {
+  main(context) {
     let lastSnapshot = new Map<string, VideoSnapshot>();
     let isDomReady = false;
     let isApplyingChanges = false;
@@ -18,8 +18,8 @@ export default defineContentScript({
     let contentObserver: MutationObserver | null = null;
     let pendingApiSnapshots: VideoSnapshot[] | null = null;
     let pendingApiSnapshotsTime = 0;
-    let pollingTimer: ReturnType<typeof setInterval> | null = null;
-    let focusDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+    let pollingTimer: number | null = null;
+    let metadataPollingTimer: number | null = null;
 
     async function applyChanges(freshSnapshots: VideoSnapshot[]) {
       if (isApplyingChanges) {
@@ -85,6 +85,30 @@ export default defineContentScript({
       }
     }
 
+    async function fetchAndApplyMetadataUpdates() {
+      if (!isOnSubscriptionsPage() || !isDomReady || isApplyingChanges) {
+        return;
+      }
+
+      const snapshots = await fetchInitialVideos();
+      if (!snapshots) {
+        return;
+      }
+
+      if (isApplyingChanges) {
+        return;
+      }
+
+      isApplyingChanges = true;
+      try {
+        lastSnapshot = await detectAndApplyMetadataChanges(lastSnapshot, snapshots);
+      } catch {
+        // no-op
+      } finally {
+        isApplyingChanges = false;
+      }
+    }
+
     function handleSubscriptionChange() {
       void fetchFreshVideos();
     }
@@ -94,7 +118,7 @@ export default defineContentScript({
         clearInterval(pollingTimer);
       }
 
-      pollingTimer = setInterval(() => {
+      pollingTimer = context.setInterval(() => {
         void fetchFreshVideos();
       }, 5000);
     }
@@ -104,19 +128,12 @@ export default defineContentScript({
         return;
       }
 
-      if (focusDebounceTimer !== null) {
-        clearTimeout(focusDebounceTimer);
+      if (pollingTimer !== null) {
+        clearInterval(pollingTimer);
+        pollingTimer = null;
       }
 
-      focusDebounceTimer = setTimeout(() => {
-        focusDebounceTimer = null;
-        if (pollingTimer !== null) {
-          clearInterval(pollingTimer);
-          pollingTimer = null;
-        }
-
-        void fetchFreshVideos().finally(() => restartPolling());
-      }, 300);
+      void fetchFreshVideos().finally(() => restartPolling());
     }
 
     function stopMonitoring() {
@@ -124,14 +141,15 @@ export default defineContentScript({
       removeEventListener("ytsua-subscription-change", handleSubscriptionChange);
       document.removeEventListener("visibilitychange", handlePageFocus);
       broadcastChannel.onmessage = null;
-      if (focusDebounceTimer !== null) {
-        clearTimeout(focusDebounceTimer);
-        focusDebounceTimer = null;
-      }
 
       if (pollingTimer !== null) {
         clearInterval(pollingTimer);
         pollingTimer = null;
+      }
+
+      if (metadataPollingTimer !== null) {
+        clearInterval(metadataPollingTimer);
+        metadataPollingTimer = null;
       }
 
       if (contentObserver !== null) {
@@ -148,6 +166,9 @@ export default defineContentScript({
       document.addEventListener("visibilitychange", handlePageFocus);
       broadcastChannel.onmessage = handleSubscriptionChange;
       restartPolling();
+      metadataPollingTimer = context.setInterval(() => {
+        void fetchAndApplyMetadataUpdates();
+      }, 5 * 60 * 1000);
     }
 
     function applyDomBaseline() {
