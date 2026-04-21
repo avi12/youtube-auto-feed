@@ -1,10 +1,16 @@
 <svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
-  <!-- Dark rounded square (corners are transparent in PNG) -->
+  <!-- Dark rounded square (transparent corners) -->
   <rect width="128" height="128" rx="22" fill="#212121"/>
 
-  <!-- Red badge -->
-  <rect x="14" y="34" width="100" height="60" rx="12" fill="#FF0000"/>
+  <!-- YouTube red badge -->
+  <rect x="14" y="34" width="100" height="60" rx="12" fill="#FF0033"/>
 
-  <!-- White play triangle, centered in badge -->
-  <polygon points="51,46 51,82 89,64" fill="white"/>
+  <!-- "NOW" — the now-feed identity -->
+  <text x="64" y="64"
+    font-family="Arial Black, Arial, sans-serif"
+    font-size="30"
+    font-weight="900"
+    fill="white"
+    text-anchor="middle"
+    dominant-baseline="middle">NOW</text>
 </svg>
