@@ -1,0 +1,15 @@
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+  <!-- YouTube logo frame: 1.45:1 ratio, rx≈17.5% of height, matching yt logo from DOM -->
+  <rect x="8" y="35" width="84" height="58" rx="10" fill="#FF0033"/>
+
+  <!-- Play triangle: proportions from actual yt logo (left 39.7%, tip 65.5%, top/bot 28.75%) -->
+  <polygon points="41,52 41,76 63,64" fill="white"/>
+
+  <!-- Signal arcs: circles centred on frame's right edge (92,64), 120° dash centred at 0° -->
+  <circle cx="92" cy="64" r="15"
+    fill="none" stroke="#FF0033" stroke-width="8" stroke-linecap="round"
+    stroke-dasharray="31.42 62.83" stroke-dashoffset="15.71"/>
+  <circle cx="92" cy="64" r="26"
+    fill="none" stroke="#FF0033" stroke-width="8" stroke-linecap="round"
+    stroke-dasharray="54.45 108.91" stroke-dashoffset="27.23"/>
+</svg>
