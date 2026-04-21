@@ -3,8 +3,10 @@ import {
   buildNewItemTransitionStyle,
   buildShiftTransitionStyle,
   clearAllItemViewTransitionNames,
+  extractAnimateIds,
+  reassignTransitionNames,
 } from "../animations";
-import { deepArray, isPolymerElement, isRecord, videoIdFromData } from "../helpers";
+import { deepArray, isPolymerElement, isRecord } from "../helpers";
 import type { VideoSnapshot } from "../types";
 import { buildRichItem } from "./build";
 import { findItemElement } from "./query";
@@ -36,12 +38,7 @@ export async function addSectionToDom(sectionTitle: string, videos: VideoSnapsho
   clearAllItemViewTransitionNames();
   assignItemViewTransitionNames(elAllItems);
 
-  const animateIds = new Set(
-    elAllItems
-      .filter(isPolymerElement)
-      .map(el => videoIdFromData(el.data))
-      .filter((id): id is string => id !== null && id !== "")
-  );
+  const animateIds = extractAnimateIds(elAllItems);
 
   const elShiftStyle = buildShiftTransitionStyle(elAllItems);
   document.head.append(elShiftStyle);
@@ -58,18 +55,10 @@ export async function addSectionToDom(sectionTitle: string, videos: VideoSnapsho
       await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
     }
 
-    const reassignedIds = new Set<string>();
     const elQueryItems = elGridContents
       ? elGridContents.querySelectorAll<HTMLElement>(":scope > ytd-rich-item-renderer")
       : document.querySelectorAll<HTMLElement>("ytd-rich-item-renderer");
-    for (const elItem of elQueryItems) {
-      if (!isPolymerElement(elItem)) continue;
-      const id = videoIdFromData(elItem.data);
-      if (id && animateIds.has(id) && !reassignedIds.has(id)) {
-        reassignedIds.add(id);
-        elItem.style.viewTransitionName = `ytsua-item-${id}`;
-      }
-    }
+    reassignTransitionNames(elQueryItems, animateIds);
 
     const elNewItems: HTMLElement[] = [];
     for (const video of videos) {

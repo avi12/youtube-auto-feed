@@ -1,4 +1,4 @@
-import { assignItemViewTransitionNames, buildShiftTransitionStyle, clearAllItemViewTransitionNames } from "../animations";
+import { assignItemViewTransitionNames, buildShiftTransitionStyle, clearAllItemViewTransitionNames, extractAnimateIds, reassignTransitionNames } from "../animations";
 import { deepArray, deepRecord, isPolymerElement, videoIdFromData } from "../helpers";
 import { type VideoSnapshot, VideoStatus } from "../types";
 import { findRichItemIndex, videoIdFromRichItem } from "./rich-item";
@@ -43,12 +43,7 @@ export async function repositionVideoInSection(
   const elItems = elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer");
   assignItemViewTransitionNames(elItems);
 
-  const animateIds = new Set(
-    [...elItems]
-      .filter(isPolymerElement)
-      .map(el => videoIdFromData(el.data))
-      .filter((id): id is string => id !== null && id !== "")
-  );
+  const animateIds = extractAnimateIds(elItems);
 
   const elShiftStyle = buildShiftTransitionStyle(elItems);
   document.head.append(elShiftStyle);
@@ -59,15 +54,7 @@ export async function repositionVideoInSection(
       for (const elItem of elItems) {
         elItem.style.viewTransitionName = "";
       }
-      const reassignedIds = new Set<string>();
-      for (const elItem of elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer")) {
-        if (!isPolymerElement(elItem)) continue;
-        const id = videoIdFromData(elItem.data);
-        if (id && animateIds.has(id) && !reassignedIds.has(id)) {
-          reassignedIds.add(id);
-          elItem.style.viewTransitionName = `ytsua-item-${id}`;
-        }
-      }
+      reassignTransitionNames(elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer"), animateIds);
     }).finished;
   } finally {
     clearAllItemViewTransitionNames();

@@ -2,11 +2,14 @@ import {
   assignItemViewTransitionNames,
   buildNewItemTransitionStyle,
   buildShiftTransitionStyle,
+  calcStaggerDelayMs,
   clearAllItemViewTransitionNames,
-  clearItemViewTransitionNames
+  clearItemViewTransitionNames,
+  extractAnimateIds,
+  reassignTransitionNames,
 } from "../animations";
 import { deepArray, deepRecord, deepString, isPolymerElement, isRecord, videoIdFromData } from "../helpers";
-import { isVideoRenderer } from "../parse";
+import { isVideoRenderer } from "../api/guards";
 import { type VideoSnapshot } from "../types";
 import { addSectionToDom } from "./add-section";
 import { findItemElement } from "./query";
@@ -40,14 +43,6 @@ export async function addVideosToGridDom(videosToAdd: VideoSnapshot[], allFreshS
   const freshOrderMap = new Map(allFreshSnapshots.map((video, i) => [video.videoId, i]));
   const sortedVideos = sortByFreshOrder(videosToAdd, freshOrderMap);
 
-  const modelSectionTitles = new Set(
-    deepArray(elGrid.data, "contents")
-      .flatMap(item => [
-        deepString(item, "richSectionRenderer", "content", "richShelfRenderer", "title", "runs", "0", "text"),
-        deepString(item, "richSectionRenderer", "content", "shelfRenderer", "title", "runs", "0", "text")
-      ])
-      .filter(title => title !== "")
-  );
   const standaloneVideos = sortedVideos.filter(video => !video.sectionTitle);
 
   let actuallyAddedVideos: VideoSnapshot[] = [];
@@ -61,17 +56,10 @@ export async function addVideosToGridDom(videosToAdd: VideoSnapshot[], allFreshS
     : { elElementsToAnimate: [] as HTMLElement[], elSectionsToAnimate: [] as HTMLElement[] };
 
   assignItemViewTransitionNames(elElementsToAnimate);
-  const shiftCount = elElementsToAnimate.length;
-  const shiftDelayPerItemMs = shiftCount > 1 ? Math.min(80 / (shiftCount - 1), 20) : 0;
-  const elShiftStyle = buildShiftTransitionStyle(elElementsToAnimate, new Set(), shiftDelayPerItemMs);
+  const elShiftStyle = buildShiftTransitionStyle(elElementsToAnimate, new Set(), calcStaggerDelayMs(elElementsToAnimate.length));
   document.head.append(elShiftStyle);
 
-  const animateIds = new Set(
-    elElementsToAnimate
-      .filter(isPolymerElement)
-      .map(el => videoIdFromData(el.data))
-      .filter((id): id is string => id !== null && id !== "")
-  );
+  const animateIds = extractAnimateIds(elElementsToAnimate);
 
   try {
     await document.startViewTransition(async () => {
@@ -184,15 +172,7 @@ export async function addVideosToGridDom(videosToAdd: VideoSnapshot[], allFreshS
         await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
       }
 
-      const reassignedIds = new Set<string>();
-      for (const elItem of elGridContents.querySelectorAll<HTMLElement>(":scope > ytd-rich-item-renderer")) {
-        if (!isPolymerElement(elItem)) continue;
-        const id = videoIdFromData(elItem.data);
-        if (id && animateIds.has(id) && !reassignedIds.has(id)) {
-          reassignedIds.add(id);
-          elItem.style.viewTransitionName = `ytsua-item-${id}`;
-        }
-      }
+      reassignTransitionNames(elGridContents.querySelectorAll<HTMLElement>(":scope > ytd-rich-item-renderer"), animateIds);
 
       const elNewItems: HTMLElement[] = [];
       for (const video of actuallyAddedVideos) {

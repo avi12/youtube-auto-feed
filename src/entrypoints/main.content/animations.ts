@@ -35,6 +35,32 @@ export function clearItemViewTransitionNames(elItems: Iterable<HTMLElement>) {
   }
 }
 
+export function extractAnimateIds(elItems: Iterable<HTMLElement>) {
+  const ids = new Set<string>();
+  for (const elItem of elItems) {
+    if (!isPolymerElement(elItem)) continue;
+    const id = videoIdFromData(elItem.data);
+    if (id) ids.add(id);
+  }
+  return ids;
+}
+
+export function calcStaggerDelayMs(itemCount: number) {
+  return itemCount > 1 ? Math.min(80 / (itemCount - 1), 20) : 0;
+}
+
+export function reassignTransitionNames(elItems: Iterable<HTMLElement>, animateIds: Set<string>) {
+  const reassignedIds = new Set<string>();
+  for (const elItem of elItems) {
+    if (!isPolymerElement(elItem)) continue;
+    const id = videoIdFromData(elItem.data);
+    if (id && animateIds.has(id) && !reassignedIds.has(id)) {
+      reassignedIds.add(id);
+      elItem.style.viewTransitionName = `ytsua-item-${id}`;
+    }
+  }
+}
+
 export function clearAllItemViewTransitionNames() {
   for (const elItem of document.querySelectorAll<HTMLElement>("ytd-rich-item-renderer, ytd-grid-video-renderer")) {
     if (elItem.style.viewTransitionName) {

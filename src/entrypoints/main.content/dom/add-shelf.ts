@@ -3,7 +3,9 @@ import {
   buildNewItemTransitionStyle,
   buildShiftTransitionStyle,
   clearAllItemViewTransitionNames,
-  clearItemViewTransitionNames
+  clearItemViewTransitionNames,
+  extractAnimateIds,
+  reassignTransitionNames,
 } from "../animations";
 import { deepArray, isPolymerElement, isRecord, videoIdFromData } from "../helpers";
 import { type VideoSnapshot, VideoStatus } from "../types";
@@ -45,12 +47,7 @@ async function addVideosToSection(videos: VideoSnapshot[], allFreshSnapshots: Vi
   const elExistingItems = elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer");
   assignItemViewTransitionNames(elExistingItems);
 
-  const animateIds = new Set(
-    [...elExistingItems]
-      .filter(isPolymerElement)
-      .map(el => videoIdFromData(el.data))
-      .filter((id): id is string => id !== null && id !== "")
-  );
+  const animateIds = extractAnimateIds(elExistingItems);
 
   // Sort descending by insert index so each splice doesn't offset the next
   const insertOps = videosToInsert
@@ -95,15 +92,7 @@ async function addVideosToSection(videos: VideoSnapshot[], allFreshSnapshots: Vi
       await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
     }
 
-    const reassignedIds = new Set<string>();
-    for (const elItem of elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer")) {
-      if (!isPolymerElement(elItem)) continue;
-      const id = videoIdFromData(elItem.data);
-      if (id && animateIds.has(id) && !reassignedIds.has(id)) {
-        reassignedIds.add(id);
-        elItem.style.viewTransitionName = `ytsua-item-${id}`;
-      }
-    }
+    reassignTransitionNames(elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer"), animateIds);
 
     const insertedAscending = insertOps.toReversed();
     const elNewItems: HTMLElement[] = [];

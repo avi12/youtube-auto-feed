@@ -1,8 +1,9 @@
 import { detectAndApplyChanges } from "./detect-changes";
 import { readDomSnapshot } from "./dom/query";
-import { fetchInitialVideos } from "./fetch-initial-data";
+import { fetchInitialVideos } from "./api/fetch";
 import { isOnSubscriptionsPage } from "./helpers";
-import { isInnerTubeBrowseResponse, parseApiResponse } from "./parse";
+import { isInnerTubeBrowseResponse } from "./api/guards";
+import { parseApiResponse } from "./api/parse";
 import { isDomContentReady } from "./readiness";
 import { type VideoSnapshot } from "./types";
 

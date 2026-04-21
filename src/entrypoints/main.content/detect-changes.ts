@@ -6,7 +6,7 @@ import { removeVideosFromDom } from "./dom/remove";
 import { repositionVideoInSection } from "./dom/reposition";
 import { updateVideoInDom } from "./dom/update";
 import { deepArray, deepRecord, deepString, isPolymerElement, isRecord, videoIdFromData } from "./helpers";
-import { parseSecondsAgo } from "./parse";
+import { parseSecondsAgo } from "./api/guards";
 import { type VideoSnapshot, VideoStatus } from "./types";
 
 function readCurrentVideoIds() {

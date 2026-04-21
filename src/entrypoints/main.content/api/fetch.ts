@@ -1,6 +1,7 @@
-import { isRecord } from "./helpers";
-import { isInnerTubeBrowseResponse, parseApiResponse } from "./parse";
-import { type InnerTubeContext } from "./types";
+import { isRecord } from "../helpers";
+import type { InnerTubeContext } from "../types";
+import { isInnerTubeBrowseResponse } from "./guards";
+import { parseApiResponse } from "./parse";
 
 function readInnerTubeContext(): InnerTubeContext | null {
   const ytcfg = (globalThis as Record<string, unknown>).ytcfg;
@@ -9,7 +10,7 @@ function readInnerTubeContext(): InnerTubeContext | null {
   return isRecord(context) ? context as InnerTubeContext : null;
 }
 
-function readInnerTubeApiKey(): string {
+function readInnerTubeApiKey() {
   const ytcfg = (globalThis as Record<string, unknown>).ytcfg;
   if (!isRecord(ytcfg) || typeof ytcfg.get !== "function") return "";
   const key = (ytcfg.get as (key: string) => unknown)("INNERTUBE_API_KEY");

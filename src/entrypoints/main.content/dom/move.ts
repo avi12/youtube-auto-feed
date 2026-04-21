@@ -1,4 +1,4 @@
-import { assignItemViewTransitionNames, buildShiftTransitionStyle, clearAllItemViewTransitionNames, triggerAnimation } from "../animations";
+import { assignItemViewTransitionNames, buildShiftTransitionStyle, clearAllItemViewTransitionNames, extractAnimateIds, reassignTransitionNames, triggerAnimation } from "../animations";
 import { deepArray, deepRecord, isPolymerElement, isRecord, videoIdFromData } from "../helpers";
 import type { VideoSnapshot } from "../types";
 import { filterOutRichItems, sortByFreshOrder, videoIdFromRichItem } from "./rich-item";
@@ -61,12 +61,7 @@ async function moveVideosToShelfFront(
   const elShelfItems = elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer");
   assignItemViewTransitionNames(elShelfItems);
 
-  const animateIds = new Set(
-    [...elShelfItems]
-      .filter(isPolymerElement)
-      .map(el => videoIdFromData(el.data))
-      .filter((id): id is string => id !== null && id !== "")
-  );
+  const animateIds = extractAnimateIds(elShelfItems);
 
   const elShiftStyle = buildShiftTransitionStyle(elShelfItems);
   document.head.append(elShiftStyle);
@@ -85,15 +80,7 @@ async function moveVideosToShelfFront(
         const firstItemId = videoIdFromData(elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer")[0]);
         if (firstItemId === sortedVideos[0].videoId) break;
       }
-      const reassignedIds = new Set<string>();
-      for (const elItem of elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer")) {
-        if (!isPolymerElement(elItem)) continue;
-        const id = videoIdFromData(elItem.data);
-        if (id && animateIds.has(id) && !reassignedIds.has(id)) {
-          reassignedIds.add(id);
-          elItem.style.viewTransitionName = `ytsua-item-${id}`;
-        }
-      }
+      reassignTransitionNames(elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer"), animateIds);
     }).finished;
   } finally {
     clearAllItemViewTransitionNames();
@@ -140,12 +127,7 @@ async function moveVideosToGridFront(videos: VideoSnapshot[], freshOrder: Map<st
     ? [...elGridContents.querySelectorAll<HTMLElement>(":scope > ytd-rich-item-renderer")]
     : [...document.querySelectorAll<HTMLElement>("ytd-rich-item-renderer")];
 
-  const animateIds = new Set(
-    elAllItems
-      .filter(isPolymerElement)
-      .map(el => videoIdFromData(el.data))
-      .filter((id): id is string => id !== null && id !== "")
-  );
+  const animateIds = extractAnimateIds(elAllItems);
 
   assignItemViewTransitionNames(elAllItems);
 
@@ -172,18 +154,10 @@ async function moveVideosToGridFront(videos: VideoSnapshot[], freshOrder: Map<st
           : null;
         if (firstItemId === sortedVideos[0].videoId) break;
       }
-      const reassignedIds = new Set<string>();
       const elQueryItems = elGridContents
         ? elGridContents.querySelectorAll<HTMLElement>(":scope > ytd-rich-item-renderer")
         : document.querySelectorAll<HTMLElement>("ytd-rich-item-renderer");
-      for (const elItem of elQueryItems) {
-        if (!isPolymerElement(elItem)) continue;
-        const id = videoIdFromData(elItem.data);
-        if (id && animateIds.has(id) && !reassignedIds.has(id)) {
-          reassignedIds.add(id);
-          elItem.style.viewTransitionName = `ytsua-item-${id}`;
-        }
-      }
+      reassignTransitionNames(elQueryItems, animateIds);
     }).finished;
   } finally {
     clearAllItemViewTransitionNames();

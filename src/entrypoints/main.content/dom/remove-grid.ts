@@ -1,4 +1,4 @@
-import { assignItemViewTransitionNames, buildRemoveTransitionStyle, buildShiftTransitionStyle, clearAllItemViewTransitionNames, clearItemViewTransitionNames } from "../animations";
+import { assignItemViewTransitionNames, buildRemoveTransitionStyle, buildShiftTransitionStyle, calcStaggerDelayMs, clearAllItemViewTransitionNames, clearItemViewTransitionNames, extractAnimateIds, reassignTransitionNames } from "../animations";
 import { deepArray, isPolymerElement, isRecord, videoIdFromData } from "../helpers";
 import type { PolymerElement } from "../types";
 import { filterOutRichItems } from "./rich-item";
@@ -82,15 +82,8 @@ async function removeGridItemsAnimated(
 
   assignItemViewTransitionNames(elElementsAfterFirstRemoved);
 
-  const shiftCount = elElementsAfterFirstRemoved.length;
-  const shiftDelayPerItemMs = shiftCount > 1 ? Math.min(80 / (shiftCount - 1), 20) : 0;
-
-  const animateIds = new Set(
-    elElementsAfterFirstRemoved
-      .filter(isPolymerElement)
-      .map(el => videoIdFromData(el.data))
-      .filter((id): id is string => id !== null && id !== "")
-  );
+  const shiftDelayPerItemMs = calcStaggerDelayMs(elElementsAfterFirstRemoved.length);
+  const animateIds = extractAnimateIds(elElementsAfterFirstRemoved);
 
   for (const elItem of allGridElements) {
     if (!isPolymerElement(elItem)) continue;
@@ -122,15 +115,7 @@ async function removeGridItemsAnimated(
     for (const elItem of elElementsAfterFirstRemoved) {
       elItem.style.viewTransitionName = "";
     }
-    const reassignedIds = new Set<string>();
-    for (const elItem of elGridContents?.querySelectorAll<HTMLElement>(":scope > ytd-rich-item-renderer") ?? []) {
-      if (!isPolymerElement(elItem)) continue;
-      const id = videoIdFromData(elItem.data);
-      if (id && animateIds.has(id) && !reassignedIds.has(id)) {
-        reassignedIds.add(id);
-        elItem.style.viewTransitionName = `ytsua-item-${id}`;
-      }
-    }
+    reassignTransitionNames(elGridContents?.querySelectorAll<HTMLElement>(":scope > ytd-rich-item-renderer") ?? [], animateIds);
   });
 
   try {
