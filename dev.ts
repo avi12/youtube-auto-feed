@@ -10,7 +10,6 @@ import { spawn } from "node:child_process";
 import { existsSync, cpSync, mkdirSync } from "node:fs";
 import { homedir, platform } from "node:os";
 import { resolve, join } from "node:path";
-import { debounce } from "perfect-debounce";
 import { build } from "wxt";
 
 const PROJECT_ROOT = resolve(import.meta.dirname);
@@ -212,6 +211,19 @@ async function buildExtension(config: BrowserConfig) {
     manifestVersion: 3,
     vite: () => ({ build: { sourcemap: true } })
   });
+}
+
+function debounce<T extends unknown[]>(fn: (...args: T) => void | Promise<void>, delayMs: number) {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  return (...args: T) => {
+    if (timer !== null) {
+      clearTimeout(timer);
+    }
+    timer = setTimeout(() => {
+      timer = null;
+      void fn(...args);
+    }, delayMs);
+  };
 }
 
 // ── Main ───────────────────────────────────────────────────────────────────
