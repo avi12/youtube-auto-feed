@@ -1,5 +1,5 @@
 import { addVideosToGridDom, cleanOrphanedGridItems } from "./dom/add-grid";
-import { addVideoToDom } from "./dom/add-shelf";
+import { addVideosToDom } from "./dom/add-shelf";
 import { moveVideosToFront } from "./dom/move";
 import { findShelfForSection } from "./dom/query";
 import { removeVideosFromDom } from "./dom/remove";
@@ -85,14 +85,11 @@ export async function detectAndApplyChanges(
   const freshMap = new Map(freshSnapshots.map(video => [video.videoId, video]));
 
   const videoIdsToRemove: string[] = [];
-  for (const [videoId] of previousSnapshot) {
+  for (const [videoId, previous] of previousSnapshot) {
+    if (previous.status === VideoStatus.Short) continue;
     if (!freshMap.has(videoId)) {
       videoIdsToRemove.push(videoId);
     }
-  }
-
-  if (videoIdsToRemove.length > 0) {
-    await removeVideosFromDom(videoIdsToRemove);
   }
 
   const currentVideoIds = readCurrentVideoIds();
@@ -101,6 +98,7 @@ export async function detectAndApplyChanges(
   const videosToReposition: VideoSnapshot[] = [];
   const videosToMoveToFront: VideoSnapshot[] = [];
   for (const [videoId, fresh] of freshMap) {
+    if (fresh.status === VideoStatus.Short) continue;
     if (!currentVideoIds.has(videoId)) {
       videosToAdd.push(fresh);
       continue;
@@ -118,6 +116,9 @@ export async function detectAndApplyChanges(
       fresh.status === VideoStatus.Video
     ) {
       videosToReposition.push(fresh);
+    } else if (previous.sectionTitle && fresh.sectionTitle && previous.sectionTitle !== fresh.sectionTitle) {
+      videoIdsToRemove.push(videoId);
+      videosToAdd.push(fresh);
     } else {
       const isTitleChanged = previous.title !== fresh.title;
       const isThumbnailChanged = previous.thumbnailUrl !== fresh.thumbnailUrl;
@@ -133,21 +134,27 @@ export async function detectAndApplyChanges(
     }
   }
 
-  const isLayoutChange = videoIdsToRemove.length > 0 || videosToAdd.length > 0 || videosToReposition.length > 0;
-
+  // Classify adds before removes run so shelf membership reflects the API state,
+  // not the post-remove DOM state (a remove may empty and tear down a shelf section).
   const timeOrderedSnapshots = freshSnapshots.toSorted(
     (videoA, videoB) => parseSecondsAgo(videoA.publishedTimeText) - parseSecondsAgo(videoB.publishedTimeText)
   );
+  const shelfVideos = videosToAdd.filter(video => !!findShelfForSection(video.sectionTitle));
+  const gridVideos = videosToAdd.filter(video => !findShelfForSection(video.sectionTitle));
+
+  const isLayoutChange = videoIdsToRemove.length > 0 || videosToAdd.length > 0 || videosToReposition.length > 0;
+
+  if (videoIdsToRemove.length > 0) {
+    await removeVideosFromDom(videoIdsToRemove);
+  }
 
   for (const video of videosToReposition) {
     const sectionVideos = freshSnapshots.filter(snapshot => snapshot.sectionTitle === video.sectionTitle);
     await repositionVideoInSection(video, sectionVideos, freshMap);
   }
 
-  const shelfVideos = videosToAdd.filter(video => !!findShelfForSection(video.sectionTitle));
-  const gridVideos = videosToAdd.filter(video => !findShelfForSection(video.sectionTitle));
-  for (const video of shelfVideos) {
-    await addVideoToDom(video, timeOrderedSnapshots, freshMap);
+  if (shelfVideos.length > 0) {
+    await addVideosToDom(shelfVideos, timeOrderedSnapshots, freshMap);
   }
   if (gridVideos.length > 0) {
     await addVideosToGridDom(gridVideos, timeOrderedSnapshots);
@@ -158,6 +165,14 @@ export async function detectAndApplyChanges(
   }
 
   cleanOrphanedGridItems();
+
+  const postChangeVideoIds = readCurrentVideoIds();
+  for (const videoId of videoIdsToRemove) {
+    const staleVideo = previousSnapshot.get(videoId);
+    if (staleVideo && postChangeVideoIds.has(videoId)) {
+      freshMap.set(videoId, staleVideo);
+    }
+  }
 
   return { isLayoutChange, snapshot: freshMap };
 }

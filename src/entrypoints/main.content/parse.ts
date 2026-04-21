@@ -80,7 +80,7 @@ export function parseRenderer(renderer: InnerTubeVideoRenderer, sectionTitle: st
   return {
     videoId,
     title: title.runs?.[0]?.text ?? title.simpleText ?? "",
-    thumbnailUrl: thumbnail.thumbnails.at(-1)?.url ?? "",
+    thumbnailUrl: thumbnail.thumbnails.at(-1)?.url.split("?")[0] ?? "",
     status: statusFromRenderer(renderer),
     viewCountText: viewCountFromRenderer(renderer),
     publishedTimeText: publishedTimeText?.simpleText ?? "",
@@ -117,7 +117,7 @@ export function parseLockupViewModel(lockup: LockupViewModel, sectionTitle: stri
   const metaViewModel = metadata?.lockupMetadataViewModel;
   const title = metaViewModel?.title?.content ?? "";
   const sources = contentImage?.thumbnailViewModel?.image?.sources;
-  const thumbnailUrl = sources?.at(-1)?.url ?? "";
+  const thumbnailUrl = sources?.at(-1)?.url.split("?")[0] ?? "";
   const metaRows = metaViewModel?.metadata?.contentMetadataViewModel?.metadataRows;
   const metaParts = metaRows?.[1]?.metadataParts;
   const viewCountText = metaParts?.[0]?.text?.content ?? "";
@@ -144,7 +144,7 @@ export function parseShortsLockupViewModel(shortsLockup: ShortsLockupViewModel, 
   }
 
   const title = shortsLockup.overlayMetadata?.primaryText?.content ?? shortsLockup.accessibilityText ?? "";
-  const thumbnailUrl = shortsLockup.thumbnail?.sources?.at(-1)?.url ?? "";
+  const thumbnailUrl = shortsLockup.thumbnail?.sources?.at(-1)?.url.split("?")[0] ?? "";
   const viewCountText = shortsLockup.overlayMetadata?.secondaryText?.content ?? "";
   return {
     videoId,
@@ -219,7 +219,7 @@ export function parseApiResponse(data: InnerTubeBrowseResponse) {
           currentSectionTitle = richShelfRenderer.title.runs[0]?.text ?? "";
           for (const richItem of richShelfRenderer.contents) {
             const content = richItem.richItemRenderer?.content;
-            pushSnapshot(currentSectionTitle, content?.videoRenderer ?? content?.gridVideoRenderer, content?.lockupViewModel, content?.shortsLockupViewModel);
+            pushSnapshot(currentSectionTitle, content?.videoRenderer ?? content?.gridVideoRenderer ?? content?.richGridMediaRenderer?.content?.videoRenderer, content?.lockupViewModel, content?.shortsLockupViewModel);
           }
         } else if (shelfRenderer) {
           currentSectionTitle = shelfRenderer.title.runs[0]?.text ?? "";
@@ -231,7 +231,7 @@ export function parseApiResponse(data: InnerTubeBrowseResponse) {
         currentSectionTitle = "";
       } else if (item.richItemRenderer) {
         const { content } = item.richItemRenderer;
-        pushSnapshot(currentSectionTitle, content?.videoRenderer ?? content?.gridVideoRenderer, content?.lockupViewModel, content?.shortsLockupViewModel);
+        pushSnapshot(currentSectionTitle, content?.videoRenderer ?? content?.gridVideoRenderer ?? content?.richGridMediaRenderer?.content?.videoRenderer, content?.lockupViewModel, content?.shortsLockupViewModel);
       }
     }
 

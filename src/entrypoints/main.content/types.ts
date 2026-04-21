@@ -114,6 +114,7 @@ export interface ShortsLockupViewModel {
 export interface InnerTubeRichItemContent {
   videoRenderer?: InnerTubeVideoRenderer;
   gridVideoRenderer?: InnerTubeVideoRenderer;
+  richGridMediaRenderer?: { content?: { videoRenderer?: InnerTubeVideoRenderer; }; };
   lockupViewModel?: LockupViewModel;
   shortsLockupViewModel?: ShortsLockupViewModel;
 }
