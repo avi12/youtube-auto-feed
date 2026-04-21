@@ -10,5 +10,5 @@ export default defineConfig({
   },
   srcDir: "src",
   publicDir: "src/public",
-  vite: () => ({ build: { sourcemap: false } })
+  vite: ({ mode }) => ({ build: { sourcemap: mode === "development" } })
 });
