@@ -1,5 +1,5 @@
-import { assignItemViewTransitionNames, buildStaggerStyle, clearItemViewTransitionNames } from "../animations";
-import { deepArray, isPolymerElement, isRecord } from "../helpers";
+import { assignItemViewTransitionNames, buildRemoveTransitionStyle, buildShiftTransitionStyle, clearAllItemViewTransitionNames, clearItemViewTransitionNames } from "../animations";
+import { deepArray, isPolymerElement, isRecord, videoIdFromData } from "../helpers";
 import type { PolymerElement } from "../types";
 import { filterOutRichItems } from "./rich-item";
 import type { ItemInfo } from "./remove";
@@ -74,39 +74,80 @@ async function removeGridItemsAnimated(
   gridVideoIdSet: Set<string>,
   allGridElements: HTMLElement[]
 ) {
+  clearAllItemViewTransitionNames();
+
   const removedElSet = new Set(allGridElements);
   const elGridContents = elGrid.querySelector<HTMLElement>("#contents");
-  const { elDirectItems, elElementsAfterFirstRemoved, elSectionsAfterFirstRemoved } = collectShiftTargets(elGridContents, removedElSet);
+  const { elElementsAfterFirstRemoved, elSectionsAfterFirstRemoved } = collectShiftTargets(elGridContents, removedElSet);
 
-  assignItemViewTransitionNames(elDirectItems);
-  const elStaggerStyle = buildStaggerStyle(elElementsAfterFirstRemoved);
-  document.head.append(elStaggerStyle);
+  assignItemViewTransitionNames(elElementsAfterFirstRemoved);
+
+  const shiftCount = elElementsAfterFirstRemoved.length;
+  const shiftDelayPerItemMs = shiftCount > 1 ? Math.min(80 / (shiftCount - 1), 20) : 0;
+
+  const animateIds = new Set(
+    elElementsAfterFirstRemoved
+      .filter(isPolymerElement)
+      .map(el => videoIdFromData(el.data))
+      .filter((id): id is string => id !== null && id !== "")
+  );
+
+  for (const elItem of allGridElements) {
+    if (!isPolymerElement(elItem)) continue;
+    const id = videoIdFromData(elItem.data);
+    if (id && elItem.getBoundingClientRect().top <= innerHeight) {
+      elItem.style.viewTransitionName = `ytsua-item-${id}`;
+    }
+  }
+
+  const elShiftStyle = buildShiftTransitionStyle(elElementsAfterFirstRemoved, new Set(), shiftDelayPerItemMs);
+  const elRemoveStyle = buildRemoveTransitionStyle(allGridElements);
+  document.head.append(elShiftStyle);
+  document.head.append(elRemoveStyle);
 
   const transition = document.startViewTransition(() => {
     const currentContents = deepArray(elGrid.data, "contents");
     const filteredContents = filterOutRichItems(currentContents, gridVideoIdSet);
 
+    for (const elItem of allGridElements) {
+      elItem.remove();
+    }
     if (filteredContents.length < currentContents.length) {
       elGrid.set("data.contents", filteredContents);
-    } else {
-      for (const elItem of allGridElements) {
-        elItem.remove();
+    }
+
+    for (const elItem of allGridElements) {
+      elItem.style.viewTransitionName = "";
+    }
+    for (const elItem of elElementsAfterFirstRemoved) {
+      elItem.style.viewTransitionName = "";
+    }
+    const reassignedIds = new Set<string>();
+    for (const elItem of elGridContents?.querySelectorAll<HTMLElement>(":scope > ytd-rich-item-renderer") ?? []) {
+      if (!isPolymerElement(elItem)) continue;
+      const id = videoIdFromData(elItem.data);
+      if (id && animateIds.has(id) && !reassignedIds.has(id)) {
+        reassignedIds.add(id);
+        elItem.style.viewTransitionName = `ytsua-item-${id}`;
       }
     }
-    assignItemViewTransitionNames(elDirectItems);
   });
 
   try {
     await transition.finished;
   } finally {
-    elStaggerStyle.remove();
-    clearItemViewTransitionNames(elDirectItems);
+    elShiftStyle.remove();
+    elRemoveStyle.remove();
+    clearItemViewTransitionNames(elElementsAfterFirstRemoved);
     clearItemViewTransitionNames(elSectionsAfterFirstRemoved);
+    for (const elItem of allGridElements) {
+      elItem.style.viewTransitionName = "";
+    }
+    clearAllItemViewTransitionNames();
   }
 }
 
 function collectShiftTargets(elGridContents: HTMLElement | null, removedElSet: Set<HTMLElement>) {
-  const elDirectItems: HTMLElement[] = [];
   const elElementsAfterFirstRemoved: HTMLElement[] = [];
   const elSectionsAfterFirstRemoved: HTMLElement[] = [];
   let isAfterFirstRemoved = false;
@@ -115,26 +156,25 @@ function collectShiftTargets(elGridContents: HTMLElement | null, removedElSet: S
   for (const elChild of elGridContents?.querySelectorAll<HTMLElement>(":scope > ytd-rich-item-renderer, :scope > ytd-rich-section-renderer") ?? []) {
     if (removedElSet.has(elChild)) {
       isAfterFirstRemoved = true;
+      continue;
     }
 
-    if (elChild.tagName === "YTD-RICH-ITEM-RENDERER") {
-      elDirectItems.push(elChild);
+    if (!isAfterFirstRemoved) {
+      continue;
     }
 
-    if (isAfterFirstRemoved && !removedElSet.has(elChild)) {
-      const isOffScreen = elChild.getBoundingClientRect().top > innerHeight;
-      if (isOffScreen) {
-        continue;
-      }
+    const isOffScreen = elChild.getBoundingClientRect().top > innerHeight;
+    if (isOffScreen) {
+      continue;
+    }
 
-      elElementsAfterFirstRemoved.push(elChild);
-      if (elChild.tagName === "YTD-RICH-SECTION-RENDERER") {
-        elChild.style.viewTransitionName = `ytsua-section-${iSection}`;
-        elSectionsAfterFirstRemoved.push(elChild);
-        iSection++;
-      }
+    elElementsAfterFirstRemoved.push(elChild);
+    if (elChild.tagName === "YTD-RICH-SECTION-RENDERER") {
+      elChild.style.viewTransitionName = `ytsua-section-${iSection}`;
+      elSectionsAfterFirstRemoved.push(elChild);
+      iSection++;
     }
   }
 
-  return { elDirectItems, elElementsAfterFirstRemoved, elSectionsAfterFirstRemoved };
+  return { elElementsAfterFirstRemoved, elSectionsAfterFirstRemoved };
 }

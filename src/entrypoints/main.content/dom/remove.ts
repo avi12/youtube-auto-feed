@@ -42,7 +42,8 @@ function collectItems(videoIdSet: Set<string>): ItemInfo[] {
     }
 
     const isItemHidden = elItem.offsetWidth === 0 && elItem.offsetHeight === 0;
-    const isOffScreen = isItemHidden || elItem.getBoundingClientRect().top > innerHeight;
+    const { top, bottom } = elItem.getBoundingClientRect();
+    const isOffScreen = isItemHidden || top > innerHeight || bottom < 0;
     const elRichShelf = elItem.closest<HTMLElement>("ytd-rich-shelf-renderer");
     const elInnerShelf = elRichShelf ? null : elItem.closest<HTMLElement>("ytd-shelf-renderer");
 
@@ -65,7 +66,8 @@ function collectItems(videoIdSet: Set<string>): ItemInfo[] {
       continue;
     }
 
-    const isOffScreen = elGridVideo.getBoundingClientRect().top > innerHeight;
+    const { top: gridVideoTop, bottom: gridVideoBottom } = elGridVideo.getBoundingClientRect();
+    const isOffScreen = gridVideoTop > innerHeight || gridVideoBottom < 0;
     const elInnerShelf = elGridVideo.closest<HTMLElement>("ytd-shelf-renderer");
     if (elInnerShelf && isPolymerElement(elInnerShelf)) {
       items.push({ videoId, elItem: elGridVideo, isOffScreen, container: "innerShelf", elRichShelf: null, elInnerShelf });
