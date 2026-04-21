@@ -5,13 +5,13 @@
  * Usage: bun dev.ts
  */
 
-import { build } from "wxt";
 import chokidar from "chokidar";
-import { debounce } from "perfect-debounce";
-import { resolve, join } from "node:path";
+import { spawn } from "node:child_process";
 import { existsSync, cpSync, mkdirSync } from "node:fs";
 import { homedir, platform } from "node:os";
-import { spawn } from "node:child_process";
+import { resolve, join } from "node:path";
+import { debounce } from "perfect-debounce";
+import { build } from "wxt";
 
 const PROJECT_ROOT = resolve(import.meta.dirname);
 const LANGUAGE = process.env.LANG ?? "en";
@@ -133,12 +133,12 @@ function launchBrowser(config: BrowserConfig) {
 // ── CDP helpers ────────────────────────────────────────────────────────────
 
 function sendCdpCommand(webSocketUrl: string, method: string, params: Record<string, unknown> = {}) {
-  return new Promise<void>((resolve) => {
+  return new Promise<void>(resolve => {
     const websocket = new WebSocket(webSocketUrl);
     websocket.onopen = () => {
       websocket.send(JSON.stringify({ id: 1, method, params }));
     };
-    websocket.onmessage = (event) => {
+    websocket.onmessage = event => {
       const data = JSON.parse(String(event.data));
       if (data.id === 1) {
         websocket.close();
@@ -169,9 +169,7 @@ async function reloadExtension() {
   );
 
   if (serviceWorker?.webSocketDebuggerUrl) {
-    await sendCdpCommand(serviceWorker.webSocketDebuggerUrl, "Runtime.evaluate", {
-      expression: "chrome.runtime.reload()"
-    });
+    await sendCdpCommand(serviceWorker.webSocketDebuggerUrl, "Runtime.evaluate", { expression: "chrome.runtime.reload()" });
     return;
   }
 
@@ -180,9 +178,7 @@ async function reloadExtension() {
   );
 
   if (backgroundPage?.webSocketDebuggerUrl) {
-    await sendCdpCommand(backgroundPage.webSocketDebuggerUrl, "Runtime.evaluate", {
-      expression: "chrome.runtime.reload()"
-    });
+    await sendCdpCommand(backgroundPage.webSocketDebuggerUrl, "Runtime.evaluate", { expression: "chrome.runtime.reload()" });
   }
 }
 
@@ -193,6 +189,7 @@ async function reloadYouTubeTabs() {
     if (target.type !== "page" || !target.url.includes("youtube.com") || !target.webSocketDebuggerUrl) {
       continue;
     }
+
     await sendCdpCommand(target.webSocketDebuggerUrl, "Page.reload");
   }
 }

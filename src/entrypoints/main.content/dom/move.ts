@@ -1,9 +1,13 @@
-import { assignItemViewTransitionNames, buildShiftTransitionStyle, clearAllItemViewTransitionNames, extractAnimateIds, reassignTransitionNames, triggerAnimation } from "../animations";
-import { deepArray, deepRecord, isPolymerElement, isRecord, videoIdFromData } from "../helpers";
 import type { VideoSnapshot } from "../types";
-import { filterOutRichItems, sortByFreshOrder, videoIdFromRichItem } from "./rich-item";
-import { findItemElement, findShelfForSection } from "./query";
+import {
+  assignItemViewTransitionNames, buildShiftTransitionStyle, clearAllItemViewTransitionNames, extractAnimateIds, reassignTransitionNames, triggerAnimation 
+} from "../animations";
+import {
+  deepArray, deepRecord, isPolymerElement, isRecord, videoIdFromData 
+} from "../helpers";
 import { buildRichItem } from "./build";
+import { findItemElement, findShelfForSection } from "./query";
+import { filterOutRichItems, sortByFreshOrder, videoIdFromRichItem } from "./rich-item";
 import { updateVideoInDom } from "./update";
 
 export async function moveVideosToFront(videos: VideoSnapshot[], allFreshSnapshots: VideoSnapshot[]) {
@@ -78,7 +82,9 @@ async function moveVideosToShelfFront(
       for (let i = 0; i < 10; i++) {
         await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
         const firstItemId = videoIdFromData(elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer")[0]);
-        if (firstItemId === sortedVideos[0].videoId) break;
+        if (firstItemId === sortedVideos[0].videoId) {
+          break;
+        }
       }
       reassignTransitionNames(elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer"), animateIds);
     }).finished;
@@ -152,7 +158,9 @@ async function moveVideosToGridFront(videos: VideoSnapshot[], freshOrder: Map<st
         const firstItemId = elGridContents
           ? videoIdFromData(elGridContents.querySelectorAll<HTMLElement>(":scope > ytd-rich-item-renderer")[0])
           : null;
-        if (firstItemId === sortedVideos[0].videoId) break;
+        if (firstItemId === sortedVideos[0].videoId) {
+          break;
+        }
       }
       const elQueryItems = elGridContents
         ? elGridContents.querySelectorAll<HTMLElement>(":scope > ytd-rich-item-renderer")

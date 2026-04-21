@@ -1,6 +1,8 @@
-import { deepRecord, deepString, isPolymerElement, videoIdFromData } from "../helpers";
 import { isLockupViewModel, isShortsLockupViewModel, isVideoRenderer } from "../api/guards";
 import { parseLockupViewModel, parseRenderer, parseShortsLockupViewModel } from "../api/parse-video";
+import {
+  deepRecord, deepString, isPolymerElement, videoIdFromData 
+} from "../helpers";
 import { type VideoSnapshot, VideoStatus } from "../types";
 
 export function findItemElement(videoId: string) {

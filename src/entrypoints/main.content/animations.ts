@@ -38,9 +38,14 @@ export function clearItemViewTransitionNames(elItems: Iterable<HTMLElement>) {
 export function extractAnimateIds(elItems: Iterable<HTMLElement>) {
   const ids = new Set<string>();
   for (const elItem of elItems) {
-    if (!isPolymerElement(elItem)) continue;
-    const id = videoIdFromData(elItem.data);
-    if (id) ids.add(id);
+    if (!isPolymerElement(elItem)) {
+      continue;
+    }
+
+    const videoId = videoIdFromData(elItem.data);
+    if (videoId) {
+      ids.add(videoId);
+    }
   }
   return ids;
 }
@@ -52,11 +57,14 @@ export function calcStaggerDelayMs(itemCount: number) {
 export function reassignTransitionNames(elItems: Iterable<HTMLElement>, animateIds: Set<string>) {
   const reassignedIds = new Set<string>();
   for (const elItem of elItems) {
-    if (!isPolymerElement(elItem)) continue;
-    const id = videoIdFromData(elItem.data);
-    if (id && animateIds.has(id) && !reassignedIds.has(id)) {
-      reassignedIds.add(id);
-      elItem.style.viewTransitionName = `ytsua-item-${id}`;
+    if (!isPolymerElement(elItem)) {
+      continue;
+    }
+
+    const videoId = videoIdFromData(elItem.data);
+    if (videoId && animateIds.has(videoId) && !reassignedIds.has(videoId)) {
+      reassignedIds.add(videoId);
+      elItem.style.viewTransitionName = `ytsua-item-${videoId}`;
     }
   }
 }
@@ -89,7 +97,10 @@ export function buildNewItemTransitionStyle(elItems: HTMLElement[]) {
   let css = "";
   for (let i = 0; i < elItems.length; i++) {
     const { viewTransitionName } = elItems[i].style;
-    if (!viewTransitionName) continue;
+    if (!viewTransitionName) {
+      continue;
+    }
+
     const delayMs = Math.round(i * delayPerItemMs);
     css += `::view-transition-group(${viewTransitionName}){animation-duration:0s}\n`;
     css += `::view-transition-new(${viewTransitionName}){animation:ytsua-slide-in 380ms cubic-bezier(0.2,0,0,1) ${delayMs}ms both}\n`;
@@ -114,6 +125,7 @@ export function buildShiftTransitionStyle(
       const delayMs = Math.round(iItem * delayPerItemMs);
       css += `::view-transition-group(${viewTransitionName}){animation-duration:380ms;animation-timing-function:cubic-bezier(0.4,0,0.2,1);animation-fill-mode:both${delayMs > 0 ? `;animation-delay:${delayMs}ms` : ""}}\n`;
     }
+
     iItem++;
   }
   const elStyle = document.createElement("style");

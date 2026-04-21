@@ -1,13 +1,13 @@
+import type { VideoSnapshot } from "../types";
 import {
   assignItemViewTransitionNames,
   buildNewItemTransitionStyle,
   buildShiftTransitionStyle,
   clearAllItemViewTransitionNames,
   extractAnimateIds,
-  reassignTransitionNames,
+  reassignTransitionNames
 } from "../animations";
 import { deepArray, isPolymerElement, isRecord } from "../helpers";
-import type { VideoSnapshot } from "../types";
 import { buildRichItem } from "./build";
 import { findItemElement } from "./query";
 
@@ -82,7 +82,9 @@ export async function addSectionToDom(sectionTitle: string, videos: VideoSnapsho
     elNewItemTransitionStyle?.remove();
     for (const video of videos) {
       const elNewItem = findItemElement(video.videoId);
-      if (elNewItem) elNewItem.style.viewTransitionName = "";
+      if (elNewItem) {
+        elNewItem.style.viewTransitionName = "";
+      }
     }
   }
 }

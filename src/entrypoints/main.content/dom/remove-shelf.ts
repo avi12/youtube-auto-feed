@@ -1,3 +1,4 @@
+import type { ItemInfo } from "./remove";
 import {
   assignItemViewTransitionNames,
   buildRemoveTransitionStyle,
@@ -6,11 +7,12 @@ import {
   clearAllItemViewTransitionNames,
   clearItemViewTransitionNames,
   extractAnimateIds,
-  reassignTransitionNames,
+  reassignTransitionNames
 } from "../animations";
-import { deepArray, deepRecord, deepString, isPolymerElement, isRecord, videoIdFromData } from "../helpers";
+import {
+  deepArray, deepRecord, deepString, isPolymerElement, isRecord, videoIdFromData 
+} from "../helpers";
 import { filterOutRichItems } from "./rich-item";
-import type { ItemInfo } from "./remove";
 
 type ShelfGroup = { videoIds: string[]; elOnScreenItems: HTMLElement[]; };
 
@@ -30,9 +32,14 @@ async function removeItemsFromShelf(
   const animateIds = extractAnimateIds(elSiblings);
 
   for (const elItem of group.elOnScreenItems) {
-    if (!isPolymerElement(elItem)) continue;
-    const id = videoIdFromData(elItem.data);
-    if (id) elItem.style.viewTransitionName = `ytsua-item-${id}`;
+    if (!isPolymerElement(elItem)) {
+      continue;
+    }
+
+    const videoId = videoIdFromData(elItem.data);
+    if (videoId) {
+      elItem.style.viewTransitionName = `ytsua-item-${videoId}`;
+    }
   }
 
   const elShiftStyle = buildShiftTransitionStyle(elSiblings, new Set(), calcStaggerDelayMs(elSiblings.length));
@@ -42,15 +49,23 @@ async function removeItemsFromShelf(
 
   try {
     await document.startViewTransition(() => {
-      for (const elItem of group.elOnScreenItems) elItem.remove();
+      for (const elItem of group.elOnScreenItems) {
+        elItem.remove();
+      }
       applyFilteredContents();
-      for (const elItem of group.elOnScreenItems) elItem.style.viewTransitionName = "";
-      for (const elItem of elSiblings) elItem.style.viewTransitionName = "";
+      for (const elItem of group.elOnScreenItems) {
+        elItem.style.viewTransitionName = "";
+      }
+      for (const elItem of elSiblings) {
+        elItem.style.viewTransitionName = "";
+      }
       reassignTransitionNames(elShelf.querySelectorAll<HTMLElement>(itemSelector), animateIds);
     }).finished;
   } finally {
     clearItemViewTransitionNames(elSiblings);
-    for (const elItem of group.elOnScreenItems) elItem.style.viewTransitionName = "";
+    for (const elItem of group.elOnScreenItems) {
+      elItem.style.viewTransitionName = "";
+    }
     elShiftStyle.remove();
     elRemoveStyle.remove();
     clearAllItemViewTransitionNames();
@@ -59,11 +74,19 @@ async function removeItemsFromShelf(
 
 export async function removeRichShelfItems(items: ItemInfo[]) {
   const groups = new Map<HTMLElement, ShelfGroup>();
-  for (const { container, isOffScreen, videoId, elItem, elRichShelf } of items) {
-    if (container !== "richShelf" || !elRichShelf) continue;
+  for (const {
+    container, isOffScreen, videoId, elItem, elRichShelf 
+  } of items) {
+    if (container !== "richShelf" || !elRichShelf) {
+      continue;
+    }
+
     const group = groups.get(elRichShelf) ?? { videoIds: [], elOnScreenItems: [] };
     group.videoIds.push(videoId);
-    if (!isOffScreen) group.elOnScreenItems.push(elItem);
+    if (!isOffScreen) {
+      group.elOnScreenItems.push(elItem);
+    }
+
     groups.set(elRichShelf, group);
   }
   for (const [elRichShelf, group] of groups) {
@@ -72,11 +95,15 @@ export async function removeRichShelfItems(items: ItemInfo[]) {
 }
 
 async function removeRichShelfGroup(elRichShelf: HTMLElement, group: ShelfGroup) {
-  if (!isPolymerElement(elRichShelf)) return;
+  if (!isPolymerElement(elRichShelf)) {
+    return;
+  }
 
   const shelfData = elRichShelf.data;
   if (!isRecord(shelfData)) {
-    for (const elItem of group.elOnScreenItems) elItem.remove();
+    for (const elItem of group.elOnScreenItems) {
+      elItem.remove();
+    }
     return;
   }
 
@@ -98,7 +125,9 @@ async function removeRichShelfGroup(elRichShelf: HTMLElement, group: ShelfGroup)
 
 async function removeEmptyShelfSection(elRichShelf: HTMLElement, shelfTitle: string) {
   const elSection = elRichShelf.closest<HTMLElement>("ytd-rich-section-renderer");
-  if (!elSection) return;
+  if (!elSection) {
+    return;
+  }
 
   elSection.classList.add("ytsua-section-removing");
   await new Promise<void>(resolve => {
@@ -119,6 +148,7 @@ async function removeEmptyShelfSection(elRichShelf: HTMLElement, shelfTitle: str
       isPastSection = true;
       continue;
     }
+
     if (isPastSection) {
       elItemsAfterSection.push(elSibling);
       if (elSibling.tagName === "YTD-RICH-SECTION-RENDERER") {
@@ -163,34 +193,55 @@ async function removeEmptyShelfSection(elRichShelf: HTMLElement, shelfTitle: str
 }
 
 function tryRemoveSectionViaGridData(elGrid: HTMLElement | null, shelfTitle: string) {
-  if (!elGrid || !isPolymerElement(elGrid) || !isRecord(elGrid.data)) return false;
+  if (!elGrid || !isPolymerElement(elGrid) || !isRecord(elGrid.data)) {
+    return false;
+  }
 
   const currentGridContents = deepArray(elGrid.data, "contents");
   const filteredGridContents = currentGridContents.filter(item => {
     const sectionContent = deepRecord(item, "richSectionRenderer", "content");
-    if (!isRecord(sectionContent)) return true;
-    const shelf = isRecord(sectionContent.richShelfRenderer)
-      ? sectionContent.richShelfRenderer
-      : isRecord(sectionContent.shelfRenderer)
-        ? sectionContent.shelfRenderer
-        : null;
-    if (!shelf) return true;
+    if (!isRecord(sectionContent)) {
+      return true;
+    }
+
+    let shelf: Record<string, unknown> | null = null;
+    if (isRecord(sectionContent.richShelfRenderer)) {
+      shelf = sectionContent.richShelfRenderer;
+    } else if (isRecord(sectionContent.shelfRenderer)) {
+      shelf = sectionContent.shelfRenderer;
+    }
+
+    if (!shelf) {
+      return true;
+    }
+
     const title = deepString(shelf, "title", "runs", "0", "text");
     return !shelfTitle || !title || title !== shelfTitle;
   });
 
-  if (filteredGridContents.length === currentGridContents.length) return false;
+  if (filteredGridContents.length === currentGridContents.length) {
+    return false;
+  }
+
   elGrid.set("data.contents", filteredGridContents);
   return true;
 }
 
 export async function removeInnerShelfItems(items: ItemInfo[]) {
   const groups = new Map<HTMLElement, ShelfGroup>();
-  for (const { container, isOffScreen, videoId, elItem, elInnerShelf } of items) {
-    if (container !== "innerShelf" || !elInnerShelf) continue;
+  for (const {
+    container, isOffScreen, videoId, elItem, elInnerShelf 
+  } of items) {
+    if (container !== "innerShelf" || !elInnerShelf) {
+      continue;
+    }
+
     const group = groups.get(elInnerShelf) ?? { videoIds: [], elOnScreenItems: [] };
     group.videoIds.push(videoId);
-    if (!isOffScreen) group.elOnScreenItems.push(elItem);
+    if (!isOffScreen) {
+      group.elOnScreenItems.push(elItem);
+    }
+
     groups.set(elInnerShelf, group);
   }
   for (const [elInnerShelf, group] of groups) {
@@ -199,17 +250,23 @@ export async function removeInnerShelfItems(items: ItemInfo[]) {
 }
 
 async function removeInnerShelfGroup(elInnerShelf: HTMLElement, group: ShelfGroup) {
-  if (!isPolymerElement(elInnerShelf)) return;
+  if (!isPolymerElement(elInnerShelf)) {
+    return;
+  }
 
   const shelfData = elInnerShelf.data;
   if (!isRecord(shelfData)) {
-    for (const elItem of group.elOnScreenItems) elItem.remove();
+    for (const elItem of group.elOnScreenItems) {
+      elItem.remove();
+    }
     return;
   }
 
   const { content } = shelfData;
   if (!isRecord(content)) {
-    for (const elItem of group.elOnScreenItems) elItem.remove();
+    for (const elItem of group.elOnScreenItems) {
+      elItem.remove();
+    }
     return;
   }
 

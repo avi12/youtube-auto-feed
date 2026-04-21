@@ -1,9 +1,13 @@
-import { assignItemViewTransitionNames, buildShiftTransitionStyle, clearAllItemViewTransitionNames, extractAnimateIds, reassignTransitionNames } from "../animations";
-import { deepArray, deepRecord, isPolymerElement, videoIdFromData } from "../helpers";
+import {
+  assignItemViewTransitionNames, buildShiftTransitionStyle, clearAllItemViewTransitionNames, extractAnimateIds, reassignTransitionNames 
+} from "../animations";
+import {
+  deepArray, deepRecord, isPolymerElement, videoIdFromData 
+} from "../helpers";
 import { type VideoSnapshot, VideoStatus } from "../types";
-import { findRichItemIndex, videoIdFromRichItem } from "./rich-item";
-import { findItemElement, findShelfForSection } from "./query";
 import { buildRichItem } from "./build";
+import { findShelfForSection } from "./query";
+import { findRichItemIndex, videoIdFromRichItem } from "./rich-item";
 import { updateVideoInDom } from "./update";
 
 export async function repositionVideoInSection(
@@ -11,7 +15,9 @@ export async function repositionVideoInSection(
   sectionVideos: VideoSnapshot[],
   allSnapshots: Map<string, VideoSnapshot>
 ) {
-  const { videoId, sectionTitle, rawRenderer, status } = freshSnapshot;
+  const {
+    videoId, sectionTitle, rawRenderer, status 
+  } = freshSnapshot;
   const elShelf = findShelfForSection(sectionTitle);
 
   if (!elShelf || !isPolymerElement(elShelf)) {
@@ -93,6 +99,7 @@ function resolveInsertIndex(
     if (itemSnapshot?.status !== VideoStatus.Live) {
       break;
     }
+
     leadingLiveVideoCount++;
   }
   return Math.max(iInsert, leadingLiveVideoCount);

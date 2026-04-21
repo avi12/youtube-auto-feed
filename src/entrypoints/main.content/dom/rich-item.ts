@@ -10,8 +10,8 @@ export function findRichItemIndex(contents: unknown[], videoId: string) {
 
 export function filterOutRichItems(contents: unknown[], excludeVideoIds: Set<string>) {
   return contents.filter(item => {
-    const id = videoIdFromRichItem(item);
-    return !id || !excludeVideoIds.has(id);
+    const videoId = videoIdFromRichItem(item);
+    return !videoId || !excludeVideoIds.has(videoId);
   });
 }
 

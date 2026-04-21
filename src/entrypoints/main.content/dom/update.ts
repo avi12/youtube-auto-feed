@@ -1,6 +1,6 @@
+import type { VideoSnapshot } from "../types";
 import { clearAllItemViewTransitionNames } from "../animations";
 import { deepRecord, isPolymerElement, isRecord } from "../helpers";
-import type { VideoSnapshot } from "../types";
 import { findItemElement } from "./query";
 
 function updateLockupMetadata(elParent: HTMLElement, viewCountText: string, publishedTimeText: string) {

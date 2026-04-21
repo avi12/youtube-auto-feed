@@ -56,7 +56,7 @@ export enum LockupContentType {
 
 export enum LockupBadgeStyle {
   Live = "THUMBNAIL_OVERLAY_BADGE_STYLE_LIVE",
-  Upcoming = "THUMBNAIL_OVERLAY_BADGE_STYLE_UPCOMING",
+  Upcoming = "THUMBNAIL_OVERLAY_BADGE_STYLE_UPCOMING"
 }
 
 export interface LockupViewModel {
@@ -87,11 +87,7 @@ export interface LockupViewModel {
     lockupMetadataViewModel?: {
       title?: { content?: string; };
       metadata?: { contentMetadataViewModel?: { metadataRows?: Array<{ metadataParts?: Array<{ text?: { content?: string; }; }>; }>; }; };
-      image?: {
-        decoratedAvatarViewModel?: {
-          liveData?: { liveBadgeText?: string; };
-        };
-      };
+      image?: { decoratedAvatarViewModel?: { liveData?: { liveBadgeText?: string; }; }; };
     };
   };
 }
@@ -222,8 +218,13 @@ export interface InnerTubeContext {
 export interface YouTubeInnertubeConfig {
   INNERTUBE_CLIENT_VERSION?: string;
   INNERTUBE_CONTEXT?: InnerTubeContext;
+  INNERTUBE_API_KEY?: string;
   HL?: string;
   GL?: string;
+}
+
+declare global {
+  const ytcfg: { get<K extends keyof YouTubeInnertubeConfig>(key: K): YouTubeInnertubeConfig[K]; } | undefined;
 }
 
 // ── Extension types ───────────────────────────────────────────────────────────

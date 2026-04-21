@@ -1,9 +1,9 @@
-import { detectAndApplyChanges } from "./detect-changes";
-import { readDomSnapshot } from "./dom/query";
 import { fetchInitialVideos } from "./api/fetch";
-import { isOnSubscriptionsPage } from "./helpers";
 import { isInnerTubeBrowseResponse } from "./api/guards";
 import { parseApiResponse } from "./api/parse";
+import { detectAndApplyChanges } from "./detect-changes";
+import { readDomSnapshot } from "./dom/query";
+import { isOnSubscriptionsPage } from "./helpers";
 import { isDomContentReady } from "./readiness";
 import { type VideoSnapshot } from "./types";
 
@@ -26,6 +26,7 @@ export default defineContentScript({
         pendingApplySnapshots = freshSnapshots;
         return false;
       }
+
       isApplyingChanges = true;
       try {
         let snapshotsToApply: VideoSnapshot[] | null = freshSnapshots;
@@ -34,7 +35,10 @@ export default defineContentScript({
           pendingApplySnapshots = null;
           const { isLayoutChange, snapshot } = await detectAndApplyChanges(lastSnapshot, snapshotsToApply);
           lastSnapshot = snapshot;
-          if (isLayoutChange) isAnyLayoutChange = true;
+          if (isLayoutChange) {
+            isAnyLayoutChange = true;
+          }
+
           snapshotsToApply = pendingApplySnapshots;
         }
         return isAnyLayoutChange;
@@ -89,6 +93,7 @@ export default defineContentScript({
       if (pollingTimer !== null) {
         clearInterval(pollingTimer);
       }
+
       pollingTimer = setInterval(() => {
         void fetchFreshVideos();
       }, 5000);
@@ -109,6 +114,7 @@ export default defineContentScript({
           clearInterval(pollingTimer);
           pollingTimer = null;
         }
+
         void fetchFreshVideos().finally(() => restartPolling());
       }, 300);
     }
@@ -122,6 +128,7 @@ export default defineContentScript({
         clearTimeout(focusDebounceTimer);
         focusDebounceTimer = null;
       }
+
       if (pollingTimer !== null) {
         clearInterval(pollingTimer);
         pollingTimer = null;

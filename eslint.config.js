@@ -1,14 +1,12 @@
 import eslint from "@eslint/js";
 import stylistic from "@stylistic/eslint-plugin";
 import perfectionist from "eslint-plugin-perfectionist";
-import {
-  globalIgnores 
-} from "eslint/config";
+import { globalIgnores } from "eslint/config";
 import globals from "globals";
 import tsEslint from "typescript-eslint";
 
 export default [
-  globalIgnores([".wxt/**", ".output/**"]),
+  globalIgnores([".wxt/**", ".output/**", "User Data/**", "Opera Profile/**"]),
   eslint.configs.recommended,
   ...tsEslint.configs.recommended,
   {
@@ -26,9 +24,7 @@ export default [
     ignores: ["src/**"],
     languageOptions: {
       parser: tsEslint.parser,
-      globals: {
-        ...globals.node
-      }
+      globals: { ...globals.node }
     }
   },
   {
@@ -40,23 +36,19 @@ export default [
     rules: {
       "@typescript-eslint/no-explicit-any": "error",
       "@typescript-eslint/ban-ts-comment": "error",
-      "@typescript-eslint/consistent-type-assertions": ["error", {
-        assertionStyle: "never" 
-      }],
+      "@typescript-eslint/consistent-type-assertions": ["error", { assertionStyle: "never" }],
       "id-length": ["error", {
         min: 3,
         exceptions: ["_", "e", "i", "yt"],
-        properties: "never" 
+        properties: "never"
       }],
       "@stylistic/semi": ["error"],
       "perfectionist/sort-imports": ["error", {
         internalPattern: ["^@/"],
-        newlinesBetween: 0 
+        newlinesBetween: 0
       }],
       curly: ["error", "all"],
-      "no-empty": ["error", {
-        allowEmptyCatch: true
-      }],
+      "no-empty": ["error", { allowEmptyCatch: true }],
       "@stylistic/comma-dangle": ["error", "never"],
       "@stylistic/brace-style": ["error", "1tbs"],
       "@stylistic/indent": ["error", 2],
@@ -65,9 +57,7 @@ export default [
         multiline: true,
         minProperties: 4
       }],
-      "@stylistic/object-property-newline": ["error", {
-        allowAllPropertiesOnSameLine: true
-      }],
+      "@stylistic/object-property-newline": ["error", { allowAllPropertiesOnSameLine: true }],
       "@stylistic/arrow-parens": ["error", "as-needed"],
       "no-restricted-syntax": ["error",
         {

@@ -1,10 +1,17 @@
-import type { InnerTubeVideoRenderer, LockupViewModel, ShortsLockupViewModel, VideoSnapshot } from "../types";
+import type {
+  InnerTubeVideoRenderer, LockupViewModel, ShortsLockupViewModel, VideoSnapshot 
+} from "../types";
 import { VideoStatus } from "../types";
 import { statusFromLockup, statusFromRenderer, viewCountFromRenderer } from "./guards";
 
 export function parseRenderer(renderer: InnerTubeVideoRenderer, sectionTitle: string): VideoSnapshot | null {
-  const { videoId, title, thumbnail, publishedTimeText } = renderer;
-  if (videoId === "") return null;
+  const {
+    videoId, title, thumbnail, publishedTimeText 
+  } = renderer;
+  if (videoId === "") {
+    return null;
+  }
+
   return {
     videoId,
     title: title.runs?.[0]?.text ?? title.simpleText ?? "",
@@ -20,7 +27,10 @@ export function parseRenderer(renderer: InnerTubeVideoRenderer, sectionTitle: st
 
 export function parseLockupViewModel(lockup: LockupViewModel, sectionTitle: string): VideoSnapshot | null {
   const { contentId, contentImage, metadata } = lockup;
-  if (contentId === "") return null;
+  if (contentId === "") {
+    return null;
+  }
+
   const metaViewModel = metadata?.lockupMetadataViewModel;
   const title = metaViewModel?.title?.content ?? "";
   const sources = contentImage?.thumbnailViewModel?.image?.sources;
@@ -46,7 +56,10 @@ export function parseLockupViewModel(lockup: LockupViewModel, sectionTitle: stri
 
 export function parseShortsLockupViewModel(shortsLockup: ShortsLockupViewModel, sectionTitle: string): VideoSnapshot | null {
   const videoId = shortsLockup.onTap?.innertubeCommand?.reelWatchEndpoint?.videoId ?? "";
-  if (videoId === "") return null;
+  if (videoId === "") {
+    return null;
+  }
+
   const title = shortsLockup.overlayMetadata?.primaryText?.content ?? shortsLockup.accessibilityText ?? "";
   const thumbnailUrl = shortsLockup.thumbnail?.sources?.at(-1)?.url.split("?")[0] ?? "";
   const viewCountText = shortsLockup.overlayMetadata?.secondaryText?.content ?? "";

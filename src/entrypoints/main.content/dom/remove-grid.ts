@@ -1,8 +1,12 @@
-import { assignItemViewTransitionNames, buildRemoveTransitionStyle, buildShiftTransitionStyle, calcStaggerDelayMs, clearAllItemViewTransitionNames, clearItemViewTransitionNames, extractAnimateIds, reassignTransitionNames } from "../animations";
-import { deepArray, isPolymerElement, isRecord, videoIdFromData } from "../helpers";
 import type { PolymerElement } from "../types";
-import { filterOutRichItems } from "./rich-item";
 import type { ItemInfo } from "./remove";
+import {
+  assignItemViewTransitionNames, buildRemoveTransitionStyle, buildShiftTransitionStyle, calcStaggerDelayMs, clearAllItemViewTransitionNames, clearItemViewTransitionNames, extractAnimateIds, reassignTransitionNames 
+} from "../animations";
+import {
+  deepArray, isPolymerElement, isRecord, videoIdFromData 
+} from "../helpers";
+import { filterOutRichItems } from "./rich-item";
 
 export async function removeGridItems(items: ItemInfo[], allRequestedVideoIds: string[]) {
   const gridItems = items.filter(({ container }) => container === "grid");
@@ -43,7 +47,7 @@ function cleanupOrphanIdsInGridData(
     return;
   }
 
-  const unfoundVideoIds = allRequestedVideoIds.filter(id => !foundVideoIds.has(id));
+  const unfoundVideoIds = allRequestedVideoIds.filter(videoId => !foundVideoIds.has(videoId));
   if (unfoundVideoIds.length === 0) {
     return;
   }
@@ -86,10 +90,13 @@ async function removeGridItemsAnimated(
   const animateIds = extractAnimateIds(elElementsAfterFirstRemoved);
 
   for (const elItem of allGridElements) {
-    if (!isPolymerElement(elItem)) continue;
-    const id = videoIdFromData(elItem.data);
-    if (id && elItem.getBoundingClientRect().top <= innerHeight) {
-      elItem.style.viewTransitionName = `ytsua-item-${id}`;
+    if (!isPolymerElement(elItem)) {
+      continue;
+    }
+
+    const videoId = videoIdFromData(elItem.data);
+    if (videoId && elItem.getBoundingClientRect().top <= innerHeight) {
+      elItem.style.viewTransitionName = `ytsua-item-${videoId}`;
     }
   }
 

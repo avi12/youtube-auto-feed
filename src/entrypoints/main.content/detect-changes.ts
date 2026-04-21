@@ -1,3 +1,4 @@
+import { parseSecondsAgo } from "./api/guards";
 import { addVideosToGridDom, cleanOrphanedGridItems } from "./dom/add-grid";
 import { addVideosToDom } from "./dom/add-shelf";
 import { moveVideosToFront } from "./dom/move";
@@ -5,8 +6,9 @@ import { findShelfForSection } from "./dom/query";
 import { removeVideosFromDom } from "./dom/remove";
 import { repositionVideoInSection } from "./dom/reposition";
 import { updateVideoInDom } from "./dom/update";
-import { deepArray, deepRecord, deepString, isPolymerElement, isRecord, videoIdFromData } from "./helpers";
-import { parseSecondsAgo } from "./api/guards";
+import {
+  deepArray, deepRecord, deepString, isPolymerElement, isRecord, videoIdFromData 
+} from "./helpers";
 import { type VideoSnapshot, VideoStatus } from "./types";
 
 function readCurrentVideoIds() {
@@ -31,6 +33,7 @@ function readCurrentVideoIds() {
         videoIds.add(videoId);
         continue;
       }
+
       for (const shelfItem of deepArray(item, "richSectionRenderer", "content", "richShelfRenderer", "contents")) {
         const shelfVideoId = videoIdFromData(deepRecord(shelfItem, "richItemRenderer"));
         if (shelfVideoId) {
@@ -42,7 +45,9 @@ function readCurrentVideoIds() {
         ...deepArray(item, "richSectionRenderer", "content", "shelfRenderer", "content", "gridRenderer", "items")
       ]) {
         const listVideoId = deepString(listItem, "videoRenderer", "videoId") || deepString(listItem, "gridVideoRenderer", "videoId");
-        if (listVideoId) videoIds.add(listVideoId);
+        if (listVideoId) {
+          videoIds.add(listVideoId);
+        }
       }
     }
   }
@@ -58,7 +63,9 @@ function readCurrentVideoIds() {
       ...deepArray(shelfContent, "gridRenderer", "items")
     ]) {
       const listVideoId = deepString(listItem, "videoRenderer", "videoId") || deepString(listItem, "gridVideoRenderer", "videoId");
-      if (listVideoId) videoIds.add(listVideoId);
+      if (listVideoId) {
+        videoIds.add(listVideoId);
+      }
     }
   }
 
@@ -86,7 +93,10 @@ export async function detectAndApplyChanges(
 
   const videoIdsToRemove: string[] = [];
   for (const [videoId, previous] of previousSnapshot) {
-    if (previous.status === VideoStatus.Short) continue;
+    if (previous.status === VideoStatus.Short) {
+      continue;
+    }
+
     if (!freshMap.has(videoId)) {
       videoIdsToRemove.push(videoId);
     }
@@ -98,7 +108,10 @@ export async function detectAndApplyChanges(
   const videosToReposition: VideoSnapshot[] = [];
   const videosToMoveToFront: VideoSnapshot[] = [];
   for (const [videoId, fresh] of freshMap) {
-    if (fresh.status === VideoStatus.Short) continue;
+    if (fresh.status === VideoStatus.Short) {
+      continue;
+    }
+
     if (!currentVideoIds.has(videoId)) {
       videosToAdd.push(fresh);
       continue;
@@ -156,6 +169,7 @@ export async function detectAndApplyChanges(
   if (shelfVideos.length > 0) {
     await addVideosToDom(shelfVideos, timeOrderedSnapshots, freshMap);
   }
+
   if (gridVideos.length > 0) {
     await addVideosToGridDom(gridVideos, timeOrderedSnapshots);
   }

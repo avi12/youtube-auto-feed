@@ -1,4 +1,6 @@
-import type { InnerTubeBrowseResponse, InnerTubeVideoRenderer, LockupViewModel, ShortsLockupViewModel, VideoSnapshot } from "../types";
+import type {
+  InnerTubeBrowseResponse, InnerTubeVideoRenderer, LockupViewModel, ShortsLockupViewModel, VideoSnapshot 
+} from "../types";
 import { parseLockupViewModel, parseRenderer, parseShortsLockupViewModel } from "./parse-video";
 
 function collectSnapshot(
@@ -17,6 +19,7 @@ function collectSnapshot(
   } else if (shortsLockup) {
     snapshot = parseShortsLockupViewModel(shortsLockup, sectionTitle);
   }
+
   if (snapshot && !seenVideoIds.has(snapshot.videoId)) {
     seenVideoIds.add(snapshot.videoId);
     snapshots.push(snapshot);
@@ -57,6 +60,7 @@ export function parseApiResponse(data: InnerTubeBrowseResponse) {
             pushSnapshot(currentSectionTitle, shelfItem.videoRenderer ?? shelfItem.gridVideoRenderer);
           }
         }
+
         currentSectionTitle = "";
       } else if (item.richItemRenderer) {
         const { content } = item.richItemRenderer;
@@ -73,7 +77,10 @@ export function parseApiResponse(data: InnerTubeBrowseResponse) {
       for (const sectionItem of tabContent?.sectionListRenderer?.contents ?? []) {
         for (const innerItem of sectionItem.itemSectionRenderer?.contents ?? []) {
           const shelf = innerItem.shelfRenderer;
-          if (!shelf) continue;
+          if (!shelf) {
+            continue;
+          }
+
           const sectionTitle = shelf.title.runs[0]?.text ?? "";
           const shelfItems = shelf.content?.horizontalListRenderer?.items ?? shelf.content?.gridRenderer?.items ?? [];
           for (const shelfItem of shelfItems) {
