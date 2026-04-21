@@ -74,6 +74,7 @@ export async function addVideosToGridDom(videosToAdd: VideoSnapshot[], allFreshS
       }
 
       const newContents = [...deepArray(elGrid.data, "contents")];
+      const originalSectionCounts = computeSectionStandaloneCounts(newContents);
 
       const findExistingSectionIndex = (sectionTitle: string) => sectionTitle ? newContents.findIndex(item =>
         deepString(item, "richSectionRenderer", "content", "richShelfRenderer", "title", "runs", "0", "text") === sectionTitle ||
@@ -169,6 +170,8 @@ export async function addVideosToGridDom(videosToAdd: VideoSnapshot[], allFreshS
           actuallyAddedVideos.push(video);
         }
       }
+
+      trimSectionStandaloneItems(newContents, originalSectionCounts);
       elGrid.set("data.contents", newContents);
 
       for (const elItem of elElementsToAnimate) {
@@ -382,6 +385,45 @@ function buildNewRichSection(sectionTitle: string, videos: VideoSnapshot[]) {
       trackingParams: ""
     }
   };
+}
+
+function computeSectionStandaloneCounts(contents: unknown[]) {
+  const counts = new Map<string, number>();
+  let currentSection = "";
+  for (const item of contents) {
+    if (deepRecord(item, "richSectionRenderer") !== null) {
+      currentSection =
+        deepString(item, "richSectionRenderer", "content", "richShelfRenderer", "title", "runs", "0", "text") ||
+        deepString(item, "richSectionRenderer", "content", "shelfRenderer", "title", "runs", "0", "text");
+    } else if (videoIdFromRichItem(item)) {
+      counts.set(currentSection, (counts.get(currentSection) ?? 0) + 1);
+    }
+  }
+  return counts;
+}
+
+function trimSectionStandaloneItems(contents: unknown[], limits: Map<string, number>) {
+  const seen = new Map<string, number>();
+  const indicesToRemove: number[] = [];
+  let currentSection = "";
+  for (let i = 0; i < contents.length; i++) {
+    const item = contents[i];
+    if (deepRecord(item, "richSectionRenderer") !== null) {
+      currentSection =
+        deepString(item, "richSectionRenderer", "content", "richShelfRenderer", "title", "runs", "0", "text") ||
+        deepString(item, "richSectionRenderer", "content", "shelfRenderer", "title", "runs", "0", "text");
+    } else if (videoIdFromRichItem(item)) {
+      const count = (seen.get(currentSection) ?? 0) + 1;
+      seen.set(currentSection, count);
+      const limit = limits.get(currentSection);
+      if (limit !== undefined && count > limit) {
+        indicesToRemove.push(i);
+      }
+    }
+  }
+  for (let i = indicesToRemove.length - 1; i >= 0; i--) {
+    contents.splice(indicesToRemove[i], 1);
+  }
 }
 
 function findGridInsertIndex(contents: unknown[], freshIndex: number, freshOrderMap: Map<string, number>) {
