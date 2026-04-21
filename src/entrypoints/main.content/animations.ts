@@ -50,7 +50,7 @@ export function extractAnimateIds(elItems: Iterable<HTMLElement>) {
   return ids;
 }
 
-export function calcStaggerDelayMs(itemCount: number) {
+export function calculateStaggerDelayMs(itemCount: number) {
   return itemCount > 1 ? Math.min(80 / (itemCount - 1), 20) : 0;
 }
 

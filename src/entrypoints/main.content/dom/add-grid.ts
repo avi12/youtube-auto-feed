@@ -2,7 +2,7 @@ import {
   assignItemViewTransitionNames,
   buildNewItemTransitionStyle,
   buildShiftTransitionStyle,
-  calcStaggerDelayMs,
+  calculateStaggerDelayMs,
   clearAllItemViewTransitionNames,
   clearItemViewTransitionNames,
   extractAnimateIds,
@@ -60,7 +60,7 @@ export async function addVideosToGridDom(videosToAdd: VideoSnapshot[], allFreshS
   const elSectionsToAnimate = shiftTargets?.elSectionsToAnimate ?? [];
 
   assignItemViewTransitionNames(elElementsToAnimate);
-  const elShiftStyle = buildShiftTransitionStyle(elElementsToAnimate, new Set(), calcStaggerDelayMs(elElementsToAnimate.length));
+  const elShiftStyle = buildShiftTransitionStyle(elElementsToAnimate, new Set(), calculateStaggerDelayMs(elElementsToAnimate.length));
   document.head.append(elShiftStyle);
 
   const animateIds = extractAnimateIds(elElementsToAnimate);
@@ -95,11 +95,11 @@ export async function addVideosToGridDom(videosToAdd: VideoSnapshot[], allFreshS
 
       // Insert new sections at the position determined by fresh order
       for (const [sectionTitle, sectionVideos] of newSectionGroups) {
-        const sectionMinFreshIndex = sectionVideos.reduce(
-          (min, sectionVideo) => Math.min(min, freshOrderMap.get(sectionVideo.videoId) ?? Infinity),
+        const sectionMinimumFreshIndex = sectionVideos.reduce(
+          (minimum, sectionVideo) => Math.min(minimum, freshOrderMap.get(sectionVideo.videoId) ?? Infinity),
           Infinity
         );
-        const iInsert = findSectionInsertIndex(newContents, sectionMinFreshIndex, freshOrderMap);
+        const iInsert = findSectionInsertIndex(newContents, sectionMinimumFreshIndex, freshOrderMap);
         newContents.splice(iInsert, 0, buildNewRichSection(sectionTitle, sectionVideos));
       }
 
@@ -338,12 +338,12 @@ export function cleanOrphanedGridItems() {
 
 }
 
-function findSectionInsertIndex(contents: unknown[], sectionMinFreshIndex: number, freshOrderMap: Map<string, number>) {
+function findSectionInsertIndex(contents: unknown[], sectionMinimumFreshIndex: number, freshOrderMap: Map<string, number>) {
   for (let iContent = 0; iContent < contents.length; iContent++) {
     const item = contents[iContent];
     const standaloneId = videoIdFromRichItem(item);
     if (standaloneId) {
-      if ((freshOrderMap.get(standaloneId) ?? Infinity) > sectionMinFreshIndex) {
+      if ((freshOrderMap.get(standaloneId) ?? Infinity) > sectionMinimumFreshIndex) {
         return iContent;
       }
 
@@ -352,11 +352,11 @@ function findSectionInsertIndex(contents: unknown[], sectionMinFreshIndex: numbe
 
     const existingSectionItems = deepArray(item, "richSectionRenderer", "content", "richShelfRenderer", "contents");
     if (existingSectionItems.length > 0) {
-      const existingSectionMin = existingSectionItems.reduce((min, contentItem) => {
+      const existingSectionMinimum = existingSectionItems.reduce((minimum, contentItem) => {
         const videoId = videoIdFromRichItem(contentItem);
-        return Math.min(min, videoId ? (freshOrderMap.get(videoId) ?? Infinity) : Infinity);
+        return Math.min(minimum, videoId ? (freshOrderMap.get(videoId) ?? Infinity) : Infinity);
       }, Infinity);
-      if (existingSectionMin > sectionMinFreshIndex) {
+      if (existingSectionMinimum > sectionMinimumFreshIndex) {
         return iContent;
       }
     }

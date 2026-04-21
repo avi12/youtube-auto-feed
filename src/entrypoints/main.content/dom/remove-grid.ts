@@ -1,7 +1,7 @@
 import type { PolymerElement } from "../types";
 import type { ItemInfo } from "./remove";
 import {
-  assignItemViewTransitionNames, buildRemoveTransitionStyle, buildShiftTransitionStyle, calcStaggerDelayMs, clearAllItemViewTransitionNames, clearItemViewTransitionNames, extractAnimateIds, reassignTransitionNames 
+  assignItemViewTransitionNames, buildRemoveTransitionStyle, buildShiftTransitionStyle, calculateStaggerDelayMs, clearAllItemViewTransitionNames, clearItemViewTransitionNames, extractAnimateIds, reassignTransitionNames 
 } from "../animations";
 import {
   deepArray, isPolymerElement, isRecord, videoIdFromData 
@@ -86,7 +86,7 @@ async function removeGridItemsAnimated(
 
   assignItemViewTransitionNames(elElementsAfterFirstRemoved);
 
-  const shiftDelayPerItemMs = calcStaggerDelayMs(elElementsAfterFirstRemoved.length);
+  const shiftDelayPerItemMs = calculateStaggerDelayMs(elElementsAfterFirstRemoved.length);
   const animateIds = extractAnimateIds(elElementsAfterFirstRemoved);
 
   for (const elItem of allGridElements) {

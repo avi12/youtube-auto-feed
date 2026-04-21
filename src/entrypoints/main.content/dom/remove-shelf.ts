@@ -3,7 +3,7 @@ import {
   assignItemViewTransitionNames,
   buildRemoveTransitionStyle,
   buildShiftTransitionStyle,
-  calcStaggerDelayMs,
+  calculateStaggerDelayMs,
   clearAllItemViewTransitionNames,
   clearItemViewTransitionNames,
   extractAnimateIds,
@@ -42,7 +42,7 @@ async function removeItemsFromShelf(
     }
   }
 
-  const elShiftStyle = buildShiftTransitionStyle(elSiblings, new Set(), calcStaggerDelayMs(elSiblings.length));
+  const elShiftStyle = buildShiftTransitionStyle(elSiblings, new Set(), calculateStaggerDelayMs(elSiblings.length));
   const elRemoveStyle = buildRemoveTransitionStyle(group.elOnScreenItems);
   document.head.append(elShiftStyle);
   document.head.append(elRemoveStyle);
@@ -165,7 +165,7 @@ async function removeEmptyShelfSection(elRichShelf: HTMLElement, shelfTitle: str
     elItemsAfterSection.filter(elItem => elItem.tagName === "YTD-RICH-ITEM-RENDERER")
   );
 
-  const elShiftStyle = buildShiftTransitionStyle(elItemsAfterSection, new Set(), calcStaggerDelayMs(elItemsAfterSection.length));
+  const elShiftStyle = buildShiftTransitionStyle(elItemsAfterSection, new Set(), calculateStaggerDelayMs(elItemsAfterSection.length));
   document.head.append(elShiftStyle);
 
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");

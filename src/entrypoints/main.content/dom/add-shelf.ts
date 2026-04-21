@@ -55,7 +55,7 @@ async function addVideosToSection(videos: VideoSnapshot[], allFreshSnapshots: Vi
 
   const animateIds = extractAnimateIds(elExistingItems);
 
-  const insertOps = videosToInsert
+  const insertOperations = videosToInsert
     .map(video => {
       const iApiInsert = Math.max(0, sectionVideos.findIndex(sectionVideo => sectionVideo.videoId === video.videoId));
       const iInsert = video.status !== VideoStatus.Live
@@ -66,7 +66,7 @@ async function addVideosToSection(videos: VideoSnapshot[], allFreshSnapshots: Vi
     .sort((opA, opB) => opB.iInsert - opA.iInsert);
 
   const newShelfContents = [...shelfContents];
-  for (const { video, iInsert } of insertOps) {
+  for (const { video, iInsert } of insertOperations) {
     newShelfContents.splice(iInsert, 0, buildRichItem(video.rawRenderer));
   }
 
@@ -74,7 +74,7 @@ async function addVideosToSection(videos: VideoSnapshot[], allFreshSnapshots: Vi
   const visibleCap = isCollapsed ? null : computeVisibleItemCap(elExistingItems);
   const displayCap = visibleCap ?? elExistingItems.length;
 
-  const anyVisibleInsert = isCollapsed || insertOps.some(({ iInsert }) => iInsert < displayCap);
+  const anyVisibleInsert = isCollapsed || insertOperations.some(({ iInsert }) => iInsert < displayCap);
   if (!anyVisibleInsert) {
     return;
   }
@@ -84,8 +84,8 @@ async function addVideosToSection(videos: VideoSnapshot[], allFreshSnapshots: Vi
     displayContents.some(item => videoIdFromRichItem(item) === video.videoId)
   );
 
-  const iMinInsert = insertOps[insertOps.length - 1].iInsert;
-  const overflowResult = isCollapsed ? buildCollapsedOverflowStyle(elExistingItems, iMinInsert) : null;
+  const iMinimumInsert = insertOperations[insertOperations.length - 1].iInsert;
+  const overflowResult = isCollapsed ? buildCollapsedOverflowStyle(elExistingItems, iMinimumInsert) : null;
   if (overflowResult) {
     document.head.append(overflowResult.elStyle);
   }
@@ -113,7 +113,7 @@ async function addVideosToSection(videos: VideoSnapshot[], allFreshSnapshots: Vi
 
     reassignTransitionNames(elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer"), animateIds);
 
-    const insertedAscending = insertOps.toReversed();
+    const insertedAscending = insertOperations.toReversed();
     const elNewItems: HTMLElement[] = [];
     for (const { video } of insertedAscending) {
       const elNewItem = findItemElement(video.videoId);
@@ -137,7 +137,7 @@ async function addVideosToSection(videos: VideoSnapshot[], allFreshSnapshots: Vi
     overflowResult?.elStyle.remove();
     elShiftStyle.remove();
     elNewItemTransitionStyle?.remove();
-    for (const { video } of insertOps) {
+    for (const { video } of insertOperations) {
       const elNewItem = findItemElement(video.videoId);
       if (elNewItem) {
         elNewItem.style.viewTransitionName = "";
