@@ -71,13 +71,15 @@ async function addVideosToSection(videos: VideoSnapshot[], allFreshSnapshots: Vi
   }
 
   const isCollapsed = isRecord(elShelf.data) && elShelf.data.isExpanded === false;
+  const visibleCap = isCollapsed ? null : computeVisibleItemCap(elShelf);
+  const displayCap = visibleCap ?? shelfContents.length;
 
-  const anyVisibleInsert = isCollapsed || insertOps.some(({ iInsert }) => iInsert < shelfContents.length);
+  const anyVisibleInsert = isCollapsed || insertOps.some(({ iInsert }) => iInsert < displayCap);
   if (!anyVisibleInsert) {
     return;
   }
 
-  const displayContents = isCollapsed ? newShelfContents : newShelfContents.slice(0, shelfContents.length);
+  const displayContents = isCollapsed ? newShelfContents : newShelfContents.slice(0, displayCap);
   const visibleVideosToInsert = videosToInsert.filter(video =>
     displayContents.some(item => videoIdFromRichItem(item) === video.videoId)
   );
@@ -142,6 +144,20 @@ async function addVideosToSection(videos: VideoSnapshot[], allFreshSnapshots: Vi
       }
     }
   }
+}
+
+function computeVisibleItemCap(elShelf: Element) {
+  const rowElements = elShelf.querySelectorAll("ytd-rich-grid-row");
+  if (rowElements.length === 0) {
+    return null;
+  }
+
+  const itemsPerRow = rowElements[0].querySelectorAll("ytd-rich-item-renderer").length;
+  if (itemsPerRow === 0) {
+    return null;
+  }
+
+  return rowElements.length * itemsPerRow;
 }
 
 function buildCollapsedOverflowStyle(elExistingItems: NodeListOf<HTMLElement>, iInsert: number) {
