@@ -94,12 +94,6 @@ export async function addVideosToGridDom(videosToAdd: VideoSnapshot[], allFreshS
 
   try {
     await document.startViewTransition(async () => {
-      const presentIds = readGridVideoIds(elGrid, elGridContents);
-      const videosToInsert = sortedVideos.filter(video => !presentIds.has(video.videoId));
-      if (videosToInsert.length === 0) {
-        return;
-      }
-
       const newContents = [...deepArray(elGrid.data, "contents")];
 
       const findExistingSectionIndex = (sectionTitle: string) => sectionTitle ? newContents.findIndex(item =>
@@ -110,7 +104,7 @@ export async function addVideosToGridDom(videosToAdd: VideoSnapshot[], allFreshS
       // Group videos that need a brand-new section created
       const newSectionGroups = new Map<string, VideoSnapshot[]>();
       const videosForNormalPath: VideoSnapshot[] = [];
-      for (const video of videosToInsert) {
+      for (const video of sortedVideos) {
         if (video.sectionTitle && findExistingSectionIndex(video.sectionTitle) < 0) {
           const group = newSectionGroups.get(video.sectionTitle) ?? [];
           group.push(video);
@@ -189,7 +183,7 @@ export async function addVideosToGridDom(videosToAdd: VideoSnapshot[], allFreshS
           }
         }
 
-        if (!wasInserted) {
+        if (!wasInserted && !newContents.some(item => videoIdFromRichItem(item) === videoId)) {
           const freshIndex = freshOrderMap.get(videoId) ?? 0;
           const iInsert = findGridInsertIndex(newContents, freshIndex, freshOrderMap);
           newContents.splice(iInsert, 0, buildRichItem(rawRenderer));
@@ -249,41 +243,6 @@ export async function addVideosToGridDom(videosToAdd: VideoSnapshot[], allFreshS
   for (const elSection of document.querySelectorAll<HTMLElement>("ytd-rich-section-renderer.ytsua-section-removing")) {
     elSection.classList.remove("ytsua-section-removing");
   }
-}
-
-function readGridVideoIds(elGrid: HTMLElement, elGridContents: HTMLElement) {
-  const ids = new Set<string>();
-  for (const item of deepArray(elGrid.data, "contents")) {
-    const topId = videoIdFromRichItem(item);
-    if (topId) {
-      ids.add(topId);
-      continue;
-    }
-
-    for (const shelfItem of deepArray(item, "richSectionRenderer", "content", "richShelfRenderer", "contents")) {
-      const shelfId = videoIdFromRichItem(shelfItem);
-      if (shelfId) {
-        ids.add(shelfId);
-      }
-    }
-    for (const listItem of shelfRendererListItems(item)) {
-      const videoId = deepString(listItem, "videoRenderer", "videoId") || deepString(listItem, "gridVideoRenderer", "videoId");
-      if (videoId) {
-        ids.add(videoId);
-      }
-    }
-  }
-  for (const elItem of elGridContents.querySelectorAll<HTMLElement>(":scope > ytd-rich-item-renderer")) {
-    if (!isPolymerElement(elItem)) {
-      continue;
-    }
-
-    const videoId = videoIdFromData(elItem.data);
-    if (videoId) {
-      ids.add(videoId);
-    }
-  }
-  return ids;
 }
 
 function shelfRendererListItems(contentItem: unknown) {

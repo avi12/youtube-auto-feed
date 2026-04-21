@@ -76,6 +76,7 @@ async function addVideosToSection(videos: VideoSnapshot[], allFreshSnapshots: Vi
 
   const anyVisibleInsert = isCollapsed || insertOperations.some(({ iInsert }) => iInsert < displayCap);
   if (!anyVisibleInsert) {
+    elShelf.set("data.contents", newShelfContents);
     return;
   }
 
