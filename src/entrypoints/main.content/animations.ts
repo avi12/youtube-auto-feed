@@ -1,7 +1,7 @@
 import { isPolymerElement, videoIdFromData } from "./helpers";
 
-export const animationClasses = ["ytsua-new", "ytsua-updated"] as const;
-export type AnimationClass = typeof animationClasses[number];
+const animationClasses = ["ytsua-new", "ytsua-updated"] as const;
+type AnimationClass = typeof animationClasses[number];
 
 export function triggerAnimation(elTarget: HTMLElement, animationClass: AnimationClass) {
   elTarget.classList.remove(...animationClasses);

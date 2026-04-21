@@ -50,7 +50,6 @@ export interface InnerTubeVideoRenderer {
 // ── lockupViewModel (new YouTube UI format) ───────────────────────────────────
 
 export enum LockupContentType {
-  Video = "LOCKUP_CONTENT_TYPE_VIDEO",
   Shorts = "LOCKUP_CONTENT_TYPE_SHORTS"
 }
 
@@ -160,7 +159,7 @@ export interface InnerTubeBrowseResponse {
 
 // ── YouTube InnerTube client config ───────────────────────────────────────────
 
-export type InnerTubeClientName =
+type InnerTubeClientName =
   | "WEB"
   | "MWEB"
   | "ANDROID"
@@ -170,19 +169,19 @@ export type InnerTubeClientName =
   | "WEB_EMBEDDED_PLAYER"
   | "WEB_CREATOR";
 
-export type InnerTubePlatform = "DESKTOP" | "MOBILE" | "TV";
+type InnerTubePlatform = "DESKTOP" | "MOBILE" | "TV";
 
-export type InnerTubeClientFormFactor =
+type InnerTubeClientFormFactor =
   | "UNKNOWN_FORM_FACTOR"
   | "SMALL_FORM_FACTOR"
   | "LARGE_FORM_FACTOR"
   | "AUTOMOTIVE_FORM_FACTOR";
 
-export type InnerTubeUserInterfaceTheme =
+type InnerTubeUserInterfaceTheme =
   | "USER_INTERFACE_THEME_DARK"
   | "USER_INTERFACE_THEME_LIGHT";
 
-export interface InnerTubeContext {
+interface InnerTubeContext {
   client: {
     clientName: InnerTubeClientName;
     clientVersion: string;
@@ -215,7 +214,7 @@ export interface InnerTubeContext {
   clickTracking?: { clickTrackingParams?: string; };
 }
 
-export interface YouTubeInnertubeConfig {
+interface YouTubeInnertubeConfig {
   INNERTUBE_CLIENT_VERSION?: string;
   INNERTUBE_CONTEXT?: InnerTubeContext;
   INNERTUBE_API_KEY?: string;

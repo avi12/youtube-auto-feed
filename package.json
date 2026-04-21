@@ -19,9 +19,12 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@stylistic/eslint-plugin": "^5.10.0",
+    "chokidar": "^5.0.0",
     "eslint": "^10.2.0",
     "eslint-plugin-perfectionist": "^5.8.0",
     "globals": "^17.5.0",
+    "perfect-debounce": "^2.1.0",
+    "postcss": "^8.5.10",
     "postcss-html": "^1.8.1",
     "stylelint": "^17.8.0",
     "stylelint-config-ccb": "^3.31.2",
