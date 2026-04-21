@@ -92,7 +92,7 @@ export async function detectAndApplyChanges(
   const freshMap = new Map(freshSnapshots.map(video => [video.videoId, video]));
 
   const videoIdsToRemove: string[] = [];
-  for (const [videoId, previous] of previousSnapshot) {
+  for (const [videoId] of previousSnapshot) {
     if (!freshMap.has(videoId)) {
       videoIdsToRemove.push(videoId);
     }
@@ -104,10 +104,6 @@ export async function detectAndApplyChanges(
   const videosToReposition: VideoSnapshot[] = [];
   const videosToMoveToFront: VideoSnapshot[] = [];
   for (const [videoId, fresh] of freshMap) {
-    if (fresh.status === VideoStatus.Short) {
-      continue;
-    }
-
     if (!currentVideoIds.has(videoId)) {
       videosToAdd.push(fresh);
       continue;
