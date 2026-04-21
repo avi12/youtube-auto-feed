@@ -1,7 +1,0 @@
-{
-  "permissions": {
-    "deny": ["Bash(git push:*)"],
-    "allow": ["Bash", "Edit", "Write", "mcp__chrome-devtools-mcp__*", "mcp__firefox-devtools-mcp__*"],
-    "defaultMode": "acceptEdits"
-  }
-}
