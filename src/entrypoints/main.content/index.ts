@@ -5,12 +5,13 @@ import { detectAndApplyChanges, detectAndApplyMetadataChanges } from "./detect-c
 import { readDomSnapshot } from "./dom/query";
 import { isOnSubscriptionsPage } from "./helpers";
 import { isDomContentReady } from "./readiness";
+import { ytsuaChannel } from "../../messaging";
 import { type VideoSnapshot } from "./types";
 
 export default defineContentScript({
   matches: ["https://www.youtube.com/*"],
   world: "MAIN",
-  main(context) {
+  main() {
     let lastSnapshot = new Map<string, VideoSnapshot>();
     let isDomReady = false;
     let isApplyingChanges = false;
@@ -18,8 +19,9 @@ export default defineContentScript({
     let contentObserver: MutationObserver | null = null;
     let pendingApiSnapshots: VideoSnapshot[] | null = null;
     let pendingApiSnapshotsTime = 0;
-    let pollingTimer: number | null = null;
-    let metadataPollingTimer: number | null = null;
+    let pollingTimer: ReturnType<typeof setInterval> | null = null;
+    let metadataPollingTimer: ReturnType<typeof setInterval> | null = null;
+    let cancelBroadcastListener: (() => void) | null = null;
 
     async function applyChanges(freshSnapshots: VideoSnapshot[]) {
       if (isApplyingChanges) {
@@ -118,7 +120,7 @@ export default defineContentScript({
         clearInterval(pollingTimer);
       }
 
-      pollingTimer = context.setInterval(() => {
+      pollingTimer = setInterval(() => {
         void fetchFreshVideos();
       }, 5000);
     }
@@ -140,7 +142,8 @@ export default defineContentScript({
       removeEventListener("ytsua-browse-response", handleBrowseResponse);
       removeEventListener("ytsua-subscription-change", handleSubscriptionChange);
       document.removeEventListener("visibilitychange", handlePageFocus);
-      broadcastChannel.onmessage = null;
+      cancelBroadcastListener?.();
+      cancelBroadcastListener = null;
 
       if (pollingTimer !== null) {
         clearInterval(pollingTimer);
@@ -158,15 +161,13 @@ export default defineContentScript({
       }
     }
 
-    const broadcastChannel = new BroadcastChannel("ytsua");
-
     function startMonitoring() {
       addEventListener("ytsua-browse-response", handleBrowseResponse);
       addEventListener("ytsua-subscription-change", handleSubscriptionChange);
       document.addEventListener("visibilitychange", handlePageFocus);
-      broadcastChannel.onmessage = handleSubscriptionChange;
+      cancelBroadcastListener = ytsuaChannel.onMessage("subscription-change", handleSubscriptionChange);
       restartPolling();
-      metadataPollingTimer = context.setInterval(() => {
+      metadataPollingTimer = setInterval(() => {
         void fetchAndApplyMetadataUpdates();
       }, 5 * 60 * 1000);
     }

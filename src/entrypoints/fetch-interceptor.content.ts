@@ -1,3 +1,5 @@
+import { ytsuaChannel } from "../messaging";
+
 export default defineContentScript({
   matches: ["https://www.youtube.com/*"],
   world: "MAIN",
@@ -24,7 +26,7 @@ export default defineContentScript({
 
         if (response.ok) {
           dispatchEvent(new CustomEvent("ytsua-subscription-change"));
-          new BroadcastChannel("ytsua").postMessage("subscription-change");
+          ytsuaChannel.sendMessage("subscription-change");
         }
 
         return response;
