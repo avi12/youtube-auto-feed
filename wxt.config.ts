@@ -9,5 +9,6 @@ export default defineConfig({
     browser_specific_settings: { gecko: { id: "youtube-now-feed@avi12.com" } }
   },
   srcDir: "src",
-  publicDir: "src/public"
+  publicDir: "src/public",
+  vite: () => ({ build: { sourcemap: false } })
 });
