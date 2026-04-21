@@ -9,6 +9,7 @@ export default defineConfig({
     browser_specific_settings: { gecko: { id: "youtube-now-feed@avi12.com" } }
   },
   srcDir: "src",
-  publicDir: "src/public",
+  modules: ["@wxt-dev/auto-icons"],
+  autoIcons: { baseIconPath: "assets/icon.svg" },
   vite: ({ mode }) => ({ build: { sourcemap: mode === "development" } })
 });
