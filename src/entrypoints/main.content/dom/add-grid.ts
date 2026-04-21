@@ -18,6 +18,27 @@ import { buildRichItem } from "./build";
 import { findItemElement } from "./query";
 import { sortByFreshOrder, videoIdFromRichItem } from "./rich-item";
 
+export function captureGridSectionCounts() {
+  const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
+  if (!elGrid || !isPolymerElement(elGrid) || !isRecord(elGrid.data)) {
+    return null;
+  }
+  return computeSectionStandaloneCounts(deepArray(elGrid.data, "contents"));
+}
+
+export function enforceGridSectionCounts(limits: Map<string, number>) {
+  const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
+  if (!elGrid || !isPolymerElement(elGrid) || !isRecord(elGrid.data)) {
+    return;
+  }
+  const contents = [...deepArray(elGrid.data, "contents")];
+  const preLength = contents.length;
+  trimSectionStandaloneItems(contents, limits);
+  if (contents.length < preLength) {
+    elGrid.set("data.contents", contents);
+  }
+}
+
 export async function addVideosToGridDom(videosToAdd: VideoSnapshot[], allFreshSnapshots: VideoSnapshot[]) {
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
   if (!elGrid || !isPolymerElement(elGrid)) {
@@ -65,6 +86,8 @@ export async function addVideosToGridDom(videosToAdd: VideoSnapshot[], allFreshS
 
   const animateIds = extractAnimateIds(elElementsToAnimate);
 
+  const originalSectionCounts = computeSectionStandaloneCounts(deepArray(elGrid.data, "contents"));
+
   try {
     await document.startViewTransition(async () => {
       const presentIds = readGridVideoIds(elGrid, elGridContents);
@@ -74,7 +97,6 @@ export async function addVideosToGridDom(videosToAdd: VideoSnapshot[], allFreshS
       }
 
       const newContents = [...deepArray(elGrid.data, "contents")];
-      const originalSectionCounts = computeSectionStandaloneCounts(newContents);
 
       const findExistingSectionIndex = (sectionTitle: string) => sectionTitle ? newContents.findIndex(item =>
         deepString(item, "richSectionRenderer", "content", "richShelfRenderer", "title", "runs", "0", "text") === sectionTitle ||
@@ -211,6 +233,13 @@ export async function addVideosToGridDom(videosToAdd: VideoSnapshot[], allFreshS
       }
     }
     clearAllItemViewTransitionNames();
+  }
+
+  const postTransitionContents = [...deepArray(elGrid.data, "contents")];
+  const preEnforceLength = postTransitionContents.length;
+  trimSectionStandaloneItems(postTransitionContents, originalSectionCounts);
+  if (postTransitionContents.length < preEnforceLength) {
+    elGrid.set("data.contents", postTransitionContents);
   }
 
   for (const elSection of document.querySelectorAll<HTMLElement>("ytd-rich-section-renderer.ytsua-section-removing")) {

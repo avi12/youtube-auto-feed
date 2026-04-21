@@ -1,5 +1,5 @@
 import { parseSecondsAgo } from "./api/guards";
-import { addVideosToGridDom, cleanOrphanedGridItems } from "./dom/add-grid";
+import { addVideosToGridDom, captureGridSectionCounts, cleanOrphanedGridItems, enforceGridSectionCounts } from "./dom/add-grid";
 import { addVideosToDom } from "./dom/add-shelf";
 import { moveVideosToFront } from "./dom/move";
 import { findShelfForSection } from "./dom/query";
@@ -89,6 +89,8 @@ export async function detectAndApplyChanges(
   previousSnapshot: Map<string, VideoSnapshot>,
   freshSnapshots: VideoSnapshot[]
 ) {
+  const originalSectionCounts = captureGridSectionCounts();
+
   const freshMap = new Map(freshSnapshots.map(video => [video.videoId, video]));
 
   const videoIdsToRemove: string[] = [];
@@ -171,6 +173,10 @@ export async function detectAndApplyChanges(
   }
 
   cleanOrphanedGridItems();
+
+  if (originalSectionCounts) {
+    enforceGridSectionCounts(originalSectionCounts);
+  }
 
   const postChangeVideoIds = readCurrentVideoIds();
   for (const videoId of videoIdsToRemove) {
