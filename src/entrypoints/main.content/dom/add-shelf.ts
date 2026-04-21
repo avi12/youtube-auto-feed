@@ -66,6 +66,15 @@ async function addVideosToSection(videos: VideoSnapshot[], allFreshSnapshots: Vi
   }
 
   const isCollapsed = isRecord(elShelf.data) && elShelf.data.isExpanded === false;
+
+  const anyVisibleInsert = isCollapsed || insertOps.some(({ iInsert }) => iInsert < shelfContents.length);
+  if (!anyVisibleInsert) return;
+
+  const displayContents = isCollapsed ? newShelfContents : newShelfContents.slice(0, shelfContents.length);
+  const visibleVideosToInsert = videosToInsert.filter(video =>
+    displayContents.some(item => videoIdFromRichItem(item) === video.videoId)
+  );
+
   const iMinInsert = insertOps[insertOps.length - 1].iInsert;
   const overflowResult = isCollapsed ? buildCollapsedOverflowStyle(elExistingItems, iMinInsert) : null;
   if (overflowResult) {
@@ -80,7 +89,7 @@ async function addVideosToSection(videos: VideoSnapshot[], allFreshSnapshots: Vi
   let elNewItemTransitionStyle: HTMLStyleElement | null = null;
 
   const transition = document.startViewTransition(async () => {
-    elShelf.set("data.contents", newShelfContents);
+    elShelf.set("data.contents", displayContents);
     if (wasExpanded === false) {
       elShelf.set("data.isExpanded", false);
     }
@@ -88,7 +97,7 @@ async function addVideosToSection(videos: VideoSnapshot[], allFreshSnapshots: Vi
       elItem.style.viewTransitionName = "";
     }
 
-    for (let i = 0; i < 10 && videosToInsert.some(video => !findItemElement(video.videoId)); i++) {
+    for (let i = 0; i < 10 && visibleVideosToInsert.some(video => !findItemElement(video.videoId)); i++) {
       await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
     }
 
