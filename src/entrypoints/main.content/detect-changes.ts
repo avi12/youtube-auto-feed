@@ -93,10 +93,6 @@ export async function detectAndApplyChanges(
 
   const videoIdsToRemove: string[] = [];
   for (const [videoId, previous] of previousSnapshot) {
-    if (previous.status === VideoStatus.Short) {
-      continue;
-    }
-
     if (!freshMap.has(videoId)) {
       videoIdsToRemove.push(videoId);
     }
