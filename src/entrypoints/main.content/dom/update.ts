@@ -1,3 +1,4 @@
+import { clearAllItemViewTransitionNames } from "../animations";
 import { deepRecord, isPolymerElement, isRecord } from "../helpers";
 import type { VideoSnapshot } from "../types";
 import { findItemElement } from "./query";
@@ -43,7 +44,6 @@ export async function updateVideoInDom(videoId: string, freshSnapshot: VideoSnap
       elPolymerItem.set("data", rawRenderer);
     } else if (isRecord(content.lockupViewModel)) {
       elPolymerItem.set("data.content.lockupViewModel", rawRenderer);
-      updateLockupMetadata(elPolymerItem, freshSnapshot.viewCountText, freshSnapshot.publishedTimeText);
     } else if (isRecord(content.shortsLockupViewModel)) {
       elPolymerItem.set("data.content.shortsLockupViewModel", rawRenderer);
     } else if (isRecord(content.videoRenderer)) {
@@ -59,13 +59,18 @@ export async function updateVideoInDom(videoId: string, freshSnapshot: VideoSnap
   }
 
   if (isVisualChange) {
+    clearAllItemViewTransitionNames();
     elPolymerItem.style.viewTransitionName = `ytsua-item-${videoId}`;
     try {
-      await document.startViewTransition(applyUpdate).finished;
+      await document.startViewTransition(async () => {
+        applyUpdate();
+        await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+      }).finished;
     } finally {
       elPolymerItem.style.viewTransitionName = "";
+      clearAllItemViewTransitionNames();
     }
   } else {
-    applyUpdate();
+    updateLockupMetadata(elPolymerItem, freshSnapshot.viewCountText, freshSnapshot.publishedTimeText);
   }
 }

@@ -1,4 +1,4 @@
-import { assignItemViewTransitionNames, clearItemViewTransitionNames } from "../animations";
+import { assignItemViewTransitionNames, buildShiftTransitionStyle, clearAllItemViewTransitionNames } from "../animations";
 import { deepArray, deepRecord, isPolymerElement, videoIdFromData } from "../helpers";
 import { type VideoSnapshot, VideoStatus } from "../types";
 import { findRichItemIndex, videoIdFromRichItem } from "./rich-item";
@@ -38,23 +38,40 @@ export async function repositionVideoInSection(
   const newContents = [...contentsWithoutVideo];
   newContents.splice(iInsert, 0, buildRichItem(rawRenderer));
 
+  clearAllItemViewTransitionNames();
+
   const elItems = elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer");
   assignItemViewTransitionNames(elItems);
+
+  const animateIds = new Set(
+    [...elItems]
+      .filter(isPolymerElement)
+      .map(el => videoIdFromData(el.data))
+      .filter((id): id is string => id !== null && id !== "")
+  );
+
+  const elShiftStyle = buildShiftTransitionStyle(elItems);
+  document.head.append(elShiftStyle);
 
   try {
     await document.startViewTransition(() => {
       elShelf.set("data.contents", newContents);
-      const elMovedItem = findItemElement(videoId);
-      if (elMovedItem) {
-        elMovedItem.style.viewTransitionName = `ytsua-item-${videoId}`;
+      for (const elItem of elItems) {
+        elItem.style.viewTransitionName = "";
+      }
+      const reassignedIds = new Set<string>();
+      for (const elItem of elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer")) {
+        if (!isPolymerElement(elItem)) continue;
+        const id = videoIdFromData(elItem.data);
+        if (id && animateIds.has(id) && !reassignedIds.has(id)) {
+          reassignedIds.add(id);
+          elItem.style.viewTransitionName = `ytsua-item-${id}`;
+        }
       }
     }).finished;
   } finally {
-    clearItemViewTransitionNames(elItems);
-    const elMovedItem = findItemElement(videoId);
-    if (elMovedItem) {
-      elMovedItem.style.viewTransitionName = "";
-    }
+    clearAllItemViewTransitionNames();
+    elShiftStyle.remove();
   }
 }
 
