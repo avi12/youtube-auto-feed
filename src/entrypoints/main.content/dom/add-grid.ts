@@ -23,7 +23,11 @@ export function captureGridSectionCounts() {
   if (!elGrid || !isPolymerElement(elGrid) || !isRecord(elGrid.data)) {
     return null;
   }
-  return computeSectionStandaloneCounts(deepArray(elGrid.data, "contents"));
+  const elGridContents = elGrid.querySelector<HTMLElement>("#contents");
+  if (!elGridContents) {
+    return null;
+  }
+  return measureSectionRowCaps(elGridContents);
 }
 
 export function enforceGridSectionCounts(limits: Map<string, number>) {
@@ -86,7 +90,7 @@ export async function addVideosToGridDom(videosToAdd: VideoSnapshot[], allFreshS
 
   const animateIds = extractAnimateIds(elElementsToAnimate);
 
-  const originalSectionCounts = computeSectionStandaloneCounts(deepArray(elGrid.data, "contents"));
+  const originalSectionCounts = measureSectionRowCaps(elGridContents);
 
   try {
     await document.startViewTransition(async () => {
@@ -416,19 +420,44 @@ function buildNewRichSection(sectionTitle: string, videos: VideoSnapshot[]) {
   };
 }
 
-function computeSectionStandaloneCounts(contents: unknown[]) {
-  const counts = new Map<string, number>();
+function measureSectionRowCaps(elGridContents: HTMLElement) {
+  const caps = new Map<string, number>();
   let currentSection = "";
-  for (const item of contents) {
-    if (deepRecord(item, "richSectionRenderer") !== null) {
-      currentSection =
-        deepString(item, "richSectionRenderer", "content", "richShelfRenderer", "title", "runs", "0", "text") ||
-        deepString(item, "richSectionRenderer", "content", "shelfRenderer", "title", "runs", "0", "text");
-    } else if (videoIdFromRichItem(item)) {
-      counts.set(currentSection, (counts.get(currentSection) ?? 0) + 1);
+  let firstRowTop: number | null = null;
+  let itemsInFirstRow = 0;
+  const rowTops = new Set<number>();
+
+  const saveSection = () => {
+    if (rowTops.size > 0 && itemsInFirstRow > 0) {
+      caps.set(currentSection, rowTops.size * itemsInFirstRow);
+    }
+    rowTops.clear();
+    firstRowTop = null;
+    itemsInFirstRow = 0;
+  };
+
+  for (const elChild of elGridContents.querySelectorAll<HTMLElement>(":scope > ytd-rich-item-renderer, :scope > ytd-rich-section-renderer")) {
+    if (elChild.tagName === "YTD-RICH-SECTION-RENDERER") {
+      saveSection();
+      if (isPolymerElement(elChild)) {
+        currentSection =
+          deepString(elChild.data, "content", "richShelfRenderer", "title", "runs", "0", "text") ||
+          deepString(elChild.data, "content", "shelfRenderer", "title", "runs", "0", "text");
+      }
+    } else {
+      const top = Math.round(elChild.getBoundingClientRect().top);
+      rowTops.add(top);
+      if (firstRowTop === null) {
+        firstRowTop = top;
+        itemsInFirstRow = 1;
+      } else if (Math.abs(top - firstRowTop) < 1) {
+        itemsInFirstRow++;
+      }
     }
   }
-  return counts;
+
+  saveSection();
+  return caps;
 }
 
 function trimSectionStandaloneItems(contents: unknown[], limits: Map<string, number>) {
