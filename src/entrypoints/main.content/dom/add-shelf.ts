@@ -5,14 +5,19 @@ import {
   clearAllItemViewTransitionNames,
   clearItemViewTransitionNames,
   extractAnimateIds,
-  reassignTransitionNames,
+  reassignTransitionNames
 } from "../animations";
-import { deepArray, isPolymerElement, isRecord, videoIdFromData } from "../helpers";
+import {
+  deepArray,
+  isPolymerElement,
+  isRecord,
+  videoIdFromData
+} from "../helpers";
 import { type VideoSnapshot, VideoStatus } from "../types";
 import { addSectionToDom } from "./add-section";
+import { buildRichItem } from "./build";
 import { findItemElement, findShelfForSection, leadingLiveCount } from "./query";
 import { videoIdFromRichItem } from "./rich-item";
-import { buildRichItem } from "./build";
 
 export async function addVideosToDom(freshSnapshots: VideoSnapshot[], allFreshSnapshots: VideoSnapshot[], snapshot: Map<string, VideoSnapshot>) {
   const bySection = new Map<string, VideoSnapshot[]>();
@@ -21,6 +26,7 @@ export async function addVideosToDom(freshSnapshots: VideoSnapshot[], allFreshSn
     sectionGroup.push(video);
     bySection.set(video.sectionTitle, sectionGroup);
   }
+
   for (const [, sectionVideos] of bySection) {
     await addVideosToSection(sectionVideos, allFreshSnapshots, snapshot);
   }
@@ -49,16 +55,15 @@ async function addVideosToSection(videos: VideoSnapshot[], allFreshSnapshots: Vi
 
   const animateIds = extractAnimateIds(elExistingItems);
 
-  // Sort descending by insert index so each splice doesn't offset the next
   const insertOps = videosToInsert
     .map(video => {
-      const iApiInsert = Math.max(0, sectionVideos.findIndex(v => v.videoId === video.videoId));
+      const iApiInsert = Math.max(0, sectionVideos.findIndex(sectionVideo => sectionVideo.videoId === video.videoId));
       const iInsert = video.status !== VideoStatus.Live
         ? Math.max(iApiInsert, leadingLiveCount(elShelf, snapshot))
         : iApiInsert;
       return { video, iInsert };
     })
-    .sort((a, b) => b.iInsert - a.iInsert);
+    .sort((opA, opB) => opB.iInsert - opA.iInsert);
 
   const newShelfContents = [...shelfContents];
   for (const { video, iInsert } of insertOps) {
@@ -68,7 +73,9 @@ async function addVideosToSection(videos: VideoSnapshot[], allFreshSnapshots: Vi
   const isCollapsed = isRecord(elShelf.data) && elShelf.data.isExpanded === false;
 
   const anyVisibleInsert = isCollapsed || insertOps.some(({ iInsert }) => iInsert < shelfContents.length);
-  if (!anyVisibleInsert) return;
+  if (!anyVisibleInsert) {
+    return;
+  }
 
   const displayContents = isCollapsed ? newShelfContents : newShelfContents.slice(0, shelfContents.length);
   const visibleVideosToInsert = videosToInsert.filter(video =>
@@ -93,6 +100,7 @@ async function addVideosToSection(videos: VideoSnapshot[], allFreshSnapshots: Vi
     if (wasExpanded === false) {
       elShelf.set("data.isExpanded", false);
     }
+
     for (const elItem of elExistingItems) {
       elItem.style.viewTransitionName = "";
     }
@@ -112,6 +120,7 @@ async function addVideosToSection(videos: VideoSnapshot[], allFreshSnapshots: Vi
         elNewItems.push(elNewItem);
       }
     }
+
     if (elNewItems.length > 0) {
       elNewItemTransitionStyle = buildNewItemTransitionStyle(elNewItems);
       document.head.append(elNewItemTransitionStyle);
@@ -128,7 +137,9 @@ async function addVideosToSection(videos: VideoSnapshot[], allFreshSnapshots: Vi
     elNewItemTransitionStyle?.remove();
     for (const { video } of insertOps) {
       const elNewItem = findItemElement(video.videoId);
-      if (elNewItem) elNewItem.style.viewTransitionName = "";
+      if (elNewItem) {
+        elNewItem.style.viewTransitionName = "";
+      }
     }
   }
 }
