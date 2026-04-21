@@ -1,16 +1,10 @@
 <svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
-  <!-- Dark rounded square (transparent corners) -->
-  <rect width="128" height="128" rx="22" fill="#212121"/>
+  <!-- Play triangle -->
+  <polygon points="16,24 16,104 72,64" fill="#FF0033"/>
 
-  <!-- YouTube red badge -->
-  <rect x="14" y="34" width="100" height="60" rx="12" fill="#FF0033"/>
-
-  <!-- "NOW" — the now-feed identity -->
-  <text x="64" y="64"
-    font-family="Arial Black, Arial, sans-serif"
-    font-size="30"
-    font-weight="900"
-    fill="white"
-    text-anchor="middle"
-    dominant-baseline="middle">NOW</text>
+  <!-- Broadcast arcs radiating from tip — live feed signal -->
+  <path d="M 86,48 A 22,22 0 0,1 86,80"
+    fill="none" stroke="#FF0033" stroke-width="9" stroke-linecap="round"/>
+  <path d="M 97,37 A 38,38 0 0,1 97,91"
+    fill="none" stroke="#FF0033" stroke-width="9" stroke-linecap="round"/>
 </svg>
