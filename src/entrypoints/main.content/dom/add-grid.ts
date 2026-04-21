@@ -108,6 +108,7 @@ export async function addVideosToGridDom(videosToAdd: VideoSnapshot[], allFreshS
         const { videoId, rawRenderer, sectionTitle } = video;
         const iSection = findExistingSectionIndex(sectionTitle);
 
+        let wasInserted = false;
         if (iSection >= 0) {
           const section = deepRecord(newContents[iSection], "richSectionRenderer");
           const content = deepRecord(section, "content");
@@ -125,10 +126,11 @@ export async function addVideosToGridDom(videosToAdd: VideoSnapshot[], allFreshS
                 }
               };
             }
+            wasInserted = true;
           } else if (section && content) {
             const innerShelf = deepRecord(content, "shelfRenderer");
-            if (innerShelf && isVideoRenderer(rawRenderer)) {
-              const innerContent: Record<string, unknown> = deepRecord(innerShelf, "content") ?? {};
+            const innerContent = deepRecord(innerShelf, "content");
+            if (innerShelf && isVideoRenderer(rawRenderer) && innerContent) {
               const horizontalList = deepRecord(innerContent, "horizontalListRenderer");
               const gridList = deepRecord(innerContent, "gridRenderer");
               const listKey = !horizontalList && gridList ? "gridRenderer" : "horizontalListRenderer";
@@ -155,9 +157,12 @@ export async function addVideosToGridDom(videosToAdd: VideoSnapshot[], allFreshS
                   }
                 };
               }
+              wasInserted = true;
             }
           }
-        } else {
+        }
+
+        if (!wasInserted) {
           const freshIndex = freshOrderMap.get(videoId) ?? 0;
           const iInsert = findGridInsertIndex(newContents, freshIndex, freshOrderMap);
           newContents.splice(iInsert, 0, buildRichItem(rawRenderer));
