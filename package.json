@@ -1,5 +1,5 @@
 {
-  "name": "youtube-now-feed",
+  "name": "youtube-auto-feed",
   "description": "Keeps your YouTube subscriptions feed current as videos are published, removed, or change state - no page reload needed.",
   "private": true,
   "version": "0.0.0",
@@ -22,15 +22,15 @@
     "@stylistic/eslint-plugin": "^5.10.0",
     "@wxt-dev/auto-icons": "^1.1.1",
     "chokidar": "^5.0.0",
-    "eslint": "^10.2.0",
-    "eslint-plugin-perfectionist": "^5.8.0",
+    "eslint": "^10.2.1",
+    "eslint-plugin-perfectionist": "^5.9.0",
     "globals": "^17.5.0",
-    "postcss": "^8.5.10",
+    "postcss": "^8.5.12",
     "postcss-html": "^1.8.1",
-    "stylelint": "^17.8.0",
-    "stylelint-config-ccb": "^3.31.2",
-    "typescript": "^6.0.2",
-    "typescript-eslint": "^8.58.2",
-    "wxt": "^0.20.22"
+    "stylelint": "^17.9.1",
+    "stylelint-config-ccb": "^3.31.4",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.59.1",
+    "wxt": "^0.20.25"
   }
 }
