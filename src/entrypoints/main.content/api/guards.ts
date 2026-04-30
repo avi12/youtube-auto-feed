@@ -36,7 +36,9 @@ export function viewCountFromRenderer(renderer: InnerTubeVideoRenderer) {
 }
 
 export function statusFromRenderer(renderer: InnerTubeVideoRenderer) {
-  const { badges, thumbnailOverlays, navigationEndpoint } = renderer;
+  const {
+    badges, thumbnailOverlays, navigationEndpoint, upcomingEventData
+  } = renderer;
   const badgeStyle = badges
     ?.find(badge => badge.metadataBadgeRenderer)
     ?.metadataBadgeRenderer?.style;
@@ -47,7 +49,11 @@ export function statusFromRenderer(renderer: InnerTubeVideoRenderer) {
     return VideoStatus.Live;
   }
 
-  if (badgeStyle === BadgeStyle.Upcoming || overlayStyle === OverlayStyle.Upcoming) {
+  if (
+    badgeStyle === BadgeStyle.Upcoming ||
+    overlayStyle === OverlayStyle.Upcoming ||
+    upcomingEventData !== undefined
+  ) {
     return VideoStatus.Upcoming;
   }
 

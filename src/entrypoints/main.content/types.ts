@@ -29,6 +29,12 @@ export interface InnerTubeReelWatchEndpoint {
   ustreamerConfig?: string;
 }
 
+export interface InnerTubeUpcomingEventData {
+  startTime?: string;
+  isReminderSet?: boolean;
+  upcomingEventText?: { runs?: Array<{ text: string; }>; };
+}
+
 export interface InnerTubeVideoRenderer {
   videoId: string;
   title: {
@@ -45,6 +51,7 @@ export interface InnerTubeVideoRenderer {
   shortViewCountText?: { simpleText?: string; };
   publishedTimeText?: { simpleText?: string; };
   navigationEndpoint?: { reelWatchEndpoint?: InnerTubeReelWatchEndpoint; };
+  upcomingEventData?: InnerTubeUpcomingEventData;
 }
 
 // ── lockupViewModel (new YouTube UI format) ───────────────────────────────────
