@@ -10,38 +10,13 @@ import {
 } from "../animations";
 import { isVideoRenderer } from "../api/guards";
 import {
-  deepArray, deepRecord, deepString, isPolymerElement, isRecord, videoIdFromData 
+  deepArray, deepRecord, deepString, isPolymerElement, isRecord, videoIdFromData
 } from "../helpers";
-import { type VideoSnapshot } from "../types";
+import { VideoStatus, type VideoSnapshot } from "../types";
 import { addSectionToDom } from "./add-section";
 import { buildRichItem } from "./build";
 import { findItemElement } from "./query";
 import { sortByFreshOrder, videoIdFromRichItem } from "./rich-item";
-
-export function captureGridSectionCounts() {
-  const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
-  if (!elGrid || !isPolymerElement(elGrid) || !isRecord(elGrid.data)) {
-    return null;
-  }
-  const elGridContents = elGrid.querySelector<HTMLElement>("#contents");
-  if (!elGridContents) {
-    return null;
-  }
-  return measureSectionRowCaps(elGridContents);
-}
-
-export function enforceGridSectionCounts(limits: Map<string, number>) {
-  const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
-  if (!elGrid || !isPolymerElement(elGrid) || !isRecord(elGrid.data)) {
-    return;
-  }
-  const contents = [...deepArray(elGrid.data, "contents")];
-  const preLength = contents.length;
-  trimSectionStandaloneItems(contents, limits);
-  if (contents.length < preLength) {
-    elGrid.set("data.contents", contents);
-  }
-}
 
 export async function addVideosToGridDom(videosToAdd: VideoSnapshot[], allFreshSnapshots: VideoSnapshot[]) {
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
@@ -68,12 +43,13 @@ export async function addVideosToGridDom(videosToAdd: VideoSnapshot[], allFreshS
   }
 
   const freshOrderMap = new Map(allFreshSnapshots.map((video, i) => [video.videoId, i]));
+  const allSnapshotMap = new Map(allFreshSnapshots.map(video => [video.videoId, video]));
   const sortedVideos = sortByFreshOrder(videosToAdd, freshOrderMap);
 
   const standaloneVideos = sortedVideos.filter(video => !video.sectionTitle);
 
   const actuallyAddedVideos: VideoSnapshot[] = [];
-  let elNewItemTransitionStyle: HTMLStyleElement | null = null;
+  const elNewItemTransitionStyles: HTMLStyleElement[] = [];
 
   clearAllItemViewTransitionNames();
 
@@ -89,8 +65,6 @@ export async function addVideosToGridDom(videosToAdd: VideoSnapshot[], allFreshS
   document.head.append(elShiftStyle);
 
   const animateIds = extractAnimateIds(elElementsToAnimate);
-
-  const originalSectionCounts = measureSectionRowCaps(elGridContents);
 
   try {
     await document.startViewTransition(async () => {
@@ -185,13 +159,12 @@ export async function addVideosToGridDom(videosToAdd: VideoSnapshot[], allFreshS
 
         if (!wasInserted && !newContents.some(item => videoIdFromRichItem(item) === videoId)) {
           const freshIndex = freshOrderMap.get(videoId) ?? 0;
-          const iInsert = findGridInsertIndex(newContents, freshIndex, freshOrderMap);
+          const iInsert = findGridInsertIndex(newContents, freshIndex, freshOrderMap, video.status, allSnapshotMap);
           newContents.splice(iInsert, 0, buildRichItem(rawRenderer));
           actuallyAddedVideos.push(video);
         }
       }
 
-      trimSectionStandaloneItems(newContents, originalSectionCounts);
       elGrid.set("data.contents", newContents);
 
       for (const elItem of elElementsToAnimate) {
@@ -215,13 +188,14 @@ export async function addVideosToGridDom(videosToAdd: VideoSnapshot[], allFreshS
         }
       }
       if (elNewItems.length > 0) {
-        elNewItemTransitionStyle = buildNewItemTransitionStyle(elNewItems);
+        const elNewItemTransitionStyle = buildNewItemTransitionStyle(elNewItems);
         document.head.append(elNewItemTransitionStyle);
+        elNewItemTransitionStyles.push(elNewItemTransitionStyle);
       }
     }).finished;
   } finally {
     elShiftStyle.remove();
-    elNewItemTransitionStyle?.remove();
+    elNewItemTransitionStyles[0]?.remove();
     clearItemViewTransitionNames(elElementsToAnimate);
     clearItemViewTransitionNames(elSectionsToAnimate);
     for (const video of actuallyAddedVideos) {
@@ -231,13 +205,6 @@ export async function addVideosToGridDom(videosToAdd: VideoSnapshot[], allFreshS
       }
     }
     clearAllItemViewTransitionNames();
-  }
-
-  const postTransitionContents = [...deepArray(elGrid.data, "contents")];
-  const preEnforceLength = postTransitionContents.length;
-  trimSectionStandaloneItems(postTransitionContents, originalSectionCounts);
-  if (postTransitionContents.length < preEnforceLength) {
-    elGrid.set("data.contents", postTransitionContents);
   }
 
   for (const elSection of document.querySelectorAll<HTMLElement>("ytd-rich-section-renderer.ytsua-section-removing")) {
@@ -379,80 +346,58 @@ function buildNewRichSection(sectionTitle: string, videos: VideoSnapshot[]) {
   };
 }
 
-function measureSectionRowCaps(elGridContents: HTMLElement) {
-  const caps = new Map<string, number>();
-  let currentSection = "";
-  let firstRowTop: number | null = null;
-  let itemsInFirstRow = 0;
-  const rowTops = new Set<number>();
-
-  const saveSection = () => {
-    if (rowTops.size > 0 && itemsInFirstRow > 0) {
-      caps.set(currentSection, rowTops.size * itemsInFirstRow);
-    }
-    rowTops.clear();
-    firstRowTop = null;
-    itemsInFirstRow = 0;
-  };
-
-  for (const elChild of elGridContents.querySelectorAll<HTMLElement>(":scope > ytd-rich-item-renderer, :scope > ytd-rich-section-renderer")) {
-    if (elChild.tagName === "YTD-RICH-SECTION-RENDERER") {
-      saveSection();
-      if (isPolymerElement(elChild)) {
-        currentSection =
-          deepString(elChild.data, "content", "richShelfRenderer", "title", "runs", "0", "text") ||
-          deepString(elChild.data, "content", "shelfRenderer", "title", "runs", "0", "text");
-      }
-    } else {
-      const top = Math.round(elChild.getBoundingClientRect().top);
-      rowTops.add(top);
-      if (firstRowTop === null) {
-        firstRowTop = top;
-        itemsInFirstRow = 1;
-      } else if (Math.abs(top - firstRowTop) < 1) {
-        itemsInFirstRow++;
-      }
-    }
-  }
-
-  saveSection();
-  return caps;
-}
-
-function trimSectionStandaloneItems(contents: unknown[], limits: Map<string, number>) {
-  const seen = new Map<string, number>();
-  const indicesToRemove: number[] = [];
-  let currentSection = "";
+function findGridInsertIndex(
+  contents: unknown[],
+  freshIndex: number,
+  freshOrderMap: Map<string, number>,
+  videoStatus: VideoStatus,
+  allSnapshotMap: Map<string, VideoSnapshot>
+) {
+  let iInsert = contents.length;
   for (let i = 0; i < contents.length; i++) {
     const item = contents[i];
-    if (deepRecord(item, "richSectionRenderer") !== null) {
-      currentSection =
-        deepString(item, "richSectionRenderer", "content", "richShelfRenderer", "title", "runs", "0", "text") ||
-        deepString(item, "richSectionRenderer", "content", "shelfRenderer", "title", "runs", "0", "text");
-    } else if (videoIdFromRichItem(item)) {
-      const count = (seen.get(currentSection) ?? 0) + 1;
-      seen.set(currentSection, count);
-      const limit = limits.get(currentSection);
-      if (limit !== undefined && count > limit) {
-        indicesToRemove.push(i);
+
+    if (isRecord(item) && "continuationItemRenderer" in item) {
+      iInsert = i;
+      break;
+    }
+
+    const existingId = videoIdFromRichItem(item);
+    if (existingId) {
+      if ((freshOrderMap.get(existingId) ?? Infinity) > freshIndex) {
+        iInsert = i;
+        break;
+      }
+
+      continue;
+    }
+
+    const sectionItems = deepArray(item, "richSectionRenderer", "content", "richShelfRenderer", "contents");
+    if (sectionItems.length > 0) {
+      const sectionMinFreshIndex = sectionItems.reduce((minimum, sectionItem) => {
+        const sectionItemId = videoIdFromRichItem(sectionItem);
+        return Math.min(minimum, sectionItemId ? (freshOrderMap.get(sectionItemId) ?? Infinity) : Infinity);
+      }, Infinity);
+      if (sectionMinFreshIndex > freshIndex) {
+        iInsert = i;
+        break;
       }
     }
   }
-  for (let i = indicesToRemove.length - 1; i >= 0; i--) {
-    contents.splice(indicesToRemove[i], 1);
+
+  if (videoStatus === VideoStatus.Live) {
+    return iInsert;
   }
-}
 
-function findGridInsertIndex(contents: unknown[], freshIndex: number, freshOrderMap: Map<string, number>) {
-  const iBefore = contents.findIndex(contentItem => {
-    const existingId = videoIdFromRichItem(contentItem);
-    if (!existingId) {
-      return false;
-    }
+  let leadingLiveCount = 0;
+  for (const item of contents) {
+    const itemVideoId = videoIdFromRichItem(item);
+    if (!itemVideoId) break;
+    if (allSnapshotMap.get(itemVideoId)?.status !== VideoStatus.Live) break;
+    leadingLiveCount++;
+  }
 
-    return (freshOrderMap.get(existingId) ?? Infinity) > freshIndex;
-  });
-  return iBefore >= 0 ? iBefore : contents.length;
+  return Math.max(iInsert, leadingLiveCount);
 }
 
 function collectGridShiftTargets(
@@ -501,4 +446,82 @@ function collectGridShiftTargets(
   }
 
   return { elElementsToAnimate, elSectionsToAnimate };
+}
+
+export interface BandLayout {
+  sectionOrder: string[];
+  bandCaps: Map<string, number>;
+}
+
+export function captureBandLayout(): BandLayout | null {
+  const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
+  if (!elGrid || !isPolymerElement(elGrid) || !isRecord(elGrid.data)) {
+    return null;
+  }
+
+  const contents = deepArray(elGrid.data, "contents");
+
+  const sectionOrder: string[] = [];
+  const bandCaps = new Map<string, number>();
+  let currentBand = "";
+  let itemCount = 0;
+
+  for (const item of contents) {
+    const sectionTitle = deepString(item, "richSectionRenderer", "content", "richShelfRenderer", "title", "runs", "0", "text")
+      || deepString(item, "richSectionRenderer", "content", "shelfRenderer", "title", "runs", "0", "text");
+    if (sectionTitle) {
+      if (itemCount > 0) {
+        bandCaps.set(currentBand, itemCount);
+      }
+      sectionOrder.push(sectionTitle);
+      currentBand = sectionTitle;
+      itemCount = 0;
+      continue;
+    }
+    if (!videoIdFromRichItem(item)) {
+      continue;
+    }
+    itemCount++;
+  }
+  if (itemCount > 0) {
+    bandCaps.set(currentBand, itemCount);
+  }
+  return { sectionOrder, bandCaps };
+}
+
+export function enforceBandLayout(layout: BandLayout) {
+  const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
+  if (!elGrid || !isPolymerElement(elGrid) || !isRecord(elGrid.data)) {
+    return;
+  }
+
+  const contents = [...deepArray(elGrid.data, "contents")];
+  const preLength = contents.length;
+  let currentBand = "";
+  const seen = new Map<string, number>();
+  const indicesToRemove: number[] = [];
+  for (let i = 0; i < contents.length; i++) {
+    const item = contents[i];
+    const sectionTitle = deepString(item, "richSectionRenderer", "content", "richShelfRenderer", "title", "runs", "0", "text")
+      || deepString(item, "richSectionRenderer", "content", "shelfRenderer", "title", "runs", "0", "text");
+    if (sectionTitle) {
+      currentBand = sectionTitle;
+      continue;
+    }
+    if (!videoIdFromRichItem(item)) {
+      continue;
+    }
+    const count = (seen.get(currentBand) ?? 0) + 1;
+    seen.set(currentBand, count);
+    const cap = layout.bandCaps.get(currentBand);
+    if (cap !== undefined && count > cap) {
+      indicesToRemove.push(i);
+    }
+  }
+  for (let i = indicesToRemove.length - 1; i >= 0; i--) {
+    contents.splice(indicesToRemove[i], 1);
+  }
+  if (contents.length < preLength) {
+    elGrid.set("data.contents", contents);
+  }
 }

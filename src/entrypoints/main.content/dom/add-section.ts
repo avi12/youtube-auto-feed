@@ -43,7 +43,7 @@ export async function addSectionToDom(sectionTitle: string, videos: VideoSnapsho
   const elShiftStyle = buildShiftTransitionStyle(elAllItems);
   document.head.append(elShiftStyle);
 
-  let elNewItemTransitionStyle: HTMLStyleElement | null = null;
+  const elNewItemTransitionStyles: HTMLStyleElement[] = [];
 
   const transition = document.startViewTransition(async () => {
     elGrid.set("data.contents", [newSection, ...deepArray(elGrid.data, "contents")]);
@@ -69,8 +69,9 @@ export async function addSectionToDom(sectionTitle: string, videos: VideoSnapsho
       }
     }
     if (elNewItems.length > 0) {
-      elNewItemTransitionStyle = buildNewItemTransitionStyle(elNewItems);
+      const elNewItemTransitionStyle = buildNewItemTransitionStyle(elNewItems);
       document.head.append(elNewItemTransitionStyle);
+      elNewItemTransitionStyles.push(elNewItemTransitionStyle);
     }
   });
 
@@ -79,7 +80,7 @@ export async function addSectionToDom(sectionTitle: string, videos: VideoSnapsho
   } finally {
     clearAllItemViewTransitionNames();
     elShiftStyle.remove();
-    elNewItemTransitionStyle?.remove();
+    elNewItemTransitionStyles[0]?.remove();
     for (const video of videos) {
       const elNewItem = findItemElement(video.videoId);
       if (elNewItem) {

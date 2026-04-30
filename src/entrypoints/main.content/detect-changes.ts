@@ -1,5 +1,5 @@
 import { parseSecondsAgo } from "./api/guards";
-import { addVideosToGridDom, captureGridSectionCounts, cleanOrphanedGridItems, enforceGridSectionCounts } from "./dom/add-grid";
+import { addVideosToGridDom, type BandLayout, captureBandLayout, cleanOrphanedGridItems, enforceBandLayout } from "./dom/add-grid";
 import { addVideosToDom } from "./dom/add-shelf";
 import { moveVideosToFront } from "./dom/move";
 import { findShelfForSection } from "./dom/query";
@@ -10,6 +10,42 @@ import {
   deepArray, deepRecord, deepString, isPolymerElement, isRecord, videoIdFromData 
 } from "./helpers";
 import { type VideoSnapshot, VideoStatus } from "./types";
+
+function readCurrentVideoSections() {
+  const sections = new Map<string, string>();
+  for (const elShelf of document.querySelectorAll<HTMLElement>("ytd-rich-shelf-renderer")) {
+    if (!isPolymerElement(elShelf)) {
+      continue;
+    }
+
+    const sectionTitle = deepString(elShelf.data, "title", "runs", "0", "text");
+    for (const elItem of elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer")) {
+      if (!isPolymerElement(elItem)) {
+        continue;
+      }
+
+      const videoId = videoIdFromData(elItem.data);
+      if (videoId && !sections.has(videoId)) {
+        sections.set(videoId, sectionTitle);
+      }
+    }
+  }
+
+  const elGridContents = document.querySelector<HTMLElement>("ytd-rich-grid-renderer > #contents");
+  if (elGridContents) {
+    for (const elItem of elGridContents.querySelectorAll<HTMLElement>(":scope > ytd-rich-item-renderer")) {
+      if (!isPolymerElement(elItem)) {
+        continue;
+      }
+
+      const videoId = videoIdFromData(elItem.data);
+      if (videoId && !sections.has(videoId)) {
+        sections.set(videoId, "");
+      }
+    }
+  }
+  return sections;
+}
 
 function readCurrentVideoIds() {
   const videoIds = new Set<string>();
@@ -87,10 +123,9 @@ function readCurrentVideoIds() {
 
 export async function detectAndApplyChanges(
   previousSnapshot: Map<string, VideoSnapshot>,
-  freshSnapshots: VideoSnapshot[]
+  freshSnapshots: VideoSnapshot[],
+  bandLayout: BandLayout | null
 ) {
-  const originalSectionCounts = captureGridSectionCounts();
-
   const freshMap = new Map(freshSnapshots.map(video => [video.videoId, video]));
 
   const videoIdsToRemove: string[] = [];
@@ -101,6 +136,7 @@ export async function detectAndApplyChanges(
   }
 
   const currentVideoIds = readCurrentVideoIds();
+  const currentVideoSections = readCurrentVideoSections();
 
   const videosToAdd: VideoSnapshot[] = [];
   const videosToReposition: VideoSnapshot[] = [];
@@ -123,19 +159,27 @@ export async function detectAndApplyChanges(
       fresh.status === VideoStatus.Video
     ) {
       videosToReposition.push(fresh);
-    } else if (previous.sectionTitle && fresh.sectionTitle && previous.sectionTitle !== fresh.sectionTitle) {
-      videoIdsToRemove.push(videoId);
-      videosToAdd.push(fresh);
     } else {
-      const isAnyChange =
-        previous.title !== fresh.title ||
-        previous.thumbnailUrl !== fresh.thumbnailUrl ||
-        previous.status !== fresh.status ||
-        previous.viewCountText !== fresh.viewCountText ||
-        previous.publishedTimeText !== fresh.publishedTimeText ||
-        previous.isChannelLive !== fresh.isChannelLive;
-      if (isAnyChange) {
-        void updateVideoInDom(videoId, fresh);
+      const currentSection = currentVideoSections.get(videoId);
+      const isSectionChange = currentSection !== undefined && currentSection !== fresh.sectionTitle;
+      const isCuratedSectionPreserved = isSectionChange && fresh.sectionTitle === "" && currentSection !== "";
+      if (isSectionChange && !isCuratedSectionPreserved) {
+        videoIdsToRemove.push(videoId);
+        videosToAdd.push(fresh);
+      } else {
+        if (isCuratedSectionPreserved) {
+          freshMap.set(videoId, { ...fresh, sectionTitle: currentSection! });
+        }
+        const isAnyChange =
+          previous.title !== fresh.title ||
+          previous.thumbnailUrl !== fresh.thumbnailUrl ||
+          previous.status !== fresh.status ||
+          previous.viewCountText !== fresh.viewCountText ||
+          previous.publishedTimeText !== fresh.publishedTimeText ||
+          previous.isChannelLive !== fresh.isChannelLive;
+        if (isAnyChange) {
+          updateVideoInDom(videoId, fresh, previous);
+        }
       }
     }
   }
@@ -164,7 +208,7 @@ export async function detectAndApplyChanges(
   }
 
   if (gridVideos.length > 0) {
-    await addVideosToGridDom(gridVideos, timeOrderedSnapshots);
+    await addVideosToGridDom(gridVideos, freshSnapshots);
   }
 
   if (videosToMoveToFront.length > 0) {
@@ -173,8 +217,19 @@ export async function detectAndApplyChanges(
 
   cleanOrphanedGridItems();
 
-  if (originalSectionCounts) {
-    enforceGridSectionCounts(originalSectionCounts);
+  if (bandLayout) {
+    if (shelfVideos.length > 0 || gridVideos.length > 0) {
+      const freshLayout = captureBandLayout();
+      if (freshLayout) {
+        for (const [band, count] of freshLayout.bandCaps) {
+          const existing = bandLayout.bandCaps.get(band) ?? 0;
+          if (count > existing) {
+            bandLayout.bandCaps.set(band, count);
+          }
+        }
+      }
+    }
+    enforceBandLayout(bandLayout);
   }
 
   const postChangeVideoIds = readCurrentVideoIds();
@@ -188,7 +243,7 @@ export async function detectAndApplyChanges(
   return { isLayoutChange, snapshot: freshMap };
 }
 
-export async function detectAndApplyMetadataChanges(
+export function detectAndApplyMetadataChanges(
   previousSnapshot: Map<string, VideoSnapshot>,
   freshSnapshots: VideoSnapshot[]
 ) {
@@ -216,7 +271,7 @@ export async function detectAndApplyMetadataChanges(
   }
 
   if (changedVideos.length > 0) {
-    await batchUpdateVideosInDom(changedVideos);
+    batchUpdateVideosInDom(changedVideos, previousSnapshot);
   }
 
   return updatedSnapshot;

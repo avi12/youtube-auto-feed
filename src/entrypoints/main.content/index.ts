@@ -2,6 +2,7 @@ import { fetchInitialVideos } from "./api/fetch";
 import { isInnerTubeBrowseResponse } from "./api/guards";
 import { parseApiResponse } from "./api/parse";
 import { detectAndApplyChanges, detectAndApplyMetadataChanges } from "./detect-changes";
+import { type BandLayout, captureBandLayout } from "./dom/add-grid";
 import { readDomSnapshot } from "./dom/query";
 import { isOnSubscriptionsPage } from "./helpers";
 import { isDomContentReady } from "./readiness";
@@ -22,6 +23,7 @@ export default defineContentScript({
     let pollingTimer: ReturnType<typeof setInterval> | null = null;
     let metadataPollingTimer: ReturnType<typeof setInterval> | null = null;
     let cancelBroadcastListener: (() => void) | null = null;
+    let initialBandLayout: BandLayout | null = null;
 
     async function applyChanges(freshSnapshots: VideoSnapshot[]) {
       if (isApplyingChanges) {
@@ -35,10 +37,11 @@ export default defineContentScript({
         let isAnyLayoutChange = false;
         while (snapshotsToApply !== null) {
           pendingApplySnapshots = null;
-          const { isLayoutChange, snapshot } = await detectAndApplyChanges(lastSnapshot, snapshotsToApply);
+          const { isLayoutChange, snapshot } = await detectAndApplyChanges(lastSnapshot, snapshotsToApply, initialBandLayout);
           lastSnapshot = snapshot;
           if (isLayoutChange) {
             isAnyLayoutChange = true;
+            initialBandLayout = captureBandLayout();
           }
 
           snapshotsToApply = pendingApplySnapshots;
@@ -175,6 +178,7 @@ export default defineContentScript({
     function applyDomBaseline() {
       isDomReady = true;
       lastSnapshot = readDomSnapshot();
+      initialBandLayout = captureBandLayout();
       if (pendingApiSnapshots !== null) {
         void applyChanges(pendingApiSnapshots);
         pendingApiSnapshots = null;
@@ -184,6 +188,7 @@ export default defineContentScript({
     function initializePage() {
       isDomReady = false;
       lastSnapshot.clear();
+      initialBandLayout = null;
       if (Date.now() - pendingApiSnapshotsTime >= 5000) {
         pendingApiSnapshots = null;
       }
