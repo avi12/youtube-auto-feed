@@ -5,6 +5,7 @@ import {
   clearAllItemViewTransitionNames,
   clearItemViewTransitionNames,
   extractAnimateIds,
+  filterToViewport,
   reassignTransitionNames
 } from "../animations";
 import {
@@ -50,7 +51,8 @@ async function addVideosToSection(videos: VideoSnapshot[], allFreshSnapshots: Vi
 
   clearAllItemViewTransitionNames();
 
-  const elExistingItems = elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer");
+  const elAllShelfItems = elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer");
+  const elExistingItems = filterToViewport(elAllShelfItems);
   assignItemViewTransitionNames(elExistingItems);
 
   const animateIds = extractAnimateIds(elExistingItems);
@@ -96,7 +98,7 @@ async function addVideosToSection(videos: VideoSnapshot[], allFreshSnapshots: Vi
   document.head.append(elShiftStyle);
 
   const wasExpanded = isRecord(elShelf.data) ? elShelf.data.isExpanded : undefined;
-  let elNewItemTransitionStyle: HTMLStyleElement | null = null;
+  const elNewItemTransitionStyles: HTMLStyleElement[] = [];
 
   const transition = document.startViewTransition(async () => {
     elShelf.set("data.contents", displayContents);
@@ -125,8 +127,9 @@ async function addVideosToSection(videos: VideoSnapshot[], allFreshSnapshots: Vi
     }
 
     if (elNewItems.length > 0) {
-      elNewItemTransitionStyle = buildNewItemTransitionStyle(elNewItems);
+      const elNewItemTransitionStyle = buildNewItemTransitionStyle(elNewItems);
       document.head.append(elNewItemTransitionStyle);
+      elNewItemTransitionStyles.push(elNewItemTransitionStyle);
     }
   });
 
@@ -137,7 +140,7 @@ async function addVideosToSection(videos: VideoSnapshot[], allFreshSnapshots: Vi
     clearAllItemViewTransitionNames();
     overflowResult?.elStyle.remove();
     elShiftStyle.remove();
-    elNewItemTransitionStyle?.remove();
+    elNewItemTransitionStyles[0]?.remove();
     for (const { video } of insertOperations) {
       const elNewItem = findItemElement(video.videoId);
       if (elNewItem) {
@@ -147,7 +150,7 @@ async function addVideosToSection(videos: VideoSnapshot[], allFreshSnapshots: Vi
   }
 }
 
-function computeVisibleItemCap(elExistingItems: NodeListOf<HTMLElement>) {
+function computeVisibleItemCap(elExistingItems: HTMLElement[]) {
   const items = [...elExistingItems];
   if (items.length === 0) {
     return null;
@@ -165,7 +168,7 @@ function computeVisibleItemCap(elExistingItems: NodeListOf<HTMLElement>) {
   return rowCount * itemsInFirstRow;
 }
 
-function buildCollapsedOverflowStyle(elExistingItems: NodeListOf<HTMLElement>, iInsert: number) {
+function buildCollapsedOverflowStyle(elExistingItems: HTMLElement[], iInsert: number) {
   const visibleItems = [...elExistingItems].filter(elItem => elItem.offsetWidth > 0);
   const elLastVisible = visibleItems.at(-1);
   if (!elLastVisible || iInsert >= visibleItems.length) {

@@ -7,6 +7,7 @@ import {
   clearAllItemViewTransitionNames,
   clearItemViewTransitionNames,
   extractAnimateIds,
+  filterToViewport,
   reassignTransitionNames
 } from "../animations";
 import {
@@ -24,8 +25,10 @@ async function removeItemsFromShelf(
 ) {
   clearAllItemViewTransitionNames();
 
-  const elSiblings = [...elShelf.querySelectorAll<HTMLElement>(itemSelector)].filter(
-    elSibling => !group.elOnScreenItems.includes(elSibling)
+  const elSiblings = filterToViewport(
+    [...elShelf.querySelectorAll<HTMLElement>(itemSelector)].filter(
+      elSibling => !group.elOnScreenItems.includes(elSibling)
+    )
   );
   assignItemViewTransitionNames(elSiblings);
 

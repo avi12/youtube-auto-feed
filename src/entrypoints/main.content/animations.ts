@@ -14,6 +14,21 @@ export function triggerAnimation(elTarget: HTMLElement, animationClass: Animatio
   );
 }
 
+export function isInViewport(elTarget: HTMLElement) {
+  const rect = elTarget.getBoundingClientRect();
+  return rect.bottom > 0 && rect.top < innerHeight;
+}
+
+export function filterToViewport(elItems: Iterable<HTMLElement>) {
+  const result: HTMLElement[] = [];
+  for (const elItem of elItems) {
+    if (isInViewport(elItem)) {
+      result.push(elItem);
+    }
+  }
+  return result;
+}
+
 export function assignItemViewTransitionNames(elItems: Iterable<HTMLElement>) {
   const assignedIds = new Set<string>();
   for (const elItem of elItems) {

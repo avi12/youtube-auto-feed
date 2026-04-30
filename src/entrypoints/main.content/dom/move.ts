@@ -1,6 +1,6 @@
 import type { VideoSnapshot } from "../types";
 import {
-  assignItemViewTransitionNames, buildShiftTransitionStyle, clearAllItemViewTransitionNames, extractAnimateIds, reassignTransitionNames, triggerAnimation 
+  assignItemViewTransitionNames, buildShiftTransitionStyle, clearAllItemViewTransitionNames, extractAnimateIds, filterToViewport, reassignTransitionNames, triggerAnimation
 } from "../animations";
 import {
   deepArray, deepRecord, isPolymerElement, isRecord, videoIdFromData 
@@ -62,7 +62,7 @@ async function moveVideosToShelfFront(
 
   clearAllItemViewTransitionNames();
 
-  const elShelfItems = elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer");
+  const elShelfItems = filterToViewport(elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer"));
   assignItemViewTransitionNames(elShelfItems);
 
   const animateIds = extractAnimateIds(elShelfItems);
@@ -129,9 +129,11 @@ async function moveVideosToGridFront(videos: VideoSnapshot[], freshOrder: Map<st
   clearAllItemViewTransitionNames();
 
   const elGridContents = elGrid.querySelector<HTMLElement>("#contents");
-  const elAllItems = elGridContents
-    ? [...elGridContents.querySelectorAll<HTMLElement>(":scope > ytd-rich-item-renderer")]
-    : [...document.querySelectorAll<HTMLElement>("ytd-rich-item-renderer")];
+  const elAllItems = filterToViewport(
+    elGridContents
+      ? [...elGridContents.querySelectorAll<HTMLElement>(":scope > ytd-rich-item-renderer")]
+      : [...document.querySelectorAll<HTMLElement>("ytd-rich-item-renderer")]
+  );
 
   const animateIds = extractAnimateIds(elAllItems);
 
@@ -179,8 +181,8 @@ async function moveVideosToGridFront(videos: VideoSnapshot[], freshOrder: Map<st
   }
 }
 
-async function fallbackUpdate(videos: VideoSnapshot[]) {
+function fallbackUpdate(videos: VideoSnapshot[]) {
   for (const video of videos) {
-    void updateVideoInDom(video.videoId, video, true);
+    updateVideoInDom(video.videoId, video);
   }
 }

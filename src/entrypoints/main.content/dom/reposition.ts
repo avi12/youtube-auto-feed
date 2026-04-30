@@ -1,5 +1,5 @@
 import {
-  assignItemViewTransitionNames, buildShiftTransitionStyle, clearAllItemViewTransitionNames, extractAnimateIds, reassignTransitionNames 
+  assignItemViewTransitionNames, buildShiftTransitionStyle, clearAllItemViewTransitionNames, extractAnimateIds, filterToViewport, reassignTransitionNames
 } from "../animations";
 import {
   deepArray, deepRecord, isPolymerElement, videoIdFromData 
@@ -21,7 +21,7 @@ export async function repositionVideoInSection(
   const elShelf = findShelfForSection(sectionTitle);
 
   if (!elShelf || !isPolymerElement(elShelf)) {
-    void updateVideoInDom(videoId, freshSnapshot, true);
+    updateVideoInDom(videoId, freshSnapshot);
     return;
   }
 
@@ -29,7 +29,7 @@ export async function repositionVideoInSection(
   const iCurrent = findRichItemIndex(shelfContents, videoId);
 
   if (iCurrent < 0) {
-    void updateVideoInDom(videoId, freshSnapshot, true);
+    updateVideoInDom(videoId, freshSnapshot);
     return;
   }
 
@@ -37,7 +37,7 @@ export async function repositionVideoInSection(
   const iInsert = resolveInsertIndex(contentsWithoutVideo, videoId, sectionVideos, status, allSnapshots);
 
   if (iInsert === iCurrent) {
-    void updateVideoInDom(videoId, freshSnapshot, true);
+    updateVideoInDom(videoId, freshSnapshot);
     return;
   }
 
@@ -46,7 +46,7 @@ export async function repositionVideoInSection(
 
   clearAllItemViewTransitionNames();
 
-  const elItems = elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer");
+  const elItems = filterToViewport(elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer"));
   assignItemViewTransitionNames(elItems);
 
   const animateIds = extractAnimateIds(elItems);
