@@ -19,6 +19,9 @@ Opera Profile/
 .claude/
 .mcp.json
 
+# OpenCode
+.opencode/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
