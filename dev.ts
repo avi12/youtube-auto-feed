@@ -6,7 +6,7 @@
  */
 
 import chokidar from "chokidar";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync, type ChildProcess } from "node:child_process";
 import { existsSync, cpSync, mkdirSync } from "node:fs";
 import { homedir, platform } from "node:os";
 import { resolve, join } from "node:path";
@@ -113,7 +113,7 @@ function setupDevProfile(config: BrowserConfig) {
 // ── Browser launch ─────────────────────────────────────────────────────────
 
 function launchBrowser(config: BrowserConfig) {
-  const browserProcess = spawn(config.binaryPath, [
+  return spawn(config.binaryPath, [
     `--user-data-dir=${config.profileDirectory}`,
     `--load-extension=${config.outputDirectory}`,
     `--remote-debugging-port=${CDP_PORT}`,
@@ -121,12 +121,25 @@ function launchBrowser(config: BrowserConfig) {
     "--disable-blink-features=AutomationControlled",
     START_URL
   ], {
-    stdio: "ignore",
-    detached: true
+    stdio: "ignore"
   });
+}
 
-  browserProcess.unref();
-  return browserProcess;
+function killBrowserTree(browserProcess: ChildProcess) {
+  if (browserProcess.exitCode !== null || browserProcess.signalCode !== null) {
+    return;
+  }
+
+  const { pid } = browserProcess;
+  if (pid === undefined) {
+    return;
+  }
+
+  if (platform() === "win32") {
+    spawnSync("taskkill", ["/F", "/T", "/PID", String(pid)], { stdio: "ignore" });
+  } else {
+    browserProcess.kill("SIGTERM");
+  }
 }
 
 // ── CDP helpers ────────────────────────────────────────────────────────────
@@ -263,13 +276,24 @@ async function main() {
 
   watcher.on("all", (event, filePath) => onFileChange(event, filePath));
 
-  for (const signal of ["SIGINT", "SIGTERM"] as const) {
+  let isShuttingDown = false;
+  const shutdown = () => {
+    if (isShuttingDown) {
+      return;
+    }
+    isShuttingDown = true;
+    void watcher.close();
+    killBrowserTree(browserProcess);
+  };
+
+  for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"] as const) {
     process.on(signal, () => {
-      void watcher.close();
-      browserProcess.kill();
+      shutdown();
       process.exit(0);
     });
   }
+  process.on("exit", shutdown);
+  browserProcess.on("exit", () => process.exit(0));
 
   await new Promise(() => {});
 }
