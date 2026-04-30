@@ -83,3 +83,7 @@
 .yt-content-metadata-view-model__metadata-row {
   font-variant-numeric: tabular-nums;
 }
+
+ytd-rich-item-renderer yt-image img {
+  transition: opacity 250ms ease;
+}
