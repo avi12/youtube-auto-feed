@@ -163,14 +163,10 @@ export async function detectAndApplyChanges(
     } else {
       const currentSection = currentVideoSections.get(videoId);
       const isSectionChange = currentSection !== undefined && currentSection !== fresh.sectionTitle;
-      const isCuratedSectionPreserved = isSectionChange && fresh.sectionTitle === "" && currentSection !== "";
-      if (isSectionChange && !isCuratedSectionPreserved) {
+      if (isSectionChange) {
         videoIdsToRemove.push(videoId);
         videosToAdd.push(fresh);
       } else {
-        if (isCuratedSectionPreserved) {
-          freshMap.set(videoId, { ...fresh, sectionTitle: currentSection! });
-        }
         const isAnyChange =
           previous.title !== fresh.title ||
           previous.thumbnailUrl !== fresh.thumbnailUrl ||
@@ -219,14 +215,12 @@ export async function detectAndApplyChanges(
   cleanOrphanedGridItems();
 
   if (bandLayout) {
-    if (shelfVideos.length > 0 || gridVideos.length > 0) {
-      const freshLayout = captureBandLayout();
-      if (freshLayout) {
-        for (const [band, count] of freshLayout.bandCaps) {
-          const existing = bandLayout.bandCaps.get(band) ?? 0;
-          if (count > existing) {
-            bandLayout.bandCaps.set(band, count);
-          }
+    const freshLayout = captureBandLayout();
+    if (freshLayout) {
+      for (const [band, count] of freshLayout.bandCaps) {
+        const existing = bandLayout.bandCaps.get(band) ?? 0;
+        if (count > existing) {
+          bandLayout.bandCaps.set(band, count);
         }
       }
     }
