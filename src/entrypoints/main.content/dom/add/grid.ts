@@ -8,16 +8,16 @@ import {
   extractAnimateIds,
   reassignTransitionNames,
   waitForFrames
-} from "./animations";
-import { isVideoRenderer } from "../api/guards";
+} from "../animations";
+import { isVideoRenderer } from "../../api/guards";
 import {
   deepArray, deepRecord, deepString, isPolymerElement, isRecord, videoIdFromData, videoIdFromShelfListItem
-} from "../helpers";
-import { type PolymerElement, type VideoSnapshot, VideoStatus } from "../types";
-import { addSectionToDom } from "./add-section";
-import { buildRichItem } from "./build";
-import { findItemElement } from "./query";
-import { sortByFreshOrder, videoIdFromRichItem } from "./rich-item";
+} from "../../helpers";
+import { type PolymerElement, type VideoSnapshot, VideoStatus } from "../../types";
+import { addSectionToDom } from "./section";
+import { buildRichItem } from "../build";
+import { findItemElement } from "../query";
+import { sortByFreshOrder, videoIdFromRichItem } from "../rich-item";
 
 export async function addVideosToGridDom(videosToAdd: VideoSnapshot[], allFreshSnapshots: VideoSnapshot[]) {
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");

@@ -8,18 +8,18 @@ import {
   filterToViewport,
   reassignTransitionNames,
   waitForFrames
-} from "./animations";
+} from "../animations";
 import {
   deepArray,
   isPolymerElement,
   isRecord,
   videoIdFromData
-} from "../helpers";
-import { type PolymerElement, type VideoSnapshot, VideoStatus } from "../types";
-import { addSectionToDom } from "./add-section";
-import { buildRichItem } from "./build";
-import { findItemElement, findShelfForSection, leadingLiveCount } from "./query";
-import { videoIdFromRichItem } from "./rich-item";
+} from "../../helpers";
+import { type PolymerElement, type VideoSnapshot, VideoStatus } from "../../types";
+import { addSectionToDom } from "./section";
+import { buildRichItem } from "../build";
+import { findItemElement, findShelfForSection, leadingLiveCount } from "../query";
+import { videoIdFromRichItem } from "../rich-item";
 
 interface InsertOperation {
   video: VideoSnapshot;

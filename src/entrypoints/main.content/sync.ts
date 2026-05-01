@@ -1,7 +1,7 @@
 import { parseSecondsAgo } from "./api/guards";
-import { addVideosToGridDom, cleanOrphanedGridItems } from "./dom/add-grid";
+import { addVideosToGridDom, cleanOrphanedGridItems } from "./dom/add/grid";
 import { type BandLayout, captureBandLayout, enforceBandLayout } from "./dom/band-layout";
-import { addVideosToDom } from "./dom/add-shelf";
+import { addVideosToDom } from "./dom/add/shelf";
 import { moveVideosToFront } from "./dom/move";
 import { findShelfForSection } from "./dom/query";
 import { removeVideosFromDom } from "./dom/remove";

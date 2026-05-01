@@ -1,12 +1,12 @@
-import type { PolymerElement } from "../types";
-import type { ItemInfo } from "./remove";
+import type { PolymerElement } from "../../types";
+import type { ItemInfo } from "./index";
 import {
-  assignItemViewTransitionNames, buildRemoveTransitionStyle, buildShiftTransitionStyle, calculateStaggerDelayMs, clearAllItemViewTransitionNames, clearItemViewTransitionNames, extractAnimateIds, reassignTransitionNames 
-} from "./animations";
+  assignItemViewTransitionNames, buildRemoveTransitionStyle, buildShiftTransitionStyle, calculateStaggerDelayMs, clearAllItemViewTransitionNames, clearItemViewTransitionNames, extractAnimateIds, reassignTransitionNames
+} from "../animations";
 import {
-  deepArray, isPolymerElement, isRecord, videoIdFromData 
-} from "../helpers";
-import { filterOutRichItems } from "./rich-item";
+  deepArray, isPolymerElement, isRecord, videoIdFromData
+} from "../../helpers";
+import { filterOutRichItems } from "../rich-item";
 
 export async function removeGridItems(items: ItemInfo[], allRequestedVideoIds: string[]) {
   const gridItems = items.filter(({ container }) => container === "grid");

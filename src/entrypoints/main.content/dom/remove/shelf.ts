@@ -1,4 +1,4 @@
-import type { ItemInfo } from "./remove";
+import type { ItemInfo } from "./index";
 import {
   assignItemViewTransitionNames,
   buildRemoveTransitionStyle,
@@ -9,11 +9,11 @@ import {
   extractAnimateIds,
   filterToViewport,
   reassignTransitionNames
-} from "./animations";
+} from "../animations";
 import {
-  deepArray, deepRecord, deepString, isPolymerElement, isRecord, videoIdFromData 
-} from "../helpers";
-import { filterOutRichItems } from "./rich-item";
+  deepArray, deepRecord, deepString, isPolymerElement, isRecord, videoIdFromData
+} from "../../helpers";
+import { filterOutRichItems } from "../rich-item";
 
 type ShelfGroup = { videoIds: string[]; elOnScreenItems: HTMLElement[]; };
 

@@ -1,4 +1,4 @@
-import type { VideoSnapshot } from "../types";
+import type { VideoSnapshot } from "../../types";
 import {
   assignItemViewTransitionNames,
   buildNewItemTransitionStyle,
@@ -7,10 +7,10 @@ import {
   extractAnimateIds,
   reassignTransitionNames,
   waitForFrames
-} from "./animations";
-import { deepArray, isPolymerElement, isRecord } from "../helpers";
-import { buildRichItem } from "./build";
-import { findItemElement } from "./query";
+} from "../animations";
+import { deepArray, isPolymerElement, isRecord } from "../../helpers";
+import { buildRichItem } from "../build";
+import { findItemElement } from "../query";
 
 export async function addSectionToDom(sectionTitle: string, videos: VideoSnapshot[]) {
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");

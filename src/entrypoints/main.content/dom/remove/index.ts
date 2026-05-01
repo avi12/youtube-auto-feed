@@ -1,6 +1,6 @@
-import { deepString, isPolymerElement, videoIdFromData } from "../helpers";
-import { removeGridItems } from "./remove-grid";
-import { removeInnerShelfItems, removeRichShelfItems } from "./remove-shelf";
+import { deepString, isPolymerElement, videoIdFromData } from "../../helpers";
+import { removeGridItems } from "./grid";
+import { removeInnerShelfItems, removeRichShelfItems } from "./shelf";
 
 type ItemContainer = "richShelf" | "innerShelf" | "grid";
 
