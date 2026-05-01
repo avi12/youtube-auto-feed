@@ -374,14 +374,8 @@ function findGridInsertIndex(
 
     const sectionItems = deepArray(item, "richSectionRenderer", "content", "richShelfRenderer", "contents");
     if (sectionItems.length > 0) {
-      const sectionMinFreshIndex = sectionItems.reduce((minimum, sectionItem) => {
-        const sectionItemId = videoIdFromRichItem(sectionItem);
-        return Math.min(minimum, sectionItemId ? (freshOrderMap.get(sectionItemId) ?? Infinity) : Infinity);
-      }, Infinity);
-      if (sectionMinFreshIndex > freshIndex) {
-        iInsert = i;
-        break;
-      }
+      iInsert = i;
+      break;
     }
   }
 
