@@ -6,11 +6,12 @@ import {
   clearAllItemViewTransitionNames,
   clearItemViewTransitionNames,
   extractAnimateIds,
-  reassignTransitionNames
+  reassignTransitionNames,
+  waitForFrames
 } from "./animations";
 import { isVideoRenderer } from "../api/guards";
 import {
-  deepArray, deepRecord, deepString, isPolymerElement, isRecord, videoIdFromData
+  deepArray, deepRecord, deepString, isPolymerElement, isRecord, videoIdFromData, videoIdFromShelfListItem
 } from "../helpers";
 import { type PolymerElement, type VideoSnapshot, VideoStatus } from "../types";
 import { addSectionToDom } from "./add-section";
@@ -269,10 +270,7 @@ function tryInsertIntoExistingInnerShelf(newContents: unknown[], iSection: numbe
   const listKey = !horizontalList && gridList ? "gridRenderer" : "horizontalListRenderer";
   const existingList: Record<string, unknown> = horizontalList ?? gridList ?? {};
   const items = deepArray(existingList, "items");
-  const isAlreadyPresent = items.some(item =>
-    deepString(item, "videoRenderer", "videoId") === video.videoId ||
-    deepString(item, "gridVideoRenderer", "videoId") === video.videoId
-  );
+  const isAlreadyPresent = items.some(item => videoIdFromShelfListItem(item) === video.videoId);
 
   if (!isAlreadyPresent) {
     newContents[iSection] = {
@@ -308,9 +306,7 @@ async function applyNewItemAnimations(
     }
   }
 
-  for (let i = 0; i < 10 && actuallyAddedVideos.some(video => !findItemElement(video.videoId)); i++) {
-    await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
-  }
+  await waitForFrames(() => actuallyAddedVideos.every(video => findItemElement(video.videoId)));
 
   reassignTransitionNames(
     elGridContents.querySelectorAll<HTMLElement>(":scope > ytd-rich-item-renderer"),
@@ -355,7 +351,7 @@ function collectGridModelIds(elGrid: PolymerElement) {
       if (shelfId) sectionIds.add(shelfId);
     }
     for (const listItem of shelfRendererListItems(item)) {
-      const videoId = deepString(listItem, "videoRenderer", "videoId") || deepString(listItem, "gridVideoRenderer", "videoId");
+      const videoId = videoIdFromShelfListItem(listItem);
       if (videoId) sectionIds.add(videoId);
     }
   }

@@ -6,7 +6,8 @@ import {
   clearItemViewTransitionNames,
   extractAnimateIds,
   filterToViewport,
-  reassignTransitionNames
+  reassignTransitionNames,
+  waitForFrames
 } from "./animations";
 import {
   deepArray,
@@ -178,9 +179,7 @@ async function runShelfInsertTransition(
 }
 
 async function waitForVideosToRender(videos: VideoSnapshot[]) {
-  for (let i = 0; i < 10 && videos.some(video => !findItemElement(video.videoId)); i++) {
-    await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
-  }
+  await waitForFrames(() => videos.every(video => findItemElement(video.videoId)));
 }
 
 function collectNewItemElements(insertOperations: InsertOperation[]) {

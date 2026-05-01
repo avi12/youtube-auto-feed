@@ -8,7 +8,7 @@ import { removeVideosFromDom } from "./dom/remove";
 import { repositionVideoInSection } from "./dom/reposition";
 import { batchUpdateVideosInDom, updateVideoInDom } from "./dom/update";
 import {
-  deepArray, deepRecord, deepString, isPolymerElement, isRecord, videoIdFromData
+  deepArray, deepRecord, deepString, isPolymerElement, isRecord, videoIdFromData, videoIdFromShelfListItem
 } from "./helpers";
 import { type VideoSnapshot, VideoStatus } from "./types";
 
@@ -77,7 +77,7 @@ function collectFromGridDataModel(videoIds: Set<string>) {
       ...deepArray(item, "richSectionRenderer", "content", "shelfRenderer", "content", "horizontalListRenderer", "items"),
       ...deepArray(item, "richSectionRenderer", "content", "shelfRenderer", "content", "gridRenderer", "items")
     ]) {
-      const listVideoId = deepString(listItem, "videoRenderer", "videoId") || deepString(listItem, "gridVideoRenderer", "videoId");
+      const listVideoId = videoIdFromShelfListItem(listItem);
       if (listVideoId) videoIds.add(listVideoId);
     }
   }
@@ -91,7 +91,7 @@ function collectFromShelfRenderers(videoIds: Set<string>) {
       ...deepArray(shelfContent, "horizontalListRenderer", "items"),
       ...deepArray(shelfContent, "gridRenderer", "items")
     ]) {
-      const listVideoId = deepString(listItem, "videoRenderer", "videoId") || deepString(listItem, "gridVideoRenderer", "videoId");
+      const listVideoId = videoIdFromShelfListItem(listItem);
       if (listVideoId) videoIds.add(listVideoId);
     }
   }

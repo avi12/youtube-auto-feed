@@ -1,6 +1,6 @@
 import type { VideoSnapshot } from "../types";
 import {
-  assignItemViewTransitionNames, buildShiftTransitionStyle, clearAllItemViewTransitionNames, extractAnimateIds, filterToViewport, reassignTransitionNames, triggerAnimation
+  assignItemViewTransitionNames, buildShiftTransitionStyle, clearAllItemViewTransitionNames, extractAnimateIds, filterToViewport, reassignTransitionNames, triggerAnimation, waitForFrames
 } from "./animations";
 import {
   deepArray, deepRecord, isPolymerElement, isRecord, videoIdFromData 
@@ -79,13 +79,7 @@ async function moveVideosToShelfFront(
       for (const elItem of elShelfItems) {
         elItem.style.viewTransitionName = "";
       }
-      for (let i = 0; i < 10; i++) {
-        await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
-        const firstItemId = videoIdFromData(elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer")[0]);
-        if (firstItemId === sortedVideos[0].videoId) {
-          break;
-        }
-      }
+      await waitForFrames(() => videoIdFromData(elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer")[0]) === sortedVideos[0].videoId);
       reassignTransitionNames(elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer"), animateIds);
     }).finished;
   } finally {
@@ -155,15 +149,12 @@ async function moveVideosToGridFront(videos: VideoSnapshot[], freshOrder: Map<st
       for (const elItem of elAllItems) {
         elItem.style.viewTransitionName = "";
       }
-      for (let i = 0; i < 10; i++) {
-        await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+      await waitForFrames(() => {
         const firstItemId = elGridContents
           ? videoIdFromData(elGridContents.querySelectorAll<HTMLElement>(":scope > ytd-rich-item-renderer")[0])
           : null;
-        if (firstItemId === sortedVideos[0].videoId) {
-          break;
-        }
-      }
+        return firstItemId === sortedVideos[0].videoId;
+      });
       const elQueryItems = elGridContents
         ? elGridContents.querySelectorAll<HTMLElement>(":scope > ytd-rich-item-renderer")
         : document.querySelectorAll<HTMLElement>("ytd-rich-item-renderer");

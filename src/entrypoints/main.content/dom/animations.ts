@@ -69,6 +69,12 @@ export function calculateStaggerDelayMs(itemCount: number) {
   return itemCount > 1 ? Math.min(80 / (itemCount - 1), 20) : 0;
 }
 
+export async function waitForFrames(predicate: () => boolean, maxFrames = 10) {
+  for (let i = 0; i < maxFrames && !predicate(); i++) {
+    await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+  }
+}
+
 export function reassignTransitionNames(elItems: Iterable<HTMLElement>, animateIds: Set<string>) {
   const reassignedIds = new Set<string>();
   for (const elItem of elItems) {

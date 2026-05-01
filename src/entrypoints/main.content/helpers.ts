@@ -50,6 +50,10 @@ export function videoIdFromData(data: unknown) {
   return videoId !== "" ? videoId : null;
 }
 
+export function videoIdFromShelfListItem(listItem: unknown) {
+  return deepString(listItem, "videoRenderer", "videoId") || deepString(listItem, "gridVideoRenderer", "videoId");
+}
+
 export function isOnSubscriptionsPage() {
   return location.pathname === "/feed/subscriptions";
 }

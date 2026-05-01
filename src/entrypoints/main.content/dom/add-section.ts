@@ -5,7 +5,8 @@ import {
   buildShiftTransitionStyle,
   clearAllItemViewTransitionNames,
   extractAnimateIds,
-  reassignTransitionNames
+  reassignTransitionNames,
+  waitForFrames
 } from "./animations";
 import { deepArray, isPolymerElement, isRecord } from "../helpers";
 import { buildRichItem } from "./build";
@@ -51,9 +52,7 @@ export async function addSectionToDom(sectionTitle: string, videos: VideoSnapsho
       elItem.style.viewTransitionName = "";
     }
 
-    for (let i = 0; i < 10 && videos.some(video => !findItemElement(video.videoId)); i++) {
-      await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
-    }
+    await waitForFrames(() => videos.every(video => findItemElement(video.videoId)));
 
     const elQueryItems = elGridContents
       ? elGridContents.querySelectorAll<HTMLElement>(":scope > ytd-rich-item-renderer")
