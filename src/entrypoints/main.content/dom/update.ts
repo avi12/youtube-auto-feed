@@ -3,6 +3,7 @@ import { deepArray, deepRecord, isPolymerElement, isRecord } from "../helpers";
 import { isLockupViewModel, isShortsLockupViewModel } from "../api/guards";
 import { findItemElement } from "./query";
 import { videoIdFromRichItem } from "./rich-item";
+import { isElementInViewport, scheduleLazyUpdate } from "./lazy-update";
 
 function replaceTextInShadowDom(root: ShadowRoot | Element, oldText: string, newText: string) {
   if (!oldText) return;
@@ -199,7 +200,7 @@ function applyTargetedLockupUpdate(
   }
 }
 
-function applyUpdate(videoId: string, elItem: PolymerElement, fresh: VideoSnapshot, previous?: VideoSnapshot) {
+export function applyUpdate(videoId: string, elItem: PolymerElement, fresh: VideoSnapshot, previous?: VideoSnapshot) {
   if (!previous) {
     applyPolymerUpdate(elItem, fresh.rawRenderer);
     syncGridModelItem(videoId, fresh.rawRenderer);
@@ -235,7 +236,11 @@ export function updateVideoInDom(videoId: string, freshSnapshot: VideoSnapshot, 
   if (!elItem || !isPolymerElement(elItem)) {
     return;
   }
-  applyUpdate(videoId, elItem, freshSnapshot, previousSnapshot);
+  if (isElementInViewport(elItem)) {
+    applyUpdate(videoId, elItem, freshSnapshot, previousSnapshot);
+  } else {
+    scheduleLazyUpdate(videoId, freshSnapshot, previousSnapshot);
+  }
 }
 
 export function batchUpdateVideosInDom(freshSnapshots: VideoSnapshot[], previousSnapshotMap?: Map<string, VideoSnapshot>) {
@@ -244,6 +249,11 @@ export function batchUpdateVideosInDom(freshSnapshots: VideoSnapshot[], previous
     if (!elItem || !isPolymerElement(elItem)) {
       continue;
     }
-    applyUpdate(fresh.videoId, elItem, fresh, previousSnapshotMap?.get(fresh.videoId));
+    const previous = previousSnapshotMap?.get(fresh.videoId);
+    if (isElementInViewport(elItem)) {
+      applyUpdate(fresh.videoId, elItem, fresh, previous);
+    } else {
+      scheduleLazyUpdate(fresh.videoId, fresh, previous);
+    }
   }
 }

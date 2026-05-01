@@ -2,7 +2,8 @@ import { fetchInitialVideos } from "./api/fetch";
 import { isInnerTubeBrowseResponse } from "./api/guards";
 import { parseApiResponse } from "./api/parse";
 import { detectAndApplyChanges, detectAndApplyMetadataChanges } from "./detect-changes";
-import { type BandLayout, captureBandLayout } from "./dom/add-grid";
+import { type BandLayout, captureBandLayout, consolidateStandaloneItems } from "./dom/add-grid";
+import { resetLazyUpdates } from "./dom/lazy-update";
 import { readDomSnapshot } from "./dom/query";
 import { isOnSubscriptionsPage } from "./helpers";
 import { isDomContentReady } from "./readiness";
@@ -142,6 +143,7 @@ export default defineContentScript({
     }
 
     function stopMonitoring() {
+      resetLazyUpdates();
       removeEventListener("ytsua-browse-response", handleBrowseResponse);
       removeEventListener("ytsua-subscription-change", handleSubscriptionChange);
       document.removeEventListener("visibilitychange", handlePageFocus);
@@ -177,6 +179,8 @@ export default defineContentScript({
 
     function applyDomBaseline() {
       isDomReady = true;
+      resetLazyUpdates();
+      consolidateStandaloneItems();
       lastSnapshot = readDomSnapshot();
       initialBandLayout = captureBandLayout();
       if (pendingApiSnapshots !== null) {
