@@ -54,25 +54,21 @@ export function consolidateStandaloneItems() {
 
   const contents = [...deepArray(elGrid.data, "contents")];
 
-  let sectionsEncountered = 0;
-  let latestBandEndIndex = -1;
+  let firstShelfSectionIndex = -1;
   for (let i = 0; i < contents.length; i++) {
-    if (readSectionTitle(contents[i])) {
-      sectionsEncountered++;
-      if (sectionsEncountered === 2) {
-        latestBandEndIndex = i;
-        break;
-      }
+    if (deepArray(contents[i], "richSectionRenderer", "content", "richShelfRenderer", "contents").length > 0) {
+      firstShelfSectionIndex = i;
+      break;
     }
   }
 
-  if (latestBandEndIndex < 0) {
+  if (firstShelfSectionIndex < 0) {
     return;
   }
 
   const trailingItems: unknown[] = [];
   const trailingIndices = new Set<number>();
-  for (let i = latestBandEndIndex; i < contents.length; i++) {
+  for (let i = firstShelfSectionIndex + 1; i < contents.length; i++) {
     if (videoIdFromRichItem(contents[i])) {
       trailingItems.push(contents[i]);
       trailingIndices.add(i);
@@ -84,7 +80,7 @@ export function consolidateStandaloneItems() {
   }
 
   const newContents = contents.filter((_, i) => !trailingIndices.has(i));
-  newContents.splice(latestBandEndIndex, 0, ...trailingItems);
+  newContents.splice(firstShelfSectionIndex, 0, ...trailingItems);
   elGrid.set("data.contents", newContents);
 }
 
