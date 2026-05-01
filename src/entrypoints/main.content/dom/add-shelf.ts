@@ -14,13 +14,24 @@ import {
   isRecord,
   videoIdFromData
 } from "../helpers";
-import { type VideoSnapshot, VideoStatus } from "../types";
+import { type PolymerElement, type VideoSnapshot, VideoStatus } from "../types";
 import { addSectionToDom } from "./add-section";
 import { buildRichItem } from "./build";
 import { findItemElement, findShelfForSection, leadingLiveCount } from "./query";
 import { videoIdFromRichItem } from "./rich-item";
 
-export async function addVideosToDom(freshSnapshots: VideoSnapshot[], allFreshSnapshots: VideoSnapshot[], snapshot: Map<string, VideoSnapshot>) {
+interface InsertOperation {
+  video: VideoSnapshot;
+  iInsert: number;
+}
+
+// ─── Public API ──────────────────────────────────────────────────────────────
+
+export async function addVideosToDom(
+  freshSnapshots: VideoSnapshot[],
+  allFreshSnapshots: VideoSnapshot[],
+  snapshot: Map<string, VideoSnapshot>
+) {
   const bySection = new Map<string, VideoSnapshot[]>();
   for (const video of freshSnapshots) {
     const sectionGroup = bySection.get(video.sectionTitle) ?? [];
@@ -33,7 +44,13 @@ export async function addVideosToDom(freshSnapshots: VideoSnapshot[], allFreshSn
   }
 }
 
-async function addVideosToSection(videos: VideoSnapshot[], allFreshSnapshots: VideoSnapshot[], snapshot: Map<string, VideoSnapshot>) {
+// ─── Section insertion ──────────────────────────────────────────────────────
+
+async function addVideosToSection(
+  videos: VideoSnapshot[],
+  allFreshSnapshots: VideoSnapshot[],
+  snapshot: Map<string, VideoSnapshot>
+) {
   const { sectionTitle } = videos[0];
   const sectionVideos = allFreshSnapshots.filter(video => video.sectionTitle === sectionTitle);
   const elShelf = findShelfForSection(sectionTitle);
@@ -45,19 +62,35 @@ async function addVideosToSection(videos: VideoSnapshot[], allFreshSnapshots: Vi
 
   const shelfContents = deepArray(elShelf.data, "contents");
   const videosToInsert = videos.filter(video => !shelfContents.some(item => videoIdFromRichItem(item) === video.videoId));
-  if (videosToInsert.length === 0) {
+  if (videosToInsert.length === 0) return;
+
+  const insertOperations = buildInsertOperations(videosToInsert, sectionVideos, elShelf, snapshot);
+  const newShelfContents = [...shelfContents];
+  for (const { video, iInsert } of insertOperations) {
+    newShelfContents.splice(iInsert, 0, buildRichItem(video.rawRenderer));
+  }
+
+  const elExistingItems = filterToViewport(elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer"));
+  const visibleCap = computeVisibleCap(elShelf, elExistingItems);
+  const displayCap = visibleCap ?? elExistingItems.length;
+  const isCollapsed = isShelfCollapsed(elShelf);
+
+  const anyVisibleInsert = isCollapsed || insertOperations.some(({ iInsert }) => iInsert < displayCap);
+  if (!anyVisibleInsert) {
+    elShelf.set("data.contents", newShelfContents);
     return;
   }
 
-  clearAllItemViewTransitionNames();
+  await runShelfInsertTransition(elShelf, elExistingItems, insertOperations, newShelfContents, displayCap, isCollapsed);
+}
 
-  const elAllShelfItems = elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer");
-  const elExistingItems = filterToViewport(elAllShelfItems);
-  assignItemViewTransitionNames(elExistingItems);
-
-  const animateIds = extractAnimateIds(elExistingItems);
-
-  const insertOperations = videosToInsert
+function buildInsertOperations(
+  videosToInsert: VideoSnapshot[],
+  sectionVideos: VideoSnapshot[],
+  elShelf: PolymerElement,
+  snapshot: Map<string, VideoSnapshot>
+): InsertOperation[] {
+  return videosToInsert
     .map(video => {
       const iApiInsert = Math.max(0, sectionVideos.findIndex(sectionVideo => sectionVideo.videoId === video.videoId));
       const iInsert = video.status !== VideoStatus.Live
@@ -66,26 +99,35 @@ async function addVideosToSection(videos: VideoSnapshot[], allFreshSnapshots: Vi
       return { video, iInsert };
     })
     .sort((opA, opB) => opB.iInsert - opA.iInsert);
+}
 
-  const newShelfContents = [...shelfContents];
-  for (const { video, iInsert } of insertOperations) {
-    newShelfContents.splice(iInsert, 0, buildRichItem(video.rawRenderer));
-  }
+function computeVisibleCap(elShelf: PolymerElement, elExistingItems: HTMLElement[]) {
+  if (isShelfCollapsed(elShelf)) return null;
+  return computeVisibleItemCap(elExistingItems);
+}
 
-  const isCollapsed = isRecord(elShelf.data) && elShelf.data.isExpanded === false;
-  const visibleCap = isCollapsed ? null : computeVisibleItemCap(elExistingItems);
-  const displayCap = visibleCap ?? elExistingItems.length;
+function isShelfCollapsed(elShelf: PolymerElement) {
+  return isRecord(elShelf.data) && elShelf.data.isExpanded === false;
+}
 
-  const anyVisibleInsert = isCollapsed || insertOperations.some(({ iInsert }) => iInsert < displayCap);
-  if (!anyVisibleInsert) {
-    elShelf.set("data.contents", newShelfContents);
-    return;
-  }
+// ─── View transition orchestration ──────────────────────────────────────────
+
+async function runShelfInsertTransition(
+  elShelf: PolymerElement,
+  elExistingItems: HTMLElement[],
+  insertOperations: InsertOperation[],
+  newShelfContents: unknown[],
+  displayCap: number,
+  isCollapsed: boolean
+) {
+  clearAllItemViewTransitionNames();
+  assignItemViewTransitionNames(elExistingItems);
+  const animateIds = extractAnimateIds(elExistingItems);
 
   const displayContents = isCollapsed ? newShelfContents : newShelfContents.slice(0, displayCap);
-  const visibleVideosToInsert = videosToInsert.filter(video =>
-    displayContents.some(item => videoIdFromRichItem(item) === video.videoId)
-  );
+  const visibleVideosToInsert = insertOperations
+    .map(({ video }) => video)
+    .filter(video => displayContents.some(item => videoIdFromRichItem(item) === video.videoId));
 
   const iMinimumInsert = insertOperations[insertOperations.length - 1].iInsert;
   const overflowResult = isCollapsed ? buildCollapsedOverflowStyle(elExistingItems, iMinimumInsert) : null;
@@ -106,26 +148,11 @@ async function addVideosToSection(videos: VideoSnapshot[], allFreshSnapshots: Vi
       elShelf.set("data.isExpanded", false);
     }
 
-    for (const elItem of elExistingItems) {
-      elItem.style.viewTransitionName = "";
-    }
-
-    for (let i = 0; i < 10 && visibleVideosToInsert.some(video => !findItemElement(video.videoId)); i++) {
-      await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
-    }
-
+    clearItemViewTransitionNames(elExistingItems);
+    await waitForVideosToRender(visibleVideosToInsert);
     reassignTransitionNames(elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer"), animateIds);
 
-    const insertedAscending = insertOperations.toReversed();
-    const elNewItems: HTMLElement[] = [];
-    for (const { video } of insertedAscending) {
-      const elNewItem = findItemElement(video.videoId);
-      if (elNewItem) {
-        elNewItem.style.viewTransitionName = `ytsua-item-${video.videoId}`;
-        elNewItems.push(elNewItem);
-      }
-    }
-
+    const elNewItems = collectNewItemElements(insertOperations);
     if (elNewItems.length > 0) {
       const elNewItemTransitionStyle = buildNewItemTransitionStyle(elNewItems);
       document.head.append(elNewItemTransitionStyle);
@@ -150,19 +177,36 @@ async function addVideosToSection(videos: VideoSnapshot[], allFreshSnapshots: Vi
   }
 }
 
+async function waitForVideosToRender(videos: VideoSnapshot[]) {
+  for (let i = 0; i < 10 && videos.some(video => !findItemElement(video.videoId)); i++) {
+    await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+  }
+}
+
+function collectNewItemElements(insertOperations: InsertOperation[]) {
+  const insertedAscending = insertOperations.toReversed();
+  const elNewItems: HTMLElement[] = [];
+  for (const { video } of insertedAscending) {
+    const elNewItem = findItemElement(video.videoId);
+    if (elNewItem) {
+      elNewItem.style.viewTransitionName = `ytsua-item-${video.videoId}`;
+      elNewItems.push(elNewItem);
+    }
+  }
+  return elNewItems;
+}
+
+// ─── Shelf metrics ──────────────────────────────────────────────────────────
+
 function computeVisibleItemCap(elExistingItems: HTMLElement[]) {
   const items = [...elExistingItems];
-  if (items.length === 0) {
-    return null;
-  }
+  if (items.length === 0) return null;
 
   const firstRowTop = items[0].getBoundingClientRect().top;
   const itemsInFirstRow = items.filter(
     elItem => Math.abs(elItem.getBoundingClientRect().top - firstRowTop) < 1
   ).length;
-  if (itemsInFirstRow === 0) {
-    return null;
-  }
+  if (itemsInFirstRow === 0) return null;
 
   const rowCount = new Set(items.map(elItem => Math.round(elItem.getBoundingClientRect().top))).size;
   return rowCount * itemsInFirstRow;
@@ -171,14 +215,10 @@ function computeVisibleItemCap(elExistingItems: HTMLElement[]) {
 function buildCollapsedOverflowStyle(elExistingItems: HTMLElement[], iInsert: number) {
   const visibleItems = [...elExistingItems].filter(elItem => elItem.offsetWidth > 0);
   const elLastVisible = visibleItems.at(-1);
-  if (!elLastVisible || iInsert >= visibleItems.length) {
-    return null;
-  }
+  if (!elLastVisible || iInsert >= visibleItems.length) return null;
 
   const overflowVideoId = isPolymerElement(elLastVisible) ? videoIdFromData(elLastVisible.data) : null;
-  if (!overflowVideoId) {
-    return null;
-  }
+  if (!overflowVideoId) return null;
 
   const elFirstVisible = visibleItems[0];
   const lastRect = elLastVisible.getBoundingClientRect();
