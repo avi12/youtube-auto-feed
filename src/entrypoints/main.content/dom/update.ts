@@ -199,7 +199,6 @@ function applyTargetedGenericUpdate(videoId: string, elItem: PolymerElement, pre
     syncGridModelItem(videoId, fresh.rawRenderer);
     return;
   }
-  syncGridModelItem(videoId, fresh.rawRenderer, true);
   dissolveToNewThumbnail(elImg, fresh.thumbnailUrl, () => {
     if (isVideoRenderer(fresh.rawRenderer)) {
       updateGridModelVideoRendererThumbnail(videoId, fresh.rawRenderer.thumbnail);
@@ -232,7 +231,6 @@ function applyTargetedLockupUpdate(
     const newUrl = newContentImage?.thumbnailViewModel?.image?.sources?.at(-1)?.url ?? fresh.thumbnailUrl;
     const elImg = findThumbnailImg(elLockup);
     if (elImg) {
-      syncGridModelItem(videoId, fresh.rawRenderer, true);
       dissolveToNewThumbnail(elImg, newUrl, () => updateGridModelContentImage(videoId, newContentImage));
       return;
     }
