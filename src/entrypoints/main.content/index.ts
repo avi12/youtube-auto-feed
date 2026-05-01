@@ -1,7 +1,7 @@
 import { fetchInitialVideos } from "./api/fetch";
 import { isInnerTubeBrowseResponse } from "./api/guards";
 import { parseApiResponse } from "./api/parse";
-import { detectAndApplyChanges, detectAndApplyMetadataChanges } from "./detect-changes";
+import { detectAndApplyChanges, detectAndApplyMetadataChanges } from "./sync";
 import { type BandLayout, captureBandLayout, consolidateStandaloneItems } from "./dom/add-grid";
 import { resetLazyUpdates } from "./dom/lazy-update";
 import { readDomSnapshot } from "./dom/query";
