@@ -2,8 +2,9 @@ import type { InnerTubeVideoRenderer, LockupViewModel, PolymerElement, ShortsLoc
 import { deepArray, deepRecord, isPolymerElement, isRecord } from "../helpers";
 import { isLockupViewModel, isShortsLockupViewModel, isVideoRenderer } from "../api/guards";
 import { findItemElement } from "./query";
+import { isInViewport } from "./animations";
 import { videoIdFromRichItem } from "./rich-item";
-import { isElementInViewport, scheduleLazyUpdate } from "./lazy-update";
+import { scheduleLazyUpdate } from "./lazy-update";
 
 function replaceTextInShadowDom(root: ShadowRoot | Element, oldText: string, newText: string) {
   if (!oldText) return;
@@ -281,7 +282,7 @@ export function updateVideoInDom(videoId: string, freshSnapshot: VideoSnapshot, 
   if (!elItem || !isPolymerElement(elItem)) {
     return;
   }
-  if (isElementInViewport(elItem)) {
+  if (isInViewport(elItem)) {
     applyUpdate(videoId, elItem, freshSnapshot, previousSnapshot);
   } else {
     scheduleLazyUpdate(videoId, freshSnapshot, previousSnapshot);
@@ -295,7 +296,7 @@ export function batchUpdateVideosInDom(freshSnapshots: VideoSnapshot[], previous
       continue;
     }
     const previous = previousSnapshotMap?.get(fresh.videoId);
-    if (isElementInViewport(elItem)) {
+    if (isInViewport(elItem)) {
       applyUpdate(fresh.videoId, elItem, fresh, previous);
     } else {
       scheduleLazyUpdate(fresh.videoId, fresh, previous);

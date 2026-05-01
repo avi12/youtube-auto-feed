@@ -25,11 +25,6 @@ function ensureObserver() {
   return intersectionObserver;
 }
 
-export function isElementInViewport(element: Element) {
-  const { top, bottom } = element.getBoundingClientRect();
-  return bottom > 0 && top < innerHeight;
-}
-
 export function scheduleLazyUpdate(videoId: string, fresh: VideoSnapshot, previous?: VideoSnapshot) {
   pendingUpdates.set(videoId, { fresh, previous });
   const elItem = findItemElement(videoId);

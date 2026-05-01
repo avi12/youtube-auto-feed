@@ -14,8 +14,8 @@ export function triggerAnimation(elTarget: HTMLElement, animationClass: Animatio
   );
 }
 
-export function isInViewport(elTarget: HTMLElement) {
-  const rect = elTarget.getBoundingClientRect();
+export function isInViewport(element: Element) {
+  const rect = element.getBoundingClientRect();
   return rect.bottom > 0 && rect.top < innerHeight;
 }
 

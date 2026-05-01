@@ -2,7 +2,7 @@ import { deepString, isPolymerElement, videoIdFromData } from "../helpers";
 import { removeGridItems } from "./remove-grid";
 import { removeInnerShelfItems, removeRichShelfItems } from "./remove-shelf";
 
-export type ItemContainer = "richShelf" | "innerShelf" | "grid";
+type ItemContainer = "richShelf" | "innerShelf" | "grid";
 
 export interface ItemInfo {
   videoId: string;
