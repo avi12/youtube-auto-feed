@@ -9,7 +9,7 @@ import {
   extractAnimateIds,
   filterToViewport,
   reassignTransitionNames
-} from "../animations";
+} from "./animations";
 import {
   deepArray, deepRecord, deepString, isPolymerElement, isRecord, videoIdFromData 
 } from "../helpers";

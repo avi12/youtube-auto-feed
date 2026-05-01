@@ -1,7 +1,7 @@
 import type { VideoSnapshot } from "../types";
 import {
   assignItemViewTransitionNames, buildShiftTransitionStyle, clearAllItemViewTransitionNames, extractAnimateIds, filterToViewport, reassignTransitionNames, triggerAnimation
-} from "../animations";
+} from "./animations";
 import {
   deepArray, deepRecord, isPolymerElement, isRecord, videoIdFromData 
 } from "../helpers";

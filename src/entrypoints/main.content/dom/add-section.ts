@@ -6,7 +6,7 @@ import {
   clearAllItemViewTransitionNames,
   extractAnimateIds,
   reassignTransitionNames
-} from "../animations";
+} from "./animations";
 import { deepArray, isPolymerElement, isRecord } from "../helpers";
 import { buildRichItem } from "./build";
 import { findItemElement } from "./query";

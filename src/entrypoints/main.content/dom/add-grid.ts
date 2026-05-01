@@ -7,7 +7,7 @@ import {
   clearItemViewTransitionNames,
   extractAnimateIds,
   reassignTransitionNames
-} from "../animations";
+} from "./animations";
 import { isVideoRenderer } from "../api/guards";
 import {
   deepArray, deepRecord, deepString, isPolymerElement, isRecord, videoIdFromData

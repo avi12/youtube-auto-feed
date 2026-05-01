@@ -7,7 +7,7 @@ import {
   extractAnimateIds,
   filterToViewport,
   reassignTransitionNames
-} from "../animations";
+} from "./animations";
 import {
   deepArray,
   isPolymerElement,

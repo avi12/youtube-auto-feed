@@ -1,6 +1,6 @@
 import {
   assignItemViewTransitionNames, buildShiftTransitionStyle, clearAllItemViewTransitionNames, extractAnimateIds, filterToViewport, reassignTransitionNames
-} from "../animations";
+} from "./animations";
 import {
   deepArray, deepRecord, isPolymerElement, videoIdFromData 
 } from "../helpers";

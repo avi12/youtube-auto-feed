@@ -2,7 +2,7 @@ import type { PolymerElement } from "../types";
 import type { ItemInfo } from "./remove";
 import {
   assignItemViewTransitionNames, buildRemoveTransitionStyle, buildShiftTransitionStyle, calculateStaggerDelayMs, clearAllItemViewTransitionNames, clearItemViewTransitionNames, extractAnimateIds, reassignTransitionNames 
-} from "../animations";
+} from "./animations";
 import {
   deepArray, isPolymerElement, isRecord, videoIdFromData 
 } from "../helpers";

@@ -1,4 +1,4 @@
-import { isPolymerElement, videoIdFromData } from "./helpers";
+import { isPolymerElement, videoIdFromData } from "../helpers";
 
 const animationClasses = ["ytsua-new", "ytsua-updated"] as const;
 type AnimationClass = typeof animationClasses[number];
