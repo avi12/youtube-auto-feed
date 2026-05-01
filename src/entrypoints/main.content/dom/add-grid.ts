@@ -489,6 +489,50 @@ export function captureBandLayout(): BandLayout | null {
   return { sectionOrder, bandCaps };
 }
 
+export function consolidateStandaloneItems() {
+  const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
+  if (!elGrid || !isPolymerElement(elGrid) || !isRecord(elGrid.data)) {
+    return;
+  }
+
+  const contents = [...deepArray(elGrid.data, "contents")];
+
+  let sectionsEncountered = 0;
+  let latestBandEndIndex = -1;
+  for (let i = 0; i < contents.length; i++) {
+    const sectionTitle = deepString(contents[i], "richSectionRenderer", "content", "richShelfRenderer", "title", "runs", "0", "text")
+      || deepString(contents[i], "richSectionRenderer", "content", "shelfRenderer", "title", "runs", "0", "text");
+    if (sectionTitle) {
+      sectionsEncountered++;
+      if (sectionsEncountered === 2) {
+        latestBandEndIndex = i;
+        break;
+      }
+    }
+  }
+
+  if (latestBandEndIndex < 0) {
+    return;
+  }
+
+  const trailingItems: unknown[] = [];
+  const trailingIndices = new Set<number>();
+  for (let i = latestBandEndIndex; i < contents.length; i++) {
+    if (videoIdFromRichItem(contents[i])) {
+      trailingItems.push(contents[i]);
+      trailingIndices.add(i);
+    }
+  }
+
+  if (trailingItems.length === 0) {
+    return;
+  }
+
+  const newContents = contents.filter((_, i) => !trailingIndices.has(i));
+  newContents.splice(latestBandEndIndex, 0, ...trailingItems);
+  elGrid.set("data.contents", newContents);
+}
+
 export function enforceBandLayout(layout: BandLayout) {
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
   if (!elGrid || !isPolymerElement(elGrid) || !isRecord(elGrid.data)) {
