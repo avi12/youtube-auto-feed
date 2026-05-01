@@ -12,8 +12,6 @@ import {
 } from "./helpers";
 import { type VideoSnapshot, VideoStatus } from "./types";
 
-// ─── DOM reading helpers ─────────────────────────────────────────────────────
-
 function readCurrentVideoSections() {
   const sections = new Map<string, string>();
   for (const elShelf of document.querySelectorAll<HTMLElement>("ytd-rich-shelf-renderer")) {
@@ -107,8 +105,6 @@ function collectFromRichShelfRenderers(videoIds: Set<string>) {
   }
 }
 
-// ─── Change detection ────────────────────────────────────────────────────────
-
 interface ClassifiedChanges {
   videoIdsToRemove: string[];
   videosToAdd: VideoSnapshot[];
@@ -190,8 +186,6 @@ function hasMetadataChange(previous: VideoSnapshot, fresh: VideoSnapshot) {
     previous.isChannelLive !== fresh.isChannelLive;
 }
 
-// ─── Change application ──────────────────────────────────────────────────────
-
 async function executeChanges(
   changes: ClassifiedChanges,
   freshSnapshots: VideoSnapshot[],
@@ -200,8 +194,6 @@ async function executeChanges(
   const timeOrderedSnapshots = freshSnapshots.toSorted(
     (videoA, videoB) => parseSecondsAgo(videoA.publishedTimeText) - parseSecondsAgo(videoB.publishedTimeText)
   );
-  // Classify shelf vs grid before removes run so shelf membership reflects the
-  // API state — a remove can empty a shelf section and trigger its teardown.
   const shelfVideos = changes.videosToAdd.filter(video => !!findShelfForSection(video.sectionTitle));
   const gridVideos = changes.videosToAdd.filter(video => !findShelfForSection(video.sectionTitle));
 
@@ -253,8 +245,6 @@ function preserveStaleEntriesForUnremovedVideos(
     }
   }
 }
-
-// ─── Public API ──────────────────────────────────────────────────────────────
 
 export async function detectAndApplyChanges(
   previousSnapshot: Map<string, VideoSnapshot>,

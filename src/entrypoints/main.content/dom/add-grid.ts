@@ -19,8 +19,6 @@ import { buildRichItem } from "./build";
 import { findItemElement } from "./query";
 import { sortByFreshOrder, videoIdFromRichItem } from "./rich-item";
 
-// ─── Public API ──────────────────────────────────────────────────────────────
-
 export async function addVideosToGridDom(videosToAdd: VideoSnapshot[], allFreshSnapshots: VideoSnapshot[]) {
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
   if (!elGrid || !isPolymerElement(elGrid)) {
@@ -84,8 +82,6 @@ export function cleanOrphanedGridItems() {
 
   pruneOrphanedDomItems(elGridContents, standaloneModelIds);
 }
-
-// ─── Transition setup / teardown ─────────────────────────────────────────────
 
 interface GridTransitionContext {
   elShiftStyle: HTMLStyleElement;
@@ -151,8 +147,6 @@ async function fallbackAddBySection(videosToAdd: VideoSnapshot[], allFreshSnapsh
     );
   }
 }
-
-// ─── Insertion planning ──────────────────────────────────────────────────────
 
 function applyVideoInsertions(
   elGrid: PolymerElement,
@@ -292,8 +286,6 @@ function tryInsertIntoExistingInnerShelf(newContents: unknown[], iSection: numbe
   return true;
 }
 
-// ─── Animation phase ─────────────────────────────────────────────────────────
-
 async function applyNewItemAnimations(
   elGridContents: HTMLElement,
   elElementsToAnimate: HTMLElement[],
@@ -323,8 +315,6 @@ async function applyNewItemAnimations(
   }
   return elNewItems;
 }
-
-// ─── Orphan / duplicate cleanup ──────────────────────────────────────────────
 
 function collectGridModelIds(elGrid: PolymerElement) {
   if (!isRecord(elGrid.data)) {
@@ -402,8 +392,6 @@ function shelfRendererListItems(contentItem: unknown) {
   ];
 }
 
-// ─── Index calculation ──────────────────────────────────────────────────────
-
 function findSectionInsertIndex(contents: unknown[], sectionMinimumFreshIndex: number, freshOrderMap: Map<string, number>) {
   for (let iContent = 0; iContent < contents.length; iContent++) {
     const item = contents[iContent];
@@ -471,7 +459,6 @@ function findGridInsertIndex(
       continue;
     }
 
-    // Shelf sections are hard boundaries: standalone items belong before them.
     const sectionItems = deepArray(item, "richSectionRenderer", "content", "richShelfRenderer", "contents");
     if (sectionItems.length > 0) {
       iInsert = i;

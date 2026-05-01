@@ -27,8 +27,6 @@ export function createSubscriptionMonitor() {
   let cancelBroadcastListener: (() => void) | null = null;
   let initialBandLayout: BandLayout | null = null;
 
-  // ─── Change application loop ──────────────────────────────────────────────
-
   async function applyChanges(freshSnapshots: VideoSnapshot[]) {
     if (isApplyingChanges) {
       pendingApplySnapshots = freshSnapshots;
@@ -55,8 +53,6 @@ export function createSubscriptionMonitor() {
       isApplyingChanges = false;
     }
   }
-
-  // ─── Data source handlers ─────────────────────────────────────────────────
 
   function handleBrowseResponse(event: Event) {
     if (!isOnSubscriptionsPage() || !(event instanceof CustomEvent)) return;
@@ -95,9 +91,7 @@ export function createSubscriptionMonitor() {
     isApplyingChanges = true;
     try {
       lastSnapshot = await detectAndApplyMetadataChanges(lastSnapshot, snapshots);
-    } catch {
-      // no-op
-    } finally {
+    } catch {} finally {
       isApplyingChanges = false;
     }
   }
@@ -105,8 +99,6 @@ export function createSubscriptionMonitor() {
   function handleSubscriptionChange() {
     void fetchFreshVideos();
   }
-
-  // ─── Polling ──────────────────────────────────────────────────────────────
 
   function restartPolling() {
     if (pollingTimer !== null) {
@@ -128,8 +120,6 @@ export function createSubscriptionMonitor() {
 
     void fetchFreshVideos().finally(() => restartPolling());
   }
-
-  // ─── Lifecycle ────────────────────────────────────────────────────────────
 
   function startMonitoring() {
     addEventListener("ytsua-browse-response", handleBrowseResponse);

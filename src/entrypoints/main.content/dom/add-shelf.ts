@@ -26,8 +26,6 @@ interface InsertOperation {
   iInsert: number;
 }
 
-// ─── Public API ──────────────────────────────────────────────────────────────
-
 export async function addVideosToDom(
   freshSnapshots: VideoSnapshot[],
   allFreshSnapshots: VideoSnapshot[],
@@ -44,8 +42,6 @@ export async function addVideosToDom(
     await addVideosToSection(sectionVideos, allFreshSnapshots, snapshot);
   }
 }
-
-// ─── Section insertion ──────────────────────────────────────────────────────
 
 async function addVideosToSection(
   videos: VideoSnapshot[],
@@ -110,8 +106,6 @@ function computeVisibleCap(elShelf: PolymerElement, elExistingItems: HTMLElement
 function isShelfCollapsed(elShelf: PolymerElement) {
   return isRecord(elShelf.data) && elShelf.data.isExpanded === false;
 }
-
-// ─── View transition orchestration ──────────────────────────────────────────
 
 async function runShelfInsertTransition(
   elShelf: PolymerElement,
@@ -194,8 +188,6 @@ function collectNewItemElements(insertOperations: InsertOperation[]) {
   }
   return elNewItems;
 }
-
-// ─── Shelf metrics ──────────────────────────────────────────────────────────
 
 function computeVisibleItemCap(elExistingItems: HTMLElement[]) {
   const items = [...elExistingItems];
