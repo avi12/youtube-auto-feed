@@ -23,6 +23,8 @@
     "@wxt-dev/auto-icons": "^1.1.1",
     "chokidar": "^5.0.0",
     "eslint": "^10.2.1",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-import-newlines": "^2.0.0",
     "eslint-plugin-perfectionist": "^5.9.0",
     "globals": "^17.5.0",
     "postcss": "^8.5.12",
