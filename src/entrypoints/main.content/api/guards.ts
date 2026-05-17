@@ -37,7 +37,7 @@ export function viewCountFromRenderer(renderer: InnerTubeVideoRenderer) {
 
 export function statusFromRenderer(renderer: InnerTubeVideoRenderer) {
   const {
-    badges, thumbnailOverlays, navigationEndpoint, upcomingEventData
+    badges, thumbnailOverlays, navigationEndpoint, upcomingEventData, publishedTimeText
   } = renderer;
   const badgeStyle = badges
     ?.find(badge => badge.metadataBadgeRenderer)
@@ -49,10 +49,15 @@ export function statusFromRenderer(renderer: InnerTubeVideoRenderer) {
     return VideoStatus.Live;
   }
 
+  // publishedTimeText wins over stale badge/eventData: when a scheduled stream ends,
+  // YouTube sets "Streamed X ago" before clearing upcomingEventData or badges.
+  const isStreamedAgo = publishedTimeText?.simpleText?.toLowerCase().startsWith("streamed") ?? false;
   if (
-    badgeStyle === BadgeStyle.Upcoming ||
-    overlayStyle === OverlayStyle.Upcoming ||
-    upcomingEventData !== undefined
+    !isStreamedAgo && (
+      badgeStyle === BadgeStyle.Upcoming ||
+      overlayStyle === OverlayStyle.Upcoming ||
+      upcomingEventData !== undefined
+    )
   ) {
     return VideoStatus.Upcoming;
   }
