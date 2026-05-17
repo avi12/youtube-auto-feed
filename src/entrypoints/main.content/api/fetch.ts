@@ -1,5 +1,5 @@
 import { isInnerTubeBrowseResponse } from "./guards";
-import { parseApiResponse } from "./parse";
+import { extractApiSectionOrder, parseApiResponse } from "./parse";
 
 async function buildSapiSidHash() {
   const sapiSid = document.cookie.split(";")
@@ -29,17 +29,26 @@ export async function fetchInitialVideos() {
     ? `/youtubei/v1/browse?key=${apiKey}&prettyPrint=false`
     : "/youtubei/v1/browse?prettyPrint=false";
 
+  const visitorData = ytcfg?.get("VISITOR_DATA") ?? "";
+  const clientVersion = context?.client?.clientVersion ?? "";
+
   const response = await fetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "X-YTSUA": "1",
-      ...(authorization ? { "Authorization": authorization } : {})
+      "X-Origin": "https://www.youtube.com",
+      "X-YouTube-Client-Name": "1",
+      "X-YouTube-Client-Version": clientVersion,
+      ...(visitorData ? { "X-Goog-Visitor-Id": visitorData } : {}),
+      ...(authorization ? { Authorization: authorization } : {})
     },
     credentials: "include",
-    body: JSON.stringify({ context, browseId: "FEsubscriptions" })
+    body: JSON.stringify({
+      context,
+      browseId: "FEsubscriptions"
+    })
   }).catch(() => null);
-
   if (!response?.ok) {
     return null;
   }
@@ -56,5 +65,10 @@ export async function fetchInitialVideos() {
   }
 
   const snapshots = parseApiResponse(browseData);
-  return snapshots.length > 0 ? snapshots : null;
+  if (snapshots.length === 0) {
+    return null;
+  }
+
+  const sectionOrder = extractApiSectionOrder(browseData);
+  return { snapshots, sectionOrder };
 }
