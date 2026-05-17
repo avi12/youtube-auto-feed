@@ -46,6 +46,7 @@ export function videoIdFromData(data: unknown) {
     deepString(data, "content", "gridVideoRenderer", "videoId") ||
     deepString(data, "content", "richGridMediaRenderer", "content", "videoRenderer", "videoId") ||
     deepString(data, "content", "lockupViewModel", "contentId") ||
+    deepString(data, "content", "lockupViewModel", "videoId") ||
     deepString(data, "content", "shortsLockupViewModel", "onTap", "innertubeCommand", "reelWatchEndpoint", "videoId");
   return videoId !== "" ? videoId : null;
 }
