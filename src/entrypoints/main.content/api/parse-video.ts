@@ -1,12 +1,10 @@
-import type {
-  InnerTubeVideoRenderer, LockupViewModel, ShortsLockupViewModel, VideoSnapshot 
-} from "../types";
+import type { InnerTubeVideoRenderer, LockupViewModel, ShortsLockupViewModel, VideoSnapshot } from "../types";
 import { VideoStatus } from "../types";
 import { statusFromLockup, statusFromRenderer, viewCountFromRenderer } from "./guards";
 
 export function parseRenderer(renderer: InnerTubeVideoRenderer, sectionTitle: string): VideoSnapshot | null {
   const {
-    videoId, title, thumbnail, publishedTimeText 
+    videoId, title, thumbnail, publishedTimeText
   } = renderer;
   if (videoId === "") {
     return null;

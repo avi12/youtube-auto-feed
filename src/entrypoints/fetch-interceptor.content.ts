@@ -22,9 +22,7 @@ export default defineContentScript({
       }
 
       if (url.includes("/youtubei/v1/subscription/")) {
-        const response = await originalFetch(input, init);
-
-        if (response.ok) {
+        const response = await originalFetch(input, init);        if (response.ok) {
           dispatchEvent(new CustomEvent("ytsua-subscription-change"));
           ytsuaChannel.sendMessage("subscription-change");
         }

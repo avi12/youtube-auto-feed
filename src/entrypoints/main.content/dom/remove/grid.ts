@@ -1,12 +1,18 @@
+import { deepArray, isPolymerElement, isRecord, videoIdFromData } from "../../helpers";
 import type { PolymerElement } from "../../types";
-import type { ItemInfo } from "./index";
 import {
-  assignItemViewTransitionNames, buildRemoveTransitionStyle, buildShiftTransitionStyle, calculateStaggerDelayMs, clearAllItemViewTransitionNames, clearItemViewTransitionNames, extractAnimateIds, reassignTransitionNames
+  assignItemViewTransitionNames,
+  buildRemoveTransitionStyle,
+  buildShiftTransitionStyle,
+  calculateStaggerDelayMs,
+  clearAllItemViewTransitionNames,
+  clearItemViewTransitionNames,
+  extractAnimateIds,
+  prefersReducedMotion,
+  reassignTransitionNames
 } from "../animations";
-import {
-  deepArray, isPolymerElement, isRecord, videoIdFromData
-} from "../../helpers";
 import { filterOutRichItems } from "../rich-item";
+import type { ItemInfo } from "./index";
 
 export async function removeGridItems(items: ItemInfo[], allRequestedVideoIds: string[]) {
   const gridItems = items.filter(({ container }) => container === "grid");
@@ -29,8 +35,7 @@ export async function removeGridItems(items: ItemInfo[], allRequestedVideoIds: s
   const gridVideoIdSet = new Set(gridItems.map(({ videoId }) => videoId));
   const allGridElements = gridItems.map(({ elItem }) => elItem);
   const onScreenGridElements = gridItems.filter(({ isOffScreen }) => !isOffScreen).map(({ elItem }) => elItem);
-
-  if (onScreenGridElements.length === 0) {
+  if (onScreenGridElements.length === 0 || prefersReducedMotion()) {
     removeAllOrNothing(elGrid, gridVideoIdSet, allGridElements);
     return;
   }
@@ -63,7 +68,6 @@ function cleanupOrphanIdsInGridData(
 function removeAllOrNothing(elGrid: PolymerElement, gridVideoIdSet: Set<string>, allGridElements: HTMLElement[]) {
   const currentContents = deepArray(elGrid.data, "contents");
   const filteredContents = filterOutRichItems(currentContents, gridVideoIdSet);
-
   if (filteredContents.length < currentContents.length) {
     elGrid.set("data.contents", filteredContents);
   } else {
@@ -112,6 +116,7 @@ async function removeGridItemsAnimated(
     for (const elItem of allGridElements) {
       elItem.remove();
     }
+
     if (filteredContents.length < currentContents.length) {
       elGrid.set("data.contents", filteredContents);
     }
@@ -161,6 +166,7 @@ function collectShiftTargets(elGridContents: HTMLElement | null, removedElSet: S
     }
 
     elElementsAfterFirstRemoved.push(elChild);
+
     if (elChild.tagName === "YTD-RICH-SECTION-RENDERER") {
       elChild.style.viewTransitionName = `ytsua-section-${iSection}`;
       elSectionsAfterFirstRemoved.push(elChild);
@@ -168,5 +174,8 @@ function collectShiftTargets(elGridContents: HTMLElement | null, removedElSet: S
     }
   }
 
-  return { elElementsAfterFirstRemoved, elSectionsAfterFirstRemoved };
+  return {
+    elElementsAfterFirstRemoved,
+    elSectionsAfterFirstRemoved
+  };
 }

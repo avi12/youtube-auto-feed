@@ -1,7 +1,10 @@
 type BroadcastMessages = Record<string, unknown>;
 
 type BroadcastEnvelope<T extends BroadcastMessages> = {
-  [K in keyof T]: { type: K; data: T[K] };
+  [K in keyof T]: {
+    type: K;
+    data: T[K];
+  };
 }[keyof T];
 
 function defineChannel<T extends BroadcastMessages>(channelName: string) {
@@ -9,7 +12,10 @@ function defineChannel<T extends BroadcastMessages>(channelName: string) {
     ...[type, data]: T[K] extends void ? [K] : [K, T[K]]
   ) {
     const channel = new BroadcastChannel(channelName);
-    channel.postMessage({ type, data });
+    channel.postMessage({
+      type,
+      data
+    });
     channel.close();
   }
 
@@ -22,12 +28,16 @@ function defineChannel<T extends BroadcastMessages>(channelName: string) {
       if (data?.type !== type) {
         return;
       }
+
       (handler as (data: T[K]) => void)(data.data as T[K]);
     };
     return () => channel.close();
   }
 
-  return { sendMessage, onMessage };
+  return {
+    sendMessage,
+    onMessage
+  };
 }
 
 type YtsuaMessages = {

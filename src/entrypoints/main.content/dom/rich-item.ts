@@ -15,7 +15,7 @@ export function filterOutRichItems(contents: unknown[], excludeVideoIds: Set<str
   });
 }
 
-export function sortByFreshOrder<T extends { videoId: string; }>(videos: T[], freshOrder: Map<string, number>) {
+export function sortByFreshOrder<T extends { videoId: string }>(videos: T[], freshOrder: Map<string, number>) {
   return videos.toSorted(
     (videoA, videoB) => (freshOrder.get(videoA.videoId) ?? 0) - (freshOrder.get(videoB.videoId) ?? 0)
   );

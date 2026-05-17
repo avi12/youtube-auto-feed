@@ -11,14 +11,14 @@ export enum BadgeStyle {
   Upcoming = "BADGE_STYLE_TYPE_UPCOMING"
 }
 
-export interface InnerTubeMetadataBadge { metadataBadgeRenderer?: { style: BadgeStyle; }; }
+export interface InnerTubeMetadataBadge { metadataBadgeRenderer?: { style: BadgeStyle } }
 
 export enum OverlayStyle {
   Live = "LIVE",
   Upcoming = "UPCOMING"
 }
 
-export interface InnerTubeThumbnailOverlay { thumbnailOverlayTimeStatusRenderer?: { style: OverlayStyle; }; }
+export interface InnerTubeThumbnailOverlay { thumbnailOverlayTimeStatusRenderer?: { style: OverlayStyle } }
 
 export interface InnerTubeReelWatchEndpoint {
   videoId: string;
@@ -32,25 +32,25 @@ export interface InnerTubeReelWatchEndpoint {
 export interface InnerTubeUpcomingEventData {
   startTime?: string;
   isReminderSet?: boolean;
-  upcomingEventText?: { runs?: Array<{ text: string; }>; };
+  upcomingEventText?: { runs?: Array<{ text: string }> };
 }
 
 export interface InnerTubeVideoRenderer {
   videoId: string;
   title: {
-    runs?: Array<{ text: string; }>;
+    runs?: Array<{ text: string }>;
     simpleText?: string;
   };
-  thumbnail: { thumbnails: InnerTubeThumbnail[]; };
+  thumbnail: { thumbnails: InnerTubeThumbnail[] };
   badges?: InnerTubeMetadataBadge[];
   thumbnailOverlays?: InnerTubeThumbnailOverlay[];
   viewCountText?: {
     simpleText?: string;
-    runs?: Array<{ text: string; }>;
+    runs?: Array<{ text: string }>;
   };
-  shortViewCountText?: { simpleText?: string; };
-  publishedTimeText?: { simpleText?: string; };
-  navigationEndpoint?: { reelWatchEndpoint?: InnerTubeReelWatchEndpoint; };
+  shortViewCountText?: { simpleText?: string };
+  publishedTimeText?: { simpleText?: string };
+  navigationEndpoint?: { reelWatchEndpoint?: InnerTubeReelWatchEndpoint };
   upcomingEventData?: InnerTubeUpcomingEventData;
 }
 
@@ -91,9 +91,17 @@ export interface LockupViewModel {
   };
   metadata?: {
     lockupMetadataViewModel?: {
-      title?: { content?: string; };
-      metadata?: { contentMetadataViewModel?: { metadataRows?: Array<{ metadataParts?: Array<{ text?: { content?: string; }; }>; }>; }; };
-      image?: { decoratedAvatarViewModel?: { liveData?: { liveBadgeText?: string; }; }; };
+      title?: { content?: string };
+      metadata?: {
+        contentMetadataViewModel?: { metadataRows?: Array<{ metadataParts?: Array<{
+          text?: { content?: string };
+        }>; }>; };
+      };
+      image?: {
+        decoratedAvatarViewModel?: {
+          liveData?: { liveBadgeText?: string };
+        };
+      };
     };
   };
 }
@@ -103,12 +111,20 @@ export interface LockupViewModel {
 export interface ShortsLockupViewModel {
   entityId?: string;
   accessibilityText?: string;
-  onTap?: { innertubeCommand?: { reelWatchEndpoint?: { videoId: string; }; }; };
-  overlayMetadata?: {
-    primaryText?: { content?: string; };
-    secondaryText?: { content?: string; };
+  onTap?: {
+    innertubeCommand?: {
+      reelWatchEndpoint?: { videoId: string };
+    };
   };
-  thumbnail?: { sources?: Array<{ url: string; width?: number; height?: number; }>; };
+  overlayMetadata?: {
+    primaryText?: { content?: string };
+    secondaryText?: { content?: string };
+  };
+  thumbnail?: { sources?: Array<{
+    url: string;
+    width?: number;
+    height?: number;
+  }>; };
 }
 
 // ── Shelf / grid renderers ────────────────────────────────────────────────────
@@ -116,18 +132,22 @@ export interface ShortsLockupViewModel {
 export interface InnerTubeRichItemContent {
   videoRenderer?: InnerTubeVideoRenderer;
   gridVideoRenderer?: InnerTubeVideoRenderer;
-  richGridMediaRenderer?: { content?: { videoRenderer?: InnerTubeVideoRenderer; }; };
+  richGridMediaRenderer?: {
+    content?: { videoRenderer?: InnerTubeVideoRenderer };
+  };
   lockupViewModel?: LockupViewModel;
   shortsLockupViewModel?: ShortsLockupViewModel;
 }
 
 export interface InnerTubeRichShelfRenderer {
-  title: { runs: Array<{ text: string; }>; };
-  contents: Array<{ richItemRenderer?: { content: InnerTubeRichItemContent; }; }>;
+  title: { runs: Array<{ text: string }> };
+  contents: Array<{
+    richItemRenderer?: { content: InnerTubeRichItemContent };
+  }>;
 }
 
 export interface InnerTubeShelfRenderer {
-  title: { runs: Array<{ text: string; }>; };
+  title: { runs: Array<{ text: string }> };
   content: {
     horizontalListRenderer?: {
       items: Array<{
@@ -145,8 +165,13 @@ export interface InnerTubeShelfRenderer {
 }
 
 export interface InnerTubeRichGridItem {
-  richSectionRenderer?: { content: { richShelfRenderer?: InnerTubeRichShelfRenderer; shelfRenderer?: InnerTubeShelfRenderer; }; };
-  richItemRenderer?: { content: InnerTubeRichItemContent; };
+  richSectionRenderer?: {
+    content: {
+      richShelfRenderer?: InnerTubeRichShelfRenderer;
+      shelfRenderer?: InnerTubeShelfRenderer;
+    };
+  };
+  richItemRenderer?: { content: InnerTubeRichItemContent };
 }
 
 export interface InnerTubeBrowseResponse {
@@ -155,8 +180,10 @@ export interface InnerTubeBrowseResponse {
       tabs: Array<{
         tabRenderer: {
           content: {
-            richGridRenderer?: { contents: InnerTubeRichGridItem[]; };
-            sectionListRenderer?: { contents: Array<{ itemSectionRenderer?: { contents: Array<{ shelfRenderer?: InnerTubeShelfRenderer; }>; }; }>; };
+            richGridRenderer?: { contents: InnerTubeRichGridItem[] };
+            sectionListRenderer?: { contents: Array<{
+              itemSectionRenderer?: { contents: Array<{ shelfRenderer?: InnerTubeShelfRenderer }> };
+            }>; };
           };
         };
       }>;
@@ -205,7 +232,7 @@ interface InnerTubeContext {
     platform?: InnerTubePlatform;
     clientFormFactor?: InnerTubeClientFormFactor;
     windowWidthPoints?: number;
-    configInfo?: { appInstallData?: string; };
+    configInfo?: { appInstallData?: string };
     screenDensityFloat?: number;
     userInterfaceTheme?: InnerTubeUserInterfaceTheme;
     timeZone?: string;
@@ -216,9 +243,9 @@ interface InnerTubeContext {
     deviceExperimentId?: string;
     rolloutToken?: string;
   };
-  user?: { lockedSafetyMode?: boolean; };
-  request?: { useSsl?: boolean; };
-  clickTracking?: { clickTrackingParams?: string; };
+  user?: { lockedSafetyMode?: boolean };
+  request?: { useSsl?: boolean };
+  clickTracking?: { clickTrackingParams?: string };
 }
 
 interface YouTubeInnertubeConfig {
@@ -230,7 +257,7 @@ interface YouTubeInnertubeConfig {
 }
 
 declare global {
-  const ytcfg: { get<K extends keyof YouTubeInnertubeConfig>(key: K): YouTubeInnertubeConfig[K]; } | undefined;
+  const ytcfg: { get<K extends keyof YouTubeInnertubeConfig>(key: K): YouTubeInnertubeConfig[K] } | undefined;
 }
 
 // ── Extension types ───────────────────────────────────────────────────────────

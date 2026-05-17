@@ -1,3 +1,4 @@
+import { deepArray, isPolymerElement, isRecord } from "../../helpers";
 import type { VideoSnapshot } from "../../types";
 import {
   assignItemViewTransitionNames,
@@ -8,7 +9,6 @@ import {
   reassignTransitionNames,
   waitForFrames
 } from "../animations";
-import { deepArray, isPolymerElement, isRecord } from "../../helpers";
 import { buildRichItem } from "../build";
 import { findItemElement } from "../query";
 
@@ -67,6 +67,7 @@ export async function addSectionToDom(sectionTitle: string, videos: VideoSnapsho
         elNewItems.push(elNewItem);
       }
     }
+
     if (elNewItems.length > 0) {
       const elNewItemTransitionStyle = buildNewItemTransitionStyle(elNewItems);
       document.head.append(elNewItemTransitionStyle);

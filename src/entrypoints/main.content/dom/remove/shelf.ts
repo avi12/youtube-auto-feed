@@ -1,4 +1,11 @@
-import type { ItemInfo } from "./index";
+import {
+  deepArray,
+  deepRecord,
+  deepString,
+  isPolymerElement,
+  isRecord,
+  videoIdFromData
+} from "../../helpers";
 import {
   assignItemViewTransitionNames,
   buildRemoveTransitionStyle,
@@ -8,14 +15,16 @@ import {
   clearItemViewTransitionNames,
   extractAnimateIds,
   filterToViewport,
+  prefersReducedMotion,
   reassignTransitionNames
 } from "../animations";
-import {
-  deepArray, deepRecord, deepString, isPolymerElement, isRecord, videoIdFromData
-} from "../../helpers";
 import { filterOutRichItems } from "../rich-item";
+import type { ItemInfo } from "./index";
 
-type ShelfGroup = { videoIds: string[]; elOnScreenItems: HTMLElement[]; };
+type ShelfGroup = {
+  videoIds: string[];
+  elOnScreenItems: HTMLElement[];
+};
 
 async function removeItemsFromShelf(
   elShelf: HTMLElement,
@@ -23,6 +32,14 @@ async function removeItemsFromShelf(
   itemSelector: string,
   applyFilteredContents: () => void
 ) {
+  if (prefersReducedMotion()) {
+    for (const elItem of group.elOnScreenItems) {
+      elItem.remove();
+    }
+    applyFilteredContents();
+    return;
+  }
+
   clearAllItemViewTransitionNames();
 
   const elSiblings = filterToViewport(
@@ -78,14 +95,18 @@ async function removeItemsFromShelf(
 export async function removeRichShelfItems(items: ItemInfo[]) {
   const groups = new Map<HTMLElement, ShelfGroup>();
   for (const {
-    container, isOffScreen, videoId, elItem, elRichShelf 
+    container, isOffScreen, videoId, elItem, elRichShelf
   } of items) {
     if (container !== "richShelf" || !elRichShelf) {
       continue;
     }
 
-    const group = groups.get(elRichShelf) ?? { videoIds: [], elOnScreenItems: [] };
+    const group = groups.get(elRichShelf) ?? {
+      videoIds: [],
+      elOnScreenItems: []
+    };
     group.videoIds.push(videoId);
+
     if (!isOffScreen) {
       group.elOnScreenItems.push(elItem);
     }
@@ -132,6 +153,13 @@ async function removeEmptyShelfSection(elRichShelf: HTMLElement, shelfTitle: str
     return;
   }
 
+  if (prefersReducedMotion()) {
+    elSection.remove();
+    const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
+    tryRemoveSectionViaGridData(elGrid, shelfTitle);
+    return;
+  }
+
   elSection.classList.add("ytsua-section-removing");
   await new Promise<void>(resolve => {
     const timer = setTimeout(resolve, 400);
@@ -154,6 +182,7 @@ async function removeEmptyShelfSection(elRichShelf: HTMLElement, shelfTitle: str
 
     if (isPastSection) {
       elItemsAfterSection.push(elSibling);
+
       if (elSibling.tagName === "YTD-RICH-SECTION-RENDERER") {
         elSibling.style.viewTransitionName = `ytsua-section-rem-${iSectionIndex++}`;
         elSectionsAfterSection.push(elSibling);
@@ -221,7 +250,6 @@ function tryRemoveSectionViaGridData(elGrid: HTMLElement | null, shelfTitle: str
     const title = deepString(shelf, "title", "runs", "0", "text");
     return !shelfTitle || !title || title !== shelfTitle;
   });
-
   if (filteredGridContents.length === currentGridContents.length) {
     return false;
   }
@@ -233,14 +261,18 @@ function tryRemoveSectionViaGridData(elGrid: HTMLElement | null, shelfTitle: str
 export async function removeInnerShelfItems(items: ItemInfo[]) {
   const groups = new Map<HTMLElement, ShelfGroup>();
   for (const {
-    container, isOffScreen, videoId, elItem, elInnerShelf 
+    container, isOffScreen, videoId, elItem, elInnerShelf
   } of items) {
     if (container !== "innerShelf" || !elInnerShelf) {
       continue;
     }
 
-    const group = groups.get(elInnerShelf) ?? { videoIds: [], elOnScreenItems: [] };
+    const group = groups.get(elInnerShelf) ?? {
+      videoIds: [],
+      elOnScreenItems: []
+    };
     group.videoIds.push(videoId);
+
     if (!isOffScreen) {
       group.elOnScreenItems.push(elItem);
     }

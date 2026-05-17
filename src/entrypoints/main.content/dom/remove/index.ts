@@ -45,19 +45,32 @@ function collectItems(videoIdSet: Set<string>): ItemInfo[] {
     const { top, bottom } = elItem.getBoundingClientRect();
     const isOffScreen = isItemHidden || top > innerHeight || bottom < 0;
     const elRichShelf = elItem.closest<HTMLElement>("ytd-rich-shelf-renderer");
-    const elInnerShelf = elRichShelf ? null : elItem.closest<HTMLElement>("ytd-shelf-renderer");
-
-    if (elRichShelf && isPolymerElement(elRichShelf)) {
+    const elInnerShelf = elRichShelf ? null : elItem.closest<HTMLElement>("ytd-shelf-renderer");    if (elRichShelf && isPolymerElement(elRichShelf)) {
       items.push({
-        videoId, elItem, isOffScreen, container: "richShelf", elRichShelf, elInnerShelf: null 
+        videoId,
+        elItem,
+        isOffScreen,
+        container: "richShelf",
+        elRichShelf,
+        elInnerShelf: null
       });
     } else if (elInnerShelf && isPolymerElement(elInnerShelf)) {
       items.push({
-        videoId, elItem, isOffScreen, container: "innerShelf", elRichShelf: null, elInnerShelf 
+        videoId,
+        elItem,
+        isOffScreen,
+        container: "innerShelf",
+        elRichShelf: null,
+        elInnerShelf
       });
     } else {
       items.push({
-        videoId, elItem, isOffScreen, container: "grid", elRichShelf: null, elInnerShelf: null 
+        videoId,
+        elItem,
+        isOffScreen,
+        container: "grid",
+        elRichShelf: null,
+        elInnerShelf: null
       });
     }
   }
@@ -77,7 +90,12 @@ function collectItems(videoIdSet: Set<string>): ItemInfo[] {
     const elInnerShelf = elGridVideo.closest<HTMLElement>("ytd-shelf-renderer");
     if (elInnerShelf && isPolymerElement(elInnerShelf)) {
       items.push({
-        videoId, elItem: elGridVideo, isOffScreen, container: "innerShelf", elRichShelf: null, elInnerShelf 
+        videoId,
+        elItem: elGridVideo,
+        isOffScreen,
+        container: "innerShelf",
+        elRichShelf: null,
+        elInnerShelf
       });
     }
   }

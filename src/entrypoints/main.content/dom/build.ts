@@ -1,5 +1,5 @@
-import type { InnerTubeVideoRenderer, LockupViewModel, ShortsLockupViewModel } from "../types";
 import { isLockupViewModel, isShortsLockupViewModel } from "../api/guards";
+import type { InnerTubeVideoRenderer, LockupViewModel, ShortsLockupViewModel } from "../types";
 
 export function buildRichItem(rawRenderer: InnerTubeVideoRenderer | LockupViewModel | ShortsLockupViewModel) {
   let content;
@@ -11,5 +11,10 @@ export function buildRichItem(rawRenderer: InnerTubeVideoRenderer | LockupViewMo
     content = { videoRenderer: rawRenderer };
   }
 
-  return { richItemRenderer: { content, trackingParams: "" } };
+  return {
+    richItemRenderer: {
+      content,
+      trackingParams: ""
+    }
+  };
 }
