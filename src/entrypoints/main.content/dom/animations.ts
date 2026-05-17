@@ -1,9 +1,16 @@
 import { isPolymerElement, videoIdFromData } from "../helpers";
 
+export function prefersReducedMotion() {
+  return matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
 const animationClasses = ["ytsua-new", "ytsua-updated"] as const;
 type AnimationClass = typeof animationClasses[number];
 
 export function triggerAnimation(elTarget: HTMLElement, animationClass: AnimationClass) {
+  if (prefersReducedMotion()) {
+    return;
+  }
   elTarget.classList.remove(...animationClasses);
   void elTarget.offsetWidth;
   elTarget.classList.add(animationClass);

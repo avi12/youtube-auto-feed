@@ -1,10 +1,21 @@
+import {
+  deepArray,
+  deepRecord,
+  isPolymerElement,
+  isRecord,
+  videoIdFromData
+} from "../helpers";
 import type { VideoSnapshot } from "../types";
 import {
-  assignItemViewTransitionNames, buildShiftTransitionStyle, clearAllItemViewTransitionNames, extractAnimateIds, filterToViewport, reassignTransitionNames, triggerAnimation, waitForFrames
+  assignItemViewTransitionNames,
+  buildShiftTransitionStyle,
+  clearAllItemViewTransitionNames,
+  extractAnimateIds,
+  filterToViewport,
+  reassignTransitionNames,
+  triggerAnimation,
+  waitForFrames
 } from "./animations";
-import {
-  deepArray, deepRecord, isPolymerElement, isRecord, videoIdFromData 
-} from "../helpers";
 import { buildRichItem } from "./build";
 import { findItemElement, findShelfForSection } from "./query";
 import { filterOutRichItems, sortByFreshOrder, videoIdFromRichItem } from "./rich-item";
@@ -33,6 +44,7 @@ export async function moveVideosToFront(videos: VideoSnapshot[], allFreshSnapsho
   for (const [elShelf, shelfVideos] of shelfGroups) {
     await moveVideosToShelfFront(elShelf, shelfVideos, freshOrder);
   }
+
   if (gridVideos.length > 0) {
     await moveVideosToGridFront(gridVideos, freshOrder);
   }
@@ -54,7 +66,6 @@ async function moveVideosToShelfFront(
   const isAlreadyAtFront = sortedVideos.every(
     (video, i) => videoIdFromRichItem(shelfContents[i]) === video.videoId
   );
-
   if (isAlreadyAtFront) {
     await fallbackUpdate(sortedVideos);
     return;
@@ -105,7 +116,6 @@ async function moveVideosToGridFront(videos: VideoSnapshot[], freshOrder: Map<st
   const movingVideoIds = new Set(sortedVideos.map(({ videoId }) => videoId));
   const gridContents = deepArray(elGrid.data, "contents");
   const iTargetInsert = gridContents.findIndex(contentItem => !!deepRecord(contentItem, "richItemRenderer"));
-
   if (iTargetInsert < 0) {
     await fallbackUpdate(sortedVideos);
     return;
@@ -114,7 +124,6 @@ async function moveVideosToGridFront(videos: VideoSnapshot[], freshOrder: Map<st
   const isAlreadyAtFront = sortedVideos.every(
     (video, i) => videoIdFromRichItem(gridContents[iTargetInsert + i]) === video.videoId
   );
-
   if (isAlreadyAtFront) {
     await fallbackUpdate(sortedVideos);
     return;

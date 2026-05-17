@@ -1,3 +1,5 @@
+import { deepArray, isPolymerElement, isRecord, videoIdFromData } from "../../helpers";
+import { type PolymerElement, type VideoSnapshot, VideoStatus } from "../../types";
 import {
   assignItemViewTransitionNames,
   buildNewItemTransitionStyle,
@@ -6,20 +8,14 @@ import {
   clearItemViewTransitionNames,
   extractAnimateIds,
   filterToViewport,
+  prefersReducedMotion,
   reassignTransitionNames,
   waitForFrames
 } from "../animations";
-import {
-  deepArray,
-  isPolymerElement,
-  isRecord,
-  videoIdFromData
-} from "../../helpers";
-import { type PolymerElement, type VideoSnapshot, VideoStatus } from "../../types";
-import { addSectionToDom } from "./section";
 import { buildRichItem } from "../build";
 import { findItemElement, findShelfForSection, leadingLiveCount } from "../query";
 import { videoIdFromRichItem } from "../rich-item";
+import { addSectionToDom } from "./section";
 
 interface InsertOperation {
   video: VideoSnapshot;
@@ -51,7 +47,6 @@ async function addVideosToSection(
   const { sectionTitle } = videos[0];
   const sectionVideos = allFreshSnapshots.filter(video => video.sectionTitle === sectionTitle);
   const elShelf = findShelfForSection(sectionTitle);
-
   if (!elShelf || !isPolymerElement(elShelf)) {
     await addSectionToDom(sectionTitle, sectionVideos);
     return;
@@ -59,7 +54,9 @@ async function addVideosToSection(
 
   const shelfContents = deepArray(elShelf.data, "contents");
   const videosToInsert = videos.filter(video => !shelfContents.some(item => videoIdFromRichItem(item) === video.videoId));
-  if (videosToInsert.length === 0) return;
+  if (videosToInsert.length === 0) {
+    return;
+  }
 
   const insertOperations = buildInsertOperations(videosToInsert, sectionVideos, elShelf, snapshot);
   const newShelfContents = [...shelfContents];
@@ -73,7 +70,7 @@ async function addVideosToSection(
   const isCollapsed = isShelfCollapsed(elShelf);
 
   const anyVisibleInsert = isCollapsed || insertOperations.some(({ iInsert }) => iInsert < displayCap);
-  if (!anyVisibleInsert) {
+  if (!anyVisibleInsert || prefersReducedMotion()) {
     elShelf.set("data.contents", newShelfContents);
     return;
   }
@@ -93,13 +90,19 @@ function buildInsertOperations(
       const iInsert = video.status !== VideoStatus.Live
         ? Math.max(iApiInsert, leadingLiveCount(elShelf, snapshot))
         : iApiInsert;
-      return { video, iInsert };
+      return {
+        video,
+        iInsert
+      };
     })
     .sort((opA, opB) => opB.iInsert - opA.iInsert);
 }
 
 function computeVisibleCap(elShelf: PolymerElement, elExistingItems: HTMLElement[]) {
-  if (isShelfCollapsed(elShelf)) return null;
+  if (isShelfCollapsed(elShelf)) {
+    return null;
+  }
+
   return computeVisibleItemCap(elExistingItems);
 }
 
@@ -139,6 +142,7 @@ async function runShelfInsertTransition(
 
   const transition = document.startViewTransition(async () => {
     elShelf.set("data.contents", displayContents);
+
     if (wasExpanded === false) {
       elShelf.set("data.isExpanded", false);
     }
@@ -191,13 +195,17 @@ function collectNewItemElements(insertOperations: InsertOperation[]) {
 
 function computeVisibleItemCap(elExistingItems: HTMLElement[]) {
   const items = [...elExistingItems];
-  if (items.length === 0) return null;
+  if (items.length === 0) {
+    return null;
+  }
 
   const firstRowTop = items[0].getBoundingClientRect().top;
   const itemsInFirstRow = items.filter(
     elItem => Math.abs(elItem.getBoundingClientRect().top - firstRowTop) < 1
   ).length;
-  if (itemsInFirstRow === 0) return null;
+  if (itemsInFirstRow === 0) {
+    return null;
+  }
 
   const rowCount = new Set(items.map(elItem => Math.round(elItem.getBoundingClientRect().top))).size;
   return rowCount * itemsInFirstRow;
@@ -206,20 +214,29 @@ function computeVisibleItemCap(elExistingItems: HTMLElement[]) {
 function buildCollapsedOverflowStyle(elExistingItems: HTMLElement[], iInsert: number) {
   const visibleItems = [...elExistingItems].filter(elItem => elItem.offsetWidth > 0);
   const elLastVisible = visibleItems.at(-1);
-  if (!elLastVisible || iInsert >= visibleItems.length) return null;
+  if (!elLastVisible || iInsert >= visibleItems.length) {
+    return null;
+  }
 
   const overflowVideoId = isPolymerElement(elLastVisible) ? videoIdFromData(elLastVisible.data) : null;
-  if (!overflowVideoId) return null;
+  if (!overflowVideoId) {
+    return null;
+  }
 
   const elFirstVisible = visibleItems[0];
   const lastRect = elLastVisible.getBoundingClientRect();
   const firstRect = elFirstVisible?.getBoundingClientRect();
+  const secondRect = visibleItems[1]?.getBoundingClientRect();
   const translateX = firstRect ? Math.round(firstRect.left - lastRect.left) : -Math.round(lastRect.width);
-  const translateY = Math.round(lastRect.height * 0.4);
+  const columnGap = secondRect && firstRect ? Math.max(0, Math.round(secondRect.left - firstRect.right)) : 0;
+  const translateY = Math.round(lastRect.height + columnGap);
   const overflowName = `ytsua-item-${overflowVideoId}`;
   const elStyle = document.createElement("style");
   elStyle.textContent =
     `::view-transition-old(${overflowName}){animation:ytsua-shelf-overflow-exit 380ms cubic-bezier(0.4,0,0.2,1) forwards;--ytsua-overflow-translate:${translateX}px ${translateY}px}` +
     `::view-transition-new(${overflowName}){animation:none;opacity:0}`;
-  return { elStyle, overflowName };
+  return {
+    elStyle,
+    overflowName
+  };
 }

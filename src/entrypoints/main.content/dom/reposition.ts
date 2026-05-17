@@ -1,10 +1,14 @@
-import {
-  assignItemViewTransitionNames, buildShiftTransitionStyle, clearAllItemViewTransitionNames, extractAnimateIds, filterToViewport, reassignTransitionNames
-} from "./animations";
-import {
-  deepArray, deepRecord, isPolymerElement, videoIdFromData 
-} from "../helpers";
+import { deepArray, deepRecord, isPolymerElement, videoIdFromData } from "../helpers";
 import { type VideoSnapshot, VideoStatus } from "../types";
+import {
+  assignItemViewTransitionNames,
+  buildShiftTransitionStyle,
+  clearAllItemViewTransitionNames,
+  extractAnimateIds,
+  filterToViewport,
+  prefersReducedMotion,
+  reassignTransitionNames
+} from "./animations";
 import { buildRichItem } from "./build";
 import { findShelfForSection } from "./query";
 import { findRichItemIndex, videoIdFromRichItem } from "./rich-item";
@@ -16,10 +20,9 @@ export async function repositionVideoInSection(
   allSnapshots: Map<string, VideoSnapshot>
 ) {
   const {
-    videoId, sectionTitle, rawRenderer, status 
+    videoId, sectionTitle, rawRenderer, status
   } = freshSnapshot;
   const elShelf = findShelfForSection(sectionTitle);
-
   if (!elShelf || !isPolymerElement(elShelf)) {
     updateVideoInDom(videoId, freshSnapshot);
     return;
@@ -27,7 +30,6 @@ export async function repositionVideoInSection(
 
   const shelfContents = deepArray(elShelf.data, "contents");
   const iCurrent = findRichItemIndex(shelfContents, videoId);
-
   if (iCurrent < 0) {
     updateVideoInDom(videoId, freshSnapshot);
     return;
@@ -35,7 +37,6 @@ export async function repositionVideoInSection(
 
   const contentsWithoutVideo = shelfContents.filter((_, i) => i !== iCurrent);
   const iInsert = resolveInsertIndex(contentsWithoutVideo, videoId, sectionVideos, status, allSnapshots);
-
   if (iInsert === iCurrent) {
     updateVideoInDom(videoId, freshSnapshot);
     return;
@@ -43,6 +44,12 @@ export async function repositionVideoInSection(
 
   const newContents = [...contentsWithoutVideo];
   newContents.splice(iInsert, 0, buildRichItem(rawRenderer));
+
+  if (prefersReducedMotion()) {
+    elShelf.set("data.contents", newContents);
+    updateVideoInDom(videoId, freshSnapshot);
+    return;
+  }
 
   clearAllItemViewTransitionNames();
 
