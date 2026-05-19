@@ -15,8 +15,7 @@ node_modules
 stats.html
 stats-*.json
 .wxt
-User Data/
-Opera Profile/
+user-profiles/
 
 # Claude Code
 .claude/

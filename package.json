@@ -5,8 +5,12 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "bun dev.ts",
-    "dev:firefox": "wxt -b firefox",
+    "dev": "tsx dev.ts",
+    "dev:watch": "tsx dev.ts --watch --edge --chrome",
+    "dev:chrome:without-extension": "tsx dev.ts --watch --chrome",
+    "dev:edge": "tsx dev.ts --edge",
+    "dev:opera": "tsx dev.ts --opera",
+    "dev:firefox": "tsx dev.ts --firefox",
     "build": "wxt build",
     "build:firefox": "wxt build -b firefox",
     "zip": "wxt zip",
@@ -20,6 +24,7 @@
     "@eslint/js": "^10.0.1",
     "@resvg/resvg-js": "^2.6.2",
     "@stylistic/eslint-plugin": "^5.10.0",
+    "@types/yargs": "^17.0.35",
     "@wxt-dev/auto-icons": "^1.1.1",
     "chokidar": "^5.0.0",
     "eslint": "^10.2.1",
@@ -31,8 +36,13 @@
     "postcss-html": "^1.8.1",
     "stylelint": "^17.9.1",
     "stylelint-config-ccb": "^3.31.4",
+    "tsx": "^4.22.1",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.59.1",
+    "web-ext-run": "^0.2.4",
     "wxt": "^0.20.25"
+  },
+  "dependencies": {
+    "yargs": "^18.0.0"
   }
 }
