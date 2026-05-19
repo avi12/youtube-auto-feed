@@ -21,7 +21,7 @@ import { findItemElement, findShelfForSection } from "./query";
 import { filterOutRichItems, sortByFreshOrder, videoIdFromRichItem } from "./rich-item";
 import { updateVideoInDom } from "./update";
 
-export async function moveVideosToFront(videos: VideoSnapshot[], allFreshSnapshots: VideoSnapshot[]) {
+export async function moveVideosToFront({ videos, allFreshSnapshots }: { videos: VideoSnapshot[]; allFreshSnapshots: VideoSnapshot[] }) {
   if (videos.length === 0) {
     return;
   }
@@ -42,25 +42,29 @@ export async function moveVideosToFront(videos: VideoSnapshot[], allFreshSnapsho
   }
 
   for (const [elShelf, shelfVideos] of shelfGroups) {
-    await moveVideosToShelfFront(elShelf, shelfVideos, freshOrder);
+    await moveVideosToShelfFront({ elShelf, videos: shelfVideos, freshOrder });
   }
 
   if (gridVideos.length > 0) {
-    await moveVideosToGridFront(gridVideos, freshOrder);
+    await moveVideosToGridFront({ videos: gridVideos, freshOrder });
   }
 }
 
-async function moveVideosToShelfFront(
-  elShelf: HTMLElement,
-  videos: VideoSnapshot[],
-  freshOrder: Map<string, number>
-) {
+async function moveVideosToShelfFront({
+  elShelf,
+  videos,
+  freshOrder
+}: {
+  elShelf: HTMLElement;
+  videos: VideoSnapshot[];
+  freshOrder: Map<string, number>;
+}) {
   if (!isPolymerElement(elShelf) || !isRecord(elShelf.data)) {
     await fallbackUpdate(videos);
     return;
   }
 
-  const sortedVideos = sortByFreshOrder(videos, freshOrder);
+  const sortedVideos = sortByFreshOrder({ videos, freshOrder });
   const movingVideoIds = new Set(sortedVideos.map(({ videoId }) => videoId));
   const shelfContents = deepArray(elShelf.data, "contents");
   const isAlreadyAtFront = sortedVideos.every(
@@ -78,20 +82,20 @@ async function moveVideosToShelfFront(
 
   const animateIds = extractAnimateIds(elShelfItems);
 
-  const elShiftStyle = buildShiftTransitionStyle(elShelfItems);
+  const elShiftStyle = buildShiftTransitionStyle({ elItems: elShelfItems });
   document.head.append(elShiftStyle);
 
   try {
     await document.startViewTransition(async () => {
       const freshShelfContents = deepArray(elShelf.data, "contents");
-      const remainingContents = filterOutRichItems(freshShelfContents, movingVideoIds);
+      const remainingContents = filterOutRichItems({ contents: freshShelfContents, excludeVideoIds: movingVideoIds });
       const newItems = sortedVideos.map(({ rawRenderer }) => buildRichItem(rawRenderer));
       elShelf.set("data.contents", [...newItems, ...remainingContents]);
       for (const elItem of elShelfItems) {
         elItem.style.viewTransitionName = "";
       }
-      await waitForFrames(() => videoIdFromData(elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer")[0]) === sortedVideos[0].videoId);
-      reassignTransitionNames(elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer"), animateIds);
+      await waitForFrames({ predicate: () => videoIdFromData(elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer")[0]) === sortedVideos[0].videoId });
+      reassignTransitionNames({ elItems: elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer"), animateIds });
     }).finished;
   } finally {
     clearAllItemViewTransitionNames();
@@ -99,20 +103,20 @@ async function moveVideosToShelfFront(
     for (const { videoId } of sortedVideos) {
       const elMovedItem = findItemElement(videoId);
       if (elMovedItem) {
-        triggerAnimation(elMovedItem, "ytsua-updated");
+        triggerAnimation({ elTarget: elMovedItem, animationClass: "ytsua-updated" });
       }
     }
   }
 }
 
-async function moveVideosToGridFront(videos: VideoSnapshot[], freshOrder: Map<string, number>) {
+async function moveVideosToGridFront({ videos, freshOrder }: { videos: VideoSnapshot[]; freshOrder: Map<string, number> }) {
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
   if (!elGrid || !isPolymerElement(elGrid) || !isRecord(elGrid.data)) {
     await fallbackUpdate(videos);
     return;
   }
 
-  const sortedVideos = sortByFreshOrder(videos, freshOrder);
+  const sortedVideos = sortByFreshOrder({ videos, freshOrder });
   const movingVideoIds = new Set(sortedVideos.map(({ videoId }) => videoId));
   const gridContents = deepArray(elGrid.data, "contents");
   const iTargetInsert = gridContents.findIndex(contentItem => !!deepRecord(contentItem, "richItemRenderer"));
@@ -142,13 +146,13 @@ async function moveVideosToGridFront(videos: VideoSnapshot[], freshOrder: Map<st
 
   assignItemViewTransitionNames(elAllItems);
 
-  const elShiftStyle = buildShiftTransitionStyle(elAllItems);
+  const elShiftStyle = buildShiftTransitionStyle({ elItems: elAllItems });
   document.head.append(elShiftStyle);
 
   try {
     await document.startViewTransition(async () => {
       const freshGridContents = deepArray(elGrid.data, "contents");
-      const remainingContents = filterOutRichItems(freshGridContents, movingVideoIds);
+      const remainingContents = filterOutRichItems({ contents: freshGridContents, excludeVideoIds: movingVideoIds });
       const iEffectiveInsert = remainingContents.findIndex(contentItem => !!deepRecord(contentItem, "richItemRenderer"));
       const iInsertAt = iEffectiveInsert >= 0 ? iEffectiveInsert : remainingContents.length;
       const newItems = sortedVideos.map(({ rawRenderer }) => buildRichItem(rawRenderer));
@@ -158,16 +162,16 @@ async function moveVideosToGridFront(videos: VideoSnapshot[], freshOrder: Map<st
       for (const elItem of elAllItems) {
         elItem.style.viewTransitionName = "";
       }
-      await waitForFrames(() => {
+      await waitForFrames({ predicate: () => {
         const firstItemId = elGridContents
           ? videoIdFromData(elGridContents.querySelectorAll<HTMLElement>(":scope > ytd-rich-item-renderer")[0])
           : null;
         return firstItemId === sortedVideos[0].videoId;
-      });
+      } });
       const elQueryItems = elGridContents
         ? elGridContents.querySelectorAll<HTMLElement>(":scope > ytd-rich-item-renderer")
         : document.querySelectorAll<HTMLElement>("ytd-rich-item-renderer");
-      reassignTransitionNames(elQueryItems, animateIds);
+      reassignTransitionNames({ elItems: elQueryItems, animateIds });
     }).finished;
   } finally {
     clearAllItemViewTransitionNames();
@@ -175,7 +179,7 @@ async function moveVideosToGridFront(videos: VideoSnapshot[], freshOrder: Map<st
     for (const { videoId } of sortedVideos) {
       const elMovedItem = findItemElement(videoId);
       if (elMovedItem) {
-        triggerAnimation(elMovedItem, "ytsua-updated");
+        triggerAnimation({ elTarget: elMovedItem, animationClass: "ytsua-updated" });
       }
     }
   }

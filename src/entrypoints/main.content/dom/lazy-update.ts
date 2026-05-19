@@ -66,7 +66,7 @@ function ensureObserver() {
   return intersectionObserver;
 }
 
-export function scheduleLazyUpdate(videoId: string, fresh: VideoSnapshot, previous?: VideoSnapshot, elItemHint?: HTMLElement) {
+export function scheduleLazyUpdate({ videoId, fresh, previous, elItemHint }: { videoId: string; fresh: VideoSnapshot; previous?: VideoSnapshot; elItemHint?: HTMLElement }) {
   pendingUpdates.set(videoId, {
     fresh,
     previous
@@ -97,7 +97,7 @@ function ensureEntranceObserver() {
       }
 
       entranceObserver?.unobserve(elItem);
-      triggerAnimation(elItem, "ytsua-new");
+      triggerAnimation({ elTarget: elItem, animationClass: "ytsua-new" });
     }
 
     if (pendingEntranceItems.size === 0) {

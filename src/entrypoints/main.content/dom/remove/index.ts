@@ -13,9 +13,9 @@ export interface ItemInfo {
   elInnerShelf: HTMLElement | null;
 }
 
-export async function removeVideosFromDom(videoIds: string[], shelfProtectedIds: Set<string> = new Set()) {
+export async function removeVideosFromDom({ videoIds, shelfProtectedIds = new Set<string>() }: { videoIds: string[]; shelfProtectedIds?: Set<string> }) {
   const videoIdSet = new Set(videoIds);
-  const items = collectItems(videoIdSet, shelfProtectedIds);
+  const items = collectItems({ videoIdSet, shelfProtectedIds });
 
   for (const { container, isOffScreen, elItem } of items) {
     if (isOffScreen && container !== "grid") {
@@ -25,10 +25,10 @@ export async function removeVideosFromDom(videoIds: string[], shelfProtectedIds:
 
   await removeRichShelfItems(items);
   await removeInnerShelfItems(items);
-  await removeGridItems(items, videoIds);
+  await removeGridItems({ items, allRequestedVideoIds: videoIds });
 }
 
-function collectItems(videoIdSet: Set<string>, shelfProtectedIds: Set<string>) {
+function collectItems({ videoIdSet, shelfProtectedIds }: { videoIdSet: Set<string>; shelfProtectedIds: Set<string> }) {
   const items: ItemInfo[] = [];
 
   for (const elItem of document.querySelectorAll<HTMLElement>("ytd-rich-item-renderer")) {

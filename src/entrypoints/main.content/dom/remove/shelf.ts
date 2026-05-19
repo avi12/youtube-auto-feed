@@ -28,12 +28,17 @@ type ShelfGroup = {
   elOnScreenItems: HTMLElement[];
 };
 
-async function removeItemsFromShelf(
-  elShelf: HTMLElement,
-  group: ShelfGroup,
-  itemSelector: string,
-  applyFilteredContents: () => void
-) {
+async function removeItemsFromShelf({
+  elShelf,
+  group,
+  itemSelector,
+  applyFilteredContents
+}: {
+  elShelf: HTMLElement;
+  group: ShelfGroup;
+  itemSelector: string;
+  applyFilteredContents: () => void;
+}) {
   if (prefersReducedMotion()) {
     for (const elItem of group.elOnScreenItems) {
       elItem.remove();
@@ -64,7 +69,7 @@ async function removeItemsFromShelf(
     }
   }
 
-  const elShiftStyle = buildShiftTransitionStyle(elSiblings, new Set(), calculateStaggerDelayMs(elSiblings.length));
+  const elShiftStyle = buildShiftTransitionStyle({ elItems: elSiblings, excludeNames: new Set(), delayPerItemMs: calculateStaggerDelayMs(elSiblings.length) });
   const elRemoveStyle = buildRemoveTransitionStyle(group.elOnScreenItems);
   document.head.append(elShiftStyle);
   document.head.append(elRemoveStyle);
@@ -81,7 +86,7 @@ async function removeItemsFromShelf(
       for (const elItem of elSiblings) {
         elItem.style.viewTransitionName = "";
       }
-      reassignTransitionNames(elShelf.querySelectorAll<HTMLElement>(itemSelector), animateIds);
+      reassignTransitionNames({ elItems: elShelf.querySelectorAll<HTMLElement>(itemSelector), animateIds });
     }).finished;
   } finally {
     clearItemViewTransitionNames(elSiblings);
@@ -116,11 +121,11 @@ export async function removeRichShelfItems(items: ItemInfo[]) {
     groups.set(elRichShelf, group);
   }
   for (const [elRichShelf, group] of groups) {
-    await removeRichShelfGroup(elRichShelf, group);
+    await removeRichShelfGroup({ elRichShelf, group });
   }
 }
 
-async function removeRichShelfGroup(elRichShelf: HTMLElement, group: ShelfGroup) {
+async function removeRichShelfGroup({ elRichShelf, group }: { elRichShelf: HTMLElement; group: ShelfGroup }) {
   if (!isPolymerElement(elRichShelf)) {
     return;
   }
@@ -136,20 +141,20 @@ async function removeRichShelfGroup(elRichShelf: HTMLElement, group: ShelfGroup)
   const shelfTitle = deepString(shelfData, "title", "runs", "0", "text");
   const shelfVideoIdSet = new Set(group.videoIds);
   const shelfContents = deepArray(shelfData, "contents");
-  const filteredShelfContents = filterOutRichItems(shelfContents, shelfVideoIdSet);
+  const filteredShelfContents = filterOutRichItems({ contents: shelfContents, excludeVideoIds: shelfVideoIdSet });
 
-  await removeItemsFromShelf(elRichShelf, group, "ytd-rich-item-renderer", () => {
+  await removeItemsFromShelf({ elShelf: elRichShelf, group, itemSelector: "ytd-rich-item-renderer", applyFilteredContents: () => {
     if (filteredShelfContents.length < shelfContents.length) {
       elRichShelf.set("data.contents", filteredShelfContents);
     }
-  });
+  } });
 
   if (filteredShelfContents.length === 0) {
-    await removeEmptyShelfSection(elRichShelf, shelfTitle);
+    await removeEmptyShelfSection({ elRichShelf, shelfTitle });
   }
 }
 
-async function removeEmptyShelfSection(elRichShelf: HTMLElement, shelfTitle: string) {
+async function removeEmptyShelfSection({ elRichShelf, shelfTitle }: { elRichShelf: HTMLElement; shelfTitle: string }) {
   const elSection = elRichShelf.closest<HTMLElement>("ytd-rich-section-renderer");
   if (!elSection) {
     return;
@@ -158,7 +163,7 @@ async function removeEmptyShelfSection(elRichShelf: HTMLElement, shelfTitle: str
   if (prefersReducedMotion()) {
     elSection.remove();
     const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
-    tryRemoveSectionViaGridData(elGrid, shelfTitle);
+    tryRemoveSectionViaGridData({ elGrid, shelfTitle });
     return;
   }
 
@@ -199,7 +204,7 @@ async function removeEmptyShelfSection(elRichShelf: HTMLElement, shelfTitle: str
     elItemsAfterSection.filter(elItem => elItem.tagName === "YTD-RICH-ITEM-RENDERER")
   );
 
-  const elShiftStyle = buildShiftTransitionStyle(elItemsAfterSection, new Set(), calculateStaggerDelayMs(elItemsAfterSection.length));
+  const elShiftStyle = buildShiftTransitionStyle({ elItems: elItemsAfterSection, excludeNames: new Set(), delayPerItemMs: calculateStaggerDelayMs(elItemsAfterSection.length) });
   document.head.append(elShiftStyle);
 
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
@@ -207,16 +212,16 @@ async function removeEmptyShelfSection(elRichShelf: HTMLElement, shelfTitle: str
   try {
     await document.startViewTransition(() => {
       elSection.remove();
-      tryRemoveSectionViaGridData(elGrid, shelfTitle);
+      tryRemoveSectionViaGridData({ elGrid, shelfTitle });
       for (const elItem of elItemsAfterSection) {
         if (elItem.tagName === "YTD-RICH-ITEM-RENDERER") {
           elItem.style.viewTransitionName = "";
         }
       }
-      reassignTransitionNames(
-        elGridContents?.querySelectorAll<HTMLElement>(":scope > ytd-rich-item-renderer") ?? [],
-        afterSectionAnimateIds
-      );
+      reassignTransitionNames({
+        elItems: elGridContents?.querySelectorAll<HTMLElement>(":scope > ytd-rich-item-renderer") ?? [],
+        animateIds: afterSectionAnimateIds
+      });
     }).finished;
   } finally {
     elShiftStyle.remove();
@@ -226,7 +231,7 @@ async function removeEmptyShelfSection(elRichShelf: HTMLElement, shelfTitle: str
   }
 }
 
-function tryRemoveSectionViaGridData(elGrid: HTMLElement | null, shelfTitle: string) {
+function tryRemoveSectionViaGridData({ elGrid, shelfTitle }: { elGrid: HTMLElement | null; shelfTitle: string }) {
   if (!elGrid || !isPolymerElement(elGrid) || !isRecord(elGrid.data)) {
     return false;
   }
@@ -282,11 +287,11 @@ export async function removeInnerShelfItems(items: ItemInfo[]) {
     groups.set(elInnerShelf, group);
   }
   for (const [elInnerShelf, group] of groups) {
-    await removeInnerShelfGroup(elInnerShelf, group);
+    await removeInnerShelfGroup({ elInnerShelf, group });
   }
 }
 
-async function removeInnerShelfGroup(elInnerShelf: HTMLElement, group: ShelfGroup) {
+async function removeInnerShelfGroup({ elInnerShelf, group }: { elInnerShelf: HTMLElement; group: ShelfGroup }) {
   if (!isPolymerElement(elInnerShelf)) {
     return;
   }
@@ -316,9 +321,9 @@ async function removeInnerShelfGroup(elInnerShelf: HTMLElement, group: ShelfGrou
       && !innerShelfVideoIdSet.has(deepString(item, "gridVideoRenderer", "videoId"))
   );
 
-  await removeItemsFromShelf(elInnerShelf, group, "ytd-grid-video-renderer", () => {
+  await removeItemsFromShelf({ elShelf: elInnerShelf, group, itemSelector: "ytd-grid-video-renderer", applyFilteredContents: () => {
     if (filteredListItems.length < listItems.length) {
       elInnerShelf.set(listPath, filteredListItems);
     }
-  });
+  } });
 }

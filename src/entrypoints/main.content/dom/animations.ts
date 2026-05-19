@@ -14,7 +14,7 @@ export function prefersReducedMotion() {
 const animationClasses = ["ytsua-new", "ytsua-updated"] as const;
 type AnimationClass = typeof animationClasses[number];
 
-export function triggerAnimation(elTarget: HTMLElement, animationClass: AnimationClass) {
+export function triggerAnimation({ elTarget, animationClass }: { elTarget: HTMLElement; animationClass: AnimationClass }) {
   if (prefersReducedMotion()) {
     return;
   }
@@ -84,13 +84,13 @@ export function calculateStaggerDelayMs(itemCount: number) {
   return itemCount > 1 ? Math.min(STAGGER_MAX_DELAY_RANGE_MS / (itemCount - 1), STAGGER_MAX_DELAY_CAP_MS) : 0;
 }
 
-export async function waitForFrames(predicate: () => boolean, maxFrames = WAIT_FOR_FRAMES_MAX) {
+export async function waitForFrames({ predicate, maxFrames = WAIT_FOR_FRAMES_MAX }: { predicate: () => boolean; maxFrames?: number }) {
   for (let i = 0; i < maxFrames && !predicate(); i++) {
     await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
   }
 }
 
-export function reassignTransitionNames(elItems: Iterable<HTMLElement>, animateIds: Set<string>) {
+export function reassignTransitionNames({ elItems, animateIds }: { elItems: Iterable<HTMLElement>; animateIds: Set<string> }) {
   const reassignedIds = new Set<string>();
   for (const elItem of elItems) {
     if (!isPolymerElement(elItem)) {
@@ -146,11 +146,15 @@ export function buildNewItemTransitionStyle(elItems: HTMLElement[]) {
   return elStyle;
 }
 
-export function buildShiftTransitionStyle(
-  elItems: Iterable<HTMLElement>,
+export function buildShiftTransitionStyle({
+  elItems,
   excludeNames = new Set<string>(),
   delayPerItemMs = 0
-) {
+}: {
+  elItems: Iterable<HTMLElement>;
+  excludeNames?: Set<string>;
+  delayPerItemMs?: number;
+}) {
   let iItem = 0;
   let css = "";
   for (const elItem of elItems) {

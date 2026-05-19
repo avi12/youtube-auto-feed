@@ -92,11 +92,15 @@ export function captureBandLayout() {
   };
 }
 
-export function dismantleAbsentSections(
-  polledSectionOrder: string[],
-  confirmedAbsentSections: Set<string>,
-  protectedSections: Set<string> = new Set()
-) {
+export function dismantleAbsentSections({
+  polledSectionOrder,
+  confirmedAbsentSections,
+  protectedSections = new Set<string>()
+}: {
+  polledSectionOrder: string[];
+  confirmedAbsentSections: Set<string>;
+  protectedSections?: Set<string>;
+}) {
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
   if (!elGrid || !isPolymerElement(elGrid) || !isRecord(elGrid.data) || polledSectionOrder.length === 0) {
     return [];

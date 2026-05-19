@@ -13,7 +13,7 @@ import {
 import { buildRichItem } from "../build";
 import { findItemElement } from "../query";
 
-export async function addSectionToDom(sectionTitle: string, videos: VideoSnapshot[], allFreshSnapshots: VideoSnapshot[]) {
+export async function addSectionToDom({ sectionTitle, videos, allFreshSnapshots }: { sectionTitle: string; videos: VideoSnapshot[]; allFreshSnapshots: VideoSnapshot[] }) {
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
   if (!elGrid || !isPolymerElement(elGrid) || !isRecord(elGrid.data)) {
     return;
@@ -48,26 +48,26 @@ export async function addSectionToDom(sectionTitle: string, videos: VideoSnapsho
 
   const animateIds = extractAnimateIds(elAllItems);
 
-  const elShiftStyle = buildShiftTransitionStyle(elAllItems);
+  const elShiftStyle = buildShiftTransitionStyle({ elItems: elAllItems });
   document.head.append(elShiftStyle);
 
   const elNewItemTransitionStyles: HTMLStyleElement[] = [];
 
   const transition = document.startViewTransition(async () => {
     const contents = [...deepArray(elGrid.data, "contents")];
-    const iInsert = findSectionInsertIndex(contents, sectionMinimumFreshIndex, freshOrderMap);
+    const iInsert = findSectionInsertIndex({ contents, sectionMinimumFreshIndex, freshOrderMap });
     contents.splice(iInsert, 0, newSection);
     elGrid.set("data.contents", contents);
     for (const elItem of elAllItems) {
       elItem.style.viewTransitionName = "";
     }
 
-    await waitForFrames(() => videos.every(video => findItemElement(video.videoId)));
+    await waitForFrames({ predicate: () => videos.every(video => findItemElement(video.videoId)) });
 
     const elQueryItems = elGridContents
       ? elGridContents.querySelectorAll<HTMLElement>(":scope > ytd-rich-item-renderer")
       : document.querySelectorAll<HTMLElement>("ytd-rich-item-renderer");
-    reassignTransitionNames(elQueryItems, animateIds);
+    reassignTransitionNames({ elItems: elQueryItems, animateIds });
 
     const elNewItems: HTMLElement[] = [];
     for (const video of videos) {

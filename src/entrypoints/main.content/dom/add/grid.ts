@@ -28,10 +28,10 @@ import { findItemElement } from "../query";
 import { sortByFreshOrder, videoIdFromRichItem } from "../rich-item";
 import { addSectionToDom } from "./section";
 
-export async function addVideosToGridDom(videosToAdd: VideoSnapshot[], allFreshSnapshots: VideoSnapshot[]) {
+export async function addVideosToGridDom({ videosToAdd, allFreshSnapshots }: { videosToAdd: VideoSnapshot[]; allFreshSnapshots: VideoSnapshot[] }) {
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
   if (!elGrid || !isPolymerElement(elGrid)) {
-    await fallbackAddBySection(videosToAdd, allFreshSnapshots);
+    await fallbackAddBySection({ videosToAdd, allFreshSnapshots });
     return;
   }
 
@@ -46,25 +46,25 @@ export async function addVideosToGridDom(videosToAdd: VideoSnapshot[], allFreshS
 
   const freshOrderMap = new Map(allFreshSnapshots.map((video, i) => [video.videoId, i]));
   const allSnapshotMap = new Map(allFreshSnapshots.map(video => [video.videoId, video]));
-  const sortedVideos = sortByFreshOrder(videosToAdd, freshOrderMap);
+  const sortedVideos = sortByFreshOrder({ videos: videosToAdd, freshOrder: freshOrderMap });
   const standaloneVideos = sortedVideos.filter(video => !video.sectionTitle);
 
   if (prefersReducedMotion()) {
-    applyVideoInsertions(elGrid, sortedVideos, freshOrderMap, allSnapshotMap);
+    applyVideoInsertions({ elGrid, sortedVideos, freshOrderMap, allSnapshotMap });
   } else {
-    const transitionContext = setupGridTransition(elGridContents, standaloneVideos, freshOrderMap);
+    const transitionContext = setupGridTransition({ elGridContents, standaloneVideos, freshOrderMap });
 
     try {
       await document.startViewTransition(async () => {
-        const actuallyAddedVideos = applyVideoInsertions(elGrid, sortedVideos, freshOrderMap, allSnapshotMap);
+        const actuallyAddedVideos = applyVideoInsertions({ elGrid, sortedVideos, freshOrderMap, allSnapshotMap });
         transitionContext.actuallyAddedVideos = actuallyAddedVideos;
 
-        const elNewItems = await applyNewItemAnimations(
+        const elNewItems = await applyNewItemAnimations({
           elGridContents,
-          transitionContext.elElementsToAnimate,
+          elElementsToAnimate: transitionContext.elElementsToAnimate,
           actuallyAddedVideos,
-          transitionContext.animateIds
-        );
+          animateIds: transitionContext.animateIds
+        });
         if (elNewItems.length > 0) {
           const elStyle = buildNewItemTransitionStyle(elNewItems);
           document.head.append(elStyle);
@@ -103,14 +103,14 @@ export function cleanOrphanedGridItems() {
 
   const { standaloneModelIds, standaloneModelDuplicates } = collectGridModelIds(elGrid);
   if (standaloneModelDuplicates.size > 0) {
-    filterMisplacedAndDuplicates(elGrid, new Set(), standaloneModelDuplicates);
+    filterMisplacedAndDuplicates({ elGrid, misplacedIds: new Set(), standaloneModelDuplicates });
   }
 
-  pruneOrphanedDomItems(elGridContents, standaloneModelIds);
-  pruneOrphanedDomSections(elGrid, elGridContents);
+  pruneOrphanedDomItems({ elGridContents, standaloneModelIds });
+  pruneOrphanedDomSections({ elGrid, elGridContents });
 }
 
-function pruneOrphanedDomSections(elGrid: PolymerElement, elGridContents: HTMLElement) {
+function pruneOrphanedDomSections({ elGrid, elGridContents }: { elGrid: PolymerElement; elGridContents: HTMLElement }) {
   if (!isRecord(elGrid.data)) {
     return;
   }
@@ -147,16 +147,20 @@ interface GridTransitionContext {
   aboveViewportShiftItems: HTMLElement[];
 }
 
-function setupGridTransition(
-  elGridContents: HTMLElement,
-  standaloneVideos: VideoSnapshot[],
-  freshOrderMap: Map<string, number>
-): GridTransitionContext {
+function setupGridTransition({
+  elGridContents,
+  standaloneVideos,
+  freshOrderMap
+}: {
+  elGridContents: HTMLElement;
+  standaloneVideos: VideoSnapshot[];
+  freshOrderMap: Map<string, number>;
+}): GridTransitionContext {
   clearAllItemViewTransitionNames();
 
   const elAllItems = [...elGridContents.querySelectorAll<HTMLElement>(":scope > ytd-rich-item-renderer")];
   const shiftTargets = standaloneVideos.length > 0
-    ? collectGridShiftTargets(elGridContents, elAllItems, standaloneVideos, freshOrderMap)
+    ? collectGridShiftTargets({ elGridContents, elAllItems, sortedVideos: standaloneVideos, freshOrderMap })
     : {
       elElementsToAnimate: [],
       elSectionsToAnimate: [],
@@ -164,11 +168,11 @@ function setupGridTransition(
     };
 
   assignItemViewTransitionNames(shiftTargets.elElementsToAnimate);
-  const elShiftStyle = buildShiftTransitionStyle(
-    shiftTargets.elElementsToAnimate,
-    new Set(),
-    calculateStaggerDelayMs(shiftTargets.elElementsToAnimate.length)
-  );
+  const elShiftStyle = buildShiftTransitionStyle({
+    elItems: shiftTargets.elElementsToAnimate,
+    excludeNames: new Set(),
+    delayPerItemMs: calculateStaggerDelayMs(shiftTargets.elElementsToAnimate.length)
+  });
   document.head.append(elShiftStyle);
 
   return {
@@ -196,7 +200,7 @@ function teardownGridTransition(context: GridTransitionContext) {
   clearAllItemViewTransitionNames();
 }
 
-async function fallbackAddBySection(videosToAdd: VideoSnapshot[], allFreshSnapshots: VideoSnapshot[]) {
+async function fallbackAddBySection({ videosToAdd, allFreshSnapshots }: { videosToAdd: VideoSnapshot[]; allFreshSnapshots: VideoSnapshot[] }) {
   const processedSectionTitles = new Set<string>();
   for (const { sectionTitle } of videosToAdd) {
     if (processedSectionTitles.has(sectionTitle)) {
@@ -204,41 +208,46 @@ async function fallbackAddBySection(videosToAdd: VideoSnapshot[], allFreshSnapsh
     }
 
     processedSectionTitles.add(sectionTitle);
-    await addSectionToDom(
+    await addSectionToDom({
       sectionTitle,
-      allFreshSnapshots.filter(video => video.sectionTitle === sectionTitle),
+      videos: allFreshSnapshots.filter(video => video.sectionTitle === sectionTitle),
       allFreshSnapshots
-    );
+    });
   }
 }
 
-function applyVideoInsertions(
-  elGrid: PolymerElement,
-  sortedVideos: VideoSnapshot[],
-  freshOrderMap: Map<string, number>,
-  allSnapshotMap: Map<string, VideoSnapshot>
-) {
+function applyVideoInsertions({
+  elGrid,
+  sortedVideos,
+  freshOrderMap,
+  allSnapshotMap
+}: {
+  elGrid: PolymerElement;
+  sortedVideos: VideoSnapshot[];
+  freshOrderMap: Map<string, number>;
+  allSnapshotMap: Map<string, VideoSnapshot>;
+}) {
   const newContents = [...deepArray(elGrid.data, "contents")];
-  const { newSectionGroups, videosForNormalPath } = planInsertions(newContents, sortedVideos);
+  const { newSectionGroups, videosForNormalPath } = planInsertions({ newContents, sortedVideos });
 
   for (const [sectionTitle, sectionVideos] of newSectionGroups) {
-    insertNewSection(newContents, sectionTitle, sectionVideos, freshOrderMap);
+    insertNewSection({ newContents, sectionTitle, sectionVideos, freshOrderMap });
   }
 
   const actuallyAddedVideos: VideoSnapshot[] = [];
   for (const video of videosForNormalPath) {
-    insertVideoOrStandalone(newContents, video, freshOrderMap, allSnapshotMap, actuallyAddedVideos);
+    insertVideoOrStandalone({ newContents, video, freshOrderMap, allSnapshotMap, actuallyAddedVideos });
   }
 
   elGrid.set("data.contents", newContents);
   return actuallyAddedVideos;
 }
 
-function planInsertions(newContents: unknown[], sortedVideos: VideoSnapshot[]) {
+function planInsertions({ newContents, sortedVideos }: { newContents: unknown[]; sortedVideos: VideoSnapshot[] }) {
   const newSectionGroups = new Map<string, VideoSnapshot[]>();
   const videosForNormalPath: VideoSnapshot[] = [];
   for (const video of sortedVideos) {
-    const needsNewSection = video.sectionTitle && findExistingSectionIndex(newContents, video.sectionTitle) < 0;
+    const needsNewSection = video.sectionTitle && findExistingSectionIndex({ contents: newContents, sectionTitle: video.sectionTitle }) < 0;
     if (needsNewSection) {
       const group = newSectionGroups.get(video.sectionTitle) ?? [];
       group.push(video);
@@ -253,18 +262,24 @@ function planInsertions(newContents: unknown[], sortedVideos: VideoSnapshot[]) {
   };
 }
 
-function insertVideoOrStandalone(
-  newContents: unknown[],
-  video: VideoSnapshot,
-  freshOrderMap: Map<string, number>,
-  allSnapshotMap: Map<string, VideoSnapshot>,
-  actuallyAddedVideos: VideoSnapshot[]
-) {
-  const iSection = findExistingSectionIndex(newContents, video.sectionTitle);
+function insertVideoOrStandalone({
+  newContents,
+  video,
+  freshOrderMap,
+  allSnapshotMap,
+  actuallyAddedVideos
+}: {
+  newContents: unknown[];
+  video: VideoSnapshot;
+  freshOrderMap: Map<string, number>;
+  allSnapshotMap: Map<string, VideoSnapshot>;
+  actuallyAddedVideos: VideoSnapshot[];
+}) {
+  const iSection = findExistingSectionIndex({ contents: newContents, sectionTitle: video.sectionTitle });
   let wasInserted = false;
   if (iSection >= 0) {
-    wasInserted = tryInsertIntoExistingRichShelf(newContents, iSection, video) ||
-      tryInsertIntoExistingInnerShelf(newContents, iSection, video);
+    wasInserted = tryInsertIntoExistingRichShelf({ newContents, iSection, video }) ||
+      tryInsertIntoExistingInnerShelf({ newContents, iSection, video });
   }
 
   if (wasInserted) {
@@ -277,13 +292,13 @@ function insertVideoOrStandalone(
 
   const freshIndex = freshOrderMap.get(video.videoId) ?? 0;
   const iInsert = !video.sectionTitle
-    ? findZoneInsertIndex(newContents, video.bandIndex, freshIndex, freshOrderMap, video.status, allSnapshotMap)
-    : findGridInsertIndex(newContents, freshIndex, freshOrderMap, video.status, allSnapshotMap);
+    ? findZoneInsertIndex({ contents: newContents, bandIndex: video.bandIndex, freshIndex, freshOrderMap, videoStatus: video.status, allSnapshotMap })
+    : findGridInsertIndex({ contents: newContents, freshIndex, freshOrderMap, videoStatus: video.status, allSnapshotMap });
   newContents.splice(iInsert, 0, buildRichItem(video.rawRenderer));
   actuallyAddedVideos.push(video);
 }
 
-function findExistingSectionIndex(contents: unknown[], sectionTitle: string) {
+function findExistingSectionIndex({ contents, sectionTitle }: { contents: unknown[]; sectionTitle: string }) {
   if (!sectionTitle) {
     return -1;
   }
@@ -293,21 +308,26 @@ function findExistingSectionIndex(contents: unknown[], sectionTitle: string) {
     deepString(item, "richSectionRenderer", "content", "shelfRenderer", "title", "runs", "0", "text") === sectionTitle);
 }
 
-function insertNewSection(
-  newContents: unknown[],
-  sectionTitle: string,
-  sectionVideos: VideoSnapshot[],
-  freshOrderMap: Map<string, number>
-) {
+function insertNewSection({
+  newContents,
+  sectionTitle,
+  sectionVideos,
+  freshOrderMap
+}: {
+  newContents: unknown[];
+  sectionTitle: string;
+  sectionVideos: VideoSnapshot[];
+  freshOrderMap: Map<string, number>;
+}) {
   const sectionMinimumFreshIndex = sectionVideos.reduce(
     (minimum, sectionVideo) => Math.min(minimum, freshOrderMap.get(sectionVideo.videoId) ?? Infinity),
     Infinity
   );
-  const iInsert = findSectionInsertIndex(newContents, sectionMinimumFreshIndex, freshOrderMap);
-  newContents.splice(iInsert, 0, buildNewRichSection(sectionTitle, sectionVideos));
+  const iInsert = findSectionInsertIndex({ contents: newContents, sectionMinimumFreshIndex, freshOrderMap });
+  newContents.splice(iInsert, 0, buildNewRichSection({ sectionTitle, videos: sectionVideos }));
 }
 
-function tryInsertIntoExistingRichShelf(newContents: unknown[], iSection: number, video: VideoSnapshot) {
+function tryInsertIntoExistingRichShelf({ newContents, iSection, video }: { newContents: unknown[]; iSection: number; video: VideoSnapshot }) {
   const section = deepRecord(newContents[iSection], "richSectionRenderer");
   const content = deepRecord(section, "content");
   const richShelf = deepRecord(content, "richShelfRenderer");
@@ -334,7 +354,7 @@ function tryInsertIntoExistingRichShelf(newContents: unknown[], iSection: number
   return true;
 }
 
-function tryInsertIntoExistingInnerShelf(newContents: unknown[], iSection: number, video: VideoSnapshot) {
+function tryInsertIntoExistingInnerShelf({ newContents, iSection, video }: { newContents: unknown[]; iSection: number; video: VideoSnapshot }) {
   const section = deepRecord(newContents[iSection], "richSectionRenderer");
   const content = deepRecord(section, "content");
   const innerShelf = deepRecord(content, "shelfRenderer");
@@ -373,24 +393,29 @@ function tryInsertIntoExistingInnerShelf(newContents: unknown[], iSection: numbe
   return true;
 }
 
-async function applyNewItemAnimations(
-  elGridContents: HTMLElement,
-  elElementsToAnimate: HTMLElement[],
-  actuallyAddedVideos: VideoSnapshot[],
-  animateIds: Set<string>
-) {
+async function applyNewItemAnimations({
+  elGridContents,
+  elElementsToAnimate,
+  actuallyAddedVideos,
+  animateIds
+}: {
+  elGridContents: HTMLElement;
+  elElementsToAnimate: HTMLElement[];
+  actuallyAddedVideos: VideoSnapshot[];
+  animateIds: Set<string>;
+}) {
   for (const elItem of elElementsToAnimate) {
     if (elItem.tagName === "YTD-RICH-ITEM-RENDERER") {
       elItem.style.viewTransitionName = "";
     }
   }
 
-  await waitForFrames(() => actuallyAddedVideos.every(video => findItemElement(video.videoId)));
+  await waitForFrames({ predicate: () => actuallyAddedVideos.every(video => findItemElement(video.videoId)) });
 
-  reassignTransitionNames(
-    elGridContents.querySelectorAll<HTMLElement>(":scope > ytd-rich-item-renderer"),
+  reassignTransitionNames({
+    elItems: elGridContents.querySelectorAll<HTMLElement>(":scope > ytd-rich-item-renderer"),
     animateIds
-  );
+  });
 
   const elNewItems: HTMLElement[] = [];
   for (const video of actuallyAddedVideos) {
@@ -434,11 +459,15 @@ function collectGridModelIds(elGrid: PolymerElement) {
   };
 }
 
-function filterMisplacedAndDuplicates(
-  elGrid: PolymerElement,
-  misplacedIds: Set<string>,
-  standaloneModelDuplicates: Set<string>
-) {
+function filterMisplacedAndDuplicates({
+  elGrid,
+  misplacedIds,
+  standaloneModelDuplicates
+}: {
+  elGrid: PolymerElement;
+  misplacedIds: Set<string>;
+  standaloneModelDuplicates: Set<string>;
+}) {
   if (!isRecord(elGrid.data)) {
     return;
   }
@@ -467,7 +496,7 @@ function filterMisplacedAndDuplicates(
   elGrid.set("data.contents", filteredContents);
 }
 
-function pruneOrphanedDomItems(elGridContents: HTMLElement, standaloneModelIds: Set<string>) {
+function pruneOrphanedDomItems({ elGridContents, standaloneModelIds }: { elGridContents: HTMLElement; standaloneModelIds: Set<string> }) {
   const seenDomIds = new Set<string>();
   for (const elChild of [...elGridContents.querySelectorAll<HTMLElement>(":scope > ytd-rich-item-renderer, :scope > ytd-rich-section-renderer")]) {
     if (elChild.tagName !== "YTD-RICH-ITEM-RENDERER" || !isPolymerElement(elChild)) {
@@ -492,7 +521,7 @@ function shelfRendererListItems(contentItem: unknown) {
   ];
 }
 
-export function findSectionInsertIndex(contents: unknown[], sectionMinimumFreshIndex: number, freshOrderMap: Map<string, number>) {
+export function findSectionInsertIndex({ contents, sectionMinimumFreshIndex, freshOrderMap }: { contents: unknown[]; sectionMinimumFreshIndex: number; freshOrderMap: Map<string, number> }) {
   for (let iContent = 0; iContent < contents.length; iContent++) {
     const item = contents[iContent];
     const standaloneId = videoIdFromRichItem(item);
@@ -521,7 +550,7 @@ export function findSectionInsertIndex(contents: unknown[], sectionMinimumFreshI
   return contents.length;
 }
 
-function buildNewRichSection(sectionTitle: string, videos: VideoSnapshot[]) {
+function buildNewRichSection({ sectionTitle, videos }: { sectionTitle: string; videos: VideoSnapshot[] }) {
   return {
     richSectionRenderer: {
       content: {
@@ -549,28 +578,41 @@ function findZoneBoundaries(contents: unknown[]) {
   return { sectionBoundaries, end };
 }
 
-function findZoneInsertIndex(
-  contents: unknown[],
-  bandIndex: number,
-  freshIndex: number,
-  freshOrderMap: Map<string, number>,
-  videoStatus: VideoStatus,
-  allSnapshotMap: Map<string, VideoSnapshot>
-) {
+function findZoneInsertIndex({
+  contents,
+  bandIndex,
+  freshIndex,
+  freshOrderMap,
+  videoStatus,
+  allSnapshotMap
+}: {
+  contents: unknown[];
+  bandIndex: number;
+  freshIndex: number;
+  freshOrderMap: Map<string, number>;
+  videoStatus: VideoStatus;
+  allSnapshotMap: Map<string, VideoSnapshot>;
+}) {
   const { sectionBoundaries, end } = findZoneBoundaries(contents);
   const zoneStart = bandIndex === 0 ? 0 : (sectionBoundaries[bandIndex - 1] ?? end - 1) + 1;
   const zoneEnd = sectionBoundaries[bandIndex] ?? end;
   const slice = contents.slice(zoneStart, zoneEnd);
-  return findGridInsertIndex(slice, freshIndex, freshOrderMap, videoStatus, allSnapshotMap) + zoneStart;
+  return findGridInsertIndex({ contents: slice, freshIndex, freshOrderMap, videoStatus, allSnapshotMap }) + zoneStart;
 }
 
-function findGridInsertIndex(
-  contents: unknown[],
-  freshIndex: number,
-  freshOrderMap: Map<string, number>,
-  videoStatus: VideoStatus,
-  allSnapshotMap: Map<string, VideoSnapshot>
-) {
+function findGridInsertIndex({
+  contents,
+  freshIndex,
+  freshOrderMap,
+  videoStatus,
+  allSnapshotMap
+}: {
+  contents: unknown[];
+  freshIndex: number;
+  freshOrderMap: Map<string, number>;
+  videoStatus: VideoStatus;
+  allSnapshotMap: Map<string, VideoSnapshot>;
+}) {
   let iInsert = contents.length;
   for (let i = 0; i < contents.length; i++) {
     const item = contents[i];
@@ -626,12 +668,17 @@ function findGridInsertIndex(
   return Math.max(iInsert, leadingLiveCount);
 }
 
-function collectGridShiftTargets(
-  elGridContents: HTMLElement,
-  elAllItems: HTMLElement[],
-  sortedVideos: VideoSnapshot[],
-  freshOrderMap: Map<string, number>
-) {
+function collectGridShiftTargets({
+  elGridContents,
+  elAllItems,
+  sortedVideos,
+  freshOrderMap
+}: {
+  elGridContents: HTMLElement;
+  elAllItems: HTMLElement[];
+  sortedVideos: VideoSnapshot[];
+  freshOrderMap: Map<string, number>;
+}) {
   const minFreshIndex = freshOrderMap.get(sortedVideos[0]?.videoId ?? "") ?? 0;
   let firstShiftingItem: HTMLElement | undefined;
   for (const elItem of elAllItems) {

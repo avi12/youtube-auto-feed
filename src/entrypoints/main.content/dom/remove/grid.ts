@@ -14,12 +14,12 @@ import {
 import { filterOutRichItems } from "../rich-item";
 import type { ItemInfo } from "./index";
 
-export async function removeGridItems(items: ItemInfo[], allRequestedVideoIds: string[]) {
+export async function removeGridItems({ items, allRequestedVideoIds }: { items: ItemInfo[]; allRequestedVideoIds: string[] }) {
   const gridItems = items.filter(({ container }) => container === "grid");
   const foundVideoIds = new Set(items.map(({ videoId }) => videoId));
 
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
-  cleanupOrphanIdsInGridData(elGrid, allRequestedVideoIds, foundVideoIds);
+  cleanupOrphanIdsInGridData({ elGrid, allRequestedVideoIds, foundVideoIds });
 
   if (gridItems.length === 0) {
     return;
@@ -36,18 +36,22 @@ export async function removeGridItems(items: ItemInfo[], allRequestedVideoIds: s
   const allGridElements = gridItems.map(({ elItem }) => elItem);
   const onScreenGridElements = gridItems.filter(({ isOffScreen }) => !isOffScreen).map(({ elItem }) => elItem);
   if (onScreenGridElements.length === 0 || prefersReducedMotion()) {
-    removeAllOrNothing(elGrid, gridVideoIdSet, allGridElements);
+    removeAllOrNothing({ elGrid, gridVideoIdSet, allGridElements });
     return;
   }
 
-  await removeGridItemsAnimated(elGrid, gridVideoIdSet, allGridElements);
+  await removeGridItemsAnimated({ elGrid, gridVideoIdSet, allGridElements });
 }
 
-function cleanupOrphanIdsInGridData(
-  elGrid: HTMLElement | null,
-  allRequestedVideoIds: string[],
-  foundVideoIds: Set<string>
-) {
+function cleanupOrphanIdsInGridData({
+  elGrid,
+  allRequestedVideoIds,
+  foundVideoIds
+}: {
+  elGrid: HTMLElement | null;
+  allRequestedVideoIds: string[];
+  foundVideoIds: Set<string>;
+}) {
   if (!elGrid || !isPolymerElement(elGrid) || !isRecord(elGrid.data)) {
     return;
   }
@@ -59,15 +63,15 @@ function cleanupOrphanIdsInGridData(
 
   const unfoundSet = new Set(unfoundVideoIds);
   const currentContents = deepArray(elGrid.data, "contents");
-  const filteredContents = filterOutRichItems(currentContents, unfoundSet);
+  const filteredContents = filterOutRichItems({ contents: currentContents, excludeVideoIds: unfoundSet });
   if (filteredContents.length < currentContents.length) {
     elGrid.set("data.contents", filteredContents);
   }
 }
 
-function removeAllOrNothing(elGrid: PolymerElement, gridVideoIdSet: Set<string>, allGridElements: HTMLElement[]) {
+function removeAllOrNothing({ elGrid, gridVideoIdSet, allGridElements }: { elGrid: PolymerElement; gridVideoIdSet: Set<string>; allGridElements: HTMLElement[] }) {
   const currentContents = deepArray(elGrid.data, "contents");
-  const filteredContents = filterOutRichItems(currentContents, gridVideoIdSet);
+  const filteredContents = filterOutRichItems({ contents: currentContents, excludeVideoIds: gridVideoIdSet });
   if (filteredContents.length < currentContents.length) {
     elGrid.set("data.contents", filteredContents);
   } else {
@@ -77,16 +81,12 @@ function removeAllOrNothing(elGrid: PolymerElement, gridVideoIdSet: Set<string>,
   }
 }
 
-async function removeGridItemsAnimated(
-  elGrid: PolymerElement,
-  gridVideoIdSet: Set<string>,
-  allGridElements: HTMLElement[]
-) {
+async function removeGridItemsAnimated({ elGrid, gridVideoIdSet, allGridElements }: { elGrid: PolymerElement; gridVideoIdSet: Set<string>; allGridElements: HTMLElement[] }) {
   clearAllItemViewTransitionNames();
 
   const removedElSet = new Set(allGridElements);
   const elGridContents = elGrid.querySelector<HTMLElement>("#contents");
-  const { elElementsAfterFirstRemoved, elSectionsAfterFirstRemoved } = collectShiftTargets(elGridContents, removedElSet);
+  const { elElementsAfterFirstRemoved, elSectionsAfterFirstRemoved } = collectShiftTargets({ elGridContents, removedElSet });
 
   assignItemViewTransitionNames(elElementsAfterFirstRemoved);
 
@@ -104,14 +104,14 @@ async function removeGridItemsAnimated(
     }
   }
 
-  const elShiftStyle = buildShiftTransitionStyle(elElementsAfterFirstRemoved, new Set(), shiftDelayPerItemMs);
+  const elShiftStyle = buildShiftTransitionStyle({ elItems: elElementsAfterFirstRemoved, excludeNames: new Set(), delayPerItemMs: shiftDelayPerItemMs });
   const elRemoveStyle = buildRemoveTransitionStyle(allGridElements);
   document.head.append(elShiftStyle);
   document.head.append(elRemoveStyle);
 
   const transition = document.startViewTransition(() => {
     const currentContents = deepArray(elGrid.data, "contents");
-    const filteredContents = filterOutRichItems(currentContents, gridVideoIdSet);
+    const filteredContents = filterOutRichItems({ contents: currentContents, excludeVideoIds: gridVideoIdSet });
 
     for (const elItem of allGridElements) {
       elItem.remove();
@@ -127,7 +127,7 @@ async function removeGridItemsAnimated(
     for (const elItem of elElementsAfterFirstRemoved) {
       elItem.style.viewTransitionName = "";
     }
-    reassignTransitionNames(elGridContents?.querySelectorAll<HTMLElement>(":scope > ytd-rich-item-renderer") ?? [], animateIds);
+    reassignTransitionNames({ elItems: elGridContents?.querySelectorAll<HTMLElement>(":scope > ytd-rich-item-renderer") ?? [], animateIds });
   });
 
   try {
@@ -144,7 +144,7 @@ async function removeGridItemsAnimated(
   }
 }
 
-function collectShiftTargets(elGridContents: HTMLElement | null, removedElSet: Set<HTMLElement>) {
+function collectShiftTargets({ elGridContents, removedElSet }: { elGridContents: HTMLElement | null; removedElSet: Set<HTMLElement> }) {
   const elElementsAfterFirstRemoved: HTMLElement[] = [];
   const elSectionsAfterFirstRemoved: HTMLElement[] = [];
   let isAfterFirstRemoved = false;
