@@ -1,65 +1,34 @@
 import { isInnerTubeBrowseResponse } from "./guards";
 import { extractApiSectionOrder, parseApiResponse } from "./parse";
 
-async function buildSapiSidHash() {
-  const sapiSid = document.cookie.split(";")
-    .map(cookie => cookie.trim())
-    .find(cookie => cookie.startsWith("__Secure-3PAPISID="))
-    ?.split("=")[1];
-  if (!sapiSid) {
+function extractYtInitialData(html: string) {
+  const match = /var ytInitialData = (.+?);<\/script>/s.exec(html);
+  if (!match) {
     return null;
   }
 
-  const timestamp = Math.floor(Date.now() / 1000);
-  const message = `${timestamp} ${sapiSid} https://www.youtube.com`;
-  const hashBuffer = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(message));
-  const hash = Array.from(new Uint8Array(hashBuffer)).map(byte => byte.toString(16).padStart(2, "0")).join("");
-  return `SAPISIDHASH ${timestamp}_${hash}`;
+  try {
+    return JSON.parse(match[1]) as unknown;
+  } catch {
+    return null;
+  }
 }
 
 export async function fetchInitialVideos() {
-  const context = ytcfg?.get("INNERTUBE_CONTEXT") ?? null;
-  if (!context) {
-    return null;
-  }
-
-  const apiKey = ytcfg?.get("INNERTUBE_API_KEY") ?? "";
-  const authorization = await buildSapiSidHash();
-  const url = apiKey
-    ? `/youtubei/v1/browse?key=${apiKey}&prettyPrint=false`
-    : "/youtubei/v1/browse?prettyPrint=false";
-
-  const visitorData = ytcfg?.get("VISITOR_DATA") ?? "";
-  const clientVersion = context?.client?.clientVersion ?? "";
-
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "X-YTSUA": "1",
-      "X-Origin": "https://www.youtube.com",
-      "X-YouTube-Client-Name": "1",
-      "X-YouTube-Client-Version": clientVersion,
-      ...(visitorData ? { "X-Goog-Visitor-Id": visitorData } : {}),
-      ...(authorization ? { Authorization: authorization } : {})
-    },
-    credentials: "include",
-    body: JSON.stringify({
-      context,
-      browseId: "FEsubscriptions"
-    })
+  const response = await fetch("/feed/subscriptions", {
+    credentials: "include"
   }).catch(() => null);
+
   if (!response?.ok) {
     return null;
   }
 
-  let browseData: unknown;
-  try {
-    browseData = await response.json();
-  } catch {
+  const html = await response.text().catch(() => null);
+  if (!html) {
     return null;
   }
 
+  const browseData = extractYtInitialData(html);
   if (!isInnerTubeBrowseResponse(browseData)) {
     return null;
   }

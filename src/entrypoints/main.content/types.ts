@@ -278,6 +278,7 @@ export interface VideoSnapshot {
   publishedTimeText: string;
   isChannelLive: boolean;
   sectionTitle: string;
+  bandIndex: number;
   rawRenderer: InnerTubeVideoRenderer | LockupViewModel | ShortsLockupViewModel;
 }
 

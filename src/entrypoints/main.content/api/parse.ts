@@ -19,6 +19,7 @@ function videoIdFromContent(content: InnerTubeRichItemContent) {
 
 function collectSnapshot(
   sectionTitle: string,
+  bandIndex: number,
   snapshots: VideoSnapshot[],
   seenVideoIds: Set<string>,
   renderer?: InnerTubeVideoRenderer,
@@ -27,11 +28,11 @@ function collectSnapshot(
 ) {
   let snapshot = null;
   if (renderer) {
-    snapshot = parseRenderer(renderer, sectionTitle);
+    snapshot = parseRenderer(renderer, sectionTitle, bandIndex);
   } else if (lockup) {
-    snapshot = parseLockupViewModel(lockup, sectionTitle);
+    snapshot = parseLockupViewModel(lockup, sectionTitle, bandIndex);
   } else if (shortsLockup) {
-    snapshot = parseShortsLockupViewModel(shortsLockup, sectionTitle);
+    snapshot = parseShortsLockupViewModel(shortsLockup, sectionTitle, bandIndex);
   }
 
   if (snapshot && !seenVideoIds.has(snapshot.videoId)) {
@@ -64,12 +65,14 @@ export function parseApiResponse(data: InnerTubeBrowseResponse) {
     const tabContent = data.contents.twoColumnBrowseResultsRenderer.tabs[0]?.tabRenderer.content;
     const pushSnapshot = (
       sectionTitle: string,
+      bandIndex: number,
       renderer?: InnerTubeVideoRenderer,
       lockup?: LockupViewModel,
       shortsLockup?: ShortsLockupViewModel
-    ) => collectSnapshot(sectionTitle, snapshots, seenVideoIds, renderer, lockup, shortsLockup);
+    ) => collectSnapshot(sectionTitle, bandIndex, snapshots, seenVideoIds, renderer, lockup, shortsLockup);
 
     let currentSectionTitle = "";
+    let currentBandIndex = 0;
     for (const item of tabContent?.richGridRenderer?.contents ?? []) {
       if (item.richSectionRenderer) {
         const { richShelfRenderer, shelfRenderer } = item.richSectionRenderer.content;
@@ -79,16 +82,21 @@ export function parseApiResponse(data: InnerTubeBrowseResponse) {
             const content = richItem.richItemRenderer?.content;
             pushSnapshot(
               currentSectionTitle,
+              currentBandIndex,
               content?.videoRenderer ?? content?.gridVideoRenderer ?? content?.richGridMediaRenderer?.content?.videoRenderer,
               content?.lockupViewModel,
               content?.shortsLockupViewModel
             );
           }
+          currentBandIndex++;
         } else if (shelfRenderer) {
           currentSectionTitle = shelfRenderer.title.runs[0]?.text ?? "";
           const shelfItems = shelfRenderer.content?.horizontalListRenderer?.items ?? shelfRenderer.content?.gridRenderer?.items ?? [];
           for (const shelfItem of shelfItems) {
-            pushSnapshot(currentSectionTitle, shelfItem.videoRenderer ?? shelfItem.gridVideoRenderer);
+            pushSnapshot(currentSectionTitle, currentBandIndex, shelfItem.videoRenderer ?? shelfItem.gridVideoRenderer);
+          }
+          if (shelfItems.length > 0) {
+            currentBandIndex++;
           }
         }
 
@@ -97,6 +105,7 @@ export function parseApiResponse(data: InnerTubeBrowseResponse) {
         const { content } = item.richItemRenderer;
         pushSnapshot(
           currentSectionTitle,
+          currentBandIndex,
           content?.videoRenderer ?? content?.gridVideoRenderer ?? content?.richGridMediaRenderer?.content?.videoRenderer,
           content?.lockupViewModel,
           content?.shortsLockupViewModel
@@ -115,7 +124,7 @@ export function parseApiResponse(data: InnerTubeBrowseResponse) {
           const sectionTitle = shelf.title.runs[0]?.text ?? "";
           const shelfItems = shelf.content?.horizontalListRenderer?.items ?? shelf.content?.gridRenderer?.items ?? [];
           for (const shelfItem of shelfItems) {
-            pushSnapshot(sectionTitle, shelfItem.videoRenderer ?? shelfItem.gridVideoRenderer);
+            pushSnapshot(sectionTitle, 0, shelfItem.videoRenderer ?? shelfItem.gridVideoRenderer);
           }
         }
       }

@@ -2,7 +2,7 @@ import type { InnerTubeVideoRenderer, LockupViewModel, ShortsLockupViewModel, Vi
 import { VideoStatus } from "../types";
 import { statusFromLockup, statusFromRenderer, viewCountFromRenderer } from "./guards";
 
-export function parseRenderer(renderer: InnerTubeVideoRenderer, sectionTitle: string): VideoSnapshot | null {
+export function parseRenderer(renderer: InnerTubeVideoRenderer, sectionTitle: string, bandIndex: number): VideoSnapshot | null {
   const {
     videoId, title, thumbnail, publishedTimeText
   } = renderer;
@@ -19,11 +19,12 @@ export function parseRenderer(renderer: InnerTubeVideoRenderer, sectionTitle: st
     publishedTimeText: publishedTimeText?.simpleText ?? "",
     isChannelLive: false,
     sectionTitle,
+    bandIndex,
     rawRenderer: renderer
   } satisfies VideoSnapshot;
 }
 
-export function parseLockupViewModel(lockup: LockupViewModel, sectionTitle: string): VideoSnapshot | null {
+export function parseLockupViewModel(lockup: LockupViewModel, sectionTitle: string, bandIndex: number): VideoSnapshot | null {
   const { contentId, contentImage, metadata } = lockup;
   if (contentId === "") {
     return null;
@@ -48,11 +49,12 @@ export function parseLockupViewModel(lockup: LockupViewModel, sectionTitle: stri
     publishedTimeText,
     isChannelLive,
     sectionTitle,
+    bandIndex,
     rawRenderer: lockup
   } satisfies VideoSnapshot;
 }
 
-export function parseShortsLockupViewModel(shortsLockup: ShortsLockupViewModel, sectionTitle: string): VideoSnapshot | null {
+export function parseShortsLockupViewModel(shortsLockup: ShortsLockupViewModel, sectionTitle: string, bandIndex: number): VideoSnapshot | null {
   const videoId = shortsLockup.onTap?.innertubeCommand?.reelWatchEndpoint?.videoId ?? "";
   if (videoId === "") {
     return null;
@@ -70,6 +72,7 @@ export function parseShortsLockupViewModel(shortsLockup: ShortsLockupViewModel, 
     publishedTimeText: "",
     isChannelLive: false,
     sectionTitle,
+    bandIndex,
     rawRenderer: shortsLockup
   } satisfies VideoSnapshot;
 }

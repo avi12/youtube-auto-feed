@@ -77,12 +77,16 @@ export function statusFromLockup(lockup: LockupViewModel) {
   const overlays = lockup.contentImage?.thumbnailViewModel?.overlays ?? [];
   for (const overlay of overlays) {
     for (const badge of overlay.thumbnailBottomOverlayViewModel?.badges ?? []) {
-      const style = badge.thumbnailBadgeViewModel?.badgeStyle;
-      if (style === LockupBadgeStyle.Live) {
+      const badgeStyle = badge.thumbnailBadgeViewModel?.badgeStyle;
+      if (badgeStyle === LockupBadgeStyle.Live) {
         return VideoStatus.Live;
       }
 
-      if (style === LockupBadgeStyle.Upcoming) {
+      if (badgeStyle === LockupBadgeStyle.Upcoming) {
+        return VideoStatus.Upcoming;
+      }
+
+      if (badge.thumbnailBadgeViewModel?.text === "Upcoming") {
         return VideoStatus.Upcoming;
       }
     }
