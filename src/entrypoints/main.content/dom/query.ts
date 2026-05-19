@@ -42,7 +42,7 @@ export function findShelfForSection(sectionTitle: string) {
 export function readDomSnapshot() {
   const snapshot = new Map<string, VideoSnapshot>();
 
-  function addRichItemToSnapshot(elItem: Element, sectionTitle: string) {
+  function addRichItemToSnapshot(elItem: Element, sectionTitle: string, bandIndex: number) {
     if (!isPolymerElement(elItem)) {
       return;
     }
@@ -55,11 +55,11 @@ export function readDomSnapshot() {
       deepRecord(elItem.data, "content", "shortsLockupViewModel");
     let videoSnapshot = null;
     if (isVideoRenderer(rawRenderer)) {
-      videoSnapshot = parseRenderer(rawRenderer, sectionTitle);
+      videoSnapshot = parseRenderer(rawRenderer, sectionTitle, bandIndex);
     } else if (isLockupViewModel(rawRenderer)) {
-      videoSnapshot = parseLockupViewModel(rawRenderer, sectionTitle);
+      videoSnapshot = parseLockupViewModel(rawRenderer, sectionTitle, bandIndex);
     } else if (isShortsLockupViewModel(rawRenderer)) {
-      videoSnapshot = parseShortsLockupViewModel(rawRenderer, sectionTitle);
+      videoSnapshot = parseShortsLockupViewModel(rawRenderer, sectionTitle, bandIndex);
     }
 
     if (videoSnapshot && !snapshot.has(videoSnapshot.videoId)) {
@@ -74,7 +74,7 @@ export function readDomSnapshot() {
 
     const sectionTitle = deepString(elShelf.data, "title", "runs", "0", "text");
     for (const elItem of elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer")) {
-      addRichItemToSnapshot(elItem, sectionTitle);
+      addRichItemToSnapshot(elItem, sectionTitle, 0);
     }
   }
 
@@ -94,7 +94,7 @@ export function readDomSnapshot() {
         continue;
       }
 
-      const videoSnapshot = parseRenderer(rawRenderer, sectionTitle);
+      const videoSnapshot = parseRenderer(rawRenderer, sectionTitle, 0);
       if (videoSnapshot && !snapshot.has(videoSnapshot.videoId)) {
         snapshot.set(videoSnapshot.videoId, videoSnapshot);
       }
@@ -104,11 +104,19 @@ export function readDomSnapshot() {
   const elGridContents = document.querySelector("ytd-rich-grid-renderer > #contents");
   if (elGridContents) {
     let currentSectionTitle = "";
+    let currentBandIndex = 0;
     for (const elChild of elGridContents.children) {
       if (elChild.tagName === "YTD-RICH-SECTION-RENDERER") {
         currentSectionTitle = "";
+        const elRichShelf = elChild.querySelector("ytd-rich-shelf-renderer");
+        const elInnerShelf = elChild.querySelector("ytd-shelf-renderer");
+        const isContentBearingSection = elRichShelf !== null
+          || (elInnerShelf !== null && elInnerShelf.querySelectorAll("ytd-grid-video-renderer, ytd-video-renderer").length > 0);
+        if (isContentBearingSection) {
+          currentBandIndex++;
+        }
       } else if (elChild.tagName === "YTD-RICH-ITEM-RENDERER") {
-        addRichItemToSnapshot(elChild, currentSectionTitle);
+        addRichItemToSnapshot(elChild, currentSectionTitle, currentBandIndex);
       }
     }
   }
@@ -124,7 +132,7 @@ export function readDomSnapshot() {
         continue;
       }
 
-      const videoSnapshot = parseRenderer(gridVideoData, "");
+      const videoSnapshot = parseRenderer(gridVideoData, "", 0);
       if (videoSnapshot) {
         snapshot.set(videoSnapshot.videoId, videoSnapshot);
       }

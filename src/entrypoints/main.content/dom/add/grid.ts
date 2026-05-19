@@ -90,7 +90,7 @@ export async function addVideosToGridDom(videosToAdd: VideoSnapshot[], allFreshS
   }
 }
 
-export function cleanOrphanedGridItems(extensionAddedSectionIds: Set<string> = new Set()) {
+export function cleanOrphanedGridItems() {
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
   if (!elGrid || !isPolymerElement(elGrid) || !isRecord(elGrid.data)) {
     return;
@@ -101,15 +101,9 @@ export function cleanOrphanedGridItems(extensionAddedSectionIds: Set<string> = n
     return;
   }
 
-  const { standaloneModelIds, standaloneModelDuplicates, sectionIds } = collectGridModelIds(elGrid);
-  const misplacedIds = new Set(
-    [...standaloneModelIds].filter(videoId => sectionIds.has(videoId) && extensionAddedSectionIds.has(videoId))
-  );
-  if (misplacedIds.size > 0 || standaloneModelDuplicates.size > 0) {
-    filterMisplacedAndDuplicates(elGrid, misplacedIds, standaloneModelDuplicates);
-    for (const videoId of misplacedIds) {
-      standaloneModelIds.delete(videoId);
-    }
+  const { standaloneModelIds, standaloneModelDuplicates } = collectGridModelIds(elGrid);
+  if (standaloneModelDuplicates.size > 0) {
+    filterMisplacedAndDuplicates(elGrid, new Set(), standaloneModelDuplicates);
   }
 
   pruneOrphanedDomItems(elGridContents, standaloneModelIds);
@@ -281,7 +275,9 @@ function insertVideoOrStandalone(
   }
 
   const freshIndex = freshOrderMap.get(video.videoId) ?? 0;
-  const iInsert = findGridInsertIndex(newContents, freshIndex, freshOrderMap, video.status, allSnapshotMap);
+  const iInsert = !video.sectionTitle
+    ? findZoneInsertIndex(newContents, video.bandIndex, freshIndex, freshOrderMap, video.status, allSnapshotMap)
+    : findGridInsertIndex(newContents, freshIndex, freshOrderMap, video.status, allSnapshotMap);
   newContents.splice(iInsert, 0, buildRichItem(video.rawRenderer));
   actuallyAddedVideos.push(video);
 }
@@ -417,38 +413,23 @@ function collectGridModelIds(elGrid: PolymerElement) {
 
   const standaloneModelIds = new Set<string>();
   const standaloneModelDuplicates = new Set<string>();
-  const sectionIds = new Set<string>();
 
   for (const item of deepArray(elGrid.data, "contents")) {
     const topId = videoIdFromRichItem(item);
-    if (topId) {
-      if (standaloneModelIds.has(topId)) {
-        standaloneModelDuplicates.add(topId);
-      } else {
-        standaloneModelIds.add(topId);
-      }
-
+    if (!topId) {
       continue;
     }
 
-    for (const shelfItem of deepArray(item, "richSectionRenderer", "content", "richShelfRenderer", "contents")) {
-      const shelfId = videoIdFromRichItem(shelfItem);
-      if (shelfId) {
-        sectionIds.add(shelfId);
-      }
-    }
-    for (const listItem of shelfRendererListItems(item)) {
-      const videoId = videoIdFromShelfListItem(listItem);
-      if (videoId) {
-        sectionIds.add(videoId);
-      }
+    if (standaloneModelIds.has(topId)) {
+      standaloneModelDuplicates.add(topId);
+    } else {
+      standaloneModelIds.add(topId);
     }
   }
 
   return {
     standaloneModelIds,
-    standaloneModelDuplicates,
-    sectionIds
+    standaloneModelDuplicates
   };
 }
 
@@ -552,6 +533,34 @@ function buildNewRichSection(sectionTitle: string, videos: VideoSnapshot[]) {
       trackingParams: ""
     }
   };
+}
+
+function findZoneBoundaries(contents: unknown[]) {
+  const continuationIndex = contents.findIndex(item => isRecord(item) && "continuationItemRenderer" in item);
+  const end = continuationIndex >= 0 ? continuationIndex : contents.length;
+  const sectionBoundaries: number[] = [];
+  for (let i = 0; i < end; i++) {
+    const sectionItems = deepArray(contents[i], "richSectionRenderer", "content", "richShelfRenderer", "contents");
+    if (sectionItems.length > 0) {
+      sectionBoundaries.push(i);
+    }
+  }
+  return { sectionBoundaries, end };
+}
+
+function findZoneInsertIndex(
+  contents: unknown[],
+  bandIndex: number,
+  freshIndex: number,
+  freshOrderMap: Map<string, number>,
+  videoStatus: VideoStatus,
+  allSnapshotMap: Map<string, VideoSnapshot>
+) {
+  const { sectionBoundaries, end } = findZoneBoundaries(contents);
+  const zoneStart = bandIndex === 0 ? 0 : (sectionBoundaries[bandIndex - 1] ?? end - 1) + 1;
+  const zoneEnd = sectionBoundaries[bandIndex] ?? end;
+  const slice = contents.slice(zoneStart, zoneEnd);
+  return findGridInsertIndex(slice, freshIndex, freshOrderMap, videoStatus, allSnapshotMap) + zoneStart;
 }
 
 function findGridInsertIndex(
