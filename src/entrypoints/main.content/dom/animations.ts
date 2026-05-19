@@ -12,13 +12,14 @@ export function triggerAnimation(elTarget: HTMLElement, animationClass: Animatio
     return;
   }
   elTarget.classList.remove(...animationClasses);
-  void elTarget.offsetWidth;
-  elTarget.classList.add(animationClass);
-  elTarget.addEventListener(
-    "animationend",
-    () => elTarget.classList.remove(animationClass),
-    { once: true }
-  );
+  void requestAnimationFrame(() => {
+    elTarget.classList.add(animationClass);
+    elTarget.addEventListener(
+      "animationend",
+      () => elTarget.classList.remove(animationClass),
+      { once: true }
+    );
+  });
 }
 
 export function isInViewport(element: Element) {

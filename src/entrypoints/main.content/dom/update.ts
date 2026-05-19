@@ -34,19 +34,15 @@ function replaceTextInShadowDom(root: ShadowRoot | Element, oldText: string, new
 }
 
 function findThumbnailImg(elLockup: HTMLElement) {
-  const { shadowRoot } = elLockup;
-  if (!shadowRoot) {
-    return null;
-  }
-
-  for (const elYtImage of shadowRoot.querySelectorAll<HTMLElement>("yt-image")) {
+  const root: ShadowRoot | HTMLElement = elLockup.shadowRoot ?? elLockup;
+  for (const elYtImage of root.querySelectorAll<HTMLElement>("yt-image")) {
     const elImg = elYtImage.shadowRoot?.querySelector<HTMLImageElement>("img")
       ?? elYtImage.querySelector<HTMLImageElement>("img");
     if (elImg) {
       return elImg;
     }
   }
-  return null;
+  return root.querySelector<HTMLImageElement>("yt-thumbnail-view-model img");
 }
 
 function findThumbnailImgInItem(elItem: HTMLElement): HTMLImageElement | null {
@@ -78,6 +74,40 @@ function updateGridModelVideoRendererThumbnail(videoId: string, thumbnail: Inner
   const iItem = contents.findIndex(item => videoIdFromRichItem(item) === videoId);
   if (iItem >= 0) {
     elGrid.set(`data.contents.${iItem}.richItemRenderer.content.videoRenderer.thumbnail`, thumbnail);
+  }
+}
+
+async function fetchImageBase64(url: string) {
+  const response = await fetch(url.split("?")[0]);
+  if (!response.ok) return null;
+  const buffer = await response.arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+  const chunkSize = 8192;
+  let binary = "";
+  for (let i = 0; i < bytes.byteLength; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+  return btoa(binary);
+}
+
+function videoIdFromThumbnailUrl(url: string) {
+  return /\/vi(?:_webp)?\/([^/]+)\//.exec(url)?.[1] ?? null;
+}
+
+async function areThumbnailsDifferent(currentSrc: string, newSrc: string) {
+  if (currentSrc.split("?")[0] === newSrc.split("?")[0]) return false;
+  const currentVideoId = videoIdFromThumbnailUrl(currentSrc);
+  const newVideoId = videoIdFromThumbnailUrl(newSrc);
+  if (currentVideoId !== null && currentVideoId === newVideoId) return false;
+  try {
+    const [currentBase64, newBase64] = await Promise.all([
+      fetchImageBase64(currentSrc),
+      fetchImageBase64(newSrc)
+    ]);
+    if (currentBase64 === null || newBase64 === null) return true;
+    return currentBase64 !== newBase64;
+  } catch {
+    return true;
   }
 }
 
@@ -116,15 +146,26 @@ function mergeLockupViewModel(existing: LockupViewModel, incoming: LockupViewMod
     incoming.contentImage?.thumbnailViewModel?.image?.sources?.[0]?.url?.split("?")[0]
   );
   const existingAvatarImage = existing.metadata?.lockupMetadataViewModel?.image;
+  const incomingAvatarImage = incoming.metadata?.lockupMetadataViewModel?.image;
   const mergedLockupMeta = incoming.metadata?.lockupMetadataViewModel !== undefined || existingAvatarImage !== undefined
     ? {
       ...incoming.metadata?.lockupMetadataViewModel,
-      image: existingAvatarImage
+      image: incomingAvatarImage ?? existingAvatarImage
     }
     : undefined;
+  const mergedContentImage = isSameThumbnail
+    ? {
+      ...existing.contentImage,
+      thumbnailViewModel: {
+        ...existing.contentImage?.thumbnailViewModel,
+        image: existing.contentImage?.thumbnailViewModel?.image,
+        overlays: incoming.contentImage?.thumbnailViewModel?.overlays
+      }
+    }
+    : incoming.contentImage;
   return {
     ...incoming,
-    contentImage: isSameThumbnail ? existing.contentImage : incoming.contentImage,
+    contentImage: mergedContentImage,
     metadata: mergedLockupMeta !== undefined
       ? {
         ...incoming.metadata,
@@ -253,9 +294,13 @@ function applyTargetedGenericUpdate(videoId: string, elItem: PolymerElement, pre
     return;
   }
 
-  dissolveToNewThumbnail(elImg, fresh.thumbnailUrl, () => {
-    if (isVideoRenderer(fresh.rawRenderer)) {
-      updateGridModelVideoRendererThumbnail(videoId, fresh.rawRenderer.thumbnail);
+  void areThumbnailsDifferent(elImg.src, fresh.thumbnailUrl).then(isDifferent => {
+    if (isDifferent) {
+      dissolveToNewThumbnail(elImg, fresh.thumbnailUrl, () => {
+        if (isVideoRenderer(fresh.rawRenderer)) {
+          updateGridModelVideoRendererThumbnail(videoId, fresh.rawRenderer.thumbnail);
+        }
+      });
     }
   });
 }
@@ -267,7 +312,9 @@ function applyTargetedLockupUpdate(
   previous: VideoSnapshot,
   fresh: VideoSnapshot
 ) {
-  const textRoot = elLockup.shadowRoot ?? elLockup;  if (previous.title !== fresh.title) {
+  const textRoot = elLockup.shadowRoot ?? elLockup;
+
+  if (previous.title !== fresh.title) {
     replaceTextInShadowDom(textRoot, previous.title, fresh.title);
   }
 
@@ -279,30 +326,25 @@ function applyTargetedLockupUpdate(
     replaceTextInShadowDom(textRoot, previous.publishedTimeText, fresh.publishedTimeText);
   }
 
-  if (previous.thumbnailUrl !== fresh.thumbnailUrl) {
-    const freshLockup = fresh.rawRenderer as LockupViewModel;
-    const newContentImage = freshLockup.contentImage;
-    const newUrl = newContentImage?.thumbnailViewModel?.image?.sources?.at(-1)?.url ?? fresh.thumbnailUrl;
-    const elImg = findThumbnailImg(elLockup);
-    if (elImg) {
-      dissolveToNewThumbnail(elImg, newUrl, () => updateGridModelContentImage(videoId, newContentImage));
-      return;
-    }
+  if (previous.thumbnailUrl === fresh.thumbnailUrl) {
+    return;
+  }
 
+  const freshLockup = fresh.rawRenderer as LockupViewModel;
+  const newContentImage = freshLockup.contentImage;
+  const newUrl = newContentImage?.thumbnailViewModel?.image?.sources?.at(-1)?.url ?? fresh.thumbnailUrl;
+  const elImg = findThumbnailImg(elLockup);
+  if (!elImg) {
     applyPolymerUpdate(elItem, fresh.rawRenderer);
     syncGridModelItem(videoId, fresh.rawRenderer);
     return;
   }
 
-  const itemData = elItem.data;
-  const isLockupUpdate =
-    isRecord(itemData) &&
-    isRecord(itemData.content) &&
-    isLockupViewModel(itemData.content.lockupViewModel) &&
-    isLockupViewModel(fresh.rawRenderer);
-  if (!isLockupUpdate) {
-    syncGridModelItem(videoId, fresh.rawRenderer);
-  }
+  void areThumbnailsDifferent(elImg.src, newUrl).then(isDifferent => {
+    if (isDifferent) {
+      dissolveToNewThumbnail(elImg, newUrl, () => updateGridModelContentImage(videoId, newContentImage));
+    }
+  });
 }
 
 export function applyUpdate(videoId: string, elItem: PolymerElement, fresh: VideoSnapshot, previous?: VideoSnapshot) {
@@ -322,7 +364,7 @@ export function applyUpdate(videoId: string, elItem: PolymerElement, fresh: Vide
   const { content } = itemData;
   if (isRecord(content) && isRecord(content.lockupViewModel)) {
     const elLockup = elItem.querySelector<HTMLElement>("yt-lockup-view-model");
-    if (elLockup?.shadowRoot) {
+    if (elLockup) {
       applyTargetedLockupUpdate(videoId, elItem, elLockup, previous, fresh);
       return;
     }

@@ -13,9 +13,9 @@ export interface ItemInfo {
   elInnerShelf: HTMLElement | null;
 }
 
-export async function removeVideosFromDom(videoIds: string[]) {
+export async function removeVideosFromDom(videoIds: string[], shelfProtectedIds: Set<string> = new Set()) {
   const videoIdSet = new Set(videoIds);
-  const items = collectItems(videoIdSet);
+  const items = collectItems(videoIdSet, shelfProtectedIds);
 
   for (const { container, isOffScreen, elItem } of items) {
     if (isOffScreen && container !== "grid") {
@@ -28,7 +28,7 @@ export async function removeVideosFromDom(videoIds: string[]) {
   await removeGridItems(items, videoIds);
 }
 
-function collectItems(videoIdSet: Set<string>): ItemInfo[] {
+function collectItems(videoIdSet: Set<string>, shelfProtectedIds: Set<string>): ItemInfo[] {
   const items: ItemInfo[] = [];
 
   for (const elItem of document.querySelectorAll<HTMLElement>("ytd-rich-item-renderer")) {
@@ -45,15 +45,18 @@ function collectItems(videoIdSet: Set<string>): ItemInfo[] {
     const { top, bottom } = elItem.getBoundingClientRect();
     const isOffScreen = isItemHidden || top > innerHeight || bottom < 0;
     const elRichShelf = elItem.closest<HTMLElement>("ytd-rich-shelf-renderer");
-    const elInnerShelf = elRichShelf ? null : elItem.closest<HTMLElement>("ytd-shelf-renderer");    if (elRichShelf && isPolymerElement(elRichShelf)) {
-      items.push({
-        videoId,
-        elItem,
-        isOffScreen,
-        container: "richShelf",
-        elRichShelf,
-        elInnerShelf: null
-      });
+    const elInnerShelf = elRichShelf ? null : elItem.closest<HTMLElement>("ytd-shelf-renderer");
+    if (elRichShelf && isPolymerElement(elRichShelf)) {
+      if (!shelfProtectedIds.has(videoId)) {
+        items.push({
+          videoId,
+          elItem,
+          isOffScreen,
+          container: "richShelf",
+          elRichShelf,
+          elInnerShelf: null
+        });
+      }
     } else if (elInnerShelf && isPolymerElement(elInnerShelf)) {
       items.push({
         videoId,

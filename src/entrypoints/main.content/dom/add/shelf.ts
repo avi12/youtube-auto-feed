@@ -52,6 +52,10 @@ async function addVideosToSection(
     return;
   }
 
+  if (isRecord(elShelf.data) && elShelf.data.isExpanded === false) {
+    return;
+  }
+
   const shelfContents = deepArray(elShelf.data, "contents");
   const videosToInsert = videos.filter(video => !shelfContents.some(item => videoIdFromRichItem(item) === video.videoId));
   if (videosToInsert.length === 0) {
