@@ -86,7 +86,7 @@ function captureDomBands() {
   return bands;
 }
 
-function captureApiBands(snapshots: VideoSnapshot[], sectionOrder: string[]) {
+function captureApiBands({ snapshots, sectionOrder }: { snapshots: VideoSnapshot[]; sectionOrder: string[] }) {
   const bands: ApiBand[] = [];
 
   const inlineVideoIds = snapshots
@@ -114,7 +114,7 @@ function captureApiBands(snapshots: VideoSnapshot[], sectionOrder: string[]) {
   return bands;
 }
 
-function computeBandDiffs(domBands: DomBand[], apiBands: ApiBand[]) {
+function computeBandDiffs({ domBands, apiBands }: { domBands: DomBand[]; apiBands: ApiBand[] }) {
   const apiBandByTitle = new Map(apiBands.map(band => [band.title, band]));
   const bandDiffs: BandDiff[] = [];
   let isAllBandsPass = true;
@@ -151,12 +151,12 @@ function computeBandDiffs(domBands: DomBand[], apiBands: ApiBand[]) {
   return { bandDiffs, isAllBandsPass };
 }
 
-function buildReport(domBands: DomBand[], apiBands: ApiBand[]) {
+function buildReport({ domBands, apiBands }: { domBands: DomBand[]; apiBands: ApiBand[] }) {
   const domBandTitles = domBands.map(band => band.title || "(inline)");
   const apiBandTitles = apiBands.map(band => band.title || "(inline)");
   const isBandOrderMatch = JSON.stringify(domBandTitles) === JSON.stringify(apiBandTitles);
 
-  const { bandDiffs, isAllBandsPass } = computeBandDiffs(domBands, apiBands);
+  const { bandDiffs, isAllBandsPass } = computeBandDiffs({ domBands, apiBands });
 
   return {
     timestamp: new Date().toISOString(),
@@ -228,8 +228,8 @@ export async function checkLayoutIntegrity() {
     return null;
   }
 
-  const apiBands = captureApiBands(apiResult.snapshots, apiResult.sectionOrder);
-  const report = buildReport(domBands, apiBands);
+  const apiBands = captureApiBands({ snapshots: apiResult.snapshots, sectionOrder: apiResult.sectionOrder });
+  const report = buildReport({ domBands, apiBands });
   logReport(report);
   return report;
 }
