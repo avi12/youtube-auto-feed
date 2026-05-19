@@ -28,7 +28,7 @@ export async function removeVideosFromDom(videoIds: string[], shelfProtectedIds:
   await removeGridItems(items, videoIds);
 }
 
-function collectItems(videoIdSet: Set<string>, shelfProtectedIds: Set<string>): ItemInfo[] {
+function collectItems(videoIdSet: Set<string>, shelfProtectedIds: Set<string>) {
   const items: ItemInfo[] = [];
 
   for (const elItem of document.querySelectorAll<HTMLElement>("ytd-rich-item-renderer")) {

@@ -1,5 +1,12 @@
 import { isPolymerElement, videoIdFromData } from "../helpers";
 
+const ANIMATION_DURATION_MS = 380;
+const STAGGER_MAX_DELAY_RANGE_MS = 80;
+const STAGGER_MAX_DELAY_CAP_MS = 20;
+const NEW_ITEM_MAX_DELAY_RANGE_MS = 160;
+const NEW_ITEM_MAX_DELAY_CAP_MS = 40;
+const WAIT_FOR_FRAMES_MAX = 10;
+
 export function prefersReducedMotion() {
   return matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
@@ -74,10 +81,10 @@ export function extractAnimateIds(elItems: Iterable<HTMLElement>) {
 }
 
 export function calculateStaggerDelayMs(itemCount: number) {
-  return itemCount > 1 ? Math.min(80 / (itemCount - 1), 20) : 0;
+  return itemCount > 1 ? Math.min(STAGGER_MAX_DELAY_RANGE_MS / (itemCount - 1), STAGGER_MAX_DELAY_CAP_MS) : 0;
 }
 
-export async function waitForFrames(predicate: () => boolean, maxFrames = 10) {
+export async function waitForFrames(predicate: () => boolean, maxFrames = WAIT_FOR_FRAMES_MAX) {
   for (let i = 0; i < maxFrames && !predicate(); i++) {
     await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
   }
@@ -112,7 +119,7 @@ export function buildRemoveTransitionStyle(elItems: Iterable<HTMLElement>) {
     const { viewTransitionName } = elItem.style;
     if (viewTransitionName) {
       css += `::view-transition-group(${viewTransitionName}){animation:none}\n`;
-      css += `::view-transition-old(${viewTransitionName}){animation:ytsua-slide-out 380ms cubic-bezier(0.2,0,0,1) both}\n`;
+      css += `::view-transition-old(${viewTransitionName}){animation:ytsua-slide-out ${ANIMATION_DURATION_MS}ms cubic-bezier(0.2,0,0,1) both}\n`;
     }
   }
   const elStyle = document.createElement("style");
@@ -122,7 +129,7 @@ export function buildRemoveTransitionStyle(elItems: Iterable<HTMLElement>) {
 
 export function buildNewItemTransitionStyle(elItems: HTMLElement[]) {
   const count = elItems.length;
-  const delayPerItemMs = Math.min(160 / Math.max(count - 1, 1), 40);
+  const delayPerItemMs = Math.min(NEW_ITEM_MAX_DELAY_RANGE_MS / Math.max(count - 1, 1), NEW_ITEM_MAX_DELAY_CAP_MS);
   let css = "";
   for (let i = 0; i < elItems.length; i++) {
     const { viewTransitionName } = elItems[i].style;
@@ -132,7 +139,7 @@ export function buildNewItemTransitionStyle(elItems: HTMLElement[]) {
 
     const delayMs = Math.round(i * delayPerItemMs);
     css += `::view-transition-group(${viewTransitionName}){animation-duration:0s}\n`;
-    css += `::view-transition-new(${viewTransitionName}){animation:ytsua-slide-in 380ms cubic-bezier(0.2,0,0,1) ${delayMs}ms both}\n`;
+    css += `::view-transition-new(${viewTransitionName}){animation:ytsua-slide-in ${ANIMATION_DURATION_MS}ms cubic-bezier(0.2,0,0,1) ${delayMs}ms both}\n`;
   }
   const elStyle = document.createElement("style");
   elStyle.textContent = css;
@@ -152,7 +159,7 @@ export function buildShiftTransitionStyle(
       css += `::view-transition-old(${viewTransitionName}){animation:none;opacity:0}\n`;
       css += `::view-transition-new(${viewTransitionName}){animation:none;opacity:1}\n`;
       const delayMs = Math.round(iItem * delayPerItemMs);
-      css += `::view-transition-group(${viewTransitionName}){animation-duration:380ms;animation-timing-function:cubic-bezier(0.4,0,0.2,1);animation-fill-mode:both${delayMs > 0 ? `;animation-delay:${delayMs}ms` : ""}}\n`;
+      css += `::view-transition-group(${viewTransitionName}){animation-duration:${ANIMATION_DURATION_MS}ms;animation-timing-function:cubic-bezier(0.4,0,0.2,1);animation-fill-mode:both${delayMs > 0 ? `;animation-delay:${delayMs}ms` : ""}}\n`;
     }
 
     iItem++;

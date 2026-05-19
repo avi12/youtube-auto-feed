@@ -1,6 +1,9 @@
 import { deepArray, deepString, isPolymerElement, isRecord } from "../helpers";
 import { videoIdFromRichItem } from "./rich-item";
 
+const BAND_NORMALIZATION_MIN_INLINE_COUNT = 9;
+const BAND_NORMALIZATION_MAX_POST_SECTION_COUNT = 3;
+
 export interface BandLayout {
   sectionOrder: string[];
   bandCaps: Map<string, number>;
@@ -12,7 +15,7 @@ function readSectionTitle(item: unknown) {
     || deepString(item, "richSectionRenderer", "content", "shelfRenderer", "title", "runs", "0", "text");
 }
 
-export function captureBandLayout(): BandLayout | null {
+export function captureBandLayout() {
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
   if (!elGrid || !isPolymerElement(elGrid) || !isRecord(elGrid.data)) {
     return null;
@@ -93,7 +96,7 @@ export function dismantleAbsentSections(
   polledSectionOrder: string[],
   confirmedAbsentSections: Set<string>,
   protectedSections: Set<string> = new Set()
-): string[] {
+) {
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
   if (!elGrid || !isPolymerElement(elGrid) || !isRecord(elGrid.data) || polledSectionOrder.length === 0) {
     return [];
@@ -220,7 +223,7 @@ export function normalizeInitialBandLayout() {
     }
   }
 
-  if (firstContentSectionIndex < 0 || band0InlineCount <= 9 || postSectionInlineCount > 3) {
+  if (firstContentSectionIndex < 0 || band0InlineCount <= BAND_NORMALIZATION_MIN_INLINE_COUNT || postSectionInlineCount > BAND_NORMALIZATION_MAX_POST_SECTION_COUNT) {
     return;
   }
 
@@ -243,7 +246,7 @@ export function normalizeInitialBandLayout() {
 // Collapsed shelves (isExpanded: false) sometimes render more than one visible row
 // depending on the browser's grid column count. This trims the overflow visible
 // items from the data model so YouTube always shows exactly one row.
-// Only overflow items are removed — hidden data items (not rendered in DOM) are preserved.
+// Only overflow items are removed - hidden data items (not rendered in DOM) are preserved.
 export async function normalizeCollapsedShelfRows() {
   const trimmedVideoIds = new Set<string>();
   for (const elShelf of document.querySelectorAll<HTMLElement>("ytd-rich-shelf-renderer")) {

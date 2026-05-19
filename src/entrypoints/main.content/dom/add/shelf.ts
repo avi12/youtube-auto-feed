@@ -87,7 +87,7 @@ function buildInsertOperations(
   sectionVideos: VideoSnapshot[],
   elShelf: PolymerElement,
   snapshot: Map<string, VideoSnapshot>
-): InsertOperation[] {
+) {
   return videosToInsert
     .map(video => {
       const iApiInsert = Math.max(0, sectionVideos.findIndex(sectionVideo => sectionVideo.videoId === video.videoId));

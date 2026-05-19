@@ -1,5 +1,8 @@
 import { isLockupViewModel, isShortsLockupViewModel, isVideoRenderer } from "../api/guards";
 import { deepArray, deepRecord, deepString, isPolymerElement, isRecord, videoIdFromData } from "../helpers";
+
+const FETCH_CHUNK_SIZE = 8192;
+const THUMBNAIL_FADE_DURATION_MS = 250;
 import type {
   InnerTubeVideoRenderer,
   LockupViewModel,
@@ -45,7 +48,7 @@ function findThumbnailImg(elLockup: HTMLElement) {
   return root.querySelector<HTMLImageElement>("yt-thumbnail-view-model img");
 }
 
-function findThumbnailImgInItem(elItem: HTMLElement): HTMLImageElement | null {
+function findThumbnailImgInItem(elItem: HTMLElement) {
   const elLockup = elItem.querySelector<HTMLElement>("yt-lockup-view-model");
   if (elLockup) {
     const elImg = findThumbnailImg(elLockup);
@@ -82,7 +85,7 @@ async function fetchImageBase64(url: string) {
   if (!response.ok) return null;
   const buffer = await response.arrayBuffer();
   const bytes = new Uint8Array(buffer);
-  const chunkSize = 8192;
+  const chunkSize = FETCH_CHUNK_SIZE;
   let binary = "";
   for (let i = 0; i < bytes.byteLength; i += chunkSize) {
     binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
@@ -112,7 +115,7 @@ async function areThumbnailsDifferent(currentSrc: string, newSrc: string) {
 }
 
 function dissolveToNewThumbnail(elImg: HTMLImageElement, newUrl: string, afterComplete?: () => void) {
-  elImg.style.transition = "opacity 250ms ease";
+  elImg.style.transition = `opacity ${THUMBNAIL_FADE_DURATION_MS}ms ease`;
   elImg.style.opacity = "0";
   const afterFadeOut = () => {
     const afterLoad = () => {
@@ -140,7 +143,7 @@ function updateGridModelContentImage(videoId: string, contentImage: LockupViewMo
   }
 }
 
-function mergeLockupViewModel(existing: LockupViewModel, incoming: LockupViewModel, forcePreserveContentImage = false): LockupViewModel {
+function mergeLockupViewModel(existing: LockupViewModel, incoming: LockupViewModel, forcePreserveContentImage = false) {
   const isSameThumbnail = forcePreserveContentImage || (
     existing.contentImage?.thumbnailViewModel?.image?.sources?.[0]?.url?.split("?")[0] ===
     incoming.contentImage?.thumbnailViewModel?.image?.sources?.[0]?.url?.split("?")[0]

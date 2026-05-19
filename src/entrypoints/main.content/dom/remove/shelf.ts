@@ -6,6 +6,8 @@ import {
   isRecord,
   videoIdFromData
 } from "../../helpers";
+
+const SECTION_REMOVE_TRANSITION_MS = 400;
 import {
   assignItemViewTransitionNames,
   buildRemoveTransitionStyle,
@@ -162,7 +164,7 @@ async function removeEmptyShelfSection(elRichShelf: HTMLElement, shelfTitle: str
 
   elSection.classList.add("ytsua-section-removing");
   await new Promise<void>(resolve => {
-    const timer = setTimeout(resolve, 400);
+    const timer = setTimeout(resolve, SECTION_REMOVE_TRANSITION_MS);
     elSection.addEventListener("transitionend", () => {
       clearTimeout(timer);
       resolve();

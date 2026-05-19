@@ -4,6 +4,10 @@ import { prefersReducedMotion, triggerAnimation } from "./animations";
 import { findItemElement } from "./query";
 import { applyUpdate } from "./update";
 
+const IDLE_CALLBACK_TIMEOUT_MS = 500;
+const LAZY_UPDATE_ROOT_MARGIN_PX = 300;
+const LAZY_ENTRANCE_ROOT_MARGIN_PX = 50;
+
 const pendingUpdates = new Map<string, {
   fresh: VideoSnapshot;
   previous?: VideoSnapshot;
@@ -56,9 +60,9 @@ function ensureObserver() {
 
     if (pendingApplyBatch.length > 0 && !isIdleCallbackScheduled) {
       isIdleCallbackScheduled = true;
-      requestIdleCallback(flushApplyBatch, { timeout: 500 });
+      requestIdleCallback(flushApplyBatch, { timeout: IDLE_CALLBACK_TIMEOUT_MS });
     }
-  }, { rootMargin: "0px 0px 300px 0px" });
+  }, { rootMargin: `0px 0px ${LAZY_UPDATE_ROOT_MARGIN_PX}px 0px` });
   return intersectionObserver;
 }
 
@@ -100,7 +104,7 @@ function ensureEntranceObserver() {
       entranceObserver?.disconnect();
       entranceObserver = null;
     }
-  }, { rootMargin: "50px 0px 0px 0px" });
+  }, { rootMargin: `${LAZY_ENTRANCE_ROOT_MARGIN_PX}px 0px 0px 0px` });
   return entranceObserver;
 }
 
