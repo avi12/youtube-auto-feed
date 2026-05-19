@@ -19,10 +19,13 @@ function defineChannel<T extends BroadcastMessages>(channelName: string) {
     channel.close();
   }
 
-  function onMessage<K extends keyof T & string>(
-    type: K,
-    handler: T[K] extends void ? () => void : (data: T[K]) => void
-  ) {
+  function onMessage<K extends keyof T & string>({
+    type,
+    handler
+  }: {
+    type: K;
+    handler: T[K] extends void ? () => void : (data: T[K]) => void;
+  }) {
     const channel = new BroadcastChannel(channelName);
     channel.onmessage = ({ data }: MessageEvent<BroadcastEnvelope<T>>) => {
       if (data?.type !== type) {

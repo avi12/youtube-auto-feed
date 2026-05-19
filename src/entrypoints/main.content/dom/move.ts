@@ -187,6 +187,6 @@ async function moveVideosToGridFront({ videos, freshOrder }: { videos: VideoSnap
 
 function fallbackUpdate(videos: VideoSnapshot[]) {
   for (const video of videos) {
-    updateVideoInDom(video.videoId, video);
+    updateVideoInDom({ videoId: video.videoId, freshSnapshot: video });
   }
 }

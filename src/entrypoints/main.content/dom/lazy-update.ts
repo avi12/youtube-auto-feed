@@ -23,7 +23,7 @@ function flushApplyBatch() {
   isIdleCallbackScheduled = false;
   const batch = pendingApplyBatch.splice(0);
   for (const { videoId, elItem, fresh, previous } of batch) {
-    applyUpdate(videoId, elItem, fresh, previous);
+    applyUpdate({ videoId, elItem, fresh, previous });
   }
 }
 
