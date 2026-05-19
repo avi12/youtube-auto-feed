@@ -1,5 +1,5 @@
 import { isLockupViewModel, isShortsLockupViewModel, isVideoRenderer } from "../api/guards";
-import { deepArray, deepRecord, isPolymerElement, isRecord } from "../helpers";
+import { deepArray, deepRecord, deepString, isPolymerElement, isRecord, videoIdFromData } from "../helpers";
 import type {
   InnerTubeVideoRenderer,
   LockupViewModel,
@@ -386,18 +386,37 @@ export function updateVideoInDom(videoId: string, freshSnapshot: VideoSnapshot, 
   }
 }
 
-export function batchUpdateVideosInDom(freshSnapshots: VideoSnapshot[], previousSnapshotMap?: Map<string, VideoSnapshot>) {
-  for (const fresh of freshSnapshots) {
-    const elItem = findItemElement(fresh.videoId);
-    if (!elItem || !isPolymerElement(elItem)) {
+function buildVideoElementMap() {
+  const map = new Map<string, HTMLElement>();
+  for (const elItem of document.querySelectorAll<HTMLElement>("ytd-rich-item-renderer")) {
+    if (!isPolymerElement(elItem)) {
       continue;
     }
-
-    const previous = previousSnapshotMap?.get(fresh.videoId);
-    if (isInViewport(elItem)) {
-      applyUpdate(fresh.videoId, elItem, fresh, previous);
-    } else {
-      scheduleLazyUpdate(fresh.videoId, fresh, previous);
+    const videoId = videoIdFromData(elItem.data);
+    if (videoId) {
+      map.set(videoId, elItem);
     }
+  }
+  for (const elItem of document.querySelectorAll<HTMLElement>("ytd-grid-video-renderer")) {
+    if (!isPolymerElement(elItem)) {
+      continue;
+    }
+    const videoId = deepString(elItem.data, "videoId");
+    if (videoId) {
+      map.set(videoId, elItem);
+    }
+  }
+  return map;
+}
+
+export function batchUpdateVideosInDom(freshSnapshots: VideoSnapshot[], previousSnapshotMap?: Map<string, VideoSnapshot>) {
+  const elementMap = buildVideoElementMap();
+  for (const fresh of freshSnapshots) {
+    const elItem = elementMap.get(fresh.videoId);
+    if (!elItem) {
+      continue;
+    }
+    const previous = previousSnapshotMap?.get(fresh.videoId);
+    scheduleLazyUpdate(fresh.videoId, fresh, previous, elItem);
   }
 }

@@ -1,5 +1,5 @@
 import { isPolymerElement, videoIdFromData } from "../helpers";
-import type { VideoSnapshot } from "../types";
+import type { PolymerElement, VideoSnapshot } from "../types";
 import { prefersReducedMotion, triggerAnimation } from "./animations";
 import { findItemElement } from "./query";
 import { applyUpdate } from "./update";
@@ -8,7 +8,20 @@ const pendingUpdates = new Map<string, {
   fresh: VideoSnapshot;
   previous?: VideoSnapshot;
 }>();
+
+type ApplyEntry = { videoId: string; elItem: PolymerElement; fresh: VideoSnapshot; previous?: VideoSnapshot };
+const pendingApplyBatch: ApplyEntry[] = [];
+let isIdleCallbackScheduled = false;
+
 let intersectionObserver: IntersectionObserver | null = null;
+
+function flushApplyBatch() {
+  isIdleCallbackScheduled = false;
+  const batch = pendingApplyBatch.splice(0);
+  for (const { videoId, elItem, fresh, previous } of batch) {
+    applyUpdate(videoId, elItem, fresh, previous);
+  }
+}
 
 function ensureObserver() {
   if (intersectionObserver) {
@@ -38,18 +51,23 @@ function ensureObserver() {
 
       pendingUpdates.delete(videoId);
       intersectionObserver?.unobserve(elItem);
-      applyUpdate(videoId, elItem, pending.fresh, pending.previous);
+      pendingApplyBatch.push({ videoId, elItem, fresh: pending.fresh, previous: pending.previous });
+    }
+
+    if (pendingApplyBatch.length > 0 && !isIdleCallbackScheduled) {
+      isIdleCallbackScheduled = true;
+      requestIdleCallback(flushApplyBatch, { timeout: 500 });
     }
   }, { rootMargin: "0px 0px 300px 0px" });
   return intersectionObserver;
 }
 
-export function scheduleLazyUpdate(videoId: string, fresh: VideoSnapshot, previous?: VideoSnapshot) {
+export function scheduleLazyUpdate(videoId: string, fresh: VideoSnapshot, previous?: VideoSnapshot, elItemHint?: HTMLElement) {
   pendingUpdates.set(videoId, {
     fresh,
     previous
   });
-  const elItem = findItemElement(videoId);
+  const elItem = elItemHint ?? findItemElement(videoId);
   if (elItem) {
     ensureObserver().observe(elItem);
   }
@@ -100,6 +118,8 @@ export function scheduleLazyEntrance(elItems: HTMLElement[]) {
 
 export function resetLazyUpdates() {
   pendingUpdates.clear();
+  pendingApplyBatch.length = 0;
+  isIdleCallbackScheduled = false;
   pendingEntranceItems.clear();
   intersectionObserver?.disconnect();
   intersectionObserver = null;

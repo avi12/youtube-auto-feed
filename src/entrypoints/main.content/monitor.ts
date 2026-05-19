@@ -261,7 +261,7 @@ export function createSubscriptionMonitor() {
     }, METADATA_POLL_INTERVAL_MS);
     orphanCleanupTimer = setInterval(() => {
       if (isDomReady && !isApplyingChanges) {
-        cleanOrphanedGridItems();
+        requestIdleCallback(() => cleanOrphanedGridItems());
       }
     }, 5000);
   }
