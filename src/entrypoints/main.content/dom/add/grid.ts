@@ -22,13 +22,14 @@ import {
   reassignTransitionNames,
   waitForFrames
 } from "../animations";
-import { buildRichItem } from "../build";
+import { buildRichItem, preloadThumbnails } from "../build";
 import { scheduleLazyEntrance } from "../lazy-update";
 import { findItemElement } from "../query";
 import { sortByFreshOrder, videoIdFromRichItem } from "../rich-item";
 import { addSectionToDom } from "./section";
 
 export async function addVideosToGridDom({ videosToAdd, allFreshSnapshots }: { videosToAdd: VideoSnapshot[]; allFreshSnapshots: VideoSnapshot[] }) {
+  await preloadThumbnails(videosToAdd);
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
   if (!elGrid || !isPolymerElement(elGrid)) {
     await fallbackAddBySection({ videosToAdd, allFreshSnapshots });

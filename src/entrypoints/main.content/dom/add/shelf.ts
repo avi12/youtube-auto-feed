@@ -12,7 +12,7 @@ import {
   reassignTransitionNames,
   waitForFrames
 } from "../animations";
-import { buildRichItem } from "../build";
+import { buildRichItem, preloadThumbnails } from "../build";
 import { findItemElement, findShelfForSection, leadingLiveCount } from "../query";
 import { videoIdFromRichItem } from "../rich-item";
 import { addSectionToDom } from "./section";
@@ -31,6 +31,7 @@ export async function addVideosToDom({
   allFreshSnapshots: VideoSnapshot[];
   snapshot: Map<string, VideoSnapshot>;
 }) {
+  await preloadThumbnails(freshSnapshots);
   const bySection = new Map<string, VideoSnapshot[]>();
   for (const video of freshSnapshots) {
     const sectionGroup = bySection.get(video.sectionTitle) ?? [];
