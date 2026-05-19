@@ -543,7 +543,7 @@ export async function detectAndApplyChanges(
   if (changes.videosToAdd.length > 0) {
     reconcileShelfOrders(freshSnapshots);
   }
-  if (bandLayout) {
+  if (bandLayout && changes.videosToAdd.length === 0) {
     enforceBandLayout(bandLayout);
     enforceShelfCaps(bandLayout);
   }
