@@ -206,7 +206,8 @@ async function fallbackAddBySection(videosToAdd: VideoSnapshot[], allFreshSnapsh
     processedSectionTitles.add(sectionTitle);
     await addSectionToDom(
       sectionTitle,
-      allFreshSnapshots.filter(video => video.sectionTitle === sectionTitle)
+      allFreshSnapshots.filter(video => video.sectionTitle === sectionTitle),
+      allFreshSnapshots
     );
   }
 }
@@ -491,7 +492,7 @@ function shelfRendererListItems(contentItem: unknown) {
   ];
 }
 
-function findSectionInsertIndex(contents: unknown[], sectionMinimumFreshIndex: number, freshOrderMap: Map<string, number>) {
+export function findSectionInsertIndex(contents: unknown[], sectionMinimumFreshIndex: number, freshOrderMap: Map<string, number>) {
   for (let iContent = 0; iContent < contents.length; iContent++) {
     const item = contents[iContent];
     const standaloneId = videoIdFromRichItem(item);

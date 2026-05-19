@@ -48,7 +48,7 @@ async function addVideosToSection(
   const sectionVideos = allFreshSnapshots.filter(video => video.sectionTitle === sectionTitle);
   const elShelf = findShelfForSection(sectionTitle);
   if (!elShelf || !isPolymerElement(elShelf)) {
-    await addSectionToDom(sectionTitle, sectionVideos);
+    await addSectionToDom(sectionTitle, sectionVideos, allFreshSnapshots);
     return;
   }
 

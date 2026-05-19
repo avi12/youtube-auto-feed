@@ -1,5 +1,6 @@
 import { deepArray, isPolymerElement, isRecord } from "../../helpers";
 import type { VideoSnapshot } from "../../types";
+import { findSectionInsertIndex } from "./grid";
 import {
   assignItemViewTransitionNames,
   buildNewItemTransitionStyle,
@@ -12,7 +13,7 @@ import {
 import { buildRichItem } from "../build";
 import { findItemElement } from "../query";
 
-export async function addSectionToDom(sectionTitle: string, videos: VideoSnapshot[]) {
+export async function addSectionToDom(sectionTitle: string, videos: VideoSnapshot[], allFreshSnapshots: VideoSnapshot[]) {
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
   if (!elGrid || !isPolymerElement(elGrid) || !isRecord(elGrid.data)) {
     return;
@@ -31,6 +32,12 @@ export async function addSectionToDom(sectionTitle: string, videos: VideoSnapsho
     }
   };
 
+  const freshOrderMap = new Map(allFreshSnapshots.map((video, i) => [video.videoId, i]));
+  const sectionMinimumFreshIndex = videos.reduce(
+    (minimum, video) => Math.min(minimum, freshOrderMap.get(video.videoId) ?? Infinity),
+    Infinity
+  );
+
   const elGridContents = elGrid.querySelector<HTMLElement>("#contents");
   const elAllItems = elGridContents
     ? [...elGridContents.querySelectorAll<HTMLElement>(":scope > ytd-rich-item-renderer")]
@@ -47,7 +54,10 @@ export async function addSectionToDom(sectionTitle: string, videos: VideoSnapsho
   const elNewItemTransitionStyles: HTMLStyleElement[] = [];
 
   const transition = document.startViewTransition(async () => {
-    elGrid.set("data.contents", [newSection, ...deepArray(elGrid.data, "contents")]);
+    const contents = [...deepArray(elGrid.data, "contents")];
+    const iInsert = findSectionInsertIndex(contents, sectionMinimumFreshIndex, freshOrderMap);
+    contents.splice(iInsert, 0, newSection);
+    elGrid.set("data.contents", contents);
     for (const elItem of elAllItems) {
       elItem.style.viewTransitionName = "";
     }
