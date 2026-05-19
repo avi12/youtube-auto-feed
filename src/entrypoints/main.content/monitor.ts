@@ -2,7 +2,8 @@ import { ytsuaChannel } from "../../messaging";
 import { fetchInitialVideos } from "./api/fetch";
 import { isInnerTubeBrowseResponse } from "./api/guards";
 import { extractApiSectionOrder, parseApiResponse } from "./api/parse";
-import { type BandLayout, captureBandLayout, consolidateStandaloneItems } from "./dom/band-layout";
+import { type BandLayout, captureBandLayout, normalizeCollapsedShelfRows, normalizeInitialBandLayout } from "./dom/band-layout";
+import { cleanOrphanedGridItems } from "./dom/add/grid";
 import { resetLazyUpdates } from "./dom/lazy-update";
 import { readDomSnapshot } from "./dom/query";
 import { isOnSubscriptionsPage } from "./helpers";
@@ -10,7 +11,8 @@ import { isDomContentReady } from "./readiness";
 import { detectAndApplyChanges, detectAndApplyMetadataChanges } from "./sync";
 import { type VideoSnapshot } from "./types";
 
-const POLL_INTERVAL_MS = 60 * 60 * 1000;
+const INITIAL_POLL_DELAY_MS = 10 * 1000;
+const POLL_INTERVAL_MS = 5 * 1000;
 const METADATA_POLL_INTERVAL_MS = 5 * 60 * 1000;
 const PENDING_SNAPSHOT_STALE_MS = 5000;
 const ABSENCE_REMOVAL_THRESHOLD = 3;
@@ -21,29 +23,35 @@ export function createSubscriptionMonitor() {
   let isApplyingChanges = false;
   let pendingApplySnapshots: { snapshots: VideoSnapshot[]; sectionOrder: string[] } | null = null;
   let contentObserver: MutationObserver | null = null;
+  let orphanCleanupTimer: ReturnType<typeof setInterval> | null = null;
   let pendingApiSnapshots: { snapshots: VideoSnapshot[]; sectionOrder: string[] } | null = null;
   let pendingApiSnapshotsTime = 0;
+  let pollingDelayTimer: ReturnType<typeof setTimeout> | null = null;
   let pollingTimer: ReturnType<typeof setInterval> | null = null;
+  let pageLoadTime = 0;
   let metadataPollingTimer: ReturnType<typeof setInterval> | null = null;
   let cancelBroadcastListener: (() => void) | null = null;
   let initialBandLayout: BandLayout | null = null;
   let pendingRemovals = new Map<string, number>();
   let pendingSectionRemovals = new Map<string, number>();
   let pendingSectionMoves = new Map<string, { toSection: string; count: number }>();
+  let pendingBandMoves = new Map<string, { toBandIndex: number; count: number }>();
 
-  async function applyChanges(payload: { snapshots: VideoSnapshot[]; sectionOrder: string[] }) {
+  async function applyChanges(payload: { snapshots: VideoSnapshot[]; sectionOrder: string[] }, isInitialLoad = false) {
     if (isApplyingChanges) {
       pendingApplySnapshots = payload;
       return false;
     }
 
     isApplyingChanges = true;
+    const shouldNormalizeAfter = isInitialLoad;
     try {
       let payloadToApply: { snapshots: VideoSnapshot[]; sectionOrder: string[] } | null = payload;
       let isAnyLayoutChange = false;
       const frozenPendingRemovals = pendingRemovals;
       const frozenPendingSectionRemovals = pendingSectionRemovals;
       const frozenPendingMoves = pendingSectionMoves;
+      const frozenPendingBandMoves = pendingBandMoves;
       const confirmedAbsentVideoIds = new Set(
         [...frozenPendingRemovals.entries()]
           .filter(([, count]) => count >= ABSENCE_REMOVAL_THRESHOLD)
@@ -59,28 +67,37 @@ export function createSubscriptionMonitor() {
           .filter(([, { count }]) => count >= ABSENCE_REMOVAL_THRESHOLD)
           .map(([id]) => id)
       );
+      const confirmedBandMoves = new Set(
+        [...frozenPendingBandMoves.entries()]
+          .filter(([, { count }]) => count >= ABSENCE_REMOVAL_THRESHOLD)
+          .map(([id]) => id)
+      );
       let latestCandidateRemovals: string[] = [];
       let latestCandidateSectionRemovals: string[] = [];
       let latestCandidateSectionMoves: { videoId: string; toSection: string }[] = [];
+      let latestCandidateBandMoves: { videoId: string; toBandIndex: number }[] = [];
       while (payloadToApply !== null) {
         pendingApplySnapshots = null;
-        const { isLayoutChange, snapshot, candidateRemovals, candidateSectionRemovals, candidateSectionMoves } = await detectAndApplyChanges(
+        const { isLayoutChange, snapshot, candidateRemovals, candidateSectionRemovals, candidateSectionMoves, candidateBandMoves } = await detectAndApplyChanges(
           lastSnapshot,
           payloadToApply.snapshots,
           initialBandLayout,
           payloadToApply.sectionOrder,
           confirmedAbsentVideoIds,
           confirmedAbsentSections,
-          confirmedSectionMoves
+          confirmedSectionMoves,
+          confirmedBandMoves,
+          isInitialLoad
         );
+        isInitialLoad = false;
         lastSnapshot = snapshot;
         latestCandidateRemovals = candidateRemovals;
         latestCandidateSectionRemovals = candidateSectionRemovals;
         latestCandidateSectionMoves = candidateSectionMoves;
+        latestCandidateBandMoves = candidateBandMoves;
 
         if (isLayoutChange) {
           isAnyLayoutChange = true;
-          initialBandLayout = captureBandLayout();
         }
 
         payloadToApply = pendingApplySnapshots;
@@ -102,6 +119,22 @@ export function createSubscriptionMonitor() {
         newPendingMoves.set(videoId, { toSection, count });
       }
       pendingSectionMoves = newPendingMoves;
+      const newPendingBandMoves = new Map<string, { toBandIndex: number; count: number }>();
+      for (const { videoId, toBandIndex } of latestCandidateBandMoves) {
+        const existing = frozenPendingBandMoves.get(videoId);
+        const count = (existing?.toBandIndex === toBandIndex ? existing.count : 0) + 1;
+        newPendingBandMoves.set(videoId, { toBandIndex, count });
+      }
+      pendingBandMoves = newPendingBandMoves;
+      if (shouldNormalizeAfter) {
+        normalizeInitialBandLayout();
+        const trimmedVideoIds = await normalizeCollapsedShelfRows();
+        lastSnapshot = readDomSnapshot();
+        for (const videoId of trimmedVideoIds) {
+          lastSnapshot.delete(videoId);
+        }
+        initialBandLayout = captureBandLayout();
+      }
       return isAnyLayoutChange;
     } finally {
       isApplyingChanges = false;
@@ -132,7 +165,7 @@ export function createSubscriptionMonitor() {
     }
   }
 
-  async function fetchFreshVideos() {
+  async function fetchFreshVideos(isInitialLoad = false) {
     if (!isOnSubscriptionsPage() || !isDomReady) {
       return false;
     }
@@ -143,7 +176,7 @@ export function createSubscriptionMonitor() {
     }
 
     try {
-      return await applyChanges(result);
+      return await applyChanges(result, isInitialLoad);
     } catch {
       return false;
     }
@@ -175,26 +208,45 @@ export function createSubscriptionMonitor() {
     void fetchFreshVideos();
   }
 
-  function restartPolling() {
-    if (pollingTimer !== null) {
-      clearInterval(pollingTimer);
+  function clearPolling() {
+    if (pollingDelayTimer !== null) {
+      clearTimeout(pollingDelayTimer);
+      pollingDelayTimer = null;
     }
-
-    pollingTimer = setInterval(() => {
-      void fetchFreshVideos();
-    }, POLL_INTERVAL_MS);
-  }
-
-  function handlePageFocus() {
-    if (document.hidden || !isOnSubscriptionsPage() || !isDomReady) {
-      return;
-    }
-
     if (pollingTimer !== null) {
       clearInterval(pollingTimer);
       pollingTimer = null;
     }
+  }
 
+  function restartPolling() {
+    clearPolling();
+    pollingDelayTimer = setTimeout(() => {
+      pollingDelayTimer = null;
+      void fetchFreshVideos();
+      pollingTimer = setInterval(() => {
+        void fetchFreshVideos();
+      }, POLL_INTERVAL_MS);
+    }, INITIAL_POLL_DELAY_MS);
+  }
+
+  function handlePageFocus() {
+    if (!isOnSubscriptionsPage() || !isDomReady) {
+      return;
+    }
+
+    if (document.hidden) {
+      clearPolling();
+      return;
+    }
+
+    const isWithinInitialDelay = Date.now() - pageLoadTime < INITIAL_POLL_DELAY_MS;
+    if (isWithinInitialDelay) {
+      restartPolling();
+      return;
+    }
+
+    clearPolling();
     void fetchFreshVideos().finally(() => restartPolling());
   }
 
@@ -207,6 +259,11 @@ export function createSubscriptionMonitor() {
     metadataPollingTimer = setInterval(() => {
       void fetchAndApplyMetadataUpdates();
     }, METADATA_POLL_INTERVAL_MS);
+    orphanCleanupTimer = setInterval(() => {
+      if (isDomReady && !isApplyingChanges) {
+        cleanOrphanedGridItems();
+      }
+    }, 5000);
   }
 
   function stopMonitoring() {
@@ -217,10 +274,7 @@ export function createSubscriptionMonitor() {
     cancelBroadcastListener?.();
     cancelBroadcastListener = null;
 
-    if (pollingTimer !== null) {
-      clearInterval(pollingTimer);
-      pollingTimer = null;
-    }
+    clearPolling();
 
     if (metadataPollingTimer !== null) {
       clearInterval(metadataPollingTimer);
@@ -231,18 +285,35 @@ export function createSubscriptionMonitor() {
       contentObserver.disconnect();
       contentObserver = null;
     }
+
+    if (orphanCleanupTimer !== null) {
+      clearInterval(orphanCleanupTimer);
+      orphanCleanupTimer = null;
+    }
   }
 
-  function applyDomBaseline() {
+  async function applyDomBaseline() {
     isDomReady = true;
+    pageLoadTime = Date.now();
     resetLazyUpdates();
-    consolidateStandaloneItems();
+    const trimmedVideoIds = await normalizeCollapsedShelfRows();
     lastSnapshot = readDomSnapshot();
+    for (const videoId of trimmedVideoIds) {
+      lastSnapshot.delete(videoId);
+    }
     initialBandLayout = captureBandLayout();
 
     if (pendingApiSnapshots !== null) {
-      void applyChanges(pendingApiSnapshots);
+      const pending = pendingApiSnapshots;
       pendingApiSnapshots = null;
+      await applyChanges(pending, false);
+      normalizeInitialBandLayout();
+      const trimmedAfterApply = await normalizeCollapsedShelfRows();
+      lastSnapshot = readDomSnapshot();
+      for (const videoId of trimmedAfterApply) {
+        lastSnapshot.delete(videoId);
+      }
+      initialBandLayout = captureBandLayout();
     }
   }
 
@@ -253,13 +324,14 @@ export function createSubscriptionMonitor() {
     pendingRemovals = new Map();
     pendingSectionRemovals = new Map();
     pendingSectionMoves = new Map();
+    pendingBandMoves = new Map();
 
     if (Date.now() - pendingApiSnapshotsTime >= PENDING_SNAPSHOT_STALE_MS) {
       pendingApiSnapshots = null;
     }
 
     if (isDomContentReady()) {
-      applyDomBaseline();
+      void applyDomBaseline();
       return;
     }
 
@@ -267,7 +339,7 @@ export function createSubscriptionMonitor() {
       if (isDomContentReady()) {
         contentObserver?.disconnect();
         contentObserver = null;
-        applyDomBaseline();
+        void applyDomBaseline();
       }
     });
     contentObserver.observe(document.body, {
@@ -286,17 +358,14 @@ export function createSubscriptionMonitor() {
   }
 
   function pausePolling() {
-    if (pollingTimer !== null) {
-      clearInterval(pollingTimer);
-      pollingTimer = null;
-    }
+    clearPolling();
   }
 
   function resumePolling() {
-    if (pollingTimer === null) {
+    if (pollingDelayTimer === null && pollingTimer === null) {
       restartPolling();
     }
   }
 
-  return { handleNavigation, pausePolling, resumePolling };
+  return { handleNavigation, pausePolling, resumePolling, fetchFreshVideos };
 }

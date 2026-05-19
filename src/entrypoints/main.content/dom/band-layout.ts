@@ -4,6 +4,7 @@ import { videoIdFromRichItem } from "./rich-item";
 export interface BandLayout {
   sectionOrder: string[];
   bandCaps: Map<string, number>;
+  shelfCaps: Map<string, number>;
 }
 
 function readSectionTitle(item: unknown) {
@@ -48,60 +49,51 @@ export function captureBandLayout(): BandLayout | null {
     bandCaps.set(currentBand, itemCount);
   }
 
+  const shelfCaps = new Map<string, number>();
+  for (const elShelf of document.querySelectorAll<HTMLElement>("ytd-rich-shelf-renderer")) {
+    if (!isPolymerElement(elShelf) || !isRecord(elShelf.data)) {
+      continue;
+    }
+    const shelfTitle = deepString(elShelf.data, "title", "runs", "0", "text");
+    if (!shelfTitle) {
+      continue;
+    }
+    const shelfContents = deepArray(elShelf.data, "contents");
+    if (shelfContents.length === 0) {
+      continue;
+    }
+    const elItems = [...elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer")]
+      .filter(elItem => elItem.offsetWidth > 0);
+    if (elItems.length === 0) {
+      shelfCaps.set(shelfTitle, shelfContents.length);
+      continue;
+    }
+    const firstRowTop = Math.round(elItems[0].getBoundingClientRect().top);
+    const itemsInFirstRow = elItems.filter(
+      elItem => Math.round(elItem.getBoundingClientRect().top) === firstRowTop
+    ).length;
+    if (itemsInFirstRow === 0) {
+      shelfCaps.set(shelfTitle, shelfContents.length);
+      continue;
+    }
+    const rowCount = new Set(
+      elItems.map(elItem => Math.round(elItem.getBoundingClientRect().top))
+    ).size;
+    shelfCaps.set(shelfTitle, rowCount * itemsInFirstRow);
+  }
+
   return {
     sectionOrder,
-    bandCaps
+    bandCaps,
+    shelfCaps
   };
 }
 
-export function consolidateStandaloneItems() {
-  const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
-  if (!elGrid || !isPolymerElement(elGrid) || !isRecord(elGrid.data)) {
-    return;
-  }
-
-  const contents = [...deepArray(elGrid.data, "contents")];
-
-  let firstSectionIndex = -1;
-  let latestBlockEndIndex = contents.length;
-  for (let i = 0; i < contents.length; i++) {
-    const isSection = !!readSectionTitle(contents[i]);
-    if (!isSection) {
-      continue;
-    }
-
-    if (firstSectionIndex < 0) {
-      firstSectionIndex = i;
-      continue;
-    }
-
-    latestBlockEndIndex = i;
-    break;
-  }
-
-  if (firstSectionIndex < 0 || latestBlockEndIndex === contents.length) {
-    return;
-  }
-
-  const orphanedItems: unknown[] = [];
-  const orphanedIndices = new Set<number>();
-  for (let i = latestBlockEndIndex; i < contents.length; i++) {
-    if (videoIdFromRichItem(contents[i])) {
-      orphanedItems.push(contents[i]);
-      orphanedIndices.add(i);
-    }
-  }
-
-  if (orphanedItems.length === 0) {
-    return;
-  }
-
-  const newContents = contents.filter((_, i) => !orphanedIndices.has(i));
-  newContents.splice(latestBlockEndIndex, 0, ...orphanedItems);
-  elGrid.set("data.contents", newContents);
-}
-
-export function dismantleAbsentSections(polledSectionOrder: string[], confirmedAbsentSections: Set<string>): string[] {
+export function dismantleAbsentSections(
+  polledSectionOrder: string[],
+  confirmedAbsentSections: Set<string>,
+  protectedSections: Set<string> = new Set()
+): string[] {
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
   if (!elGrid || !isPolymerElement(elGrid) || !isRecord(elGrid.data) || polledSectionOrder.length === 0) {
     return [];
@@ -115,7 +107,7 @@ export function dismantleAbsentSections(polledSectionOrder: string[], confirmedA
 
   for (const item of contents) {
     const sectionTitle = readSectionTitle(item);
-    if (sectionTitle && !polledSet.has(sectionTitle)) {
+    if (sectionTitle && !polledSet.has(sectionTitle) && !protectedSections.has(sectionTitle)) {
       candidateAbsent.push(sectionTitle);
       if (confirmedAbsentSections.has(sectionTitle)) {
         const richShelfContents = deepArray(item, "richSectionRenderer", "content", "richShelfRenderer", "contents");
@@ -195,6 +187,131 @@ export function reorderSections(polledSectionOrder: string[]) {
   newContents.push(...trailing);
 
   elGrid.set("data.contents", newContents);
+}
+
+export function normalizeInitialBandLayout() {
+  const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
+  if (!elGrid || !isPolymerElement(elGrid) || !isRecord(elGrid.data)) {
+    return;
+  }
+
+  const contents = [...deepArray(elGrid.data, "contents")];
+  const continuationIndex = contents.findIndex(item => isRecord(item) && "continuationItemRenderer" in item);
+  const end = continuationIndex >= 0 ? continuationIndex : contents.length;
+
+  let firstContentSectionIndex = -1;
+  let band0InlineCount = 0;
+  let postSectionInlineCount = 0;
+
+  for (let i = 0; i < end; i++) {
+    const sectionItems = deepArray(contents[i], "richSectionRenderer", "content", "richShelfRenderer", "contents");
+    if (sectionItems.length > 0) {
+      if (firstContentSectionIndex < 0) {
+        firstContentSectionIndex = i;
+      }
+      continue;
+    }
+    if (videoIdFromRichItem(contents[i])) {
+      if (firstContentSectionIndex < 0) {
+        band0InlineCount++;
+      } else {
+        postSectionInlineCount++;
+      }
+    }
+  }
+
+  if (firstContentSectionIndex < 0 || band0InlineCount <= 9 || postSectionInlineCount > 3) {
+    return;
+  }
+
+  const band0Items: unknown[] = [];
+  const newContents: unknown[] = [];
+  for (let i = 0; i < contents.length; i++) {
+    if (i < firstContentSectionIndex && videoIdFromRichItem(contents[i])) {
+      band0Items.push(contents[i]);
+    } else {
+      newContents.push(contents[i]);
+    }
+  }
+
+  const newContinuationIndex = newContents.findIndex(item => isRecord(item) && "continuationItemRenderer" in item);
+  const insertAt = newContinuationIndex >= 0 ? newContinuationIndex : newContents.length;
+  newContents.splice(insertAt, 0, ...band0Items);
+  elGrid.set("data.contents", newContents);
+}
+
+// Collapsed shelves (isExpanded: false) sometimes render more than one visible row
+// depending on the browser's grid column count. This trims the overflow visible
+// items from the data model so YouTube always shows exactly one row.
+// Only overflow items are removed — hidden data items (not rendered in DOM) are preserved.
+export async function normalizeCollapsedShelfRows() {
+  const trimmedVideoIds = new Set<string>();
+  for (const elShelf of document.querySelectorAll<HTMLElement>("ytd-rich-shelf-renderer")) {
+    if (!isPolymerElement(elShelf) || !isRecord(elShelf.data) || elShelf.data.isExpanded !== false) {
+      continue;
+    }
+
+    // Two frames let Polymer finish rendering the shelf before we measure layout.
+    await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+
+    const elItems = [...elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer")];
+    // offsetWidth === 0 means YouTube has hidden the item (not part of the visible row set).
+    const visibleItems = elItems.filter(elItem => elItem.offsetWidth > 0);
+    if (visibleItems.length === 0) {
+      continue;
+    }
+
+    const firstRowTop = Math.round(visibleItems[0].getBoundingClientRect().top);
+    const overflowItems = visibleItems.filter(
+      elItem => Math.round(elItem.getBoundingClientRect().top) !== firstRowTop
+    );
+    if (overflowItems.length === 0) {
+      continue;
+    }
+
+    const overflowVideoIds = new Set(
+      overflowItems.flatMap(elItem => {
+        if (!isPolymerElement(elItem)) return [];
+        const videoId = videoIdFromRichItem(elItem.data);
+        return videoId ? [videoId] : [];
+      })
+    );
+
+    // Filter data by video ID (not index) so hidden items beyond the visible set are untouched.
+    const currentContents = deepArray(elShelf.data, "contents");
+    const normalizedContents = currentContents.filter(item => {
+      const videoId = videoIdFromRichItem(item);
+      if (videoId && overflowVideoIds.has(videoId)) {
+        trimmedVideoIds.add(videoId);
+        return false;
+      }
+      return true;
+    });
+
+    elShelf.set("data.contents", normalizedContents);
+  }
+  return trimmedVideoIds;
+}
+
+export function enforceShelfCaps(layout: BandLayout) {
+  for (const elShelf of document.querySelectorAll<HTMLElement>("ytd-rich-shelf-renderer")) {
+    if (!isPolymerElement(elShelf) || !isRecord(elShelf.data)) {
+      continue;
+    }
+    const shelfTitle = deepString(elShelf.data, "title", "runs", "0", "text");
+    if (!shelfTitle) {
+      continue;
+    }
+    const cap = layout.shelfCaps.get(shelfTitle);
+    if (cap === undefined) {
+      continue;
+    }
+    const currentContents = deepArray(elShelf.data, "contents");
+    if (currentContents.length <= cap) {
+      continue;
+    }
+    elShelf.set("data.contents", currentContents.slice(0, cap));
+  }
 }
 
 export function enforceBandLayout(layout: BandLayout) {
