@@ -372,7 +372,40 @@ function buildSectionOrder(initialSectionOrder: string[], polledSectionOrder: st
 
   const initialSet = new Set(initialSectionOrder);
   const newSections = polledSectionOrder.filter(section => !initialSet.has(section));
-  return [...initialSectionOrder, ...newSections];
+  if (newSections.length === 0) {
+    return initialSectionOrder;
+  }
+
+  const insertBeforeInitial = new Map<string, string | null>();
+  for (const newSection of newSections) {
+    const polledIndex = polledSectionOrder.indexOf(newSection);
+    let insertBefore: string | null = null;
+    for (let i = polledIndex + 1; i < polledSectionOrder.length; i++) {
+      if (initialSet.has(polledSectionOrder[i])) {
+        insertBefore = polledSectionOrder[i];
+        break;
+      }
+    }
+    insertBeforeInitial.set(newSection, insertBefore);
+  }
+
+  const insertionsAt = new Map<string | null, string[]>();
+  for (const newSection of newSections) {
+    const anchor = insertBeforeInitial.get(newSection) ?? null;
+    const group = insertionsAt.get(anchor) ?? [];
+    group.push(newSection);
+    insertionsAt.set(anchor, group);
+  }
+
+  const result: string[] = insertionsAt.get(null) ?? [];
+  for (const section of initialSectionOrder) {
+    result.push(section);
+    const following = insertionsAt.get(section);
+    if (following) {
+      result.push(...following);
+    }
+  }
+  return result;
 }
 
 async function executeChanges(
