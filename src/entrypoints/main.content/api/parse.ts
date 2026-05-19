@@ -41,7 +41,7 @@ function collectSnapshot(
   }
 }
 
-export function extractApiSectionOrder(data: InnerTubeBrowseResponse): string[] {
+export function extractApiSectionOrder(data: InnerTubeBrowseResponse) {
   const order: string[] = [];
   const seen = new Set<string>();
   try {

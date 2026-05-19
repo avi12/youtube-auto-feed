@@ -2,7 +2,7 @@ import type { InnerTubeVideoRenderer, LockupViewModel, ShortsLockupViewModel, Vi
 import { VideoStatus } from "../types";
 import { statusFromLockup, statusFromRenderer, viewCountFromRenderer } from "./guards";
 
-export function parseRenderer(renderer: InnerTubeVideoRenderer, sectionTitle: string, bandIndex: number): VideoSnapshot | null {
+export function parseRenderer(renderer: InnerTubeVideoRenderer, sectionTitle: string, bandIndex: number) {
   const {
     videoId, title, thumbnail, publishedTimeText
   } = renderer;
@@ -24,7 +24,7 @@ export function parseRenderer(renderer: InnerTubeVideoRenderer, sectionTitle: st
   } satisfies VideoSnapshot;
 }
 
-export function parseLockupViewModel(lockup: LockupViewModel, sectionTitle: string, bandIndex: number): VideoSnapshot | null {
+export function parseLockupViewModel(lockup: LockupViewModel, sectionTitle: string, bandIndex: number) {
   const { contentId, contentImage, metadata } = lockup;
   if (contentId === "") {
     return null;
@@ -54,7 +54,7 @@ export function parseLockupViewModel(lockup: LockupViewModel, sectionTitle: stri
   } satisfies VideoSnapshot;
 }
 
-export function parseShortsLockupViewModel(shortsLockup: ShortsLockupViewModel, sectionTitle: string, bandIndex: number): VideoSnapshot | null {
+export function parseShortsLockupViewModel(shortsLockup: ShortsLockupViewModel, sectionTitle: string, bandIndex: number) {
   const videoId = shortsLockup.onTap?.innertubeCommand?.reelWatchEndpoint?.videoId ?? "";
   if (videoId === "") {
     return null;

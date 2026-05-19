@@ -34,7 +34,7 @@ export interface LayoutIntegrityReport {
   bandDiffs: BandDiff[];
 }
 
-function captureDomBands(): DomBand[] {
+function captureDomBands() {
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
   if (!elGrid || !isPolymerElement(elGrid) || !isRecord(elGrid.data)) {
     return [];
@@ -86,7 +86,7 @@ function captureDomBands(): DomBand[] {
   return bands;
 }
 
-function captureApiBands(snapshots: VideoSnapshot[], sectionOrder: string[]): ApiBand[] {
+function captureApiBands(snapshots: VideoSnapshot[], sectionOrder: string[]) {
   const bands: ApiBand[] = [];
 
   const inlineVideoIds = snapshots
@@ -114,7 +114,7 @@ function captureApiBands(snapshots: VideoSnapshot[], sectionOrder: string[]): Ap
   return bands;
 }
 
-function computeBandDiffs(domBands: DomBand[], apiBands: ApiBand[]): { bandDiffs: BandDiff[]; isAllBandsPass: boolean } {
+function computeBandDiffs(domBands: DomBand[], apiBands: ApiBand[]) {
   const apiBandByTitle = new Map(apiBands.map(band => [band.title, band]));
   const bandDiffs: BandDiff[] = [];
   let isAllBandsPass = true;
@@ -151,7 +151,7 @@ function computeBandDiffs(domBands: DomBand[], apiBands: ApiBand[]): { bandDiffs
   return { bandDiffs, isAllBandsPass };
 }
 
-function buildReport(domBands: DomBand[], apiBands: ApiBand[]): LayoutIntegrityReport {
+function buildReport(domBands: DomBand[], apiBands: ApiBand[]) {
   const domBandTitles = domBands.map(band => band.title || "(inline)");
   const apiBandTitles = apiBands.map(band => band.title || "(inline)");
   const isBandOrderMatch = JSON.stringify(domBandTitles) === JSON.stringify(apiBandTitles);
@@ -182,7 +182,7 @@ function persistReport(report: LayoutIntegrityReport) {
 
 function logReport(report: LayoutIntegrityReport) {
   const statusLabel = report.isPass ? "PASS" : "FAIL";
-  console.group(`[YTSUA] Layout Integrity ${statusLabel} — ${report.timestamp}`);
+  console.group(`[YTSUA] Layout Integrity ${statusLabel} - ${report.timestamp}`);
 
   if (!report.isBandOrderMatch) {
     console.warn("Band order MISMATCH");
@@ -195,7 +195,7 @@ function logReport(report: LayoutIntegrityReport) {
   for (const diff of report.bandDiffs) {
     const isBandPass = diff.onlyInDom.length === 0 && diff.onlyInApi.length === 0 && diff.isOrderMatch;
     const bandLabel = isBandPass ? "OK" : "FAIL";
-    console.group(`[${bandLabel}] "${diff.title}" DOM[${diff.domIndex}] — DOM ${diff.domVideoIds.length} ids vs API ${diff.apiVideoIds.length} ids`);
+    console.group(`[${bandLabel}] "${diff.title}" DOM[${diff.domIndex}] - DOM ${diff.domVideoIds.length} ids vs API ${diff.apiVideoIds.length} ids`);
 
     if (diff.onlyInDom.length > 0) {
       console.warn("Only in DOM:", diff.onlyInDom);
