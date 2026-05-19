@@ -141,21 +141,21 @@ export function createSubscriptionMonitor() {
     }
   }
 
-  function handleBrowseResponse(event: Event) {
-    if (!isOnSubscriptionsPage() || !(event instanceof CustomEvent)) {
+  function handleBrowseResponse(e: Event) {
+    if (!isOnSubscriptionsPage() || !(e instanceof CustomEvent)) {
       return;
     }
 
-    if (!isInnerTubeBrowseResponse(event.detail)) {
+    if (!isInnerTubeBrowseResponse(e.detail)) {
       return;
     }
 
-    const snapshots = parseApiResponse(event.detail);
+    const snapshots = parseApiResponse(e.detail);
     if (snapshots.length === 0) {
       return;
     }
 
-    const sectionOrder = extractApiSectionOrder(event.detail);
+    const sectionOrder = extractApiSectionOrder(e.detail);
     const payload = { snapshots, sectionOrder };
     pendingApiSnapshots = payload;
     pendingApiSnapshotsTime = Date.now();

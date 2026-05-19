@@ -1,5 +1,7 @@
 import { type PolymerElement } from "./types";
 
+const SUBSCRIPTIONS_PATH = "/feed/subscriptions";
+
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -56,5 +58,5 @@ export function videoIdFromShelfListItem(listItem: unknown) {
 }
 
 export function isOnSubscriptionsPage() {
-  return location.pathname === "/feed/subscriptions";
+  return location.pathname === SUBSCRIPTIONS_PATH;
 }

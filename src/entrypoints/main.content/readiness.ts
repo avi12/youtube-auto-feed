@@ -18,7 +18,6 @@ export function isDomContentReady() {
     }
   }
 
-  // Background tabs: virtual scroller pauses rendering, but Polymer data is populated
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
   if (elGrid && isPolymerElement(elGrid) && isRecord(elGrid.data)) {
     const { contents } = elGrid.data;

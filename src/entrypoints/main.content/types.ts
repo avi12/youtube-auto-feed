@@ -1,4 +1,4 @@
-// ── YouTube InnerTube API response types ─────────────────────────────────────
+// -- YouTube InnerTube API response types -------------------------------------
 
 export interface InnerTubeThumbnail {
   url: string;
@@ -54,7 +54,7 @@ export interface InnerTubeVideoRenderer {
   upcomingEventData?: InnerTubeUpcomingEventData;
 }
 
-// ── lockupViewModel (new YouTube UI format) ───────────────────────────────────
+// -- lockupViewModel (new YouTube UI format) ----------------------------------
 
 export enum LockupContentType {
   Shorts = "LOCKUP_CONTENT_TYPE_SHORTS"
@@ -106,7 +106,7 @@ export interface LockupViewModel {
   };
 }
 
-// ── shortsLockupViewModel (Shorts shelf in subscriptions feed) ───────────────
+// -- shortsLockupViewModel (Shorts shelf in subscriptions feed) ---------------
 
 export interface ShortsLockupViewModel {
   entityId?: string;
@@ -127,7 +127,7 @@ export interface ShortsLockupViewModel {
   }>; };
 }
 
-// ── Shelf / grid renderers ────────────────────────────────────────────────────
+// -- Shelf / grid renderers ---------------------------------------------------
 
 export interface InnerTubeRichItemContent {
   videoRenderer?: InnerTubeVideoRenderer;
@@ -191,7 +191,7 @@ export interface InnerTubeBrowseResponse {
   };
 }
 
-// ── YouTube InnerTube client config ───────────────────────────────────────────
+// -- YouTube InnerTube client config ------------------------------------------
 
 type InnerTubeClientName =
   | "WEB"
@@ -260,7 +260,7 @@ declare global {
   const ytcfg: { get<K extends keyof YouTubeInnertubeConfig>(key: K): YouTubeInnertubeConfig[K] } | undefined;
 }
 
-// ── Extension types ───────────────────────────────────────────────────────────
+// -- Extension types ----------------------------------------------------------
 
 export enum VideoStatus {
   Video = "video",
