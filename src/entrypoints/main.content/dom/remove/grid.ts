@@ -1,13 +1,14 @@
-import { deepArray, isPolymerElement, isRecord, videoIdFromData } from "../../helpers";
+import { deepArray, isPolymerElement, isRecord } from "../../helpers";
 import type { PolymerElement } from "../../types";
 import {
+  animateItemsOut,
   assignItemViewTransitionNames,
-  buildRemoveTransitionStyle,
   buildShiftTransitionStyle,
   calculateStaggerDelayMs,
   clearAllItemViewTransitionNames,
   clearItemViewTransitionNames,
   extractAnimateIds,
+  isInViewport,
   prefersReducedMotion,
   reassignTransitionNames
 } from "../animations";
@@ -93,21 +94,10 @@ async function removeGridItemsAnimated({ elGrid, gridVideoIdSet, allGridElements
   const shiftDelayPerItemMs = calculateStaggerDelayMs(elElementsAfterFirstRemoved.length);
   const animateIds = extractAnimateIds(elElementsAfterFirstRemoved);
 
-  for (const elItem of allGridElements) {
-    if (!isPolymerElement(elItem)) {
-      continue;
-    }
-
-    const videoId = videoIdFromData(elItem.data);
-    if (videoId && elItem.getBoundingClientRect().top <= innerHeight) {
-      elItem.style.viewTransitionName = `ytsua-item-${videoId}`;
-    }
-  }
+  await animateItemsOut(allGridElements.filter(isInViewport));
 
   const elShiftStyle = buildShiftTransitionStyle({ elItems: elElementsAfterFirstRemoved, excludeNames: new Set(), delayPerItemMs: shiftDelayPerItemMs });
-  const elRemoveStyle = buildRemoveTransitionStyle(allGridElements);
   document.head.append(elShiftStyle);
-  document.head.append(elRemoveStyle);
 
   const transition = document.startViewTransition(() => {
     const currentContents = deepArray(elGrid.data, "contents");
@@ -121,9 +111,6 @@ async function removeGridItemsAnimated({ elGrid, gridVideoIdSet, allGridElements
       elGrid.set("data.contents", filteredContents);
     }
 
-    for (const elItem of allGridElements) {
-      elItem.style.viewTransitionName = "";
-    }
     for (const elItem of elElementsAfterFirstRemoved) {
       elItem.style.viewTransitionName = "";
     }
@@ -134,12 +121,8 @@ async function removeGridItemsAnimated({ elGrid, gridVideoIdSet, allGridElements
     await transition.finished;
   } finally {
     elShiftStyle.remove();
-    elRemoveStyle.remove();
     clearItemViewTransitionNames(elElementsAfterFirstRemoved);
     clearItemViewTransitionNames(elSectionsAfterFirstRemoved);
-    for (const elItem of allGridElements) {
-      elItem.style.viewTransitionName = "";
-    }
     clearAllItemViewTransitionNames();
   }
 }

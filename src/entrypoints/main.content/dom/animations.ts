@@ -113,18 +113,23 @@ export function clearAllItemViewTransitionNames() {
   }
 }
 
-export function buildRemoveTransitionStyle(elItems: Iterable<HTMLElement>) {
-  let css = "";
-  for (const elItem of elItems) {
-    const { viewTransitionName } = elItem.style;
-    if (viewTransitionName) {
-      css += `::view-transition-group(${viewTransitionName}){animation:none}\n`;
-      css += `::view-transition-old(${viewTransitionName}){animation:ytsua-slide-out ${ANIMATION_DURATION_MS}ms cubic-bezier(0.2,0,0,1) both}\n`;
-    }
+export async function animateItemsOut(elItems: HTMLElement[]) {
+  if (elItems.length === 0) {
+    return;
   }
-  const elStyle = document.createElement("style");
-  elStyle.textContent = css;
-  return elStyle;
+
+  await new Promise<void>(resolve => {
+    const timer = setTimeout(resolve, ANIMATION_DURATION_MS + 50);
+    elItems[0].addEventListener("animationend", () => {
+      clearTimeout(timer);
+      resolve();
+    }, { once: true });
+    requestAnimationFrame(() => {
+      for (const elItem of elItems) {
+        elItem.classList.add("ytsua-removing");
+      }
+    });
+  });
 }
 
 export function buildNewItemTransitionStyle(elItems: HTMLElement[]) {

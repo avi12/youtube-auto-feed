@@ -3,14 +3,13 @@ import {
   deepRecord,
   deepString,
   isPolymerElement,
-  isRecord,
-  videoIdFromData
+  isRecord
 } from "../../helpers";
 
 const SECTION_REMOVE_TRANSITION_MS = 400;
 import {
+  animateItemsOut,
   assignItemViewTransitionNames,
-  buildRemoveTransitionStyle,
   buildShiftTransitionStyle,
   calculateStaggerDelayMs,
   clearAllItemViewTransitionNames,
@@ -58,21 +57,10 @@ async function removeItemsFromShelf({
 
   const animateIds = extractAnimateIds(elSiblings);
 
-  for (const elItem of group.elOnScreenItems) {
-    if (!isPolymerElement(elItem)) {
-      continue;
-    }
-
-    const videoId = videoIdFromData(elItem.data);
-    if (videoId) {
-      elItem.style.viewTransitionName = `ytsua-item-${videoId}`;
-    }
-  }
+  await animateItemsOut(group.elOnScreenItems);
 
   const elShiftStyle = buildShiftTransitionStyle({ elItems: elSiblings, excludeNames: new Set(), delayPerItemMs: calculateStaggerDelayMs(elSiblings.length) });
-  const elRemoveStyle = buildRemoveTransitionStyle(group.elOnScreenItems);
   document.head.append(elShiftStyle);
-  document.head.append(elRemoveStyle);
 
   try {
     await document.startViewTransition(() => {
@@ -80,9 +68,6 @@ async function removeItemsFromShelf({
         elItem.remove();
       }
       applyFilteredContents();
-      for (const elItem of group.elOnScreenItems) {
-        elItem.style.viewTransitionName = "";
-      }
       for (const elItem of elSiblings) {
         elItem.style.viewTransitionName = "";
       }
@@ -90,11 +75,7 @@ async function removeItemsFromShelf({
     }).finished;
   } finally {
     clearItemViewTransitionNames(elSiblings);
-    for (const elItem of group.elOnScreenItems) {
-      elItem.style.viewTransitionName = "";
-    }
     elShiftStyle.remove();
-    elRemoveStyle.remove();
     clearAllItemViewTransitionNames();
   }
 }
