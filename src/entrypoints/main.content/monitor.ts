@@ -18,7 +18,7 @@ import { type VideoSnapshot } from "./types";
 
 const INITIAL_POLL_DELAY_MS = 10 * 1000;
 const POLL_INTERVAL_MS = 5 * 1000;
-const METADATA_POLL_INTERVAL_MS = 5 * 60 * 1000;
+const METADATA_POLL_INTERVAL_MS = 10 * 1000;
 const PENDING_SNAPSHOT_STALE_MS = 5000;
 const ABSENCE_REMOVAL_THRESHOLD = 3;
 
