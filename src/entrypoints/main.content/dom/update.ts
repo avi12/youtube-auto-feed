@@ -67,18 +67,6 @@ function findThumbnailImgInItem(elItem: HTMLElement) {
   return null;
 }
 
-function updateGridModelVideoRendererThumbnail({ videoId, thumbnail }: { videoId: string; thumbnail: InnerTubeVideoRenderer["thumbnail"] }) {
-  const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
-  if (!elGrid || !isPolymerElement(elGrid) || !isRecord(elGrid.data)) {
-    return;
-  }
-
-  const contents = deepArray(elGrid.data, "contents");
-  const iItem = contents.findIndex(item => videoIdFromRichItem(item) === videoId);
-  if (iItem >= 0) {
-    elGrid.set(`data.contents.${iItem}.richItemRenderer.content.videoRenderer.thumbnail`, thumbnail);
-  }
-}
 
 async function fetchImageBase64(url: string) {
   const response = await fetch(url.split("?")[0]);
@@ -114,34 +102,48 @@ async function areThumbnailsDifferent({ currentSrc, newSrc }: { currentSrc: stri
   }
 }
 
-function dissolveToNewThumbnail({ elImg, newUrl, afterComplete }: { elImg: HTMLImageElement; newUrl: string; afterComplete?: () => void }) {
-  elImg.style.transition = `opacity ${THUMBNAIL_FADE_DURATION_MS}ms ease`;
-  elImg.style.opacity = "0";
-  const afterFadeOut = () => {
-    const afterLoad = () => {
-      elImg.style.opacity = "";
-      afterComplete?.();
-    };
-    elImg.addEventListener("load", afterLoad, { once: true });
-    elImg.addEventListener("error", afterLoad, { once: true });
-    elImg.src = newUrl;
-  };
-  elImg.addEventListener("transitionend", afterFadeOut, { once: true });
-  elImg.addEventListener("transitioncancel", afterFadeOut, { once: true });
-}
-
-function updateGridModelContentImage({ videoId, contentImage }: { videoId: string; contentImage: LockupViewModel["contentImage"] }) {
-  const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
-  if (!elGrid || !isPolymerElement(elGrid) || !isRecord(elGrid.data)) {
+async function dissolveToNewThumbnail({
+  elImg,
+  newUrl,
+  elItem,
+  afterComplete
+}: {
+  elImg: HTMLImageElement;
+  newUrl: string;
+  elItem: HTMLElement;
+  afterComplete?: () => void;
+}) {
+  if (elItem.matches(":hover")) {
     return;
   }
 
-  const contents = deepArray(elGrid.data, "contents");
-  const iItem = contents.findIndex(item => videoIdFromRichItem(item) === videoId);
-  if (iItem >= 0) {
-    elGrid.set(`data.contents.${iItem}.richItemRenderer.content.lockupViewModel.contentImage`, contentImage);
+  await new Promise<void>(resolve => {
+    const preload = new Image();
+    preload.onload = () => resolve();
+    preload.onerror = () => resolve();
+    preload.src = newUrl;
+  });
+
+  if (elItem.matches(":hover")) {
+    return;
   }
+
+  const fadeOut = elImg.animate(
+    [{ opacity: 1 }, { opacity: 0 }],
+    { duration: THUMBNAIL_FADE_DURATION_MS, easing: "ease", fill: "forwards" }
+  );
+  await fadeOut.finished;
+
+  elImg.src = newUrl;
+  afterComplete?.();
+
+  elImg.animate(
+    [{ opacity: 0 }, { opacity: 1 }],
+    { duration: THUMBNAIL_FADE_DURATION_MS, easing: "ease" }
+  );
+  fadeOut.cancel();
 }
+
 
 function mergeLockupViewModel({ existing, incoming, forcePreserveContentImage = false }: { existing: LockupViewModel; incoming: LockupViewModel; forcePreserveContentImage?: boolean }) {
   const isSameThumbnail = forcePreserveContentImage || (
@@ -287,6 +289,7 @@ function applyTargetedGenericUpdate({ videoId, elItem, previous, fresh }: { vide
   }
 
   if (previous.thumbnailUrl === fresh.thumbnailUrl) {
+    syncGridModelItem({ videoId, rawRenderer: fresh.rawRenderer, forcePreserveContentImage: true });
     return;
   }
 
@@ -298,13 +301,15 @@ function applyTargetedGenericUpdate({ videoId, elItem, previous, fresh }: { vide
   }
 
   void areThumbnailsDifferent({ currentSrc: elImg.src, newSrc: fresh.thumbnailUrl }).then(isDifferent => {
-    if (isDifferent) {
-      dissolveToNewThumbnail({ elImg, newUrl: fresh.thumbnailUrl, afterComplete: () => {
-        if (isVideoRenderer(fresh.rawRenderer)) {
-          updateGridModelVideoRendererThumbnail({ videoId, thumbnail: fresh.rawRenderer.thumbnail });
-        }
-      } });
+    if (!isDifferent) {
+      return;
     }
+    void dissolveToNewThumbnail({
+      elImg,
+      newUrl: fresh.thumbnailUrl,
+      elItem,
+      afterComplete: () => syncGridModelItem({ videoId, rawRenderer: fresh.rawRenderer })
+    });
   });
 }
 
@@ -336,12 +341,12 @@ function applyTargetedLockupUpdate({
   }
 
   if (previous.thumbnailUrl === fresh.thumbnailUrl) {
+    syncGridModelItem({ videoId, rawRenderer: fresh.rawRenderer, forcePreserveContentImage: true });
     return;
   }
 
   const freshLockup = fresh.rawRenderer as LockupViewModel;
-  const newContentImage = freshLockup.contentImage;
-  const newUrl = newContentImage?.thumbnailViewModel?.image?.sources?.at(-1)?.url ?? fresh.thumbnailUrl;
+  const newUrl = freshLockup.contentImage?.thumbnailViewModel?.image?.sources?.at(-1)?.url ?? fresh.thumbnailUrl;
   const elImg = findThumbnailImg(elLockup);
   if (!elImg) {
     applyPolymerUpdate({ elItem, rawRenderer: fresh.rawRenderer });
@@ -350,9 +355,15 @@ function applyTargetedLockupUpdate({
   }
 
   void areThumbnailsDifferent({ currentSrc: elImg.src, newSrc: newUrl }).then(isDifferent => {
-    if (isDifferent) {
-      dissolveToNewThumbnail({ elImg, newUrl, afterComplete: () => updateGridModelContentImage({ videoId, contentImage: newContentImage }) });
+    if (!isDifferent) {
+      return;
     }
+    void dissolveToNewThumbnail({
+      elImg,
+      newUrl,
+      elItem,
+      afterComplete: () => syncGridModelItem({ videoId, rawRenderer: fresh.rawRenderer })
+    });
   });
 }
 
