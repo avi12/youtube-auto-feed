@@ -27,20 +27,20 @@
     "@types/yargs": "^17.0.35",
     "@wxt-dev/auto-icons": "^1.1.1",
     "chokidar": "^5.0.0",
-    "eslint": "^10.2.1",
+    "eslint": "^10.4.0",
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-import-newlines": "^2.0.0",
     "eslint-plugin-perfectionist": "^5.9.0",
-    "globals": "^17.5.0",
-    "postcss": "^8.5.12",
+    "globals": "^17.6.0",
+    "postcss": "^8.5.15",
     "postcss-html": "^1.8.1",
-    "stylelint": "^17.9.1",
-    "stylelint-config-ccb": "^3.31.4",
-    "tsx": "^4.22.1",
+    "stylelint": "^17.11.1",
+    "stylelint-config-ccb": "^3.31.5",
+    "tsx": "^4.22.3",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.59.1",
+    "typescript-eslint": "^8.59.4",
     "web-ext-run": "^0.2.4",
-    "wxt": "^0.20.25"
+    "wxt": "^0.20.26"
   },
   "dependencies": {
     "yargs": "^18.0.0"
