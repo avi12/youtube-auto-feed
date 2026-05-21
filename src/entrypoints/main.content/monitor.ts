@@ -190,7 +190,7 @@ export function createSubscriptionMonitor() {
     pendingApiSnapshots = payload;
     pendingApiSnapshotsTime = Date.now();
 
-    if (isDomReady) {
+    if (isDomReady && !document.hidden) {
       void applyChanges({ payload });
     }
   }
@@ -216,7 +216,7 @@ export function createSubscriptionMonitor() {
   }
 
   async function fetchAndApplyMetadataUpdates() {
-    if (!isOnSubscriptionsPage() || !isDomReady || isApplyingChanges) {
+    if (!isOnSubscriptionsPage() || !isDomReady || isApplyingChanges || document.hidden) {
       return;
     }
 
