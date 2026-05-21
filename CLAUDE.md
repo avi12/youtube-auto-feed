@@ -40,6 +40,7 @@
 
 # Workflow
 - After each modification, run `pnpm lint` across the project
+- Commit messages must be short and to the point
 
 # Hardcoded values
 - Strings: use enums; if no enum fits, use a descriptive `SCREAMING_SNAKE_CASE` constant
