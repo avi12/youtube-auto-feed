@@ -702,7 +702,7 @@ export function applyUpdate({ videoId, elItem, fresh, previous }: {
   fresh: VideoSnapshot;
   previous?: VideoSnapshot;
 }) {
-  if (!previous || previous.status !== fresh.status || previous.isChannelLive !== fresh.isChannelLive) {
+  if (!previous || previous.status !== fresh.status) {
     applyPolymerUpdate({
       elItem,
       rawRenderer: fresh.rawRenderer
