@@ -41,96 +41,84 @@ export function createSubscriptionMonitor() {
   let pendingSectionRemovals = new Map<string, number>();
   let pendingSectionMoves = new Map<string, { toSection: string; count: number }>();
   let pendingBandMoves = new Map<string, { toBandIndex: number; count: number }>();
+  let apiKnownVideoIds = new Set<string>();
 
   async function applyChanges({ payload, isInitialLoad = false }: { payload: FeedPayload; isInitialLoad?: boolean }) {
     if (isApplyingChanges) {
-      pendingApplySnapshots = payload;
       return false;
     }
 
     isApplyingChanges = true;
     const shouldNormalizeAfter = isInitialLoad;
     try {
-      let payloadToApply: FeedPayload | null = payload;
-      let isAnyLayoutChange = false;
-      const frozenPendingRemovals = pendingRemovals;
-      const frozenPendingSectionRemovals = pendingSectionRemovals;
-      const frozenPendingMoves = pendingSectionMoves;
-      const frozenPendingBandMoves = pendingBandMoves;
+      for (const { videoId } of payload.snapshots) {
+        apiKnownVideoIds.add(videoId);
+      }
+
       const confirmedAbsentVideoIds = new Set(
-        [...frozenPendingRemovals.entries()]
+        [...pendingRemovals.entries()]
           .filter(([, count]) => count >= ABSENCE_REMOVAL_THRESHOLD)
           .map(([id]) => id)
       );
       const confirmedAbsentSections = new Set(
-        [...frozenPendingSectionRemovals.entries()]
+        [...pendingSectionRemovals.entries()]
           .filter(([, count]) => count >= ABSENCE_REMOVAL_THRESHOLD)
           .map(([title]) => title)
       );
       const confirmedSectionMoves = new Set(
-        [...frozenPendingMoves.entries()]
+        [...pendingSectionMoves.entries()]
           .filter(([, { count }]) => count >= ABSENCE_REMOVAL_THRESHOLD)
           .map(([id]) => id)
       );
       const confirmedBandMoves = new Set(
-        [...frozenPendingBandMoves.entries()]
+        [...pendingBandMoves.entries()]
           .filter(([, { count }]) => count >= ABSENCE_REMOVAL_THRESHOLD)
           .map(([id]) => id)
       );
-      let latestCandidateRemovals: string[] = [];
-      let latestCandidateSectionRemovals: string[] = [];
-      let latestCandidateSectionMoves: { videoId: string; toSection: string }[] = [];
-      let latestCandidateBandMoves: { videoId: string; toBandIndex: number }[] = [];
-      while (payloadToApply !== null) {
-        pendingApplySnapshots = null;
-        const { isLayoutChange, snapshot, candidateRemovals, candidateSectionRemovals, candidateSectionMoves, candidateBandMoves } = await detectAndApplyChanges({
-          previousSnapshot: lastSnapshot,
-          freshSnapshots: payloadToApply.snapshots,
-          bandLayout: initialBandLayout,
-          polledSectionOrder: payloadToApply.sectionOrder,
-          confirmedAbsentVideoIds,
-          confirmedAbsentSections,
-          confirmedSectionMoves,
-          confirmedBandMoves,
-          isInitialLoad
-        });
-        isInitialLoad = false;
-        lastSnapshot = snapshot;
-        latestCandidateRemovals = candidateRemovals;
-        latestCandidateSectionRemovals = candidateSectionRemovals;
-        latestCandidateSectionMoves = candidateSectionMoves;
-        latestCandidateBandMoves = candidateBandMoves;
 
-        if (isLayoutChange) {
-          isAnyLayoutChange = true;
-        }
+      const { isLayoutChange, snapshot, candidateRemovals, candidateSectionRemovals, candidateSectionMoves, candidateBandMoves } = await detectAndApplyChanges({
+        previousSnapshot: lastSnapshot,
+        freshSnapshots: payload.snapshots,
+        bandLayout: initialBandLayout,
+        polledSectionOrder: payload.sectionOrder,
+        confirmedAbsentVideoIds,
+        confirmedAbsentSections,
+        confirmedSectionMoves,
+        confirmedBandMoves,
+        isInitialLoad
+      });
+      lastSnapshot = snapshot;
 
-        payloadToApply = pendingApplySnapshots;
-      }
       const newPendingRemovals = new Map<string, number>();
-      for (const videoId of latestCandidateRemovals) {
-        newPendingRemovals.set(videoId, (frozenPendingRemovals.get(videoId) ?? 0) + 1);
+      for (const videoId of candidateRemovals) {
+        if (apiKnownVideoIds.has(videoId)) {
+          newPendingRemovals.set(videoId, (pendingRemovals.get(videoId) ?? 0) + 1);
+        }
       }
       pendingRemovals = newPendingRemovals;
+
       const newPendingSectionRemovals = new Map<string, number>();
-      for (const sectionTitle of latestCandidateSectionRemovals) {
-        newPendingSectionRemovals.set(sectionTitle, (frozenPendingSectionRemovals.get(sectionTitle) ?? 0) + 1);
+      for (const sectionTitle of candidateSectionRemovals) {
+        newPendingSectionRemovals.set(sectionTitle, (pendingSectionRemovals.get(sectionTitle) ?? 0) + 1);
       }
       pendingSectionRemovals = newPendingSectionRemovals;
+
       const newPendingMoves = new Map<string, { toSection: string; count: number }>();
-      for (const { videoId, toSection } of latestCandidateSectionMoves) {
-        const existing = frozenPendingMoves.get(videoId);
+      for (const { videoId, toSection } of candidateSectionMoves) {
+        const existing = pendingSectionMoves.get(videoId);
         const count = (existing?.toSection === toSection ? existing.count : 0) + 1;
         newPendingMoves.set(videoId, { toSection, count });
       }
       pendingSectionMoves = newPendingMoves;
+
       const newPendingBandMoves = new Map<string, { toBandIndex: number; count: number }>();
-      for (const { videoId, toBandIndex } of latestCandidateBandMoves) {
-        const existing = frozenPendingBandMoves.get(videoId);
+      for (const { videoId, toBandIndex } of candidateBandMoves) {
+        const existing = pendingBandMoves.get(videoId);
         const count = (existing?.toBandIndex === toBandIndex ? existing.count : 0) + 1;
         newPendingBandMoves.set(videoId, { toBandIndex, count });
       }
       pendingBandMoves = newPendingBandMoves;
+
       if (shouldNormalizeAfter) {
         normalizeInitialBandLayout();
         const trimmedVideoIds = await normalizeCollapsedShelfRows();
@@ -140,7 +128,7 @@ export function createSubscriptionMonitor() {
         }
         initialBandLayout = captureBandLayout();
       }
-      return isAnyLayoutChange;
+      return isLayoutChange;
     } finally {
       isApplyingChanges = false;
     }
@@ -330,6 +318,7 @@ export function createSubscriptionMonitor() {
     pendingSectionRemovals = new Map();
     pendingSectionMoves = new Map();
     pendingBandMoves = new Map();
+    apiKnownVideoIds = new Set();
 
     if (Date.now() - pendingApiSnapshotsTime >= PENDING_SNAPSHOT_STALE_MS) {
       pendingApiSnapshots = null;
