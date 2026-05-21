@@ -808,16 +808,25 @@ export function batchUpdateVideosInDom({ freshSnapshots, previousSnapshotMap }: 
   const elementMap = buildVideoElementMap();
   for (const fresh of freshSnapshots) {
     const elItem = elementMap.get(fresh.videoId);
-    if (!elItem) {
+    if (!elItem || !isPolymerElement(elItem)) {
       continue;
     }
 
     const previous = previousSnapshotMap?.get(fresh.videoId);
-    scheduleLazyUpdate({
-      videoId: fresh.videoId,
-      fresh,
-      previous,
-      elItemHint: elItem
-    });
+    if (isInViewport(elItem)) {
+      applyUpdate({
+        videoId: fresh.videoId,
+        elItem,
+        fresh,
+        previous
+      });
+    } else {
+      scheduleLazyUpdate({
+        videoId: fresh.videoId,
+        fresh,
+        previous,
+        elItemHint: elItem
+      });
+    }
   }
 }
