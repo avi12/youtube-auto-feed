@@ -103,6 +103,13 @@ export function createSubscriptionMonitor() {
       });
       lastSnapshot = snapshot;
 
+      if (isLayoutChange && !isInitialLoad && initialBandLayout !== null) {
+        const updatedLayout = captureBandLayout();
+        if (updatedLayout !== null) {
+          initialBandLayout = updatedLayout;
+        }
+      }
+
       const newPendingRemovals = new Map<string, number>();
       for (const videoId of candidateRemovals) {
         if (apiKnownVideoIds.has(videoId)) {
