@@ -365,6 +365,13 @@ function classifyChanges({
     }
   }
 
+  for (const fresh of diff.finishedStreams) {
+    const previous = previousSnapshot.get(fresh.videoId);
+    if (previous) {
+      updateVideoInDom({ videoId: fresh.videoId, freshSnapshot: fresh, previousSnapshot: previous });
+    }
+  }
+
   return {
     videoIdsToRemove: diff.removed,
     candidateRemovals: diff.candidateRemovals,
