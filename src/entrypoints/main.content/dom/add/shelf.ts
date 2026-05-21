@@ -90,12 +90,13 @@ async function addVideosToSection({
     newShelfContents.splice(iInsert, 0, buildRichItem(video.rawRenderer));
   }
 
-  const elExistingItems = filterToViewport(elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer"));
+  const elAllShelfItems = [...elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer")];
+  const elExistingItems = filterToViewport(elAllShelfItems);
   const visibleCap = computeVisibleCap({
     elShelf,
-    elExistingItems
+    elExistingItems: elAllShelfItems
   });
-  const displayCap = visibleCap ?? elExistingItems.length;
+  const displayCap = visibleCap ?? elAllShelfItems.length;
   const isCollapsed = isShelfCollapsed(elShelf);
 
   const anyVisibleInsert = isCollapsed || insertOperations.some(({ iInsert }) => iInsert < displayCap);
