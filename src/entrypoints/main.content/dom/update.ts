@@ -13,7 +13,7 @@ import type {
 import { isInViewport } from "./animations";
 import { scheduleLazyUpdate } from "./lazy-update";
 import { findItemElement } from "./query";
-import { videoIdFromRichItem } from "./rich-item";
+import { findRichItemIndex } from "./rich-item";
 
 function replaceTextInShadowDom({ root, oldText, newText }: { root: ShadowRoot | Element; oldText: string; newText: string }) {
   if (!oldText) {
@@ -164,7 +164,7 @@ function mergeLockupViewModel({ existing, incoming, forcePreserveContentImage = 
       thumbnailViewModel: {
         ...existing.contentImage?.thumbnailViewModel,
         image: existing.contentImage?.thumbnailViewModel?.image,
-        overlays: incoming.contentImage?.thumbnailViewModel?.overlays
+        overlays: incoming.contentImage?.thumbnailViewModel?.overlays ?? existing.contentImage?.thumbnailViewModel?.overlays
       }
     }
     : incoming.contentImage;
@@ -232,46 +232,111 @@ function applyPolymerUpdate({ elItem, rawRenderer }: { elItem: PolymerElement; r
   }
 }
 
-function syncGridModelItem({ videoId, rawRenderer, forcePreserveContentImage = false }: { videoId: string; rawRenderer: VideoSnapshot["rawRenderer"]; forcePreserveContentImage?: boolean }) {
-  const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
-  if (!elGrid || !isPolymerElement(elGrid) || !isRecord(elGrid.data)) {
-    return;
+function buildMergedVideoRenderer({
+  existing,
+  incoming,
+  forcePreserveContentImage
+}: {
+  existing: Record<string, unknown> | null;
+  incoming: VideoSnapshot["rawRenderer"];
+  forcePreserveContentImage: boolean;
+}) {
+  if (!forcePreserveContentImage || existing === null || !isVideoRenderer(incoming)) {
+    return incoming;
   }
+  return {
+    ...incoming,
+    thumbnail: existing.thumbnail as InnerTubeVideoRenderer["thumbnail"],
+    ...(existing.thumbnailOverlays !== undefined && {
+      thumbnailOverlays: existing.thumbnailOverlays as InnerTubeVideoRenderer["thumbnailOverlays"]
+    })
+  };
+}
 
-  const contents = deepArray(elGrid.data, "contents");
-  const iItem = contents.findIndex(item => videoIdFromRichItem(item) === videoId);
-  if (iItem < 0) {
-    return;
-  }
-
-  const existingContent = deepRecord(contents[iItem], "richItemRenderer", "content");
-  if (!existingContent) {
-    return;
-  }
-
+function applyRichItemContentUpdate({
+  elElement,
+  basePath,
+  existingContent,
+  rawRenderer,
+  forcePreserveContentImage
+}: {
+  elElement: PolymerElement;
+  basePath: string;
+  existingContent: Record<string, unknown>;
+  rawRenderer: VideoSnapshot["rawRenderer"];
+  forcePreserveContentImage: boolean;
+}) {
   if (isRecord(existingContent.richGridMediaRenderer)) {
-    elGrid.set(`data.contents.${iItem}.richItemRenderer.content.richGridMediaRenderer.content.videoRenderer`, rawRenderer);
-  } else if (isLockupViewModel(rawRenderer) || isRecord(existingContent.lockupViewModel)) {
+    elElement.set(`${basePath}.richGridMediaRenderer.content.videoRenderer`, rawRenderer);
+    return;
+  }
+  if (isLockupViewModel(rawRenderer) || isRecord(existingContent.lockupViewModel)) {
     const existingLockup = existingContent.lockupViewModel;
     const merged = isLockupViewModel(rawRenderer) && isLockupViewModel(existingLockup)
       ? mergeLockupViewModel({ existing: existingLockup, incoming: rawRenderer, forcePreserveContentImage })
       : rawRenderer;
-    elGrid.set(`data.contents.${iItem}.richItemRenderer.content.lockupViewModel`, merged);
-  } else if (isShortsLockupViewModel(rawRenderer) || isRecord(existingContent.shortsLockupViewModel)) {
-    elGrid.set(`data.contents.${iItem}.richItemRenderer.content.shortsLockupViewModel`, rawRenderer);
-  } else if (isRecord(existingContent.gridVideoRenderer)) {
-    elGrid.set(`data.contents.${iItem}.richItemRenderer.content.gridVideoRenderer`, rawRenderer);
-  } else {
-    const existingThumbnail = forcePreserveContentImage && isRecord(existingContent.videoRenderer)
-      ? existingContent.videoRenderer.thumbnail
-      : undefined;
-    const merged = existingThumbnail !== undefined && isVideoRenderer(rawRenderer)
-      ? {
-        ...rawRenderer,
-        thumbnail: existingThumbnail as InnerTubeVideoRenderer["thumbnail"]
+    elElement.set(`${basePath}.lockupViewModel`, merged);
+    return;
+  }
+  if (isShortsLockupViewModel(rawRenderer) || isRecord(existingContent.shortsLockupViewModel)) {
+    elElement.set(`${basePath}.shortsLockupViewModel`, rawRenderer);
+    return;
+  }
+  if (isRecord(existingContent.gridVideoRenderer)) {
+    elElement.set(`${basePath}.gridVideoRenderer`, buildMergedVideoRenderer({ existing: existingContent.gridVideoRenderer, incoming: rawRenderer, forcePreserveContentImage }));
+    return;
+  }
+  elElement.set(`${basePath}.videoRenderer`, buildMergedVideoRenderer({ existing: deepRecord(existingContent, "videoRenderer"), incoming: rawRenderer, forcePreserveContentImage }));
+}
+
+function syncGridModelItem({ videoId, rawRenderer, forcePreserveContentImage = false }: { videoId: string; rawRenderer: VideoSnapshot["rawRenderer"]; forcePreserveContentImage?: boolean }) {
+  const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
+  if (elGrid && isPolymerElement(elGrid) && isRecord(elGrid.data)) {
+    const contents = deepArray(elGrid.data, "contents");
+    const iItem = findRichItemIndex({ contents, videoId });
+    if (iItem >= 0) {
+      const existingContent = deepRecord(contents[iItem], "richItemRenderer", "content");
+      if (existingContent) {
+        applyRichItemContentUpdate({ elElement: elGrid, basePath: `data.contents.${iItem}.richItemRenderer.content`, existingContent, rawRenderer, forcePreserveContentImage });
       }
-      : rawRenderer;
-    elGrid.set(`data.contents.${iItem}.richItemRenderer.content.videoRenderer`, merged);
+      return;
+    }
+  }
+
+  for (const elShelf of document.querySelectorAll<HTMLElement>("ytd-rich-shelf-renderer")) {
+    if (!isPolymerElement(elShelf) || !isRecord(elShelf.data)) {
+      continue;
+    }
+    const contents = deepArray(elShelf.data, "contents");
+    const iItem = findRichItemIndex({ contents, videoId });
+    if (iItem < 0) {
+      continue;
+    }
+    const existingContent = deepRecord(contents[iItem], "richItemRenderer", "content");
+    if (existingContent) {
+      applyRichItemContentUpdate({ elElement: elShelf, basePath: `data.contents.${iItem}.richItemRenderer.content`, existingContent, rawRenderer, forcePreserveContentImage });
+    }
+    return;
+  }
+
+  for (const elShelf of document.querySelectorAll<HTMLElement>("ytd-shelf-renderer")) {
+    if (!isPolymerElement(elShelf) || !isRecord(elShelf.data)) {
+      continue;
+    }
+    const shelfContent = deepRecord(elShelf.data, "content");
+    for (const listKey of ["horizontalListRenderer", "gridRenderer"] as const) {
+      const items = deepArray(shelfContent, listKey, "items");
+      for (const [iItem, item] of items.entries()) {
+        const rendererKey = deepString(item, "videoRenderer", "videoId") === videoId ? "videoRenderer"
+          : deepString(item, "gridVideoRenderer", "videoId") === videoId ? "gridVideoRenderer"
+          : null;
+        if (!rendererKey) {
+          continue;
+        }
+        elShelf.set(`data.content.${listKey}.items.${iItem}.${rendererKey}`, buildMergedVideoRenderer({ existing: deepRecord(item, rendererKey), incoming: rawRenderer, forcePreserveContentImage }));
+        return;
+      }
+    }
   }
 }
 
