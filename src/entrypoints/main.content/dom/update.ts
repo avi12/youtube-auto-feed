@@ -1,8 +1,12 @@
 import { isLockupViewModel, isShortsLockupViewModel, isVideoRenderer } from "../api/guards";
-import { deepArray, deepRecord, deepString, isPolymerElement, isRecord, videoIdFromData } from "../helpers";
-
-const FETCH_CHUNK_SIZE = 8192;
-const THUMBNAIL_FADE_DURATION_MS = 250;
+import {
+  deepArray,
+  deepRecord,
+  deepString,
+  isPolymerElement,
+  isRecord,
+  videoIdFromData
+} from "../helpers";
 import type {
   InnerTubeVideoRenderer,
   LockupViewModel,
@@ -15,7 +19,14 @@ import { scheduleLazyUpdate } from "./lazy-update";
 import { findItemElement } from "./query";
 import { findRichItemIndex } from "./rich-item";
 
-function replaceTextInShadowDom({ root, oldText, newText }: { root: ShadowRoot | Element; oldText: string; newText: string }) {
+const FETCH_CHUNK_SIZE = 8192;
+const THUMBNAIL_FADE_DURATION_MS = 250;
+
+function replaceTextInShadowDom({ root, oldText, newText }: {
+  root: ShadowRoot | Element;
+  oldText: string;
+  newText: string;
+}) {
   if (!oldText) {
     return;
   }
@@ -31,7 +42,11 @@ function replaceTextInShadowDom({ root, oldText, newText }: { root: ShadowRoot |
   }
   for (const el of root.querySelectorAll("*")) {
     if (el.shadowRoot) {
-      replaceTextInShadowDom({ root: el.shadowRoot, oldText, newText });
+      replaceTextInShadowDom({
+        root: el.shadowRoot,
+        oldText,
+        newText
+      });
     }
   }
 }
@@ -67,10 +82,12 @@ function findThumbnailImgInItem(elItem: HTMLElement) {
   return null;
 }
 
-
 async function fetchImageBase64(url: string) {
   const response = await fetch(url.split("?")[0]);
-  if (!response.ok) return null;
+  if (!response.ok) {
+    return null;
+  }
+
   const buffer = await response.arrayBuffer();
   const bytes = new Uint8Array(buffer);
   const chunkSize = FETCH_CHUNK_SIZE;
@@ -85,17 +102,29 @@ function videoIdFromThumbnailUrl(url: string) {
   return /\/vi(?:_webp)?\/([^/]+)\//.exec(url)?.[1] ?? null;
 }
 
-async function areThumbnailsDifferent({ currentSrc, newSrc }: { currentSrc: string; newSrc: string }) {
-  if (currentSrc.split("?")[0] === newSrc.split("?")[0]) return false;
+async function areThumbnailsDifferent({ currentSrc, newSrc }: {
+  currentSrc: string;
+  newSrc: string;
+}) {
+  if (currentSrc.split("?")[0] === newSrc.split("?")[0]) {
+    return false;
+  }
+
   const currentVideoId = videoIdFromThumbnailUrl(currentSrc);
   const newVideoId = videoIdFromThumbnailUrl(newSrc);
-  if (currentVideoId !== null && currentVideoId === newVideoId) return false;
+  if (currentVideoId !== null && currentVideoId === newVideoId) {
+    return false;
+  }
+
   try {
     const [currentBase64, newBase64] = await Promise.all([
       fetchImageBase64(currentSrc),
       fetchImageBase64(newSrc)
     ]);
-    if (currentBase64 === null || newBase64 === null) return true;
+    if (currentBase64 === null || newBase64 === null) {
+      return true;
+    }
+
     return currentBase64 !== newBase64;
   } catch {
     return true;
@@ -130,7 +159,11 @@ async function dissolveToNewThumbnail({
 
   const fadeOut = elImg.animate(
     [{ opacity: 1 }, { opacity: 0 }],
-    { duration: THUMBNAIL_FADE_DURATION_MS, easing: "ease", fill: "forwards" }
+    {
+      duration: THUMBNAIL_FADE_DURATION_MS,
+      easing: "ease",
+      fill: "forwards"
+    }
   );
   await fadeOut.finished;
 
@@ -139,13 +172,19 @@ async function dissolveToNewThumbnail({
 
   elImg.animate(
     [{ opacity: 0 }, { opacity: 1 }],
-    { duration: THUMBNAIL_FADE_DURATION_MS, easing: "ease" }
+    {
+      duration: THUMBNAIL_FADE_DURATION_MS,
+      easing: "ease"
+    }
   );
   fadeOut.cancel();
 }
 
-
-function mergeLockupViewModel({ existing, incoming, forcePreserveContentImage = false }: { existing: LockupViewModel; incoming: LockupViewModel; forcePreserveContentImage?: boolean }) {
+function mergeLockupViewModel({ existing, incoming, forcePreserveContentImage = false }: {
+  existing: LockupViewModel;
+  incoming: LockupViewModel;
+  forcePreserveContentImage?: boolean;
+}) {
   const isSameThumbnail = forcePreserveContentImage || (
     existing.contentImage?.thumbnailViewModel?.image?.sources?.[0]?.url?.split("?")[0] ===
     incoming.contentImage?.thumbnailViewModel?.image?.sources?.[0]?.url?.split("?")[0]
@@ -158,16 +197,7 @@ function mergeLockupViewModel({ existing, incoming, forcePreserveContentImage = 
       image: incomingAvatarImage ?? existingAvatarImage
     }
     : undefined;
-  const mergedContentImage = isSameThumbnail
-    ? {
-      ...existing.contentImage,
-      thumbnailViewModel: {
-        ...existing.contentImage?.thumbnailViewModel,
-        image: existing.contentImage?.thumbnailViewModel?.image,
-        overlays: incoming.contentImage?.thumbnailViewModel?.overlays ?? existing.contentImage?.thumbnailViewModel?.overlays
-      }
-    }
-    : incoming.contentImage;
+  const mergedContentImage = isSameThumbnail ? existing.contentImage : incoming.contentImage;
   return {
     ...incoming,
     contentImage: mergedContentImage,
@@ -180,7 +210,10 @@ function mergeLockupViewModel({ existing, incoming, forcePreserveContentImage = 
   };
 }
 
-function applyPolymerUpdate({ elItem, rawRenderer }: { elItem: PolymerElement; rawRenderer: VideoSnapshot["rawRenderer"] }) {
+function applyPolymerUpdate({ elItem, rawRenderer }: {
+  elItem: PolymerElement;
+  rawRenderer: VideoSnapshot["rawRenderer"];
+}) {
   const itemData = elItem.data;
   if (!isRecord(itemData)) {
     return;
@@ -192,7 +225,10 @@ function applyPolymerUpdate({ elItem, rawRenderer }: { elItem: PolymerElement; r
   } else if (isRecord(content.lockupViewModel)) {
     const existing = content.lockupViewModel as unknown as LockupViewModel;
     const incoming = rawRenderer as LockupViewModel;
-    const merged = mergeLockupViewModel({ existing, incoming });
+    const merged = mergeLockupViewModel({
+      existing,
+      incoming
+    });
     const elLockup = elItem.querySelector<HTMLElement>("yt-lockup-view-model");
     if (elLockup && "lockupViewModel" in elLockup) {
       (elLockup as HTMLElement & { lockupViewModel: LockupViewModel }).lockupViewModel = merged;
@@ -244,12 +280,10 @@ function buildMergedVideoRenderer({
   if (!forcePreserveContentImage || existing === null || !isVideoRenderer(incoming)) {
     return incoming;
   }
+
   return {
     ...incoming,
-    thumbnail: existing.thumbnail as InnerTubeVideoRenderer["thumbnail"],
-    ...(existing.thumbnailOverlays !== undefined && {
-      thumbnailOverlays: existing.thumbnailOverlays as InnerTubeVideoRenderer["thumbnailOverlays"]
-    })
+    thumbnail: existing.thumbnail as InnerTubeVideoRenderer["thumbnail"]
   };
 }
 
@@ -270,35 +304,69 @@ function applyRichItemContentUpdate({
     elElement.set(`${basePath}.richGridMediaRenderer.content.videoRenderer`, rawRenderer);
     return;
   }
+
   if (isLockupViewModel(rawRenderer) || isRecord(existingContent.lockupViewModel)) {
     const existingLockup = existingContent.lockupViewModel;
     const merged = isLockupViewModel(rawRenderer) && isLockupViewModel(existingLockup)
-      ? mergeLockupViewModel({ existing: existingLockup, incoming: rawRenderer, forcePreserveContentImage })
+      ? mergeLockupViewModel({
+        existing: existingLockup,
+        incoming: rawRenderer,
+        forcePreserveContentImage
+      })
       : rawRenderer;
     elElement.set(`${basePath}.lockupViewModel`, merged);
     return;
   }
+
   if (isShortsLockupViewModel(rawRenderer) || isRecord(existingContent.shortsLockupViewModel)) {
     elElement.set(`${basePath}.shortsLockupViewModel`, rawRenderer);
     return;
   }
+
   if (isRecord(existingContent.gridVideoRenderer)) {
-    elElement.set(`${basePath}.gridVideoRenderer`, buildMergedVideoRenderer({ existing: existingContent.gridVideoRenderer, incoming: rawRenderer, forcePreserveContentImage }));
+    elElement.set(
+      `${basePath}.gridVideoRenderer`, buildMergedVideoRenderer({
+        existing: existingContent.gridVideoRenderer,
+        incoming: rawRenderer,
+        forcePreserveContentImage
+      })
+    );
     return;
   }
-  elElement.set(`${basePath}.videoRenderer`, buildMergedVideoRenderer({ existing: deepRecord(existingContent, "videoRenderer"), incoming: rawRenderer, forcePreserveContentImage }));
+
+  elElement.set(
+    `${basePath}.videoRenderer`, buildMergedVideoRenderer({
+      existing: deepRecord(existingContent, "videoRenderer"),
+      incoming: rawRenderer,
+      forcePreserveContentImage
+    })
+  );
 }
 
-function syncGridModelItem({ videoId, rawRenderer, forcePreserveContentImage = false }: { videoId: string; rawRenderer: VideoSnapshot["rawRenderer"]; forcePreserveContentImage?: boolean }) {
+function syncGridModelItem({ videoId, rawRenderer, forcePreserveContentImage = false }: {
+  videoId: string;
+  rawRenderer: VideoSnapshot["rawRenderer"];
+  forcePreserveContentImage?: boolean;
+}) {
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
   if (elGrid && isPolymerElement(elGrid) && isRecord(elGrid.data)) {
     const contents = deepArray(elGrid.data, "contents");
-    const iItem = findRichItemIndex({ contents, videoId });
+    const iItem = findRichItemIndex({
+      contents,
+      videoId
+    });
     if (iItem >= 0) {
       const existingContent = deepRecord(contents[iItem], "richItemRenderer", "content");
       if (existingContent) {
-        applyRichItemContentUpdate({ elElement: elGrid, basePath: `data.contents.${iItem}.richItemRenderer.content`, existingContent, rawRenderer, forcePreserveContentImage });
+        applyRichItemContentUpdate({
+          elElement: elGrid,
+          basePath: `data.contents.${iItem}.richItemRenderer.content`,
+          existingContent,
+          rawRenderer,
+          forcePreserveContentImage
+        });
       }
+
       return;
     }
   }
@@ -307,15 +375,27 @@ function syncGridModelItem({ videoId, rawRenderer, forcePreserveContentImage = f
     if (!isPolymerElement(elShelf) || !isRecord(elShelf.data)) {
       continue;
     }
+
     const contents = deepArray(elShelf.data, "contents");
-    const iItem = findRichItemIndex({ contents, videoId });
+    const iItem = findRichItemIndex({
+      contents,
+      videoId
+    });
     if (iItem < 0) {
       continue;
     }
+
     const existingContent = deepRecord(contents[iItem], "richItemRenderer", "content");
     if (existingContent) {
-      applyRichItemContentUpdate({ elElement: elShelf, basePath: `data.contents.${iItem}.richItemRenderer.content`, existingContent, rawRenderer, forcePreserveContentImage });
+      applyRichItemContentUpdate({
+        elElement: elShelf,
+        basePath: `data.contents.${iItem}.richItemRenderer.content`,
+        existingContent,
+        rawRenderer,
+        forcePreserveContentImage
+      });
     }
+
     return;
   }
 
@@ -323,59 +403,143 @@ function syncGridModelItem({ videoId, rawRenderer, forcePreserveContentImage = f
     if (!isPolymerElement(elShelf) || !isRecord(elShelf.data)) {
       continue;
     }
+
     const shelfContent = deepRecord(elShelf.data, "content");
     for (const listKey of ["horizontalListRenderer", "gridRenderer"] as const) {
       const items = deepArray(shelfContent, listKey, "items");
       for (const [iItem, item] of items.entries()) {
         const rendererKey = deepString(item, "videoRenderer", "videoId") === videoId ? "videoRenderer"
           : deepString(item, "gridVideoRenderer", "videoId") === videoId ? "gridVideoRenderer"
-          : null;
+            : null;
         if (!rendererKey) {
           continue;
         }
-        elShelf.set(`data.content.${listKey}.items.${iItem}.${rendererKey}`, buildMergedVideoRenderer({ existing: deepRecord(item, rendererKey), incoming: rawRenderer, forcePreserveContentImage }));
+
+        elShelf.set(
+          `data.content.${listKey}.items.${iItem}.${rendererKey}`, buildMergedVideoRenderer({
+            existing: deepRecord(item, rendererKey),
+            incoming: rawRenderer,
+            forcePreserveContentImage
+          })
+        );
         return;
       }
     }
   }
 }
 
-function applyTargetedGenericUpdate({ videoId, elItem, previous, fresh }: { videoId: string; elItem: PolymerElement; previous: VideoSnapshot; fresh: VideoSnapshot }) {
+function applyTargetedGenericUpdate({ videoId, elItem, previous, fresh }: {
+  videoId: string;
+  elItem: PolymerElement;
+  previous: VideoSnapshot;
+  fresh: VideoSnapshot;
+}) {
   if (previous.title !== fresh.title) {
-    replaceTextInShadowDom({ root: elItem, oldText: previous.title, newText: fresh.title });
+    replaceTextInShadowDom({
+      root: elItem,
+      oldText: previous.title,
+      newText: fresh.title
+    });
   }
 
   if (previous.viewCountText !== fresh.viewCountText) {
-    replaceTextInShadowDom({ root: elItem, oldText: previous.viewCountText, newText: fresh.viewCountText });
+    replaceTextInShadowDom({
+      root: elItem,
+      oldText: previous.viewCountText,
+      newText: fresh.viewCountText
+    });
   }
 
   if (previous.publishedTimeText !== fresh.publishedTimeText) {
-    replaceTextInShadowDom({ root: elItem, oldText: previous.publishedTimeText, newText: fresh.publishedTimeText });
+    replaceTextInShadowDom({
+      root: elItem,
+      oldText: previous.publishedTimeText,
+      newText: fresh.publishedTimeText
+    });
   }
 
   if (previous.thumbnailUrl === fresh.thumbnailUrl) {
-    syncGridModelItem({ videoId, rawRenderer: fresh.rawRenderer, forcePreserveContentImage: true });
+    syncGridModelItem({
+      videoId,
+      rawRenderer: fresh.rawRenderer,
+      forcePreserveContentImage: true
+    });
     return;
   }
 
   const elImg = findThumbnailImgInItem(elItem);
   if (!elImg) {
-    applyPolymerUpdate({ elItem, rawRenderer: fresh.rawRenderer });
-    syncGridModelItem({ videoId, rawRenderer: fresh.rawRenderer });
+    applyPolymerUpdate({
+      elItem,
+      rawRenderer: fresh.rawRenderer
+    });
+    syncGridModelItem({
+      videoId,
+      rawRenderer: fresh.rawRenderer
+    });
     return;
   }
 
-  void areThumbnailsDifferent({ currentSrc: elImg.src, newSrc: fresh.thumbnailUrl }).then(isDifferent => {
+  void areThumbnailsDifferent({
+    currentSrc: elImg.src,
+    newSrc: fresh.thumbnailUrl
+  }).then(isDifferent => {
     if (!isDifferent) {
+      syncGridModelItem({
+        videoId,
+        rawRenderer: fresh.rawRenderer,
+        forcePreserveContentImage: true
+      });
       return;
     }
+
     void dissolveToNewThumbnail({
       elImg,
       newUrl: fresh.thumbnailUrl,
       elItem,
-      afterComplete: () => syncGridModelItem({ videoId, rawRenderer: fresh.rawRenderer })
+      afterComplete: () => syncGridModelItem({
+        videoId,
+        rawRenderer: fresh.rawRenderer
+      })
     });
   });
+}
+
+function applyItemLockup({ elItem, elLockup, incoming, forcePreserveContentImage }: {
+  elItem: PolymerElement;
+  elLockup: HTMLElement;
+  incoming: LockupViewModel;
+  forcePreserveContentImage: boolean;
+}) {
+  const itemData = elItem.data;
+  if (!isRecord(itemData)) {
+    return;
+  }
+
+  const { content } = itemData;
+  if (!isRecord(content)) {
+    return;
+  }
+
+  const existingLockup = content.lockupViewModel;
+  const merged = isLockupViewModel(existingLockup)
+    ? mergeLockupViewModel({
+      existing: existingLockup,
+      incoming,
+      forcePreserveContentImage
+    })
+    : incoming;
+  if ("lockupViewModel" in elLockup) {
+    (elLockup as HTMLElement & { lockupViewModel: LockupViewModel }).lockupViewModel = merged;
+  } else {
+    elItem.set("data", {
+      ...itemData,
+      content: {
+        ...content,
+        lockupViewModel: merged
+      }
+    });
+  }
 }
 
 function applyTargetedLockupUpdate({
@@ -391,22 +555,45 @@ function applyTargetedLockupUpdate({
   previous: VideoSnapshot;
   fresh: VideoSnapshot;
 }) {
-  const textRoot = elLockup.shadowRoot ?? elLockup;
-
-  if (previous.title !== fresh.title) {
-    replaceTextInShadowDom({ root: textRoot, oldText: previous.title, newText: fresh.title });
-  }
-
-  if (previous.viewCountText !== fresh.viewCountText) {
-    replaceTextInShadowDom({ root: textRoot, oldText: previous.viewCountText, newText: fresh.viewCountText });
-  }
-
-  if (previous.publishedTimeText !== fresh.publishedTimeText) {
-    replaceTextInShadowDom({ root: textRoot, oldText: previous.publishedTimeText, newText: fresh.publishedTimeText });
-  }
-
   if (previous.thumbnailUrl === fresh.thumbnailUrl) {
-    syncGridModelItem({ videoId, rawRenderer: fresh.rawRenderer, forcePreserveContentImage: true });
+    if (previous.title !== fresh.title) {
+      replaceTextInShadowDom({
+        root: elItem,
+        oldText: previous.title,
+        newText: fresh.title
+      });
+    }
+
+    if (previous.viewCountText !== fresh.viewCountText) {
+      replaceTextInShadowDom({
+        root: elItem,
+        oldText: previous.viewCountText,
+        newText: fresh.viewCountText
+      });
+    }
+
+    if (previous.publishedTimeText !== fresh.publishedTimeText) {
+      replaceTextInShadowDom({
+        root: elItem,
+        oldText: previous.publishedTimeText,
+        newText: fresh.publishedTimeText
+      });
+    }
+
+    if (isLockupViewModel(fresh.rawRenderer)) {
+      applyItemLockup({
+        elItem,
+        elLockup,
+        incoming: fresh.rawRenderer,
+        forcePreserveContentImage: true
+      });
+    }
+
+    syncGridModelItem({
+      videoId,
+      rawRenderer: fresh.rawRenderer,
+      forcePreserveContentImage: true
+    });
     return;
   }
 
@@ -414,35 +601,90 @@ function applyTargetedLockupUpdate({
   const newUrl = freshLockup.contentImage?.thumbnailViewModel?.image?.sources?.at(-1)?.url ?? fresh.thumbnailUrl;
   const elImg = findThumbnailImg(elLockup);
   if (!elImg) {
-    applyPolymerUpdate({ elItem, rawRenderer: fresh.rawRenderer });
-    syncGridModelItem({ videoId, rawRenderer: fresh.rawRenderer });
+    applyPolymerUpdate({
+      elItem,
+      rawRenderer: fresh.rawRenderer
+    });
+    syncGridModelItem({
+      videoId,
+      rawRenderer: fresh.rawRenderer
+    });
     return;
   }
 
-  void areThumbnailsDifferent({ currentSrc: elImg.src, newSrc: newUrl }).then(isDifferent => {
+  void areThumbnailsDifferent({
+    currentSrc: elImg.src,
+    newSrc: newUrl
+  }).then(isDifferent => {
     if (!isDifferent) {
+      if (isLockupViewModel(fresh.rawRenderer)) {
+        applyItemLockup({
+          elItem,
+          elLockup,
+          incoming: fresh.rawRenderer,
+          forcePreserveContentImage: true
+        });
+      }
+
+      syncGridModelItem({
+        videoId,
+        rawRenderer: fresh.rawRenderer,
+        forcePreserveContentImage: true
+      });
       return;
     }
+
     void dissolveToNewThumbnail({
       elImg,
       newUrl,
       elItem,
-      afterComplete: () => syncGridModelItem({ videoId, rawRenderer: fresh.rawRenderer })
+      afterComplete() {
+        if (isLockupViewModel(fresh.rawRenderer)) {
+          applyItemLockup({
+            elItem,
+            elLockup,
+            incoming: fresh.rawRenderer,
+            forcePreserveContentImage: false
+          });
+        }
+
+        syncGridModelItem({
+          videoId,
+          rawRenderer: fresh.rawRenderer
+        });
+      }
     });
   });
 }
 
-export function applyUpdate({ videoId, elItem, fresh, previous }: { videoId: string; elItem: PolymerElement; fresh: VideoSnapshot; previous?: VideoSnapshot }) {
+export function applyUpdate({ videoId, elItem, fresh, previous }: {
+  videoId: string;
+  elItem: PolymerElement;
+  fresh: VideoSnapshot;
+  previous?: VideoSnapshot;
+}) {
   if (!previous || previous.status !== fresh.status || previous.isChannelLive !== fresh.isChannelLive) {
-    applyPolymerUpdate({ elItem, rawRenderer: fresh.rawRenderer });
-    syncGridModelItem({ videoId, rawRenderer: fresh.rawRenderer });
+    applyPolymerUpdate({
+      elItem,
+      rawRenderer: fresh.rawRenderer
+    });
+    syncGridModelItem({
+      videoId,
+      rawRenderer: fresh.rawRenderer
+    });
     return;
   }
 
   const itemData = elItem.data;
   if (!isRecord(itemData)) {
-    applyPolymerUpdate({ elItem, rawRenderer: fresh.rawRenderer });
-    syncGridModelItem({ videoId, rawRenderer: fresh.rawRenderer });
+    applyPolymerUpdate({
+      elItem,
+      rawRenderer: fresh.rawRenderer
+    });
+    syncGridModelItem({
+      videoId,
+      rawRenderer: fresh.rawRenderer
+    });
     return;
   }
 
@@ -450,24 +692,48 @@ export function applyUpdate({ videoId, elItem, fresh, previous }: { videoId: str
   if (isRecord(content) && isRecord(content.lockupViewModel)) {
     const elLockup = elItem.querySelector<HTMLElement>("yt-lockup-view-model");
     if (elLockup) {
-      applyTargetedLockupUpdate({ videoId, elItem, elLockup, previous, fresh });
+      applyTargetedLockupUpdate({
+        videoId,
+        elItem,
+        elLockup,
+        previous,
+        fresh
+      });
       return;
     }
   }
 
-  applyTargetedGenericUpdate({ videoId, elItem, previous, fresh });
+  applyTargetedGenericUpdate({
+    videoId,
+    elItem,
+    previous,
+    fresh
+  });
 }
 
-export function updateVideoInDom({ videoId, freshSnapshot, previousSnapshot }: { videoId: string; freshSnapshot: VideoSnapshot; previousSnapshot?: VideoSnapshot }) {
+export function updateVideoInDom({ videoId, freshSnapshot, previousSnapshot }: {
+  videoId: string;
+  freshSnapshot: VideoSnapshot;
+  previousSnapshot?: VideoSnapshot;
+}) {
   const elItem = findItemElement(videoId);
   if (!elItem || !isPolymerElement(elItem)) {
     return;
   }
 
   if (isInViewport(elItem)) {
-    applyUpdate({ videoId, elItem, fresh: freshSnapshot, previous: previousSnapshot });
+    applyUpdate({
+      videoId,
+      elItem,
+      fresh: freshSnapshot,
+      previous: previousSnapshot
+    });
   } else {
-    scheduleLazyUpdate({ videoId, fresh: freshSnapshot, previous: previousSnapshot });
+    scheduleLazyUpdate({
+      videoId,
+      fresh: freshSnapshot,
+      previous: previousSnapshot
+    });
   }
 }
 
@@ -477,6 +743,7 @@ function buildVideoElementMap() {
     if (!isPolymerElement(elItem)) {
       continue;
     }
+
     const videoId = videoIdFromData(elItem.data);
     if (videoId) {
       map.set(videoId, elItem);
@@ -486,6 +753,7 @@ function buildVideoElementMap() {
     if (!isPolymerElement(elItem)) {
       continue;
     }
+
     const videoId = deepString(elItem.data, "videoId");
     if (videoId) {
       map.set(videoId, elItem);
@@ -494,14 +762,23 @@ function buildVideoElementMap() {
   return map;
 }
 
-export function batchUpdateVideosInDom({ freshSnapshots, previousSnapshotMap }: { freshSnapshots: VideoSnapshot[]; previousSnapshotMap?: Map<string, VideoSnapshot> }) {
+export function batchUpdateVideosInDom({ freshSnapshots, previousSnapshotMap }: {
+  freshSnapshots: VideoSnapshot[];
+  previousSnapshotMap?: Map<string, VideoSnapshot>;
+}) {
   const elementMap = buildVideoElementMap();
   for (const fresh of freshSnapshots) {
     const elItem = elementMap.get(fresh.videoId);
     if (!elItem) {
       continue;
     }
+
     const previous = previousSnapshotMap?.get(fresh.videoId);
-    scheduleLazyUpdate({ videoId: fresh.videoId, fresh, previous, elItemHint: elItem });
+    scheduleLazyUpdate({
+      videoId: fresh.videoId,
+      fresh,
+      previous,
+      elItemHint: elItem
+    });
   }
 }
