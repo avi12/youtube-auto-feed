@@ -688,8 +688,12 @@ function findZoneBoundaries(contents: unknown[]) {
   const end = continuationIndex >= 0 ? continuationIndex : contents.length;
   const sectionBoundaries: number[] = [];
   for (let i = 0; i < end; i++) {
-    const sectionItems = deepArray(contents[i], "richSectionRenderer", "content", "richShelfRenderer", "contents");
-    if (sectionItems.length > 0) {
+    const richShelfItems = deepArray(contents[i], "richSectionRenderer", "content", "richShelfRenderer", "contents");
+    const shelfItems = [
+      ...deepArray(contents[i], "richSectionRenderer", "content", "shelfRenderer", "content", "horizontalListRenderer", "items"),
+      ...deepArray(contents[i], "richSectionRenderer", "content", "shelfRenderer", "content", "gridRenderer", "items")
+    ];
+    if (richShelfItems.length > 0 || shelfItems.length > 0) {
       sectionBoundaries.push(i);
     }
   }
