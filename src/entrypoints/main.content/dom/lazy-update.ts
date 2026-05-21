@@ -87,9 +87,10 @@ export function scheduleLazyUpdate({ videoId, fresh, previous, elItemHint }: {
   previous?: VideoSnapshot;
   elItemHint?: HTMLElement;
 }) {
+  const existing = pendingUpdates.get(videoId);
   pendingUpdates.set(videoId, {
     fresh,
-    previous
+    previous: existing?.previous ?? previous
   });
   const elItem = elItemHint ?? findItemElement(videoId);
   if (elItem) {
