@@ -5,9 +5,11 @@ function rawThumbnailUrl(rawRenderer: InnerTubeVideoRenderer | LockupViewModel |
   if (isLockupViewModel(rawRenderer)) {
     return rawRenderer.contentImage?.thumbnailViewModel?.image?.sources?.at(-1)?.url ?? "";
   }
+
   if (isShortsLockupViewModel(rawRenderer)) {
     return rawRenderer.thumbnail?.sources?.at(-1)?.url ?? "";
   }
+
   return rawRenderer.thumbnail.thumbnails.at(-1)?.url ?? "";
 }
 
@@ -17,6 +19,7 @@ function preloadThumbnail(url: string) {
       resolve();
       return;
     }
+
     const img = new Image();
     img.onload = () => resolve();
     img.onerror = () => resolve();

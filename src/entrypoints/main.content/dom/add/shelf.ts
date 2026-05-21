@@ -40,7 +40,11 @@ export async function addVideosToDom({
   }
 
   for (const [, sectionVideos] of bySection) {
-    await addVideosToSection({ videos: sectionVideos, allFreshSnapshots, snapshot });
+    await addVideosToSection({
+      videos: sectionVideos,
+      allFreshSnapshots,
+      snapshot
+    });
   }
 }
 
@@ -57,7 +61,11 @@ async function addVideosToSection({
   const sectionVideos = allFreshSnapshots.filter(video => video.sectionTitle === sectionTitle);
   const elShelf = findShelfForSection(sectionTitle);
   if (!elShelf || !isPolymerElement(elShelf)) {
-    await addSectionToDom({ sectionTitle, videos: sectionVideos, allFreshSnapshots });
+    await addSectionToDom({
+      sectionTitle,
+      videos: sectionVideos,
+      allFreshSnapshots
+    });
     return;
   }
 
@@ -71,14 +79,22 @@ async function addVideosToSection({
     return;
   }
 
-  const insertOperations = buildInsertOperations({ videosToInsert, sectionVideos, elShelf, snapshot });
+  const insertOperations = buildInsertOperations({
+    videosToInsert,
+    sectionVideos,
+    elShelf,
+    snapshot
+  });
   const newShelfContents = [...shelfContents];
   for (const { video, iInsert } of insertOperations) {
     newShelfContents.splice(iInsert, 0, buildRichItem(video.rawRenderer));
   }
 
   const elExistingItems = filterToViewport(elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer"));
-  const visibleCap = computeVisibleCap({ elShelf, elExistingItems });
+  const visibleCap = computeVisibleCap({
+    elShelf,
+    elExistingItems
+  });
   const displayCap = visibleCap ?? elExistingItems.length;
   const isCollapsed = isShelfCollapsed(elShelf);
 
@@ -88,7 +104,14 @@ async function addVideosToSection({
     return;
   }
 
-  await runShelfInsertTransition({ elShelf, elExistingItems, insertOperations, newShelfContents, displayCap, isCollapsed });
+  await runShelfInsertTransition({
+    elShelf,
+    elExistingItems,
+    insertOperations,
+    newShelfContents,
+    displayCap,
+    isCollapsed
+  });
 }
 
 function buildInsertOperations({
@@ -106,7 +129,12 @@ function buildInsertOperations({
     .map(video => {
       const iApiInsert = Math.max(0, sectionVideos.findIndex(sectionVideo => sectionVideo.videoId === video.videoId));
       const iInsert = video.status !== VideoStatus.Live
-        ? Math.max(iApiInsert, leadingLiveCount({ elShelf, snapshot }))
+        ? Math.max(
+          iApiInsert, leadingLiveCount({
+            elShelf,
+            snapshot
+          })
+        )
         : iApiInsert;
       return {
         video,
@@ -116,7 +144,10 @@ function buildInsertOperations({
     .sort((opA, opB) => opB.iInsert - opA.iInsert);
 }
 
-function computeVisibleCap({ elShelf, elExistingItems }: { elShelf: PolymerElement; elExistingItems: HTMLElement[] }) {
+function computeVisibleCap({ elShelf, elExistingItems }: {
+  elShelf: PolymerElement;
+  elExistingItems: HTMLElement[];
+}) {
   if (isShelfCollapsed(elShelf)) {
     return null;
   }
@@ -153,13 +184,19 @@ async function runShelfInsertTransition({
     .filter(video => displayContents.some(item => videoIdFromRichItem(item) === video.videoId));
 
   const iMinimumInsert = insertOperations[insertOperations.length - 1].iInsert;
-  const overflowResult = isCollapsed ? buildCollapsedOverflowStyle({ elExistingItems, iInsert: iMinimumInsert }) : null;
+  const overflowResult = isCollapsed ? buildCollapsedOverflowStyle({
+    elExistingItems,
+    iInsert: iMinimumInsert
+  }) : null;
   if (overflowResult) {
     document.head.append(overflowResult.elStyle);
   }
 
   const excludeNames = overflowResult ? new Set([overflowResult.overflowName]) : new Set<string>();
-  const elShiftStyle = buildShiftTransitionStyle({ elItems: elExistingItems, excludeNames });
+  const elShiftStyle = buildShiftTransitionStyle({
+    elItems: elExistingItems,
+    excludeNames
+  });
   document.head.append(elShiftStyle);
 
   const wasExpanded = isRecord(elShelf.data) ? elShelf.data.isExpanded : undefined;
@@ -174,7 +211,10 @@ async function runShelfInsertTransition({
 
     clearItemViewTransitionNames(elExistingItems);
     await waitForVideosToRender(visibleVideosToInsert);
-    reassignTransitionNames({ elItems: elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer"), animateIds });
+    reassignTransitionNames({
+      elItems: elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer"),
+      animateIds
+    });
 
     const elNewItems = collectNewItemElements(insertOperations);
     if (elNewItems.length > 0) {
@@ -236,7 +276,10 @@ function computeVisibleItemCap(elExistingItems: HTMLElement[]) {
   return rowCount * itemsInFirstRow;
 }
 
-function buildCollapsedOverflowStyle({ elExistingItems, iInsert }: { elExistingItems: HTMLElement[]; iInsert: number }) {
+function buildCollapsedOverflowStyle({ elExistingItems, iInsert }: {
+  elExistingItems: HTMLElement[];
+  iInsert: number;
+}) {
   const visibleItems = [...elExistingItems].filter(elItem => elItem.offsetWidth > 0);
   const elLastVisible = visibleItems.at(-1);
   if (!elLastVisible || iInsert >= visibleItems.length) {

@@ -1,7 +1,13 @@
 import { parseSecondsAgo } from "./api/guards";
 import { addVideosToGridDom, cleanOrphanedGridItems } from "./dom/add/grid";
 import { addVideosToDom } from "./dom/add/shelf";
-import { type BandLayout, dismantleAbsentSections, enforceBandLayout, enforceShelfCaps, reorderSections } from "./dom/band-layout";
+import {
+  type BandLayout,
+  dismantleAbsentSections,
+  enforceBandLayout,
+  enforceShelfCaps,
+  reorderSections
+} from "./dom/band-layout";
 import { moveVideosToFront } from "./dom/move";
 import { findShelfForSection } from "./dom/query";
 import { removeVideosFromDom } from "./dom/remove";
@@ -31,6 +37,7 @@ function readCurrentVideoSections() {
       if (!sections.has(inlineVideoId)) {
         sections.set(inlineVideoId, "");
       }
+
       continue;
     }
 
@@ -150,8 +157,14 @@ interface ClassifiedChanges {
   videosToAdd: VideoSnapshot[];
   videosToReposition: VideoSnapshot[];
   videosToMoveToFront: VideoSnapshot[];
-  candidateSectionMoves: { videoId: string; toSection: string }[];
-  candidateBandMoves: { videoId: string; toBandIndex: number }[];
+  candidateSectionMoves: {
+    videoId: string;
+    toSection: string;
+  }[];
+  candidateBandMoves: {
+    videoId: string;
+    toBandIndex: number;
+  }[];
 }
 
 interface SectionMove {
@@ -179,7 +192,10 @@ interface FeedDiff {
   metadataOnly: VideoSnapshot[];
 }
 
-function polledShapeMatchesBaseline({ polledSectionOrder, bandLayout }: { polledSectionOrder: string[]; bandLayout: BandLayout | null }) {
+function polledShapeMatchesBaseline({ polledSectionOrder, bandLayout }: {
+  polledSectionOrder: string[];
+  bandLayout: BandLayout | null;
+}) {
   if (!bandLayout || polledSectionOrder.length === 0) {
     return true;
   }
@@ -198,7 +214,10 @@ function polledShapeMatchesBaseline({ polledSectionOrder, bandLayout }: { polled
   return true;
 }
 
-function classifyStatusTransition({ previous, fresh }: { previous: VideoSnapshot; fresh: VideoSnapshot }) {
+function classifyStatusTransition({ previous, fresh }: {
+  previous: VideoSnapshot;
+  fresh: VideoSnapshot;
+}) {
   if (previous.status === VideoStatus.Upcoming && fresh.status === VideoStatus.Live) {
     return "upcoming-to-live" as const;
   }
@@ -256,12 +275,21 @@ function computeFeedDiff({
     if (!previous) {
       const currentSection = currentVideoSections.get(fresh.videoId);
       if (currentSection !== undefined && currentSection !== fresh.sectionTitle && currentSection !== "") {
-        sectionMoves.push({ videoId: fresh.videoId, fromSection: currentSection, toSection: fresh.sectionTitle, fresh });
+        sectionMoves.push({
+          videoId: fresh.videoId,
+          fromSection: currentSection,
+          toSection: fresh.sectionTitle,
+          fresh
+        });
       }
+
       continue;
     }
 
-    const transition = classifyStatusTransition({ previous, fresh });
+    const transition = classifyStatusTransition({
+      previous,
+      fresh
+    });
     if (transition === "upcoming-to-live") {
       liveTransitions.push(fresh); continue;
     }
@@ -273,17 +301,27 @@ function computeFeedDiff({
     const currentSection = currentVideoSections.get(fresh.videoId);
     if (currentSection !== undefined && currentSection !== fresh.sectionTitle) {
       if (currentSection === "") {
-        if (hasMetadataChange({ previous, fresh })) {
+        if (hasMetadataChange({
+          previous,
+          fresh
+        })) {
           metadataOnly.push(fresh);
         }
+
         continue;
       }
+
       if (currentSection && !knownApiSections.has(currentSection)) {
-        if (hasMetadataChange({ previous, fresh })) {
+        if (hasMetadataChange({
+          previous,
+          fresh
+        })) {
           metadataOnly.push(fresh);
         }
+
         continue;
       }
+
       sectionMoves.push({
         videoId: fresh.videoId,
         fromSection: currentSection,
@@ -303,7 +341,10 @@ function computeFeedDiff({
       continue;
     }
 
-    if (hasMetadataChange({ previous, fresh })) {
+    if (hasMetadataChange({
+      previous,
+      fresh
+    })) {
       metadataOnly.push(fresh);
     }
   }
@@ -345,8 +386,19 @@ function classifyChanges({
   confirmedBandMoves: Set<string>;
   isInitialLoad: boolean;
 }): ClassifiedChanges {
-  const diff = computeFeedDiff({ previousSnapshot, freshSnapshots, freshMap, currentVideoIds, currentVideoSections, confirmedAbsentVideoIds, knownApiSections: new Set(polledSectionOrder) });
-  const isShapeMatch = polledShapeMatchesBaseline({ polledSectionOrder, bandLayout });
+  const diff = computeFeedDiff({
+    previousSnapshot,
+    freshSnapshots,
+    freshMap,
+    currentVideoIds,
+    currentVideoSections,
+    confirmedAbsentVideoIds,
+    knownApiSections: new Set(polledSectionOrder)
+  });
+  const isShapeMatch = polledShapeMatchesBaseline({
+    polledSectionOrder,
+    bandLayout
+  });
 
   for (const move of diff.sectionMoves) {
     if ((isShapeMatch || move.toSection || move.fromSection) && (confirmedSectionMoves.has(move.videoId) || isInitialLoad)) {
@@ -365,14 +417,22 @@ function classifyChanges({
   for (const fresh of diff.metadataOnly) {
     const previous = previousSnapshot.get(fresh.videoId);
     if (previous) {
-      updateVideoInDom({ videoId: fresh.videoId, freshSnapshot: fresh, previousSnapshot: previous });
+      updateVideoInDom({
+        videoId: fresh.videoId,
+        freshSnapshot: fresh,
+        previousSnapshot: previous
+      });
     }
   }
 
   for (const fresh of diff.finishedStreams) {
     const previous = previousSnapshot.get(fresh.videoId);
     if (previous) {
-      updateVideoInDom({ videoId: fresh.videoId, freshSnapshot: fresh, previousSnapshot: previous });
+      updateVideoInDom({
+        videoId: fresh.videoId,
+        freshSnapshot: fresh,
+        previousSnapshot: previous
+      });
     }
   }
 
@@ -382,12 +442,21 @@ function classifyChanges({
     videosToAdd: diff.added,
     videosToReposition: diff.finishedStreams,
     videosToMoveToFront: diff.liveTransitions,
-    candidateSectionMoves: diff.sectionMoves.map(({ videoId, toSection }) => ({ videoId, toSection })),
-    candidateBandMoves: diff.bandMoves.map(({ videoId, toBandIndex }) => ({ videoId, toBandIndex }))
+    candidateSectionMoves: diff.sectionMoves.map(({ videoId, toSection }) => ({
+      videoId,
+      toSection
+    })),
+    candidateBandMoves: diff.bandMoves.map(({ videoId, toBandIndex }) => ({
+      videoId,
+      toBandIndex
+    }))
   };
 }
 
-function hasMetadataChange({ previous, fresh }: { previous: VideoSnapshot; fresh: VideoSnapshot }) {
+function hasMetadataChange({ previous, fresh }: {
+  previous: VideoSnapshot;
+  fresh: VideoSnapshot;
+}) {
   return previous.title !== fresh.title ||
     previous.thumbnailUrl !== fresh.thumbnailUrl ||
     previous.status !== fresh.status ||
@@ -396,7 +465,10 @@ function hasMetadataChange({ previous, fresh }: { previous: VideoSnapshot; fresh
     previous.isChannelLive !== fresh.isChannelLive;
 }
 
-function buildSectionOrder({ initialSectionOrder, polledSectionOrder }: { initialSectionOrder: string[]; polledSectionOrder: string[] }) {
+function buildSectionOrder({ initialSectionOrder, polledSectionOrder }: {
+  initialSectionOrder: string[];
+  polledSectionOrder: string[];
+}) {
   if (initialSectionOrder.length === 0) {
     return polledSectionOrder;
   }
@@ -463,27 +535,42 @@ async function executeChanges({
     video => !!video.sectionTitle && !innerShelfSections.has(video.sectionTitle)
   );
   const gridVideos = changes.videosToAdd.filter(video => !video.sectionTitle);
-  const shelfMoveIds = new Set(shelfVideos.filter(v => videoIdsToRemoveSet.has(v.videoId)).map(v => v.videoId));
-
-  if (shelfVideos.length > 0) {
-    await addVideosToDom({ freshSnapshots: shelfVideos, allFreshSnapshots: timeOrderedSnapshots, snapshot: freshMap });
+  const shelfMoveIds = new Set(shelfVideos.filter(v => videoIdsToRemoveSet.has(v.videoId)).map(v => v.videoId));  if (shelfVideos.length > 0) {
+    await addVideosToDom({
+      freshSnapshots: shelfVideos,
+      allFreshSnapshots: timeOrderedSnapshots,
+      snapshot: freshMap
+    });
   }
 
   if (changes.videoIdsToRemove.length > 0) {
-    await removeVideosFromDom({ videoIds: changes.videoIdsToRemove, shelfProtectedIds: shelfMoveIds });
+    await removeVideosFromDom({
+      videoIds: changes.videoIdsToRemove,
+      shelfProtectedIds: shelfMoveIds
+    });
   }
 
   for (const video of changes.videosToReposition) {
     const sectionVideos = freshSnapshots.filter(snapshot => snapshot.sectionTitle === video.sectionTitle);
-    await repositionVideoInSection({ freshSnapshot: video, sectionVideos, allSnapshots: freshMap });
+    await repositionVideoInSection({
+      freshSnapshot: video,
+      sectionVideos,
+      allSnapshots: freshMap
+    });
   }
 
   if (gridVideos.length > 0) {
-    await addVideosToGridDom({ videosToAdd: gridVideos, allFreshSnapshots: freshSnapshots });
+    await addVideosToGridDom({
+      videosToAdd: gridVideos,
+      allFreshSnapshots: freshSnapshots
+    });
   }
 
   if (changes.videosToMoveToFront.length > 0) {
-    await moveVideosToFront({ videos: changes.videosToMoveToFront, allFreshSnapshots: freshSnapshots });
+    await moveVideosToFront({
+      videos: changes.videosToMoveToFront,
+      allFreshSnapshots: freshSnapshots
+    });
   }
 }
 
@@ -513,6 +600,7 @@ function reconcileShelfOrders(freshSnapshots: VideoSnapshot[]) {
     if (!video.sectionTitle) {
       continue;
     }
+
     const ids = sectionGroups.get(video.sectionTitle) ?? [];
     ids.push(video.videoId);
     sectionGroups.set(video.sectionTitle, ids);
@@ -528,11 +616,10 @@ function reconcileShelfOrders(freshSnapshots: VideoSnapshot[]) {
     if (shelfContents.some(item => !!deepRecord(item, "richItemRenderer", "content", "shortsLockupViewModel"))) {
       continue;
     }
+
     const domVideoIds = shelfContents
       .map(item => videoIdFromData(deepRecord(item, "richItemRenderer")))
-      .filter((id): id is string => !!id);
-
-    if (domVideoIds.length !== apiVideoIds.length) {
+      .filter((id): id is string => !!id);    if (domVideoIds.length !== apiVideoIds.length) {
       continue;
     }
 
@@ -583,32 +670,64 @@ export async function detectAndApplyChanges({
   const currentVideoIds = readCurrentVideoIds();
   const currentVideoSections = readCurrentVideoSections();
 
-  const changes = classifyChanges({ previousSnapshot, freshSnapshots, freshMap, currentVideoIds, currentVideoSections, bandLayout, polledSectionOrder, confirmedAbsentVideoIds, confirmedSectionMoves, confirmedBandMoves, isInitialLoad });
+  const changes = classifyChanges({
+    previousSnapshot,
+    freshSnapshots,
+    freshMap,
+    currentVideoIds,
+    currentVideoSections,
+    bandLayout,
+    polledSectionOrder,
+    confirmedAbsentVideoIds,
+    confirmedSectionMoves,
+    confirmedBandMoves,
+    isInitialLoad
+  });
   const isLayoutChange = changes.videoIdsToRemove.length > 0 ||
     changes.videosToAdd.length > 0 ||
     changes.videosToReposition.length > 0;
 
-  await executeChanges({ changes, freshSnapshots, freshMap });
+  await executeChanges({
+    changes,
+    freshSnapshots,
+    freshMap
+  });
   cleanOrphanedGridItems();
+
   if (changes.videosToAdd.length > 0) {
     reconcileShelfOrders(freshSnapshots);
   }
+
   if (bandLayout && changes.videosToAdd.length === 0) {
     enforceBandLayout(bandLayout);
     enforceShelfCaps(bandLayout);
   }
+
   const initialSectionOrder = bandLayout?.sectionOrder ?? [];
   const protectedSections = new Set(initialSectionOrder);
   let candidateSectionRemovals: string[] = [];
   if (polledSectionOrder.length > 0) {
-    candidateSectionRemovals = dismantleAbsentSections({ polledSectionOrder, confirmedAbsentSections, protectedSections });
+    candidateSectionRemovals = dismantleAbsentSections({
+      polledSectionOrder,
+      confirmedAbsentSections,
+      protectedSections
+    });
   }
-  const effectiveSectionOrder = buildSectionOrder({ initialSectionOrder, polledSectionOrder });
+
+  const effectiveSectionOrder = buildSectionOrder({
+    initialSectionOrder,
+    polledSectionOrder
+  });
   if (effectiveSectionOrder.length > 0) {
     reorderSections(effectiveSectionOrder);
   }
 
-  preserveStaleEntriesForUnremovedVideos({ videoIdsToRemove: changes.videoIdsToRemove, candidateRemovals: changes.candidateRemovals, previousSnapshot, freshMap });
+  preserveStaleEntriesForUnremovedVideos({
+    videoIdsToRemove: changes.videoIdsToRemove,
+    candidateRemovals: changes.candidateRemovals,
+    previousSnapshot,
+    freshMap
+  });
 
   return {
     isLayoutChange,
@@ -636,14 +755,24 @@ export function detectAndApplyMetadataChanges({
       continue;
     }
 
-    if (hasMetadataChange({ previous, fresh })) {
+    if (hasMetadataChange({
+      previous,
+      fresh
+    })) {
       changedVideos.push(fresh);
-      updatedSnapshot.set(fresh.videoId, { ...fresh, sectionTitle: previous.sectionTitle, bandIndex: previous.bandIndex });
+      updatedSnapshot.set(fresh.videoId, {
+        ...fresh,
+        sectionTitle: previous.sectionTitle,
+        bandIndex: previous.bandIndex
+      });
     }
   }
 
   if (changedVideos.length > 0) {
-    batchUpdateVideosInDom({ freshSnapshots: changedVideos, previousSnapshotMap: previousSnapshot });
+    batchUpdateVideosInDom({
+      freshSnapshots: changedVideos,
+      previousSnapshotMap: previousSnapshot
+    });
   }
 
   return updatedSnapshot;

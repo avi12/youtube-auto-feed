@@ -28,21 +28,39 @@ export async function repositionVideoInSection({
   } = freshSnapshot;
   const elShelf = findShelfForSection(sectionTitle);
   if (!elShelf || !isPolymerElement(elShelf)) {
-    updateVideoInDom({ videoId, freshSnapshot });
+    updateVideoInDom({
+      videoId,
+      freshSnapshot
+    });
     return;
   }
 
   const shelfContents = deepArray(elShelf.data, "contents");
-  const iCurrent = findRichItemIndex({ contents: shelfContents, videoId });
+  const iCurrent = findRichItemIndex({
+    contents: shelfContents,
+    videoId
+  });
   if (iCurrent < 0) {
-    updateVideoInDom({ videoId, freshSnapshot });
+    updateVideoInDom({
+      videoId,
+      freshSnapshot
+    });
     return;
   }
 
   const contentsWithoutVideo = shelfContents.filter((_, i) => i !== iCurrent);
-  const iInsert = resolveInsertIndex({ contentsWithoutVideo, videoId, sectionVideos, status, allSnapshots });
+  const iInsert = resolveInsertIndex({
+    contentsWithoutVideo,
+    videoId,
+    sectionVideos,
+    status,
+    allSnapshots
+  });
   if (iInsert === iCurrent) {
-    updateVideoInDom({ videoId, freshSnapshot });
+    updateVideoInDom({
+      videoId,
+      freshSnapshot
+    });
     return;
   }
 
@@ -51,7 +69,10 @@ export async function repositionVideoInSection({
 
   if (prefersReducedMotion()) {
     elShelf.set("data.contents", newContents);
-    updateVideoInDom({ videoId, freshSnapshot });
+    updateVideoInDom({
+      videoId,
+      freshSnapshot
+    });
     return;
   }
 
@@ -71,7 +92,10 @@ export async function repositionVideoInSection({
       for (const elItem of elItems) {
         elItem.style.viewTransitionName = "";
       }
-      reassignTransitionNames({ elItems: elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer"), animateIds });
+      reassignTransitionNames({
+        elItems: elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer"),
+        animateIds
+      });
     }).finished;
   } finally {
     clearAllItemViewTransitionNames();

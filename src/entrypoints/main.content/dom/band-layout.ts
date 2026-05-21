@@ -57,20 +57,24 @@ export function captureBandLayout() {
     if (!isPolymerElement(elShelf) || !isRecord(elShelf.data)) {
       continue;
     }
+
     const shelfTitle = deepString(elShelf.data, "title", "runs", "0", "text");
     if (!shelfTitle) {
       continue;
     }
+
     const shelfContents = deepArray(elShelf.data, "contents");
     if (shelfContents.length === 0) {
       continue;
     }
+
     const elItems = [...elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer")]
       .filter(elItem => elItem.offsetWidth > 0);
     if (elItems.length === 0) {
       shelfCaps.set(shelfTitle, shelfContents.length);
       continue;
     }
+
     const firstRowTop = Math.round(elItems[0].getBoundingClientRect().top);
     const itemsInFirstRow = elItems.filter(
       elItem => Math.round(elItem.getBoundingClientRect().top) === firstRowTop
@@ -79,6 +83,7 @@ export function captureBandLayout() {
       shelfCaps.set(shelfTitle, shelfContents.length);
       continue;
     }
+
     const rowCount = new Set(
       elItems.map(elItem => Math.round(elItem.getBoundingClientRect().top))
     ).size;
@@ -116,6 +121,7 @@ export function dismantleAbsentSections({
     const sectionTitle = readSectionTitle(item);
     if (sectionTitle && !polledSet.has(sectionTitle) && !protectedSections.has(sectionTitle)) {
       candidateAbsent.push(sectionTitle);
+
       if (confirmedAbsentSections.has(sectionTitle)) {
         const richShelfContents = deepArray(item, "richSectionRenderer", "content", "richShelfRenderer", "contents");
         newContents.push(...richShelfContents);
@@ -145,9 +151,13 @@ export function reorderSections(polledSectionOrder: string[]) {
   const beforeContinuation = continuationIndex >= 0 ? contents.slice(0, continuationIndex) : contents;
   const trailing = continuationIndex >= 0 ? contents.slice(continuationIndex) : [];
 
-  interface Block { sectionTitle: string | null; items: unknown[] }
+  interface Block { sectionTitle: string | null;
+    items: unknown[]; }
   const blocks: Block[] = [];
-  let currentBlock: Block = { sectionTitle: null, items: [] };
+  let currentBlock: Block = {
+    sectionTitle: null,
+    items: []
+  };
   for (const item of beforeContinuation) {
     const sectionTitle = readSectionTitle(item);
     if (sectionTitle) {
@@ -155,12 +165,16 @@ export function reorderSections(polledSectionOrder: string[]) {
         blocks.push(currentBlock);
       }
 
-      currentBlock = { sectionTitle, items: [item] };
+      currentBlock = {
+        sectionTitle,
+        items: [item]
+      };
       continue;
     }
 
     currentBlock.items.push(item);
   }
+
   if (currentBlock.items.length > 0 || currentBlock.sectionTitle !== null) {
     blocks.push(currentBlock);
   }
@@ -216,8 +230,10 @@ export function normalizeInitialBandLayout() {
       if (firstContentSectionIndex < 0) {
         firstContentSectionIndex = i;
       }
+
       continue;
     }
+
     if (videoIdFromRichItem(contents[i])) {
       if (firstContentSectionIndex < 0) {
         band0InlineCount++;
@@ -278,7 +294,10 @@ export async function normalizeCollapsedShelfRows() {
 
     const overflowVideoIds = new Set(
       overflowItems.flatMap(elItem => {
-        if (!isPolymerElement(elItem)) return [];
+        if (!isPolymerElement(elItem)) {
+          return [];
+        }
+
         const videoId = videoIdFromRichItem(elItem.data);
         return videoId ? [videoId] : [];
       })
@@ -292,6 +311,7 @@ export async function normalizeCollapsedShelfRows() {
         trimmedVideoIds.add(videoId);
         return false;
       }
+
       return true;
     });
 
@@ -305,18 +325,22 @@ export function enforceShelfCaps(layout: BandLayout) {
     if (!isPolymerElement(elShelf) || !isRecord(elShelf.data)) {
       continue;
     }
+
     const shelfTitle = deepString(elShelf.data, "title", "runs", "0", "text");
     if (!shelfTitle) {
       continue;
     }
+
     const cap = layout.shelfCaps.get(shelfTitle);
     if (cap === undefined) {
       continue;
     }
+
     const currentContents = deepArray(elShelf.data, "contents");
     if (currentContents.length <= cap) {
       continue;
     }
+
     elShelf.set("data.contents", currentContents.slice(0, cap));
   }
 }

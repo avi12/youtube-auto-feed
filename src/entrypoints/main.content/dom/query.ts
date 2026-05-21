@@ -42,7 +42,11 @@ export function findShelfForSection(sectionTitle: string) {
 export function readDomSnapshot() {
   const snapshot = new Map<string, VideoSnapshot>();
 
-  function addRichItemToSnapshot({ elItem, sectionTitle, bandIndex }: { elItem: Element; sectionTitle: string; bandIndex: number }) {
+  function addRichItemToSnapshot({ elItem, sectionTitle, bandIndex }: {
+    elItem: Element;
+    sectionTitle: string;
+    bandIndex: number;
+  }) {
     if (!isPolymerElement(elItem)) {
       return;
     }
@@ -55,11 +59,23 @@ export function readDomSnapshot() {
       deepRecord(elItem.data, "content", "shortsLockupViewModel");
     let videoSnapshot = null;
     if (isVideoRenderer(rawRenderer)) {
-      videoSnapshot = parseRenderer({ renderer: rawRenderer, sectionTitle, bandIndex });
+      videoSnapshot = parseRenderer({
+        renderer: rawRenderer,
+        sectionTitle,
+        bandIndex
+      });
     } else if (isLockupViewModel(rawRenderer)) {
-      videoSnapshot = parseLockupViewModel({ lockup: rawRenderer, sectionTitle, bandIndex });
+      videoSnapshot = parseLockupViewModel({
+        lockup: rawRenderer,
+        sectionTitle,
+        bandIndex
+      });
     } else if (isShortsLockupViewModel(rawRenderer)) {
-      videoSnapshot = parseShortsLockupViewModel({ shortsLockup: rawRenderer, sectionTitle, bandIndex });
+      videoSnapshot = parseShortsLockupViewModel({
+        shortsLockup: rawRenderer,
+        sectionTitle,
+        bandIndex
+      });
     }
 
     if (videoSnapshot && !snapshot.has(videoSnapshot.videoId)) {
@@ -74,7 +90,11 @@ export function readDomSnapshot() {
 
     const sectionTitle = deepString(elShelf.data, "title", "runs", "0", "text");
     for (const elItem of elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer")) {
-      addRichItemToSnapshot({ elItem, sectionTitle, bandIndex: 0 });
+      addRichItemToSnapshot({
+        elItem,
+        sectionTitle,
+        bandIndex: 0
+      });
     }
   }
 
@@ -94,7 +114,11 @@ export function readDomSnapshot() {
         continue;
       }
 
-      const videoSnapshot = parseRenderer({ renderer: rawRenderer, sectionTitle, bandIndex: 0 });
+      const videoSnapshot = parseRenderer({
+        renderer: rawRenderer,
+        sectionTitle,
+        bandIndex: 0
+      });
       if (videoSnapshot && !snapshot.has(videoSnapshot.videoId)) {
         snapshot.set(videoSnapshot.videoId, videoSnapshot);
       }
@@ -116,7 +140,11 @@ export function readDomSnapshot() {
           currentBandIndex++;
         }
       } else if (elChild.tagName === "YTD-RICH-ITEM-RENDERER") {
-        addRichItemToSnapshot({ elItem: elChild, sectionTitle: currentSectionTitle, bandIndex: currentBandIndex });
+        addRichItemToSnapshot({
+          elItem: elChild,
+          sectionTitle: currentSectionTitle,
+          bandIndex: currentBandIndex
+        });
       }
     }
   }
@@ -132,7 +160,11 @@ export function readDomSnapshot() {
         continue;
       }
 
-      const videoSnapshot = parseRenderer({ renderer: gridVideoData, sectionTitle: "", bandIndex: 0 });
+      const videoSnapshot = parseRenderer({
+        renderer: gridVideoData,
+        sectionTitle: "",
+        bandIndex: 0
+      });
       if (videoSnapshot) {
         snapshot.set(videoSnapshot.videoId, videoSnapshot);
       }
@@ -142,7 +174,10 @@ export function readDomSnapshot() {
   return snapshot;
 }
 
-export function leadingLiveCount({ elShelf, snapshot }: { elShelf: Element; snapshot: Map<string, VideoSnapshot> }) {
+export function leadingLiveCount({ elShelf, snapshot }: {
+  elShelf: Element;
+  snapshot: Map<string, VideoSnapshot>;
+}) {
   let count = 0;
   for (const elItem of elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer")) {
     if (!isPolymerElement(elItem)) {

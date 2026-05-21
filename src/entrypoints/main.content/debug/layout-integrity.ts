@@ -1,6 +1,13 @@
 import { fetchInitialVideos } from "../api/fetch";
-import { deepArray, deepRecord, deepString, isPolymerElement, isRecord, videoIdFromShelfListItem } from "../helpers";
 import { videoIdFromRichItem } from "../dom/rich-item";
+import {
+  deepArray,
+  deepRecord,
+  deepString,
+  isPolymerElement,
+  isRecord,
+  videoIdFromShelfListItem
+} from "../helpers";
 import type { VideoSnapshot } from "../types";
 
 interface DomBand {
@@ -50,9 +57,15 @@ function captureDomBands() {
     const inlineVideoId = videoIdFromRichItem(item);
     if (inlineVideoId) {
       if (!currentInlineBand) {
-        currentInlineBand = { type: "inline", title: "", domIndex: i, videoIds: [] };
+        currentInlineBand = {
+          type: "inline",
+          title: "",
+          domIndex: i,
+          videoIds: []
+        };
         bands.push(currentInlineBand);
       }
+
       currentInlineBand.videoIds.push(inlineVideoId);
       continue;
     }
@@ -66,7 +79,12 @@ function captureDomBands() {
       const videoIds = shelfContents
         .map(shelfItem => videoIdFromRichItem(shelfItem))
         .filter((id): id is string => id !== null);
-      bands.push({ type: "richShelf", title, domIndex: i, videoIds });
+      bands.push({
+        type: "richShelf",
+        title,
+        domIndex: i,
+        videoIds
+      });
       continue;
     }
 
@@ -79,21 +97,32 @@ function captureDomBands() {
       const videoIds = listItems
         .map(listItem => videoIdFromShelfListItem(listItem))
         .filter(id => id !== "");
-      bands.push({ type: "shelf", title: shelfTitle, domIndex: i, videoIds });
+      bands.push({
+        type: "shelf",
+        title: shelfTitle,
+        domIndex: i,
+        videoIds
+      });
     }
   }
 
   return bands;
 }
 
-function captureApiBands({ snapshots, sectionOrder }: { snapshots: VideoSnapshot[]; sectionOrder: string[] }) {
+function captureApiBands({ snapshots, sectionOrder }: {
+  snapshots: VideoSnapshot[];
+  sectionOrder: string[];
+}) {
   const bands: ApiBand[] = [];
 
   const inlineVideoIds = snapshots
     .filter(snapshot => snapshot.sectionTitle === "")
     .map(snapshot => snapshot.videoId);
   if (inlineVideoIds.length > 0) {
-    bands.push({ title: "", videoIds: inlineVideoIds });
+    bands.push({
+      title: "",
+      videoIds: inlineVideoIds
+    });
   }
 
   const seenSections = new Set<string>();
@@ -101,20 +130,27 @@ function captureApiBands({ snapshots, sectionOrder }: { snapshots: VideoSnapshot
     if (seenSections.has(sectionTitle)) {
       continue;
     }
+
     seenSections.add(sectionTitle);
 
     const sectionVideoIds = snapshots
       .filter(snapshot => snapshot.sectionTitle === sectionTitle)
       .map(snapshot => snapshot.videoId);
     if (sectionVideoIds.length > 0) {
-      bands.push({ title: sectionTitle, videoIds: sectionVideoIds });
+      bands.push({
+        title: sectionTitle,
+        videoIds: sectionVideoIds
+      });
     }
   }
 
   return bands;
 }
 
-function computeBandDiffs({ domBands, apiBands }: { domBands: DomBand[]; apiBands: ApiBand[] }) {
+function computeBandDiffs({ domBands, apiBands }: {
+  domBands: DomBand[];
+  apiBands: ApiBand[];
+}) {
   const apiBandByTitle = new Map(apiBands.map(band => [band.title, band]));
   const bandDiffs: BandDiff[] = [];
   let isAllBandsPass = true;
@@ -131,9 +167,7 @@ function computeBandDiffs({ domBands, apiBands }: { domBands: DomBand[]; apiBand
 
     const sharedInDomOrder = domBand.videoIds.filter(id => apiVideoIdSet.has(id));
     const sharedInApiOrder = apiVideoIds.filter(id => domVideoIdSet.has(id));
-    const isOrderMatch = JSON.stringify(sharedInDomOrder) === JSON.stringify(sharedInApiOrder);
-
-    if (onlyInDom.length > 0 || onlyInApi.length > 0 || !isOrderMatch) {
+    const isOrderMatch = JSON.stringify(sharedInDomOrder) === JSON.stringify(sharedInApiOrder);    if (onlyInDom.length > 0 || onlyInApi.length > 0 || !isOrderMatch) {
       isAllBandsPass = false;
     }
 
@@ -148,15 +182,24 @@ function computeBandDiffs({ domBands, apiBands }: { domBands: DomBand[]; apiBand
     });
   }
 
-  return { bandDiffs, isAllBandsPass };
+  return {
+    bandDiffs,
+    isAllBandsPass
+  };
 }
 
-function buildReport({ domBands, apiBands }: { domBands: DomBand[]; apiBands: ApiBand[] }) {
+function buildReport({ domBands, apiBands }: {
+  domBands: DomBand[];
+  apiBands: ApiBand[];
+}) {
   const domBandTitles = domBands.map(band => band.title || "(inline)");
   const apiBandTitles = apiBands.map(band => band.title || "(inline)");
   const isBandOrderMatch = JSON.stringify(domBandTitles) === JSON.stringify(apiBandTitles);
 
-  const { bandDiffs, isAllBandsPass } = computeBandDiffs({ domBands, apiBands });
+  const { bandDiffs, isAllBandsPass } = computeBandDiffs({
+    domBands,
+    apiBands
+  });
 
   return {
     timestamp: new Date().toISOString(),
@@ -173,9 +216,11 @@ function persistReport(report: LayoutIntegrityReport) {
     const stored = sessionStorage.getItem("__ytsua_layout_checks");
     const history: LayoutIntegrityReport[] = stored ? (JSON.parse(stored) as LayoutIntegrityReport[]) : [];
     history.push(report);
+
     if (history.length > 10) {
       history.splice(0, history.length - 10);
     }
+
     sessionStorage.setItem("__ytsua_layout_checks", JSON.stringify(history));
   } catch {}
 }
@@ -200,14 +245,17 @@ function logReport(report: LayoutIntegrityReport) {
     if (diff.onlyInDom.length > 0) {
       console.warn("Only in DOM:", diff.onlyInDom);
     }
+
     if (diff.onlyInApi.length > 0) {
       console.warn("Only in API:", diff.onlyInApi);
     }
+
     if (!diff.isOrderMatch) {
       console.warn("Intra-band order MISMATCH");
       console.log("DOM order:", diff.domVideoIds);
       console.log("API order:", diff.apiVideoIds);
     }
+
     if (isBandPass) {
       console.log("IDs and order match");
     }
@@ -221,15 +269,19 @@ function logReport(report: LayoutIntegrityReport) {
 
 export async function checkLayoutIntegrity() {
   const domBands = captureDomBands();
-  const apiResult = await fetchInitialVideos();
-
-  if (!apiResult) {
+  const apiResult = await fetchInitialVideos();  if (!apiResult) {
     console.error("[YTSUA] Layout integrity check: API fetch failed");
     return null;
   }
 
-  const apiBands = captureApiBands({ snapshots: apiResult.snapshots, sectionOrder: apiResult.sectionOrder });
-  const report = buildReport({ domBands, apiBands });
+  const apiBands = captureApiBands({
+    snapshots: apiResult.snapshots,
+    sectionOrder: apiResult.sectionOrder
+  });
+  const report = buildReport({
+    domBands,
+    apiBands
+  });
   logReport(report);
   return report;
 }

@@ -13,7 +13,12 @@ const pendingUpdates = new Map<string, {
   previous?: VideoSnapshot;
 }>();
 
-type ApplyEntry = { videoId: string; elItem: PolymerElement; fresh: VideoSnapshot; previous?: VideoSnapshot };
+type ApplyEntry = {
+  videoId: string;
+  elItem: PolymerElement;
+  fresh: VideoSnapshot;
+  previous?: VideoSnapshot;
+};
 const pendingApplyBatch: ApplyEntry[] = [];
 let isIdleCallbackScheduled = false;
 
@@ -23,7 +28,12 @@ function flushApplyBatch() {
   isIdleCallbackScheduled = false;
   const batch = pendingApplyBatch.splice(0);
   for (const { videoId, elItem, fresh, previous } of batch) {
-    applyUpdate({ videoId, elItem, fresh, previous });
+    applyUpdate({
+      videoId,
+      elItem,
+      fresh,
+      previous
+    });
   }
 }
 
@@ -55,7 +65,12 @@ function ensureObserver() {
 
       pendingUpdates.delete(videoId);
       intersectionObserver?.unobserve(elItem);
-      pendingApplyBatch.push({ videoId, elItem, fresh: pending.fresh, previous: pending.previous });
+      pendingApplyBatch.push({
+        videoId,
+        elItem,
+        fresh: pending.fresh,
+        previous: pending.previous
+      });
     }
 
     if (pendingApplyBatch.length > 0 && !isIdleCallbackScheduled) {
@@ -66,7 +81,12 @@ function ensureObserver() {
   return intersectionObserver;
 }
 
-export function scheduleLazyUpdate({ videoId, fresh, previous, elItemHint }: { videoId: string; fresh: VideoSnapshot; previous?: VideoSnapshot; elItemHint?: HTMLElement }) {
+export function scheduleLazyUpdate({ videoId, fresh, previous, elItemHint }: {
+  videoId: string;
+  fresh: VideoSnapshot;
+  previous?: VideoSnapshot;
+  elItemHint?: HTMLElement;
+}) {
   pendingUpdates.set(videoId, {
     fresh,
     previous
@@ -97,7 +117,10 @@ function ensureEntranceObserver() {
       }
 
       entranceObserver?.unobserve(elItem);
-      triggerAnimation({ elTarget: elItem, animationClass: "ytsua-new" });
+      triggerAnimation({
+        elTarget: elItem,
+        animationClass: "ytsua-new"
+      });
     }
 
     if (pendingEntranceItems.size === 0) {

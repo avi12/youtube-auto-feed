@@ -17,9 +17,7 @@ function extractYtInitialData(html: string) {
 export async function fetchInitialVideos() {
   const response = await fetch("/feed/subscriptions", {
     credentials: "include"
-  }).catch(() => null);
-
-  if (!response?.ok) {
+  }).catch(() => null);  if (!response?.ok) {
     return null;
   }
 
@@ -39,5 +37,8 @@ export async function fetchInitialVideos() {
   }
 
   const sectionOrder = extractApiSectionOrder(browseData);
-  return { snapshots, sectionOrder };
+  return {
+    snapshots,
+    sectionOrder
+  };
 }

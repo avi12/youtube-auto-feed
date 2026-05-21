@@ -1,20 +1,25 @@
 import { ytsuaChannel } from "../../messaging";
-
-interface FeedPayload {
-  snapshots: VideoSnapshot[];
-  sectionOrder: string[];
-}
 import { fetchInitialVideos } from "./api/fetch";
 import { isInnerTubeBrowseResponse } from "./api/guards";
 import { extractApiSectionOrder, parseApiResponse } from "./api/parse";
-import { type BandLayout, captureBandLayout, normalizeCollapsedShelfRows, normalizeInitialBandLayout } from "./dom/band-layout";
 import { cleanOrphanedGridItems } from "./dom/add/grid";
+import {
+  type BandLayout,
+  captureBandLayout,
+  normalizeCollapsedShelfRows,
+  normalizeInitialBandLayout
+} from "./dom/band-layout";
 import { resetLazyUpdates } from "./dom/lazy-update";
 import { readDomSnapshot } from "./dom/query";
 import { isOnSubscriptionsPage } from "./helpers";
 import { isDomContentReady } from "./readiness";
 import { detectAndApplyChanges, detectAndApplyMetadataChanges } from "./sync";
 import { type VideoSnapshot } from "./types";
+
+interface FeedPayload {
+  snapshots: VideoSnapshot[];
+  sectionOrder: string[];
+}
 
 const INITIAL_POLL_DELAY_MS = 10 * 1000;
 const POLL_INTERVAL_MS = 5 * 1000;
@@ -26,7 +31,7 @@ export function createSubscriptionMonitor() {
   let lastSnapshot = new Map<string, VideoSnapshot>();
   let isDomReady = false;
   let isApplyingChanges = false;
-  let pendingApplySnapshots: FeedPayload | null = null;
+  const pendingApplySnapshots: FeedPayload | null = null;
   let contentObserver: MutationObserver | null = null;
   let orphanCleanupTimer: ReturnType<typeof setInterval> | null = null;
   let pendingApiSnapshots: FeedPayload | null = null;
@@ -39,11 +44,20 @@ export function createSubscriptionMonitor() {
   let initialBandLayout: BandLayout | null = null;
   let pendingRemovals = new Map<string, number>();
   let pendingSectionRemovals = new Map<string, number>();
-  let pendingSectionMoves = new Map<string, { toSection: string; count: number }>();
-  let pendingBandMoves = new Map<string, { toBandIndex: number; count: number }>();
+  let pendingSectionMoves = new Map<string, {
+    toSection: string;
+    count: number;
+  }>();
+  let pendingBandMoves = new Map<string, {
+    toBandIndex: number;
+    count: number;
+  }>();
   let apiKnownVideoIds = new Set<string>();
 
-  async function applyChanges({ payload, isInitialLoad = false }: { payload: FeedPayload; isInitialLoad?: boolean }) {
+  async function applyChanges({ payload, isInitialLoad = false }: {
+    payload: FeedPayload;
+    isInitialLoad?: boolean;
+  }) {
     if (isApplyingChanges) {
       return false;
     }
@@ -103,19 +117,31 @@ export function createSubscriptionMonitor() {
       }
       pendingSectionRemovals = newPendingSectionRemovals;
 
-      const newPendingMoves = new Map<string, { toSection: string; count: number }>();
+      const newPendingMoves = new Map<string, {
+        toSection: string;
+        count: number;
+      }>();
       for (const { videoId, toSection } of candidateSectionMoves) {
         const existing = pendingSectionMoves.get(videoId);
         const count = (existing?.toSection === toSection ? existing.count : 0) + 1;
-        newPendingMoves.set(videoId, { toSection, count });
+        newPendingMoves.set(videoId, {
+          toSection,
+          count
+        });
       }
       pendingSectionMoves = newPendingMoves;
 
-      const newPendingBandMoves = new Map<string, { toBandIndex: number; count: number }>();
+      const newPendingBandMoves = new Map<string, {
+        toBandIndex: number;
+        count: number;
+      }>();
       for (const { videoId, toBandIndex } of candidateBandMoves) {
         const existing = pendingBandMoves.get(videoId);
         const count = (existing?.toBandIndex === toBandIndex ? existing.count : 0) + 1;
-        newPendingBandMoves.set(videoId, { toBandIndex, count });
+        newPendingBandMoves.set(videoId, {
+          toBandIndex,
+          count
+        });
       }
       pendingBandMoves = newPendingBandMoves;
 
@@ -128,6 +154,7 @@ export function createSubscriptionMonitor() {
         }
         initialBandLayout = captureBandLayout();
       }
+
       return isLayoutChange;
     } finally {
       isApplyingChanges = false;
@@ -149,7 +176,10 @@ export function createSubscriptionMonitor() {
     }
 
     const sectionOrder = extractApiSectionOrder(e.detail);
-    const payload = { snapshots, sectionOrder };
+    const payload = {
+      snapshots,
+      sectionOrder
+    };
     pendingApiSnapshots = payload;
     pendingApiSnapshotsTime = Date.now();
 
@@ -169,7 +199,10 @@ export function createSubscriptionMonitor() {
     }
 
     try {
-      return await applyChanges({ payload: result, isInitialLoad });
+      return await applyChanges({
+        payload: result,
+        isInitialLoad
+      });
     } catch {
       return false;
     }
@@ -191,7 +224,10 @@ export function createSubscriptionMonitor() {
 
     isApplyingChanges = true;
     try {
-      lastSnapshot = await detectAndApplyMetadataChanges({ previousSnapshot: lastSnapshot, freshSnapshots: result.snapshots });
+      lastSnapshot = await detectAndApplyMetadataChanges({
+        previousSnapshot: lastSnapshot,
+        freshSnapshots: result.snapshots
+      });
     } catch {} finally {
       isApplyingChanges = false;
     }
@@ -206,6 +242,7 @@ export function createSubscriptionMonitor() {
       clearTimeout(pollingDelayTimer);
       pollingDelayTimer = null;
     }
+
     if (pollingTimer !== null) {
       clearInterval(pollingTimer);
       pollingTimer = null;
@@ -247,7 +284,10 @@ export function createSubscriptionMonitor() {
     addEventListener("ytsua-browse-response", handleBrowseResponse);
     addEventListener("ytsua-subscription-change", handleSubscriptionChange);
     document.addEventListener("visibilitychange", handlePageFocus);
-    cancelBroadcastListener = ytsuaChannel.onMessage({ type: "subscription-change", handler: handleSubscriptionChange });
+    cancelBroadcastListener = ytsuaChannel.onMessage({
+      type: "subscription-change",
+      handler: handleSubscriptionChange
+    });
     restartPolling();
     metadataPollingTimer = setInterval(() => {
       void fetchAndApplyMetadataUpdates();
@@ -299,7 +339,10 @@ export function createSubscriptionMonitor() {
     if (pendingApiSnapshots !== null) {
       const pending = pendingApiSnapshots;
       pendingApiSnapshots = null;
-      await applyChanges({ payload: pending, isInitialLoad: false });
+      await applyChanges({
+        payload: pending,
+        isInitialLoad: false
+      });
       normalizeInitialBandLayout();
       const trimmedAfterApply = await normalizeCollapsedShelfRows();
       lastSnapshot = readDomSnapshot();
@@ -361,5 +404,10 @@ export function createSubscriptionMonitor() {
     }
   }
 
-  return { handleNavigation, pausePolling, resumePolling, fetchFreshVideos };
+  return {
+    handleNavigation,
+    pausePolling,
+    resumePolling,
+    fetchFreshVideos
+  };
 }

@@ -21,7 +21,10 @@ import { findItemElement, findShelfForSection } from "./query";
 import { filterOutRichItems, sortByFreshOrder, videoIdFromRichItem } from "./rich-item";
 import { updateVideoInDom } from "./update";
 
-export async function moveVideosToFront({ videos, allFreshSnapshots }: { videos: VideoSnapshot[]; allFreshSnapshots: VideoSnapshot[] }) {
+export async function moveVideosToFront({ videos, allFreshSnapshots }: {
+  videos: VideoSnapshot[];
+  allFreshSnapshots: VideoSnapshot[];
+}) {
   if (videos.length === 0) {
     return;
   }
@@ -42,11 +45,18 @@ export async function moveVideosToFront({ videos, allFreshSnapshots }: { videos:
   }
 
   for (const [elShelf, shelfVideos] of shelfGroups) {
-    await moveVideosToShelfFront({ elShelf, videos: shelfVideos, freshOrder });
+    await moveVideosToShelfFront({
+      elShelf,
+      videos: shelfVideos,
+      freshOrder
+    });
   }
 
   if (gridVideos.length > 0) {
-    await moveVideosToGridFront({ videos: gridVideos, freshOrder });
+    await moveVideosToGridFront({
+      videos: gridVideos,
+      freshOrder
+    });
   }
 }
 
@@ -64,7 +74,10 @@ async function moveVideosToShelfFront({
     return;
   }
 
-  const sortedVideos = sortByFreshOrder({ videos, freshOrder });
+  const sortedVideos = sortByFreshOrder({
+    videos,
+    freshOrder
+  });
   const movingVideoIds = new Set(sortedVideos.map(({ videoId }) => videoId));
   const shelfContents = deepArray(elShelf.data, "contents");
   const isAlreadyAtFront = sortedVideos.every(
@@ -88,14 +101,20 @@ async function moveVideosToShelfFront({
   try {
     await document.startViewTransition(async () => {
       const freshShelfContents = deepArray(elShelf.data, "contents");
-      const remainingContents = filterOutRichItems({ contents: freshShelfContents, excludeVideoIds: movingVideoIds });
+      const remainingContents = filterOutRichItems({
+        contents: freshShelfContents,
+        excludeVideoIds: movingVideoIds
+      });
       const newItems = sortedVideos.map(({ rawRenderer }) => buildRichItem(rawRenderer));
       elShelf.set("data.contents", [...newItems, ...remainingContents]);
       for (const elItem of elShelfItems) {
         elItem.style.viewTransitionName = "";
       }
       await waitForFrames({ predicate: () => videoIdFromData(elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer")[0]) === sortedVideos[0].videoId });
-      reassignTransitionNames({ elItems: elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer"), animateIds });
+      reassignTransitionNames({
+        elItems: elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer"),
+        animateIds
+      });
     }).finished;
   } finally {
     clearAllItemViewTransitionNames();
@@ -103,20 +122,29 @@ async function moveVideosToShelfFront({
     for (const { videoId } of sortedVideos) {
       const elMovedItem = findItemElement(videoId);
       if (elMovedItem) {
-        triggerAnimation({ elTarget: elMovedItem, animationClass: "ytsua-updated" });
+        triggerAnimation({
+          elTarget: elMovedItem,
+          animationClass: "ytsua-updated"
+        });
       }
     }
   }
 }
 
-async function moveVideosToGridFront({ videos, freshOrder }: { videos: VideoSnapshot[]; freshOrder: Map<string, number> }) {
+async function moveVideosToGridFront({ videos, freshOrder }: {
+  videos: VideoSnapshot[];
+  freshOrder: Map<string, number>;
+}) {
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
   if (!elGrid || !isPolymerElement(elGrid) || !isRecord(elGrid.data)) {
     await fallbackUpdate(videos);
     return;
   }
 
-  const sortedVideos = sortByFreshOrder({ videos, freshOrder });
+  const sortedVideos = sortByFreshOrder({
+    videos,
+    freshOrder
+  });
   const movingVideoIds = new Set(sortedVideos.map(({ videoId }) => videoId));
   const gridContents = deepArray(elGrid.data, "contents");
   const iTargetInsert = gridContents.findIndex(contentItem => !!deepRecord(contentItem, "richItemRenderer"));
@@ -152,7 +180,10 @@ async function moveVideosToGridFront({ videos, freshOrder }: { videos: VideoSnap
   try {
     await document.startViewTransition(async () => {
       const freshGridContents = deepArray(elGrid.data, "contents");
-      const remainingContents = filterOutRichItems({ contents: freshGridContents, excludeVideoIds: movingVideoIds });
+      const remainingContents = filterOutRichItems({
+        contents: freshGridContents,
+        excludeVideoIds: movingVideoIds
+      });
       const iEffectiveInsert = remainingContents.findIndex(contentItem => !!deepRecord(contentItem, "richItemRenderer"));
       const iInsertAt = iEffectiveInsert >= 0 ? iEffectiveInsert : remainingContents.length;
       const newItems = sortedVideos.map(({ rawRenderer }) => buildRichItem(rawRenderer));
@@ -162,16 +193,21 @@ async function moveVideosToGridFront({ videos, freshOrder }: { videos: VideoSnap
       for (const elItem of elAllItems) {
         elItem.style.viewTransitionName = "";
       }
-      await waitForFrames({ predicate: () => {
-        const firstItemId = elGridContents
-          ? videoIdFromData(elGridContents.querySelectorAll<HTMLElement>(":scope > ytd-rich-item-renderer")[0])
-          : null;
-        return firstItemId === sortedVideos[0].videoId;
-      } });
+      await waitForFrames({
+        predicate() {
+          const firstItemId = elGridContents
+            ? videoIdFromData(elGridContents.querySelectorAll<HTMLElement>(":scope > ytd-rich-item-renderer")[0])
+            : null;
+          return firstItemId === sortedVideos[0].videoId;
+        }
+      });
       const elQueryItems = elGridContents
         ? elGridContents.querySelectorAll<HTMLElement>(":scope > ytd-rich-item-renderer")
         : document.querySelectorAll<HTMLElement>("ytd-rich-item-renderer");
-      reassignTransitionNames({ elItems: elQueryItems, animateIds });
+      reassignTransitionNames({
+        elItems: elQueryItems,
+        animateIds
+      });
     }).finished;
   } finally {
     clearAllItemViewTransitionNames();
@@ -179,7 +215,10 @@ async function moveVideosToGridFront({ videos, freshOrder }: { videos: VideoSnap
     for (const { videoId } of sortedVideos) {
       const elMovedItem = findItemElement(videoId);
       if (elMovedItem) {
-        triggerAnimation({ elTarget: elMovedItem, animationClass: "ytsua-updated" });
+        triggerAnimation({
+          elTarget: elMovedItem,
+          animationClass: "ytsua-updated"
+        });
       }
     }
   }
@@ -187,6 +226,9 @@ async function moveVideosToGridFront({ videos, freshOrder }: { videos: VideoSnap
 
 function fallbackUpdate(videos: VideoSnapshot[]) {
   for (const video of videos) {
-    updateVideoInDom({ videoId: video.videoId, freshSnapshot: video });
+    updateVideoInDom({
+      videoId: video.videoId,
+      freshSnapshot: video
+    });
   }
 }

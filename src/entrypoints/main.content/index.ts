@@ -8,6 +8,11 @@ export default defineContentScript({
     const monitor = createSubscriptionMonitor();
     document.addEventListener("yt-navigate-finish", monitor.handleNavigation);
     monitor.handleNavigation();
-    (globalThis as Record<string, unknown>).__ytsuaDebug = { checkLayoutIntegrity, pausePolling: monitor.pausePolling, resumePolling: monitor.resumePolling, fetchFreshVideos: monitor.fetchFreshVideos };
+    (globalThis as Record<string, unknown>).__ytsuaDebug = {
+      checkLayoutIntegrity,
+      pausePolling: monitor.pausePolling,
+      resumePolling: monitor.resumePolling,
+      fetchFreshVideos: monitor.fetchFreshVideos
+    };
   }
 });
