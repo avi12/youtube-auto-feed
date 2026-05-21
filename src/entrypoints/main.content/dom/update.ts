@@ -180,6 +180,102 @@ async function dissolveToNewThumbnail({
   fadeOut.cancel();
 }
 
+function mutateLockupViewModelInPlace({ existing, incoming, preserveContentImage }: {
+  existing: LockupViewModel;
+  incoming: LockupViewModel;
+  preserveContentImage: boolean;
+}) {
+  const existingAvatarImage = existing.metadata?.lockupMetadataViewModel?.image;
+  const incomingAvatarImage = incoming.metadata?.lockupMetadataViewModel?.image;
+  const preservedContentImage = existing.contentImage;
+
+  Object.assign(existing, incoming);
+
+  if (preserveContentImage) {
+    existing.contentImage = preservedContentImage;
+  }
+
+  if (
+    incomingAvatarImage === undefined
+    && existingAvatarImage !== undefined
+    && existing.metadata?.lockupMetadataViewModel
+  ) {
+    existing.metadata = {
+      ...existing.metadata,
+      lockupMetadataViewModel: {
+        ...existing.metadata.lockupMetadataViewModel,
+        image: existingAvatarImage
+      }
+    };
+  }
+}
+
+function mutateLockupMetadata({ videoId, elItem, incoming, preserveContentImage }: {
+  videoId: string;
+  elItem: PolymerElement;
+  incoming: LockupViewModel;
+  preserveContentImage: boolean;
+}) {
+  const seenLockups = new Set<LockupViewModel>();
+  function mutateOne(candidate: unknown) {
+    if (!isLockupViewModel(candidate) || seenLockups.has(candidate)) {
+      return;
+    }
+
+    seenLockups.add(candidate);
+    mutateLockupViewModelInPlace({
+      existing: candidate,
+      incoming,
+      preserveContentImage
+    });
+  }
+
+  const itemData = elItem.data;
+  if (isRecord(itemData) && isRecord(itemData.content)) {
+    mutateOne(itemData.content.lockupViewModel);
+  }
+
+  for (const elGrid of document.querySelectorAll<HTMLElement>("ytd-rich-grid-renderer")) {
+    if (!isPolymerElement(elGrid) || !isRecord(elGrid.data)) {
+      continue;
+    }
+
+    const contents = deepArray(elGrid.data, "contents");
+    const iItem = findRichItemIndex({
+      contents,
+      videoId
+    });
+    if (iItem < 0) {
+      continue;
+    }
+
+    const content = deepRecord(contents[iItem], "richItemRenderer", "content");
+    if (content) {
+      mutateOne(content.lockupViewModel);
+    }
+  }
+
+  for (const elShelf of document.querySelectorAll<HTMLElement>("ytd-rich-shelf-renderer")) {
+    if (!isPolymerElement(elShelf) || !isRecord(elShelf.data)) {
+      continue;
+    }
+
+    const contents = deepArray(elShelf.data, "contents");
+    const iItem = findRichItemIndex({
+      contents,
+      videoId
+    });
+    if (iItem < 0) {
+      continue;
+    }
+
+    const content = deepRecord(contents[iItem], "richItemRenderer", "content");
+    if (content) {
+      mutateOne(content.lockupViewModel);
+    }
+  }
+}
+
 function mergeLockupViewModel({ existing, incoming, forcePreserveContentImage = false }: {
   existing: LockupViewModel;
   incoming: LockupViewModel;
@@ -459,11 +555,6 @@ function applyTargetedGenericUpdate({ videoId, elItem, previous, fresh }: {
   }
 
   if (previous.thumbnailUrl === fresh.thumbnailUrl) {
-    syncGridModelItem({
-      videoId,
-      rawRenderer: fresh.rawRenderer,
-      forcePreserveContentImage: true
-    });
     return;
   }
 
@@ -505,43 +596,6 @@ function applyTargetedGenericUpdate({ videoId, elItem, previous, fresh }: {
   });
 }
 
-function applyItemLockup({ elItem, elLockup, incoming, forcePreserveContentImage }: {
-  elItem: PolymerElement;
-  elLockup: HTMLElement;
-  incoming: LockupViewModel;
-  forcePreserveContentImage: boolean;
-}) {
-  const itemData = elItem.data;
-  if (!isRecord(itemData)) {
-    return;
-  }
-
-  const { content } = itemData;
-  if (!isRecord(content)) {
-    return;
-  }
-
-  const existingLockup = content.lockupViewModel;
-  const merged = isLockupViewModel(existingLockup)
-    ? mergeLockupViewModel({
-      existing: existingLockup,
-      incoming,
-      forcePreserveContentImage
-    })
-    : incoming;
-  if ("lockupViewModel" in elLockup) {
-    (elLockup as HTMLElement & { lockupViewModel: LockupViewModel }).lockupViewModel = merged;
-  } else {
-    elItem.set("data", {
-      ...itemData,
-      content: {
-        ...content,
-        lockupViewModel: merged
-      }
-    });
-  }
-}
-
 function applyTargetedLockupUpdate({
   videoId,
   elItem,
@@ -555,59 +609,54 @@ function applyTargetedLockupUpdate({
   previous: VideoSnapshot;
   fresh: VideoSnapshot;
 }) {
-  if (previous.thumbnailUrl === fresh.thumbnailUrl) {
-    if (previous.title !== fresh.title) {
-      replaceTextInShadowDom({
-        root: elItem,
-        oldText: previous.title,
-        newText: fresh.title
-      });
-    }
-
-    if (previous.viewCountText !== fresh.viewCountText) {
-      replaceTextInShadowDom({
-        root: elItem,
-        oldText: previous.viewCountText,
-        newText: fresh.viewCountText
-      });
-    }
-
-    if (previous.publishedTimeText !== fresh.publishedTimeText) {
-      replaceTextInShadowDom({
-        root: elItem,
-        oldText: previous.publishedTimeText,
-        newText: fresh.publishedTimeText
-      });
-    }
-
-    if (isLockupViewModel(fresh.rawRenderer)) {
-      applyItemLockup({
-        elItem,
-        elLockup,
-        incoming: fresh.rawRenderer,
-        forcePreserveContentImage: true
-      });
-    }
-
-    syncGridModelItem({
-      videoId,
-      rawRenderer: fresh.rawRenderer,
-      forcePreserveContentImage: true
+  if (previous.title !== fresh.title) {
+    replaceTextInShadowDom({
+      root: elItem,
+      oldText: previous.title,
+      newText: fresh.title
     });
+  }
+
+  if (previous.viewCountText !== fresh.viewCountText) {
+    replaceTextInShadowDom({
+      root: elItem,
+      oldText: previous.viewCountText,
+      newText: fresh.viewCountText
+    });
+  }
+
+  if (previous.publishedTimeText !== fresh.publishedTimeText) {
+    replaceTextInShadowDom({
+      root: elItem,
+      oldText: previous.publishedTimeText,
+      newText: fresh.publishedTimeText
+    });
+  }
+
+  const freshRawRenderer = fresh.rawRenderer;
+  const freshLockup = isLockupViewModel(freshRawRenderer) ? freshRawRenderer : null;  if (previous.thumbnailUrl === fresh.thumbnailUrl) {
+    if (freshLockup) {
+      mutateLockupMetadata({
+        videoId,
+        elItem,
+        incoming: freshLockup,
+        preserveContentImage: true
+      });
+    }
+
     return;
   }
 
-  const freshLockup = fresh.rawRenderer as LockupViewModel;
-  const newUrl = freshLockup.contentImage?.thumbnailViewModel?.image?.sources?.at(-1)?.url ?? fresh.thumbnailUrl;
+  const newUrl = freshLockup?.contentImage?.thumbnailViewModel?.image?.sources?.at(-1)?.url ?? fresh.thumbnailUrl;
   const elImg = findThumbnailImg(elLockup);
   if (!elImg) {
     applyPolymerUpdate({
       elItem,
-      rawRenderer: fresh.rawRenderer
+      rawRenderer: freshRawRenderer
     });
     syncGridModelItem({
       videoId,
-      rawRenderer: fresh.rawRenderer
+      rawRenderer: freshRawRenderer
     });
     return;
   }
@@ -617,20 +666,15 @@ function applyTargetedLockupUpdate({
     newSrc: newUrl
   }).then(isDifferent => {
     if (!isDifferent) {
-      if (isLockupViewModel(fresh.rawRenderer)) {
-        applyItemLockup({
+      if (freshLockup) {
+        mutateLockupMetadata({
+          videoId,
           elItem,
-          elLockup,
-          incoming: fresh.rawRenderer,
-          forcePreserveContentImage: true
+          incoming: freshLockup,
+          preserveContentImage: true
         });
       }
 
-      syncGridModelItem({
-        videoId,
-        rawRenderer: fresh.rawRenderer,
-        forcePreserveContentImage: true
-      });
       return;
     }
 
@@ -639,19 +683,14 @@ function applyTargetedLockupUpdate({
       newUrl,
       elItem,
       afterComplete() {
-        if (isLockupViewModel(fresh.rawRenderer)) {
-          applyItemLockup({
+        if (freshLockup) {
+          mutateLockupMetadata({
+            videoId,
             elItem,
-            elLockup,
-            incoming: fresh.rawRenderer,
-            forcePreserveContentImage: false
+            incoming: freshLockup,
+            preserveContentImage: false
           });
         }
-
-        syncGridModelItem({
-          videoId,
-          rawRenderer: fresh.rawRenderer
-        });
       }
     });
   });
