@@ -38,6 +38,9 @@
 - Let TypeScript infer variable and function return types - don't annotate explicitly
 - Exception: type predicates require an explicit return type
 
+# Workflow
+- After each modification, run `pnpm lint` across the project
+
 # Hardcoded values
 - Strings: use enums; if no enum fits, use a descriptive `SCREAMING_SNAKE_CASE` constant
 - Numbers: use a descriptive `SCREAMING_SNAKE_CASE` constant
