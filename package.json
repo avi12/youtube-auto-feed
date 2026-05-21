@@ -3,14 +3,15 @@
   "description": "Keeps your YouTube subscriptions feed current as videos are published, removed, or change state - no page reload needed.",
   "private": true,
   "version": "0.0.0",
+  "packageManager": "pnpm@10.30.1",
   "type": "module",
   "scripts": {
-    "dev": "bun scripts/dev-server.ts",
-    "dev:firefox": "bun scripts/dev-server.ts --firefox",
-    "dev:watch": "bun dev.ts --watch --edge --chrome",
-    "dev:chrome:without-extension": "bun dev.ts --watch --chrome",
-    "dev:edge": "bun dev.ts --edge",
-    "dev:opera": "bun dev.ts --opera",
+    "dev": "tsx scripts/dev-server.ts",
+    "dev:firefox": "tsx scripts/dev-server.ts --firefox",
+    "dev:watch": "tsx dev.ts --watch --edge --chrome",
+    "dev:chrome:without-extension": "tsx dev.ts --watch --chrome",
+    "dev:edge": "tsx dev.ts --edge",
+    "dev:opera": "tsx dev.ts --opera",
     "build": "wxt build",
     "build:firefox": "wxt build -b firefox",
     "zip": "wxt zip",
@@ -44,5 +45,8 @@
   },
   "dependencies": {
     "yargs": "^18.0.0"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild", "sharp", "spawn-sync"]
   }
 }
