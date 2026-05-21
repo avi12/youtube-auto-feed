@@ -238,7 +238,11 @@ function computeFeedDiff({
 
   for (const [videoId] of previousSnapshot) {
     if (!freshMap.has(videoId)) {
-      candidateRemovals.push(videoId);
+      if (confirmedAbsentVideoIds.has(videoId)) {
+        removed.push(videoId);
+      } else {
+        candidateRemovals.push(videoId);
+      }
     }
   }
 
