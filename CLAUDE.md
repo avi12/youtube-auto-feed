@@ -1,3 +1,18 @@
+# Purpose
+A browser extension that keeps the YouTube subscriptions feed (`/feed/subscriptions`) live: new uploads, status changes (upcoming -> live -> ended), removed videos, and metadata edits show up without a reload.
+
+# Architecture
+- Two MAIN-world content scripts on `youtube.com/*`:
+  - `src/entrypoints/fetch-interceptor.content.ts` (runAt `document_start`) - mirrors YouTube's own InnerTube `/browse` response for `FEsubscriptions` to a `ytsua-browse-response` custom event.
+  - `src/entrypoints/main.content/` - everything else. `monitor.ts` owns the polling lifecycle, `api/` parses InnerTube into `VideoSnapshot[]`, `sync.ts` diffs previous vs fresh snapshots into add/remove/reposition/move-to-front/section-move/band-move/metadata-only buckets, `dom/` does Polymer-aware mutations.
+- Polling cadence: 5s full feed, 10s metadata-only. Polling pauses while the tab is hidden.
+
+# Constraints
+- Page is live YouTube. The extension mutates `ytd-rich-grid-renderer.data.contents` through Polymer's `elGrid.set(path, value)`, never through `innerHTML`.
+- InnerTube renderer shapes vary (`videoRenderer`, `lockupViewModel`, `shortsLockupViewModel`, legacy `shelfRenderer` / `gridRenderer`). Always go through the deep accessors in `helpers.ts` and the predicates in `api/guards.ts`; never index into raw shapes.
+- YouTube sometimes returns the `Shorts` section wedged between Latest items. `moveSectionsToTail()` in `dom/band-layout.ts` is called after every sync to force Shorts to the tail of `#contents`. Don't remove without a replacement.
+- Dev server: `pnpm dev` (`scripts/dev-server.ts`) is the supported path. It launches Edge through `web-ext-run` and reloads via `runner.reloadAllExtensions()`. Direct `--load-extension` Edge launch with manual `chrome.runtime.reload()` over CDP silently disables the extension on every content-script rebuild.
+
 # Stack
 - bun
 - WXT extension framework
