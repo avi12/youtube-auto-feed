@@ -14,6 +14,27 @@ A browser extension that keeps the YouTube subscriptions feed (`/feed/subscripti
 - After page load (during polling/sync), `moveSectionsToTail()` in `dom/band-layout.ts` still forces `Shorts` to the tail of `#contents` to handle the case where a later poll wedges Shorts between Latest items. Don't remove without a replacement.
 - Dev server: `pnpm dev` (`scripts/dev-server.ts`) is the supported path. It launches Edge through `web-ext-run` and reloads via `runner.reloadAllExtensions()`. Direct `--load-extension` Edge launch with manual `chrome.runtime.reload()` over CDP silently disables the extension on every content-script rebuild.
 
+# Layout ordering
+`ytd-rich-grid-renderer > #contents` is a flat list mixing two kinds of items:
+- **Section markers** (`ytd-rich-section-renderer`) wrapping either a `richShelfRenderer` (rich shelf with inner contents, e.g. `Shorts`, `Most relevant`) or a legacy `shelfRenderer` (header-only label like `Latest` with no inner contents).
+- **Video items** (`ytd-rich-item-renderer`) emitted as direct grid siblings.
+
+Band attribution is positional: any root-level video that follows a section header belongs to that section until the next header. The `Latest` band is special - its header is a title-only legacy shelf, and its videos are root siblings rather than nested in a rich shelf. `readSectionTitle` in `dom/band-layout.ts` treats both shelf kinds as boundaries; do not regress to only counting rich shelves.
+
+Four pieces of logic decide order:
+1. `captureBandLayout` (`band-layout.ts`) snapshots the initial section order and per-band video counts (`bandCaps`) at page load. Every subsequent poll reconciles against this baseline.
+2. `normalizeInitialBandLayout` only relocates orphan band-0 inline videos (videos that appear before any section header at all). Once any header exists, the videos that follow belong to it and stay put.
+3. `reorderSections` + `buildSectionOrder` (`sync.ts`) group `data.contents` into blocks (section header + its trailing videos) after each poll, then re-emit them in the desired order: the initial sectionOrder, plus any newly-appearing polled sections inserted relative to their neighbors, plus `applyTailSectionPreference` pushing `Shorts` last.
+4. `moveSectionsToTail` is an idempotent post-sync sweep that physically moves `Shorts` to the end of `#contents` if YouTube wedged it between Latest items.
+
+Within-section ordering:
+- `repositionVideoInSection` (`dom/reposition.ts`) drops a finished livestream from front-of-band to its time-correct position.
+- `moveVideosToFront` (`dom/move.ts`) handles upcoming -> live transitions; live videos lead their band.
+- New videos are inserted via `addVideosToGridDom` / `addVideosToDom` (`dom/add/`) at the time-correct index, using `parseSecondsAgo` on the published-time text.
+- `reconcileShelfOrders` (`sync.ts`) detects when a rich shelf's video set matches the API but the order differs, and re-emits the shelf contents in API order.
+
+Contract: **baseline = YouTube verbatim; post-poll = baseline + Shorts pinned to tail, all reconciliations relative to that.**
+
 # Stack
 - bun
 - WXT extension framework
