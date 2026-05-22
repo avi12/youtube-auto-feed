@@ -1,13 +1,8 @@
 import { parseSecondsAgo } from "./api/guards";
+import { cascadeInsertVideos } from "./dom/add/cascade";
 import { addVideosToGridDom, cleanOrphanedGridItems } from "./dom/add/grid";
 import { addVideosToDom } from "./dom/add/shelf";
-import {
-  type BandLayout,
-  dismantleAbsentSections,
-  enforceBandLayout,
-  moveSectionsToTail,
-  reorderSections
-} from "./dom/band-layout";
+import { type BandLayout } from "./dom/band-layout";
 import { moveVideosToFront } from "./dom/move";
 import { findShelfForSection } from "./dom/query";
 import { removeVideosFromDom } from "./dom/remove";
@@ -23,18 +18,6 @@ import {
   videoIdFromShelfListItem
 } from "./helpers";
 import { type VideoSnapshot, VideoStatus } from "./types";
-
-const TAIL_SECTION_TITLES = new Set(["Shorts"]);
-
-function applyTailSectionPreference(sectionOrder: string[]) {
-  const tail = sectionOrder.filter(section => TAIL_SECTION_TITLES.has(section));
-  if (tail.length === 0) {
-    return sectionOrder;
-  }
-
-  const head = sectionOrder.filter(section => !TAIL_SECTION_TITLES.has(section));
-  return [...head, ...tail];
-}
 
 function readCurrentVideoSections() {
   const sections = new Map<string, string>();
@@ -480,60 +463,16 @@ function hasMetadataChange({ previous, fresh }: {
     previous.isChannelLive !== fresh.isChannelLive;
 }
 
-function buildSectionOrder({ initialSectionOrder, polledSectionOrder }: {
-  initialSectionOrder: string[];
-  polledSectionOrder: string[];
-}) {
-  if (initialSectionOrder.length === 0) {
-    return applyTailSectionPreference(polledSectionOrder);
-  }
-
-  const initialSet = new Set(initialSectionOrder);
-  const newSections = polledSectionOrder.filter(section => !initialSet.has(section));
-  if (newSections.length === 0) {
-    return applyTailSectionPreference(initialSectionOrder);
-  }
-
-  const insertBeforeInitial = new Map<string, string | null>();
-  for (const newSection of newSections) {
-    const polledIndex = polledSectionOrder.indexOf(newSection);
-    let insertBefore: string | null = null;
-    for (let i = polledIndex + 1; i < polledSectionOrder.length; i++) {
-      if (initialSet.has(polledSectionOrder[i])) {
-        insertBefore = polledSectionOrder[i];
-        break;
-      }
-    }
-    insertBeforeInitial.set(newSection, insertBefore);
-  }
-
-  const insertionsAt = new Map<string | null, string[]>();
-  for (const newSection of newSections) {
-    const anchor = insertBeforeInitial.get(newSection) ?? null;
-    const group = insertionsAt.get(anchor) ?? [];
-    group.push(newSection);
-    insertionsAt.set(anchor, group);
-  }
-
-  const result: string[] = insertionsAt.get(null) ?? [];
-  for (const section of initialSectionOrder) {
-    result.push(section);
-    const following = insertionsAt.get(section);
-    if (following) {
-      result.push(...following);
-    }
-  }
-  return applyTailSectionPreference(result);
-}
-
 async function executeChanges({
   changes,
   freshSnapshots,
-  freshMap
+  freshMap,
+  bandLayout
 }: {
   changes: ClassifiedChanges;
   freshSnapshots: VideoSnapshot[];
   freshMap: Map<string, VideoSnapshot>;
+  bandLayout: BandLayout | null;
 }) {
   const timeOrderedSnapshots = freshSnapshots.toSorted(
     (videoA, videoB) => parseSecondsAgo(videoA.publishedTimeText) - parseSecondsAgo(videoB.publishedTimeText)
@@ -546,16 +485,41 @@ async function executeChanges({
       .map(elShelf => deepString(elShelf.data, "title", "runs", "0", "text"))
       .filter(Boolean)
   );
-  const shelfVideos = changes.videosToAdd.filter(
-    video => !!video.sectionTitle && !innerShelfSections.has(video.sectionTitle)
+
+  const cascadeSectionTitles = new Set(
+    bandLayout?.bands.filter(band => band.kind === "richShelf").map(band => band.sectionTitle) ?? []
   );
-  const gridVideos = changes.videosToAdd.filter(video => !video.sectionTitle);
-  const shelfMoveIds = new Set(
-    shelfVideos.filter(video => videoIdsToRemoveSet.has(video.videoId)).map(video => video.videoId)
+  const hasInlineBands = bandLayout?.bands.some(band => band.kind === "inline") ?? false;
+
+  const videosForCascade = bandLayout
+    ? changes.videosToAdd.filter(video =>
+      (!video.sectionTitle && hasInlineBands) ||
+      (!!video.sectionTitle && cascadeSectionTitles.has(video.sectionTitle)))
+    : [];
+  const videosForFallback = changes.videosToAdd.filter(
+    video => !videosForCascade.includes(video) && !innerShelfSections.has(video.sectionTitle)
   );
-  if (shelfVideos.length > 0) {
+  const gridFallbackVideos = videosForFallback.filter(video => !video.sectionTitle);
+  const shelfFallbackVideos = videosForFallback.filter(video => !!video.sectionTitle);
+
+  const cascadeShelfMoveIds = new Set(
+    videosForCascade
+      .filter(video => !!video.sectionTitle && videoIdsToRemoveSet.has(video.videoId))
+      .map(video => video.videoId)
+  );
+  const shelfFallbackMoveIds = new Set(
+    shelfFallbackVideos.filter(video => videoIdsToRemoveSet.has(video.videoId)).map(video => video.videoId)
+  );
+  const shelfProtectedIds = new Set([...cascadeShelfMoveIds, ...shelfFallbackMoveIds]);  if (videosForCascade.length > 0 && bandLayout) {
+    await cascadeInsertVideos({
+      videosToAdd: videosForCascade,
+      bandLayout
+    });
+  }
+
+  if (shelfFallbackVideos.length > 0) {
     await addVideosToDom({
-      freshSnapshots: shelfVideos,
+      freshSnapshots: shelfFallbackVideos,
       allFreshSnapshots: timeOrderedSnapshots,
       snapshot: freshMap
     });
@@ -564,7 +528,7 @@ async function executeChanges({
   if (changes.videoIdsToRemove.length > 0) {
     await removeVideosFromDom({
       videoIds: changes.videoIdsToRemove,
-      shelfProtectedIds: shelfMoveIds
+      shelfProtectedIds
     });
   }
 
@@ -577,9 +541,9 @@ async function executeChanges({
     });
   }
 
-  if (gridVideos.length > 0) {
+  if (gridFallbackVideos.length > 0) {
     await addVideosToGridDom({
-      videosToAdd: gridVideos,
+      videosToAdd: gridFallbackVideos,
       allFreshSnapshots: freshSnapshots
     });
   }
@@ -669,7 +633,6 @@ export async function detectAndApplyChanges({
   bandLayout,
   polledSectionOrder = [],
   confirmedAbsentVideoIds = new Set(),
-  confirmedAbsentSections = new Set(),
   confirmedSectionMoves = new Set(),
   confirmedBandMoves = new Set(),
   isInitialLoad = false
@@ -679,7 +642,6 @@ export async function detectAndApplyChanges({
   bandLayout: BandLayout | null;
   polledSectionOrder?: string[];
   confirmedAbsentVideoIds?: Set<string>;
-  confirmedAbsentSections?: Set<string>;
   confirmedSectionMoves?: Set<string>;
   confirmedBandMoves?: Set<string>;
   isInitialLoad?: boolean;
@@ -708,38 +670,14 @@ export async function detectAndApplyChanges({
   await executeChanges({
     changes,
     freshSnapshots,
-    freshMap
+    freshMap,
+    bandLayout
   });
   cleanOrphanedGridItems();
 
   if (changes.videosToAdd.length > 0) {
     reconcileShelfOrders(freshSnapshots);
   }
-
-  if (bandLayout && changes.videosToAdd.length === 0) {
-    enforceBandLayout(bandLayout);
-  }
-
-  const initialSectionOrder = bandLayout?.sectionOrder ?? [];
-  const protectedSections = new Set(initialSectionOrder);
-  let candidateSectionRemovals: string[] = [];
-  if (polledSectionOrder.length > 0) {
-    candidateSectionRemovals = dismantleAbsentSections({
-      polledSectionOrder,
-      confirmedAbsentSections,
-      protectedSections
-    });
-  }
-
-  const effectiveSectionOrder = buildSectionOrder({
-    initialSectionOrder,
-    polledSectionOrder
-  });
-  if (effectiveSectionOrder.length > 0) {
-    reorderSections(effectiveSectionOrder);
-  }
-
-  moveSectionsToTail(TAIL_SECTION_TITLES);
 
   preserveStaleEntriesForUnremovedVideos({
     videoIdsToRemove: changes.videoIdsToRemove,
@@ -752,7 +690,6 @@ export async function detectAndApplyChanges({
     isLayoutChange,
     snapshot: freshMap,
     candidateRemovals: changes.candidateRemovals,
-    candidateSectionRemovals,
     candidateSectionMoves: changes.candidateSectionMoves,
     candidateBandMoves: changes.candidateBandMoves
   };
