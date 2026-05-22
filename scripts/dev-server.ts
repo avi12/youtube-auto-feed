@@ -8,7 +8,7 @@
  */
 
 import chokidar from "chokidar";
-import { spawn, spawnSync, type ChildProcess } from "node:child_process";
+import { spawnSync } from "node:child_process";
 import {
   existsSync,
   cpSync,
@@ -169,50 +169,27 @@ function edgeBinaryPath() {
   }
 }
 
-function launchEdge() {
-  const browserProcess = spawn(edgeBinaryPath(), [
-    `--user-data-dir=${EDGE_PROFILE_DIR}`,
-    `--load-extension=${OUTPUT_DIR}`,
-    `--remote-debugging-port=${CDP_PORT}`,
-    `--lang=${LANG}`,
-    "--disable-blink-features=AutomationControlled",
-    "--no-first-run",
-    "--no-default-browser-check",
-    "--disable-sync",
-    "--disable-default-apps",
-    "--disable-background-networking",
-    "--new-window",
-    START_URL
-  ], { stdio: ["ignore", "ignore", "pipe"] });
-  browserProcess.stderr?.on("data", (chunk: Buffer) => process.stderr.write(chunk));
-  browserProcess.on("error", error => console.error("Failed to launch Edge:", error));
-  return browserProcess;
+// ── Tab reload via HTTP CDP ─────────────────────────────────────────────────
+
+interface CdpTarget {
+  id: string;
+  type: string;
+  title: string;
+  url: string;
+  webSocketDebuggerUrl?: string;
 }
-
-function killBrowserTree(browserProcess: ChildProcess) {
-  if (browserProcess.exitCode !== null || browserProcess.signalCode !== null) {
-    return;
-  }
-
-  const { pid } = browserProcess;
-  if (pid === undefined) {
-    return;
-  }
-
-  if (platform() === "win32") {
-    spawnSync("taskkill", ["/F", "/T", "/PID", String(pid)], { stdio: "ignore" });
-  } else {
-    browserProcess.kill("SIGTERM");
-  }
-}
-
-// ── CDP helpers ─────────────────────────────────────────────────────────────
 
 function sendCdpCommand(webSocketUrl: string, method: string, params: Record<string, unknown> = {}) {
   return new Promise<void>(resolve => {
     const websocket = new WebSocket(webSocketUrl);
     websocket.onopen = () => {
-      websocket.send(JSON.stringify({ id: 1, method, params }));
+      websocket.send(
+        JSON.stringify({
+          id: 1,
+          method,
+          params
+        })
+      );
     };
     websocket.onmessage = event => {
       const data = JSON.parse(String(event.data));
@@ -225,147 +202,23 @@ function sendCdpCommand(webSocketUrl: string, method: string, params: Record<str
   });
 }
 
-function evaluateCdpExpression(webSocketUrl: string, expression: string) {
-  return new Promise<string | null>(resolve => {
-    const websocket = new WebSocket(webSocketUrl);
-    websocket.onopen = () => {
-      websocket.send(JSON.stringify({ id: 1, method: "Runtime.evaluate", params: { expression } }));
-    };
-    websocket.onmessage = event => {
-      const data = JSON.parse(String(event.data));
-      if (data.id === 1) {
-        websocket.close();
-        resolve(data.result?.result?.value ?? null);
-      }
-    };
-    websocket.onerror = () => resolve(null);
-    setTimeout(() => { websocket.close(); resolve(null); }, 3000);
-  });
-}
-
-interface CdpTarget {
-  id: string;
-  type: string;
-  title: string;
-  url: string;
-  webSocketDebuggerUrl?: string;
-}
-
-async function getCdpTargets() {
-  const response = await fetch(`http://localhost:${CDP_PORT}/json`);
-  return await response.json() as CdpTarget[];
-}
-
-async function findOurExtensionTarget() {
-  const targets = await getCdpTargets();
-  const candidates = targets.filter(
-    target => (target.type === "service_worker" || target.type === "background_page") &&
-    target.url.startsWith("chrome-extension://") &&
-    target.webSocketDebuggerUrl !== undefined
-  );
-
-  for (const candidate of candidates) {
-    const name = await evaluateCdpExpression(candidate.webSocketDebuggerUrl!, "chrome.runtime.getManifest().name");
-    if (name === "YouTube Auto Feed") {
-      return candidate;
-    }
-  }
-  return null;
-}
-
-async function findExtensionIsolatedContextId(pageWebSocketUrl: string) {
-  return new Promise<number | null>(resolve => {
-    const websocket = new WebSocket(pageWebSocketUrl);
-    let contextId: number | null = null;
-
-    websocket.onmessage = event => {
-      const data = JSON.parse(String(event.data));
-      if (data.method === "Runtime.executionContextCreated") {
-        const context = data.params?.context;
-        if (context?.name === "YouTube Auto Feed") {
-          contextId = context.id;
-        }
-        return;
-      }
-      if (data.id === 1) {
-        websocket.close();
-        resolve(contextId);
-      }
-    };
-
-    websocket.onopen = () => {
-      websocket.send(JSON.stringify({ id: 1, method: "Runtime.enable" }));
-    };
-
-    websocket.onerror = () => resolve(null);
-    setTimeout(() => { websocket.close(); resolve(null); }, 3000);
-  });
-}
-
-async function wakeExtensionServiceWorker() {
-  const targets = await getCdpTargets();
-  const ytPage = targets.find(
-    target => target.type === "page" && target.url.includes("youtube.com") && target.webSocketDebuggerUrl
-  );
-  if (!ytPage?.webSocketDebuggerUrl) {
-    return;
-  }
-
-  const contextId = await findExtensionIsolatedContextId(ytPage.webSocketDebuggerUrl);
-  if (contextId === null) {
-    return;
-  }
-
-  await new Promise<void>(resolve => {
-    const websocket = new WebSocket(ytPage.webSocketDebuggerUrl!);
-    websocket.onopen = () => {
-      websocket.send(JSON.stringify({ id: 1, method: "Runtime.evaluate", params: { expression: "chrome.runtime.connect()", contextId } }));
-    };
-    websocket.onmessage = event => {
-      const data = JSON.parse(String(event.data));
-      if (data.id === 1) { websocket.close(); resolve(); }
-    };
-    websocket.onerror = () => resolve();
-  });
-
-  await new Promise(resolve => setTimeout(resolve, 800));
-}
-
-async function reloadExtension() {
-  let target = await findOurExtensionTarget();
-
-  if (!target) {
-    await wakeExtensionServiceWorker();
-    target = await findOurExtensionTarget();
-  }
-
-  if (target?.webSocketDebuggerUrl) {
-    await sendCdpCommand(target.webSocketDebuggerUrl, "Runtime.evaluate", { expression: "chrome.runtime.reload()" });
-  }
-}
-
 async function reloadYouTubeTabs() {
-  const targets = await getCdpTargets();
-
-  for (const target of targets) {
-    if (target.type !== "page" || !target.url.includes("youtube.com") || !target.webSocketDebuggerUrl) {
-      continue;
-    }
-
-    await sendCdpCommand(target.webSocketDebuggerUrl, "Page.reload");
-  }
-}
-
-async function reloadExtensionAndTabs() {
   try {
-    await reloadExtension();
-    await reloadYouTubeTabs();
+    const response = await fetch(`http://localhost:${CDP_PORT}/json`);
+    const targets: CdpTarget[] = await response.json();
+    for (const target of targets) {
+      if (target.type !== "page" || !target.url.includes("youtube.com") || !target.webSocketDebuggerUrl) {
+        continue;
+      }
+
+      await sendCdpCommand(target.webSocketDebuggerUrl, "Page.reload");
+    }
   } catch {
-    // CDP not available yet
+    // CDP HTTP endpoint not available
   }
 }
 
-async function waitForChromeClose() {
+async function waitForBrowserClose() {
   const cdpUrl = `http://localhost:${CDP_PORT}/json/version`;
 
   let isStarted = false;
@@ -399,21 +252,24 @@ async function buildExtension() {
     root: PROJECT_ROOT,
     browser: IS_FIREFOX ? "firefox" : "chrome",
     manifestVersion: 3,
-    vite: () => ({ build: { sourcemap: true } })
+    vite: () => ({
+      build: { sourcemap: true }
+    })
   });
 }
 
 // ── Debounce ─────────────────────────────────────────────────────────────────
 
-function debounce<T extends unknown[]>(fn: (...args: T) => void | Promise<void>, delayMs: number) {
+function debounce<T extends unknown[]>(callback: (...args: T) => void | Promise<void>, delayMs: number) {
   let timer: ReturnType<typeof setTimeout> | null = null;
   return (...args: T) => {
     if (timer !== null) {
       clearTimeout(timer);
     }
+
     timer = setTimeout(() => {
       timer = null;
-      void fn(...args);
+      void callback(...args);
     }, delayMs);
   };
 }
@@ -489,7 +345,28 @@ async function runEdge() {
   await buildExtension();
   console.log("Build complete.\n");
 
-  const browserProcess = launchEdge();
+  webExtConsoleStream.write = ({ level, msg: message }) => {
+    if (level >= WARN_LOG_LEVEL) {
+      console.warn(message);
+    }
+  };
+
+  const runner = await webExtRun.cmd.run({
+    target: "chromium",
+    sourceDir: OUTPUT_DIR,
+    startUrl: [START_URL],
+    keepProfileChanges: true,
+    chromiumProfile: EDGE_PROFILE_DIR,
+    chromiumBinary: edgeBinaryPath(),
+    args: [
+      `--lang=${LANG}`,
+      `--remote-debugging-port=${CDP_PORT}`,
+      "--disable-blink-features=AutomationControlled"
+    ],
+    noReload: true,
+    noInput: true
+  }, { shouldExitProgram: false });
+
   console.log("Edge launched with extension sideloaded.");
   console.log("Watching for file changes...\n");
 
@@ -505,7 +382,8 @@ async function runEdge() {
     console.log("Rebuilding...");
     try {
       await buildExtension();
-      await reloadExtensionAndTabs();
+      await runner.reloadAllExtensions();
+      await reloadYouTubeTabs();
       console.log(`Reloaded at ${new Date().toLocaleTimeString()}`);
     } catch (error) {
       console.error("Rebuild failed:", error);
@@ -514,29 +392,18 @@ async function runEdge() {
 
   watcher.on("all", (event, filePath) => onFileChange(event, filePath));
 
-  let isShuttingDown = false;
-  const shutdown = () => {
-    if (isShuttingDown) {
-      return;
-    }
-    isShuttingDown = true;
-    killBrowserTree(browserProcess);
-    void watcher.close();
-  };
-
   for (const signal of ["SIGINT", "SIGTERM"] as const) {
-    process.on(signal, () => {
-      shutdown();
+    process.on(signal, async () => {
+      await watcher.close();
+      await runner.exit();
       process.exit(0);
     });
   }
-  process.on("exit", shutdown);
 
-  await waitForChromeClose();
-  if (!isShuttingDown) {
-    shutdown();
-    process.exit(0);
-  }
+  await waitForBrowserClose();
+  await watcher.close();
+  await runner.exit();
+  process.exit(0);
 }
 
 // ── Main ────────────────────────────────────────────────────────────────────
