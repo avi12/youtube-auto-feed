@@ -8,7 +8,8 @@ function extractYtInitialData(html: string) {
   }
 
   try {
-    return JSON.parse(match[1]) as unknown;
+    const parsed: unknown = JSON.parse(match[1]);
+    return parsed;
   } catch {
     return null;
   }
@@ -17,7 +18,8 @@ function extractYtInitialData(html: string) {
 export async function fetchInitialVideos() {
   const response = await fetch("/feed/subscriptions", {
     credentials: "include"
-  }).catch(() => null);  if (!response?.ok) {
+  }).catch(() => null);
+  if (!response?.ok) {
     return null;
   }
 

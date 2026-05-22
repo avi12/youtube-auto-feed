@@ -1,50 +1,35 @@
-type BroadcastMessages = Record<string, unknown>;
+const CHANNEL_NAME = "ytsua";
 
-type BroadcastEnvelope<T extends BroadcastMessages> = {
-  [K in keyof T]: {
-    type: K;
-    data: T[K];
-  };
-}[keyof T];
+type YtsuaMessage = "subscription-change";
 
-function defineChannel<T extends BroadcastMessages>(channelName: string) {
-  function sendMessage<K extends keyof T & string>(
-    ...[type, data]: T[K] extends void ? [K] : [K, T[K]]
-  ) {
-    const channel = new BroadcastChannel(channelName);
-    channel.postMessage({
-      type,
-      data
-    });
-    channel.close();
-  }
-
-  function onMessage<K extends keyof T & string>({
-    type,
-    handler
-  }: {
-    type: K;
-    handler: T[K] extends void ? () => void : (data: T[K]) => void;
-  }) {
-    const channel = new BroadcastChannel(channelName);
-    channel.onmessage = ({ data }: MessageEvent<BroadcastEnvelope<T>>) => {
-      if (data?.type !== type) {
-        return;
-      }
-
-      (handler as (data: T[K]) => void)(data.data as T[K]);
-    };
-    return () => channel.close();
-  }
-
-  return {
-    sendMessage,
-    onMessage
-  };
+interface YtsuaEnvelope {
+  type: YtsuaMessage;
 }
 
-type YtsuaMessages = {
-  "subscription-change": void;
-};
+function isYtsuaEnvelope(value: unknown): value is YtsuaEnvelope {
+  return typeof value === "object" && value !== null && "type" in value && typeof value.type === "string";
+}
 
-export const ytsuaChannel = defineChannel<YtsuaMessages>("ytsua");
+function sendMessage(type: YtsuaMessage) {
+  const channel = new BroadcastChannel(CHANNEL_NAME);
+  channel.postMessage({ type });
+  channel.close();
+}
+
+function onMessage({ type, handler }: {
+  type: YtsuaMessage;
+  handler: () => void;
+}) {
+  const channel = new BroadcastChannel(CHANNEL_NAME);
+  channel.onmessage = ({ data }) => {
+    if (isYtsuaEnvelope(data) && data.type === type) {
+      handler();
+    }
+  };
+  return () => channel.close();
+}
+
+export const ytsuaChannel = {
+  sendMessage,
+  onMessage
+};

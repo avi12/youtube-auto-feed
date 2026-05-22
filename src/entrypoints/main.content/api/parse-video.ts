@@ -7,7 +7,8 @@ interface ParseVideoParams {
   bandIndex: number;
 }
 
-export function parseRenderer({ renderer, sectionTitle, bandIndex }: ParseVideoParams & { renderer: InnerTubeVideoRenderer }) {
+export function parseRenderer({ renderer, sectionTitle, bandIndex }:
+  ParseVideoParams & { renderer: InnerTubeVideoRenderer }) {
   const {
     videoId, title, thumbnail, publishedTimeText
   } = renderer;
@@ -29,7 +30,8 @@ export function parseRenderer({ renderer, sectionTitle, bandIndex }: ParseVideoP
   } satisfies VideoSnapshot;
 }
 
-export function parseLockupViewModel({ lockup, sectionTitle, bandIndex }: ParseVideoParams & { lockup: LockupViewModel }) {
+export function parseLockupViewModel({ lockup, sectionTitle, bandIndex }:
+  ParseVideoParams & { lockup: LockupViewModel }) {
   const { contentId, contentImage, metadata } = lockup;
   if (contentId === "") {
     return null;
@@ -59,7 +61,8 @@ export function parseLockupViewModel({ lockup, sectionTitle, bandIndex }: ParseV
   } satisfies VideoSnapshot;
 }
 
-export function parseShortsLockupViewModel({ shortsLockup, sectionTitle, bandIndex }: ParseVideoParams & { shortsLockup: ShortsLockupViewModel }) {
+export function parseShortsLockupViewModel({ shortsLockup, sectionTitle, bandIndex }:
+  ParseVideoParams & { shortsLockup: ShortsLockupViewModel }) {
   const videoId = shortsLockup.onTap?.innertubeCommand?.reelWatchEndpoint?.videoId ?? "";
   if (videoId === "") {
     return null;

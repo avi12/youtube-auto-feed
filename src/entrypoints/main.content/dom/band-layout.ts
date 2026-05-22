@@ -147,7 +147,12 @@ export function reorderSections(polledSectionOrder: string[]) {
     }
   }
 
-  const currentSectionOrder = blocks.filter(block => block.sectionTitle !== null).map(block => block.sectionTitle as string);
+  const currentSectionOrder: string[] = [];
+  for (const block of blocks) {
+    if (block.sectionTitle !== null) {
+      currentSectionOrder.push(block.sectionTitle);
+    }
+  }
   const targetOrder = polledSectionOrder.filter(section => sectionBlocks.has(section));
   if (JSON.stringify(currentSectionOrder) === JSON.stringify(targetOrder)) {
     return;

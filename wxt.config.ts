@@ -13,7 +13,7 @@ export default defineConfig({
   srcDir: "src",
   modules: ["@wxt-dev/auto-icons"],
   autoIcons: { baseIconPath: "assets/icon.svg" },
-  vite: ({ mode }) => ({
+  vite: () => ({
     build: { sourcemap: false }
   })
 });

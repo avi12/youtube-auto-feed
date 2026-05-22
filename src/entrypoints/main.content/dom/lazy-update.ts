@@ -44,11 +44,11 @@ function ensureObserver() {
 
   intersectionObserver = new IntersectionObserver(entries => {
     for (const { isIntersecting, target } of entries) {
-      if (!isIntersecting) {
+      if (!isIntersecting || !(target instanceof HTMLElement)) {
         continue;
       }
 
-      const elItem = target as HTMLElement;
+      const elItem = target;
       if (!isPolymerElement(elItem)) {
         continue;
       }
@@ -108,11 +108,11 @@ function ensureEntranceObserver() {
 
   entranceObserver = new IntersectionObserver(entries => {
     for (const { isIntersecting, target } of entries) {
-      if (!isIntersecting) {
+      if (!isIntersecting || !(target instanceof HTMLElement)) {
         continue;
       }
 
-      const elItem = target as HTMLElement;
+      const elItem = target;
       if (!pendingEntranceItems.delete(elItem)) {
         continue;
       }

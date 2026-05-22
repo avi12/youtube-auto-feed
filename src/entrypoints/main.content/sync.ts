@@ -234,7 +234,8 @@ function classifyStatusTransition({ previous, fresh }: {
     return "upcoming-to-live" as const;
   }
 
-  if ((previous.status === VideoStatus.Live || previous.status === VideoStatus.Upcoming) && fresh.status === VideoStatus.Video) {
+  const wasStreaming = previous.status === VideoStatus.Live || previous.status === VideoStatus.Upcoming;
+  if (wasStreaming && fresh.status === VideoStatus.Video) {
     return "stream-finished" as const;
   }
 
@@ -413,7 +414,9 @@ function classifyChanges({
   });
 
   for (const move of diff.sectionMoves) {
-    if ((isShapeMatch || move.toSection || move.fromSection) && (confirmedSectionMoves.has(move.videoId) || isInitialLoad)) {
+    const isMoveShapeOk = isShapeMatch || move.toSection || move.fromSection;
+    const isMoveConfirmed = confirmedSectionMoves.has(move.videoId) || isInitialLoad;
+    if (isMoveShapeOk && isMoveConfirmed) {
       diff.removed.push(move.videoId);
       diff.added.push(move.fresh);
     }
@@ -547,7 +550,10 @@ async function executeChanges({
     video => !!video.sectionTitle && !innerShelfSections.has(video.sectionTitle)
   );
   const gridVideos = changes.videosToAdd.filter(video => !video.sectionTitle);
-  const shelfMoveIds = new Set(shelfVideos.filter(v => videoIdsToRemoveSet.has(v.videoId)).map(v => v.videoId));  if (shelfVideos.length > 0) {
+  const shelfMoveIds = new Set(
+    shelfVideos.filter(video => videoIdsToRemoveSet.has(video.videoId)).map(video => video.videoId)
+  );
+  if (shelfVideos.length > 0) {
     await addVideosToDom({
       freshSnapshots: shelfVideos,
       allFreshSnapshots: timeOrderedSnapshots,

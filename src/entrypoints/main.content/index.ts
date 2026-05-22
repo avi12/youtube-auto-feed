@@ -1,6 +1,15 @@
 import { checkLayoutIntegrity } from "./debug/layout-integrity";
 import { createSubscriptionMonitor } from "./monitor";
 
+declare global {
+  var __ytsuaDebug: {
+    checkLayoutIntegrity: typeof checkLayoutIntegrity;
+    pausePolling: () => void;
+    resumePolling: () => void;
+    fetchFreshVideos: (isInitialLoad?: boolean) => Promise<boolean>;
+  } | undefined;
+}
+
 export default defineContentScript({
   matches: ["https://www.youtube.com/*"],
   world: "MAIN",
@@ -8,7 +17,7 @@ export default defineContentScript({
     const monitor = createSubscriptionMonitor();
     document.addEventListener("yt-navigate-finish", monitor.handleNavigation);
     monitor.handleNavigation();
-    (globalThis as Record<string, unknown>).__ytsuaDebug = {
+    globalThis.__ytsuaDebug = {
       checkLayoutIntegrity,
       pausePolling: monitor.pausePolling,
       resumePolling: monitor.resumePolling,

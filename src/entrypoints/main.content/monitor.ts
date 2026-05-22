@@ -31,7 +31,6 @@ export function createSubscriptionMonitor() {
   let lastSnapshot = new Map<string, VideoSnapshot>();
   let isDomReady = false;
   let isApplyingChanges = false;
-  const pendingApplySnapshots: FeedPayload | null = null;
   let contentObserver: MutationObserver | null = null;
   let orphanCleanupTimer: ReturnType<typeof setInterval> | null = null;
   let pendingApiSnapshots: FeedPayload | null = null;
@@ -90,7 +89,14 @@ export function createSubscriptionMonitor() {
           .map(([id]) => id)
       );
 
-      const { isLayoutChange, snapshot, candidateRemovals, candidateSectionRemovals, candidateSectionMoves, candidateBandMoves } = await detectAndApplyChanges({
+      const {
+        isLayoutChange,
+        snapshot,
+        candidateRemovals,
+        candidateSectionRemovals,
+        candidateSectionMoves,
+        candidateBandMoves
+      } = await detectAndApplyChanges({
         previousSnapshot: lastSnapshot,
         freshSnapshots: payload.snapshots,
         bandLayout: initialBandLayout,

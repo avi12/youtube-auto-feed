@@ -70,7 +70,9 @@ async function addVideosToSection({
   }
 
   const shelfContents = deepArray(elShelf.data, "contents");
-  const videosToInsert = videos.filter(video => !shelfContents.some(item => videoIdFromRichItem(item) === video.videoId));
+  const videosToInsert = videos.filter(
+    video => !shelfContents.some(item => videoIdFromRichItem(item) === video.videoId)
+  );
   if (videosToInsert.length === 0) {
     return;
   }

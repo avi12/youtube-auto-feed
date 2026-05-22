@@ -625,13 +625,6 @@ function pruneOrphanedDomItems({ elGridContents, standaloneModelIds }: {
   }
 }
 
-function shelfRendererListItems(contentItem: unknown) {
-  return [
-    ...deepArray(contentItem, "richSectionRenderer", "content", "shelfRenderer", "content", "horizontalListRenderer", "items"),
-    ...deepArray(contentItem, "richSectionRenderer", "content", "shelfRenderer", "content", "gridRenderer", "items")
-  ];
-}
-
 export function findSectionInsertIndex({ contents, sectionMinimumFreshIndex, freshOrderMap }: {
   contents: unknown[];
   sectionMinimumFreshIndex: number;

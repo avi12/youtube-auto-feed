@@ -214,7 +214,8 @@ function buildReport({ domBands, apiBands }: {
 function persistReport(report: LayoutIntegrityReport) {
   try {
     const stored = sessionStorage.getItem("__ytsua_layout_checks");
-    const history: LayoutIntegrityReport[] = stored ? (JSON.parse(stored) as LayoutIntegrityReport[]) : [];
+    const parsed: unknown = stored ? JSON.parse(stored) : [];
+    const history: LayoutIntegrityReport[] = Array.isArray(parsed) ? parsed : [];
     history.push(report);
 
     if (history.length > 10) {

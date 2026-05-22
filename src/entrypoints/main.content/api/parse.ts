@@ -1,21 +1,11 @@
 import type {
   InnerTubeBrowseResponse,
-  InnerTubeRichItemContent,
   InnerTubeVideoRenderer,
   LockupViewModel,
   ShortsLockupViewModel,
   VideoSnapshot
 } from "../types";
 import { parseLockupViewModel, parseRenderer, parseShortsLockupViewModel } from "./parse-video";
-
-function videoIdFromContent(content: InnerTubeRichItemContent) {
-  return content.videoRenderer?.videoId
-    ?? content.gridVideoRenderer?.videoId
-    ?? content.richGridMediaRenderer?.content?.videoRenderer?.videoId
-    ?? content.lockupViewModel?.contentId
-    ?? content.shortsLockupViewModel?.onTap?.innertubeCommand?.reelWatchEndpoint?.videoId
-    ?? "";
-}
 
 interface CollectSnapshotParams {
   sectionTitle: string;
@@ -27,7 +17,15 @@ interface CollectSnapshotParams {
   shortsLockup?: ShortsLockupViewModel;
 }
 
-function collectSnapshot({ sectionTitle, bandIndex, snapshots, seenVideoIds, renderer, lockup, shortsLockup }: CollectSnapshotParams) {
+function collectSnapshot({
+  sectionTitle,
+  bandIndex,
+  snapshots,
+  seenVideoIds,
+  renderer,
+  lockup,
+  shortsLockup
+}: CollectSnapshotParams) {
   let snapshot = null;
   if (renderer) {
     snapshot = parseRenderer({
@@ -77,21 +75,24 @@ export function parseApiResponse(data: InnerTubeBrowseResponse) {
   const seenVideoIds = new Set<string>();
   try {
     const tabContent = data.contents.twoColumnBrowseResultsRenderer.tabs[0]?.tabRenderer.content;
-    const pushSnapshot = (
+
+    function pushSnapshot(
       sectionTitle: string,
       bandIndex: number,
       renderer?: InnerTubeVideoRenderer,
       lockup?: LockupViewModel,
       shortsLockup?: ShortsLockupViewModel
-    ) => collectSnapshot({
-      sectionTitle,
-      bandIndex,
-      snapshots,
-      seenVideoIds,
-      renderer,
-      lockup,
-      shortsLockup
-    });
+    ) {
+      collectSnapshot({
+        sectionTitle,
+        bandIndex,
+        snapshots,
+        seenVideoIds,
+        renderer,
+        lockup,
+        shortsLockup
+      });
+    }
 
     let currentSectionTitle = "";
     let currentBandIndex = 0;
@@ -102,10 +103,13 @@ export function parseApiResponse(data: InnerTubeBrowseResponse) {
           currentSectionTitle = richShelfRenderer.title.runs[0]?.text ?? "";
           for (const richItem of richShelfRenderer.contents) {
             const content = richItem.richItemRenderer?.content;
+            const renderer = content?.videoRenderer
+              ?? content?.gridVideoRenderer
+              ?? content?.richGridMediaRenderer?.content?.videoRenderer;
             pushSnapshot(
               currentSectionTitle,
               currentBandIndex,
-              content?.videoRenderer ?? content?.gridVideoRenderer ?? content?.richGridMediaRenderer?.content?.videoRenderer,
+              renderer,
               content?.lockupViewModel,
               content?.shortsLockupViewModel
             );
@@ -113,9 +117,15 @@ export function parseApiResponse(data: InnerTubeBrowseResponse) {
           currentBandIndex++;
         } else if (shelfRenderer) {
           currentSectionTitle = shelfRenderer.title.runs[0]?.text ?? "";
-          const shelfItems = shelfRenderer.content?.horizontalListRenderer?.items ?? shelfRenderer.content?.gridRenderer?.items ?? [];
+          const shelfItems = shelfRenderer.content?.horizontalListRenderer?.items
+            ?? shelfRenderer.content?.gridRenderer?.items
+            ?? [];
           for (const shelfItem of shelfItems) {
-            pushSnapshot(currentSectionTitle, currentBandIndex, shelfItem.videoRenderer ?? shelfItem.gridVideoRenderer);
+            pushSnapshot(
+              currentSectionTitle,
+              currentBandIndex,
+              shelfItem.videoRenderer ?? shelfItem.gridVideoRenderer
+            );
           }
 
           if (shelfItems.length > 0) {
@@ -126,10 +136,13 @@ export function parseApiResponse(data: InnerTubeBrowseResponse) {
         currentSectionTitle = "";
       } else if (item.richItemRenderer) {
         const { content } = item.richItemRenderer;
+        const renderer = content?.videoRenderer
+          ?? content?.gridVideoRenderer
+          ?? content?.richGridMediaRenderer?.content?.videoRenderer;
         pushSnapshot(
           currentSectionTitle,
           currentBandIndex,
-          content?.videoRenderer ?? content?.gridVideoRenderer ?? content?.richGridMediaRenderer?.content?.videoRenderer,
+          renderer,
           content?.lockupViewModel,
           content?.shortsLockupViewModel
         );
@@ -145,7 +158,9 @@ export function parseApiResponse(data: InnerTubeBrowseResponse) {
           }
 
           const sectionTitle = shelf.title.runs[0]?.text ?? "";
-          const shelfItems = shelf.content?.horizontalListRenderer?.items ?? shelf.content?.gridRenderer?.items ?? [];
+          const shelfItems = shelf.content?.horizontalListRenderer?.items
+            ?? shelf.content?.gridRenderer?.items
+            ?? [];
           for (const shelfItem of shelfItems) {
             pushSnapshot(sectionTitle, 0, shelfItem.videoRenderer ?? shelfItem.gridVideoRenderer);
           }

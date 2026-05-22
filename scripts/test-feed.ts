@@ -35,30 +35,35 @@ interface CdpMsg { id: number;
   }; }
 
 async function fetchTargets(): Promise<CdpTarget[]> {
-  return (await fetch(`http://localhost:${CDP_PORT}/json`)).json() as Promise<CdpTarget[]>;
+  const raw: unknown = await (await fetch(`http://localhost:${CDP_PORT}/json`)).json();
+  return Array.isArray(raw) ? raw : [];
 }
 
 function openCdp(wsUrl: string) {
   const socket = new WebSocket(wsUrl);
   let seq = 1;
-  const pending = new Map<number, (v: unknown) => void>();
+  const pending = new Map<number, (value: unknown) => void>();
   socket.addEventListener("message", event => {
     const msg: CdpMsg = JSON.parse(String(event.data));
     pending.get(msg.id)?.(msg.result?.result?.value);
     pending.delete(msg.id);
   });
-  const ready = new Promise<void>(r => socket.addEventListener("open", () => r(), { once: true }));
-  async function evalAsync<T>(fn: string): Promise<T> {
+  const ready = new Promise<void>(resolve => socket.addEventListener("open", () => resolve(), { once: true }));
+  async function evalAsync<T>(expressionFn: string): Promise<T> {
     await ready;
     const id = seq++;
-    return new Promise<T>(r => {
-      pending.set(id, v => r(v as T));
+    return new Promise<T>(resolve => {
+      function handle(value: unknown) {
+        resolve(JSON.parse(JSON.stringify(value)));
+      }
+
+      pending.set(id, handle);
       socket.send(
         JSON.stringify({
           id,
           method: "Runtime.evaluate",
           params: {
-            expression: `(${fn})()`,
+            expression: `(${expressionFn})()`,
             returnByValue: true,
             awaitPromise: true
           }
@@ -163,36 +168,6 @@ const PARSE_BANDS = `() => {
   return bands;
 }`;
 
-// Normalizes inline richItemRenderer items where content.lockupViewModel holds
-// videoRenderer-shaped data (has videoId, lacks contentId) by renaming the key
-// to videoRenderer. This ensures parseApiResponse handles them via the correct path.
-function normalizeContentsForDispatch(contents: unknown[]): unknown[] {
-  return contents.map(item => {
-    const ri = (item as {
-      richItemRenderer?: { content?: Record<string, unknown> };
-    }).richItemRenderer;
-    if (!ri?.content) {
-      return item;
-    }
-
-    const lv = ri.content.lockupViewModel as Record<string, unknown> | undefined;
-    if (!lv || "contentId" in lv || !("videoId" in lv)) {
-      return item;
-    }
-
-    const { lockupViewModel: _removed, ...restContent } = ri.content;
-    return {
-      richItemRenderer: {
-        ...ri,
-        content: {
-          ...restContent,
-          videoRenderer: lv
-        }
-      }
-    };
-  });
-}
-
 function buildBrowsePayload(contents: unknown[]) {
   return {
     contents: {
@@ -238,8 +213,8 @@ async function testBaseline(cdp: Cdp) {
   // The polled API is non-deterministic, so:
   //   "missing from DOM"  = extension failed to show a video YouTube thinks should appear → FAIL
   //   "missing from API"  = extension holds a video pending 3-poll absence confirmation → expected, no FAIL
-  const allDomIds = new Set(result.bandDiffs.flatMap(d => d.domVideoIds));
-  const allApiIds = new Set(result.bandDiffs.flatMap(d => d.apiVideoIds));
+  const allDomIds = new Set(result.bandDiffs.flatMap(diff => diff.domVideoIds));
+  const allApiIds = new Set(result.bandDiffs.flatMap(diff => diff.apiVideoIds));
   const missingFromDom = [...allApiIds].filter(id => !allDomIds.has(id));
   const missingFromApi = [...allDomIds].filter(id => !allApiIds.has(id));
   if (missingFromApi.length > 0) {
@@ -262,7 +237,7 @@ async function testBaseline(cdp: Cdp) {
 async function testNewVideoDetection(cdp: Cdp) {
   section("2. New video detection (re-detection via polling)");
   const bands = await cdp.evalAsync<Band[]>(PARSE_BANDS);
-  const inlineBand = bands.find(b => b.title === "");
+  const inlineBand = bands.find(band => band.title === "");
   const targetId = inlineBand?.videoIds[0];
   if (!targetId) {
     skip("New video detection", "No inline videos in current layout"); return;
@@ -309,7 +284,7 @@ async function testNewVideoDetection(cdp: Cdp) {
   }
 
   const bandsAfter = await cdp.evalAsync<Band[]>(PARSE_BANDS);
-  const inlineAfter = bandsAfter.find(b => b.title === "");
+  const inlineAfter = bandsAfter.find(band => band.title === "");
   const pos = inlineAfter?.videoIds.indexOf(targetId) ?? -1;
   pass("New video detection", `${targetId} re-detected at inline[${pos}]`);
 }
@@ -325,7 +300,7 @@ async function testNewVideoDetection(cdp: Cdp) {
 async function testLiveTransition(cdp: Cdp) {
   section("3. Upcoming → Live transition");
   const bands = await cdp.evalAsync<Band[]>(PARSE_BANDS);
-  const inlineBand = bands.find(b => b.title === "");
+  const inlineBand = bands.find(band => band.title === "");
   // Use the 3rd inline video so it's clearly not already at front
   const guineaPigId = inlineBand?.videoIds[2];
   if (!guineaPigId) {
@@ -338,10 +313,10 @@ async function testLiveTransition(cdp: Cdp) {
 
   function buildInlineContents(guineaPigBadge: "upcoming" | "live") {
     return sampleIds.map(id => {
-      const baseVr = buildMinimalVideoRenderer(id);
-      const vr = id === guineaPigId
+      const baseRenderer = buildMinimalVideoRenderer(id);
+      const renderer = id === guineaPigId
         ? {
-          ...baseVr,
+          ...baseRenderer,
           badges: [{
             metadataBadgeRenderer: { style: guineaPigBadge === "upcoming" ? "BADGE_STYLE_TYPE_UPCOMING" : "BADGE_STYLE_TYPE_LIVE_NOW" }
           }],
@@ -349,10 +324,10 @@ async function testLiveTransition(cdp: Cdp) {
             thumbnailOverlayTimeStatusRenderer: { style: guineaPigBadge === "upcoming" ? "UPCOMING" : "LIVE" }
           }]
         }
-        : baseVr;
+        : baseRenderer;
       return {
         richItemRenderer: {
-          content: { videoRenderer: vr }
+          content: { videoRenderer: renderer }
         }
       };
     });
@@ -370,7 +345,7 @@ async function testLiveTransition(cdp: Cdp) {
   await delay(800); // extra wait for view transition animation
 
   const bandsAfter = await cdp.evalAsync<Band[]>(PARSE_BANDS);
-  const inlineAfter = bandsAfter.find(b => b.title === "");
+  const inlineAfter = bandsAfter.find(band => band.title === "");
   const posAfter = inlineAfter?.videoIds.indexOf(guineaPigId) ?? -1;
   if (posAfter === 0) {
     pass("Upcoming→Live transition", `${guineaPigId} moved to inline[0]`);
@@ -468,13 +443,14 @@ async function testLayoutReordering(cdp: Cdp) {
   await cdp.evalAsync<void>(`() => window.__ytsuaDebug?.pausePolling?.()`);
   const bands = await cdp.evalAsync<Band[]>(PARSE_BANDS);
 
-  const namedBands = bands.filter(b => b.title !== "");
-  const inlineBand = bands.find(b => b.title === "");
+  const namedBands = bands.filter(band => band.title !== "");
+  const inlineBand = bands.find(band => band.title === "");
   if (namedBands.length === 0) {
     skip("Layout reordering", "No named sections found — inline-only layout"); return;
   }
 
-  console.log(`     Current layout: ${namedBands.map(b => `"${b.title}"`).join(" → ")} + inline(${inlineBand?.videoIds.length ?? 0})`);
+  const layoutLabel = namedBands.map(band => `"${band.title}"`).join(" → ");
+  console.log(`     Current layout: ${layoutLabel} + inline(${inlineBand?.videoIds.length ?? 0})`);
 
   // Include ALL current inline video IDs so pendingRemovals never accumulates across
   // the 6+ sequential dispatches (each absent video needs 3 dispatches to be confirmed
@@ -500,7 +476,7 @@ async function testLayoutReordering(cdp: Cdp) {
   const testedNames = new Set<string>();
 
   for (const perm of sectionPerms) {
-    const layoutName = perm.map(b => b.title).join(" → ");
+    const layoutName = perm.map(band => band.title).join(" → ");
     if (testedNames.has(layoutName)) {
       continue;
     }
@@ -510,8 +486,8 @@ async function testLayoutReordering(cdp: Cdp) {
     await dispatch(cdp, buildBrowsePayload(buildPayloadContents(perm)));
 
     const resultBands = await cdp.evalAsync<Band[]>(PARSE_BANDS);
-    const actualSectionTitles = resultBands.filter(b => b.title !== "").map(b => b.title);
-    const expectedSectionTitles = perm.map(b => b.title);
+    const actualSectionTitles = resultBands.filter(band => band.title !== "").map(band => band.title);
+    const expectedSectionTitles = perm.map(band => band.title);
     if (JSON.stringify(actualSectionTitles) === JSON.stringify(expectedSectionTitles)) {
       pass(`Layout: ${layoutName}`, `sections in DOM: [${actualSectionTitles.join(", ")}]`);
     } else {
@@ -527,7 +503,7 @@ async function testLayoutReordering(cdp: Cdp) {
 // ── Main ─────────────────────────────────────────────────────────────────────
 
 const targets = await fetchTargets();
-const subTab = targets.find(t => t.type === "page" && t.url.includes("youtube.com/feed/subscriptions"));
+const subTab = targets.find(target => target.type === "page" && target.url.includes("youtube.com/feed/subscriptions"));
 if (!subTab) {
   console.error("❌  No YouTube subscriptions tab found."); process.exit(1);
 }
@@ -538,8 +514,8 @@ console.log(`╚═════════════════════�
 console.log(`  Tab : ${subTab.url}`);
 
 const cdp = openCdp(subTab.webSocketDebuggerUrl);
-const vp = await cdp.evalAsync<Viewport>(`() => ({ width: innerWidth, height: innerHeight })`);
-console.log(`  Viewport: ${vp.width}×${vp.height} (${viewportLabel})\n`);
+const viewport = await cdp.evalAsync<Viewport>(`() => ({ width: innerWidth, height: innerHeight })`);
+console.log(`  Viewport: ${viewport.width}×${viewport.height} (${viewportLabel})\n`);
 
 await testBaseline(cdp);
 await testNewVideoDetection(cdp);
@@ -550,17 +526,17 @@ await testLayoutReordering(cdp);
 cdp.close();
 
 // ── Summary ──────────────────────────────────────────────────────────────────
-const passed = results.filter(r => r.pass).length;
-const failed = results.filter(r => !r.pass).length;
+const passed = results.filter(entry => entry.pass).length;
+const failed = results.filter(entry => !entry.pass).length;
 console.log(`\n${"═".repeat(54)}`);
-console.log(`  Results (${viewportLabel}, ${vp.width}×${vp.height})`);
+console.log(`  Results (${viewportLabel}, ${viewport.width}×${viewport.height})`);
 console.log(`${"═".repeat(54)}`);
 console.log(`  Total: ${results.length}  |  ✅ ${passed}  |  ❌ ${failed}`);
 
 if (failed > 0) {
   console.log("\n  Failed:");
-  for (const r of results.filter(r => !r.pass)) {
-    console.log(`    ❌ ${r.name}: ${r.detail}`);
+  for (const entry of results.filter(failure => !failure.pass)) {
+    console.log(`    ❌ ${entry.name}: ${entry.detail}`);
   }
 }
 

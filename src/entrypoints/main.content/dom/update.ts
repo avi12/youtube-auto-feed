@@ -7,13 +7,7 @@ import {
   isRecord,
   videoIdFromData
 } from "../helpers";
-import type {
-  InnerTubeVideoRenderer,
-  LockupViewModel,
-  PolymerElement,
-  ShortsLockupViewModel,
-  VideoSnapshot
-} from "../types";
+import type { InnerTubeVideoRenderer, LockupViewModel, PolymerElement, VideoSnapshot } from "../types";
 import { isInViewport } from "./animations";
 import { scheduleLazyUpdate } from "./lazy-update";
 import { findItemElement } from "./query";
@@ -491,16 +485,14 @@ function applyPolymerUpdate({ elItem, rawRenderer }: {
   const { content } = itemData;
   if (!isRecord(content)) {
     elItem.set("data", rawRenderer);
-  } else if (isRecord(content.lockupViewModel)) {
-    const existing = content.lockupViewModel as unknown as LockupViewModel;
-    const incoming = rawRenderer as LockupViewModel;
+  } else if (isLockupViewModel(content.lockupViewModel) && isLockupViewModel(rawRenderer)) {
     const merged = mergeLockupViewModel({
-      existing,
-      incoming
+      existing: content.lockupViewModel,
+      incoming: rawRenderer
     });
     const elLockup = elItem.querySelector<HTMLElement>("yt-lockup-view-model");
     if (elLockup && "lockupViewModel" in elLockup) {
-      (elLockup as HTMLElement & { lockupViewModel: LockupViewModel }).lockupViewModel = merged;
+      Object.assign(elLockup, { lockupViewModel: merged });
     } else {
       elItem.set("data", {
         ...itemData,
@@ -510,12 +502,10 @@ function applyPolymerUpdate({ elItem, rawRenderer }: {
         }
       });
     }
-  } else if (isRecord(content.shortsLockupViewModel)) {
+  } else if (isShortsLockupViewModel(content.shortsLockupViewModel) && isShortsLockupViewModel(rawRenderer)) {
     const elShortsLockup = elItem.querySelector<HTMLElement>("yt-shorts-lockup-view-model");
     if (elShortsLockup && "shortsLockupViewModel" in elShortsLockup) {
-      (elShortsLockup as HTMLElement & {
-        shortsLockupViewModel: ShortsLockupViewModel;
-      }).shortsLockupViewModel = rawRenderer as ShortsLockupViewModel;
+      Object.assign(elShortsLockup, { shortsLockupViewModel: rawRenderer });
     } else {
       elItem.set("data", {
         ...itemData,
@@ -537,6 +527,10 @@ function applyPolymerUpdate({ elItem, rawRenderer }: {
   }
 }
 
+function isRendererThumbnail(value: unknown): value is InnerTubeVideoRenderer["thumbnail"] {
+  return isRecord(value) && Array.isArray(value.thumbnails);
+}
+
 function buildMergedVideoRenderer({
   existing,
   incoming,
@@ -550,9 +544,14 @@ function buildMergedVideoRenderer({
     return incoming;
   }
 
+  const { thumbnail } = existing;
+  if (!isRendererThumbnail(thumbnail)) {
+    return incoming;
+  }
+
   return {
     ...incoming,
-    thumbnail: existing.thumbnail as InnerTubeVideoRenderer["thumbnail"]
+    thumbnail
   };
 }
 
@@ -677,9 +676,13 @@ function syncGridModelItem({ videoId, rawRenderer, forcePreserveContentImage = f
     for (const listKey of ["horizontalListRenderer", "gridRenderer"] as const) {
       const items = deepArray(shelfContent, listKey, "items");
       for (const [iItem, item] of items.entries()) {
-        const rendererKey = deepString(item, "videoRenderer", "videoId") === videoId ? "videoRenderer"
-          : deepString(item, "gridVideoRenderer", "videoId") === videoId ? "gridVideoRenderer"
-            : null;
+        let rendererKey: "videoRenderer" | "gridVideoRenderer" | null = null;
+        if (deepString(item, "videoRenderer", "videoId") === videoId) {
+          rendererKey = "videoRenderer";
+        } else if (deepString(item, "gridVideoRenderer", "videoId") === videoId) {
+          rendererKey = "gridVideoRenderer";
+        }
+
         if (!rendererKey) {
           continue;
         }
