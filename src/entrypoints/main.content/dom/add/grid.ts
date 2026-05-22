@@ -637,32 +637,42 @@ export function findSectionInsertIndex({ contents, sectionMinimumFreshIndex, fre
   sectionMinimumFreshIndex: number;
   freshOrderMap: Map<string, number>;
 }) {
-  for (let iContent = 0; iContent < contents.length; iContent++) {
-    const item = contents[iContent];
+  let iInsert = 0;
+  for (let i = 0; i < contents.length; i++) {
+    const item = contents[i];
     const standaloneId = videoIdFromRichItem(item);
     if (standaloneId) {
       const standaloneFreshIndex = freshOrderMap.get(standaloneId);
-      if (standaloneFreshIndex !== undefined && standaloneFreshIndex > sectionMinimumFreshIndex) {
-        return iContent;
+      if (standaloneFreshIndex === undefined) {
+        continue;
       }
 
+      if (standaloneFreshIndex > sectionMinimumFreshIndex) {
+        return i;
+      }
+
+      iInsert = i + 1;
+      continue;
+    }
+
+    if (!isRecord(item) || !("richSectionRenderer" in item)) {
       continue;
     }
 
     const existingSectionItems = deepArray(item, "richSectionRenderer", "content", "richShelfRenderer", "contents");
-    if (existingSectionItems.length > 0) {
-      const knownIndices = existingSectionItems
-        .map(contentItem => {
-          const videoId = videoIdFromRichItem(contentItem);
-          return videoId !== null ? freshOrderMap.get(videoId) : undefined;
-        })
-        .filter((index): index is number => index !== undefined);
-      if (knownIndices.length > 0 && Math.min(...knownIndices) > sectionMinimumFreshIndex) {
-        return iContent;
-      }
+    const knownIndices = existingSectionItems
+      .map(contentItem => {
+        const videoId = videoIdFromRichItem(contentItem);
+        return videoId !== null ? freshOrderMap.get(videoId) : undefined;
+      })
+      .filter((index): index is number => index !== undefined);
+    if (knownIndices.length > 0 && Math.min(...knownIndices) > sectionMinimumFreshIndex) {
+      return i;
     }
+
+    iInsert = i + 1;
   }
-  return contents.length;
+  return iInsert;
 }
 
 function buildNewRichSection({ sectionTitle, videos }: {
@@ -744,38 +754,46 @@ function findGridInsertIndex({
   videoStatus: VideoStatus;
   allSnapshotMap: Map<string, VideoSnapshot>;
 }) {
-  let iInsert = contents.length;
+  let iInsert = 0;
   for (let i = 0; i < contents.length; i++) {
     const item = contents[i];
     if (isRecord(item) && "continuationItemRenderer" in item) {
-      iInsert = i;
       break;
     }
 
     const existingId = videoIdFromRichItem(item);
     if (existingId) {
       const existingFreshIndex = freshOrderMap.get(existingId);
-      if (existingFreshIndex !== undefined && existingFreshIndex > freshIndex) {
+      if (existingFreshIndex === undefined) {
+        continue;
+      }
+
+      if (existingFreshIndex > freshIndex) {
         iInsert = i;
         break;
       }
 
+      iInsert = i + 1;
+      continue;
+    }
+
+    if (!isRecord(item) || !("richSectionRenderer" in item)) {
       continue;
     }
 
     const sectionItems = deepArray(item, "richSectionRenderer", "content", "richShelfRenderer", "contents");
-    if (sectionItems.length > 0) {
-      const knownIndices = sectionItems
-        .map(contentItem => {
-          const videoId = videoIdFromRichItem(contentItem);
-          return videoId !== null ? freshOrderMap.get(videoId) : undefined;
-        })
-        .filter((index): index is number => index !== undefined);
-      if (knownIndices.length > 0 && Math.min(...knownIndices) > freshIndex) {
-        iInsert = i;
-        break;
-      }
+    const knownIndices = sectionItems
+      .map(contentItem => {
+        const videoId = videoIdFromRichItem(contentItem);
+        return videoId !== null ? freshOrderMap.get(videoId) : undefined;
+      })
+      .filter((index): index is number => index !== undefined);
+    if (knownIndices.length > 0 && Math.min(...knownIndices) > freshIndex) {
+      iInsert = i;
+      break;
     }
+
+    iInsert = i + 1;
   }
 
   if (videoStatus === VideoStatus.Live) {
