@@ -215,7 +215,7 @@ const sharedPlugins = {
 };
 
 export default [
-  globalIgnores([".wxt/**", ".output/**", "User Data/**", "Opera Profile/**", "node_modules/**"]),
+  globalIgnores([".wxt/**", ".output/**", "User Data/**", "Opera Profile/**", "user-profiles/**", "node_modules/**"]),
   eslint.configs.recommended,
   ...tsEslint.configs.recommended,
   {
@@ -240,7 +240,7 @@ export default [
     languageOptions: {
       parser: tsEslint.parser,
       parserOptions: {
-        projectService: { allowDefaultProject: ["eslint-rules/*.js", "dev.ts"] }
+        projectService: { allowDefaultProject: ["eslint-rules/*.js", "dev.ts", "scripts/*.ts"] }
       },
       globals: { ...globals.node }
     },
