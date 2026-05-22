@@ -225,8 +225,7 @@ export function normalizeInitialBandLayout() {
   let postSectionInlineCount = 0;
 
   for (let i = 0; i < end; i++) {
-    const sectionItems = deepArray(contents[i], "richSectionRenderer", "content", "richShelfRenderer", "contents");
-    if (sectionItems.length > 0) {
+    if (readSectionTitle(contents[i])) {
       if (firstContentSectionIndex < 0) {
         firstContentSectionIndex = i;
       }
@@ -243,7 +242,11 @@ export function normalizeInitialBandLayout() {
     }
   }
 
-  if (firstContentSectionIndex < 0 || band0InlineCount <= BAND_NORMALIZATION_MIN_INLINE_COUNT || postSectionInlineCount > BAND_NORMALIZATION_MAX_POST_SECTION_COUNT) {
+  if (
+    firstContentSectionIndex < 0
+    || band0InlineCount <= BAND_NORMALIZATION_MIN_INLINE_COUNT
+    || postSectionInlineCount > BAND_NORMALIZATION_MAX_POST_SECTION_COUNT
+  ) {
     return;
   }
 
