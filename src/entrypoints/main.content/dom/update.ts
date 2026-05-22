@@ -20,35 +20,210 @@ import { findItemElement } from "./query";
 import { findRichItemIndex } from "./rich-item";
 
 const FETCH_CHUNK_SIZE = 8192;
-const THUMBNAIL_FADE_DURATION_MS = 250;
 
-function replaceTextInShadowDom({ root, oldText, newText }: {
-  root: ShadowRoot | Element;
-  oldText: string;
-  newText: string;
+const TITLE_SELECTOR_LOCKUP = ".ytLockupMetadataViewModelTitle span.ytAttributedStringHost";
+const TITLE_HEADING_SELECTOR_LOCKUP = ".ytLockupMetadataViewModelHeadingReset";
+const TITLE_LINK_SELECTOR_LOCKUP = "a.ytLockupMetadataViewModelTitle";
+const METADATA_ROW_SELECTOR_LOCKUP = ".ytContentMetadataViewModelMetadataRow";
+const METADATA_TEXT_SELECTOR_LOCKUP = ":scope > span.ytContentMetadataViewModelMetadataText";
+const METADATA_DELIMITER_SELECTOR_LOCKUP = ".ytContentMetadataViewModelDelimiter";
+const TITLE_SELECTOR_SHORTS = ".shortsLockupViewModelHostMetadataTitle .ytAttributedStringHost";
+const TITLE_LINK_SELECTOR_SHORTS = "a.shortsLockupViewModelHostOutsideMetadataEndpoint";
+const SUBHEAD_SELECTOR_SHORTS = ".shortsLockupViewModelHostOutsideMetadataSubhead .ytAttributedStringHost";
+
+let transitionCounter = 0;
+
+interface NamedElement {
+  elTarget: HTMLElement;
+  previousName: string;
+}
+
+function applyWithDissolve({ elements, apply }: {
+  elements: HTMLElement[];
+  apply: () => void;
 }) {
-  if (!oldText) {
+  if (elements.length === 0 || !("startViewTransition" in document)) {
+    apply();
     return;
   }
 
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-  let node: Node | null = walker.nextNode();
-  while (node !== null) {
-    if (node.nodeValue === oldText) {
-      node.nodeValue = newText;
-    }
+  transitionCounter++;
+  const transitionId = transitionCounter;
+  const named: NamedElement[] = elements.map((elTarget, iElement) => {
+    const previousName = elTarget.style.viewTransitionName;
+    elTarget.style.viewTransitionName = `ytsua-${transitionId}-${iElement}`;
+    return {
+      elTarget,
+      previousName
+    };
+  });
 
-    node = walker.nextNode();
-  }
-  for (const el of root.querySelectorAll("*")) {
-    if (el.shadowRoot) {
-      replaceTextInShadowDom({
-        root: el.shadowRoot,
-        oldText,
-        newText
-      });
+  function restoreNames() {
+    for (const { elTarget, previousName } of named) {
+      if (elTarget.style.viewTransitionName.startsWith(`ytsua-${transitionId}-`)) {
+        elTarget.style.viewTransitionName = previousName;
+      }
     }
   }
+
+  document.startViewTransition(apply).finished.then(restoreNames, restoreNames);
+}
+
+function setNodeTextIfChanged(elNode: Element | null, newText: string) {
+  if (!elNode || elNode.textContent === newText) {
+    return;
+  }
+
+  elNode.textContent = newText;
+}
+
+function setAttributeIfChanged(elNode: Element | null, name: string, value: string) {
+  if (!elNode || !value || elNode.getAttribute(name) === value) {
+    return;
+  }
+
+  elNode.setAttribute(name, value);
+}
+
+interface LockupTextElements {
+  elTitle: HTMLElement | null;
+  elHeading: HTMLElement | null;
+  elTitleLink: HTMLAnchorElement | null;
+  elView: HTMLElement | null;
+  elTime: HTMLElement | null;
+}
+
+function collectLockupTextElements(elLockup: HTMLElement): LockupTextElements {
+  const elTitle = elLockup.querySelector<HTMLElement>(TITLE_SELECTOR_LOCKUP);
+  const elHeading = elLockup.querySelector<HTMLElement>(TITLE_HEADING_SELECTOR_LOCKUP);
+  const elTitleLink = elLockup.querySelector<HTMLAnchorElement>(TITLE_LINK_SELECTOR_LOCKUP);
+  const elRows = elLockup.querySelectorAll<HTMLElement>(METADATA_ROW_SELECTOR_LOCKUP);
+  const elViewTimeRow = Array.from(elRows).find(elRow => elRow.querySelector(METADATA_DELIMITER_SELECTOR_LOCKUP))
+    ?? elRows[elRows.length - 1]
+    ?? null;
+  const elTextSpans = elViewTimeRow
+    ? elViewTimeRow.querySelectorAll<HTMLElement>(METADATA_TEXT_SELECTOR_LOCKUP)
+    : null;
+  return {
+    elTitle,
+    elHeading,
+    elTitleLink,
+    elView: elTextSpans?.[0] ?? null,
+    elTime: elTextSpans?.[1] ?? null
+  };
+}
+
+function buildAriaLabelUpdate(elTitleLink: HTMLAnchorElement | null, existingTitle: string, newTitle: string) {
+  if (!elTitleLink || !newTitle || !existingTitle || existingTitle === newTitle) {
+    return null;
+  }
+
+  const existingAriaLabel = elTitleLink.getAttribute("aria-label");
+  if (!existingAriaLabel || !existingAriaLabel.startsWith(existingTitle)) {
+    return null;
+  }
+
+  return `${newTitle}${existingAriaLabel.slice(existingTitle.length)}`;
+}
+
+function applyLockupTextChanges({ refs, fresh }: {
+  refs: LockupTextElements;
+  fresh: VideoSnapshot;
+}) {
+  const existingTitle = refs.elTitle?.textContent ?? "";
+  setNodeTextIfChanged(refs.elTitle, fresh.title);
+  setAttributeIfChanged(refs.elHeading, "title", fresh.title);
+  const newAriaLabel = buildAriaLabelUpdate(refs.elTitleLink, existingTitle, fresh.title);
+  if (newAriaLabel !== null) {
+    refs.elTitleLink?.setAttribute("aria-label", newAriaLabel);
+  }
+
+  setNodeTextIfChanged(refs.elView, fresh.viewCountText);
+  setNodeTextIfChanged(refs.elTime, fresh.publishedTimeText);
+}
+
+function changingLockupTextElements({ refs, fresh }: {
+  refs: LockupTextElements;
+  fresh: VideoSnapshot;
+}) {
+  const elements: HTMLElement[] = [];
+  if (refs.elTitle && refs.elTitle.textContent !== fresh.title && fresh.title) {
+    elements.push(refs.elTitle);
+  }
+
+  if (refs.elView && refs.elView.textContent !== fresh.viewCountText) {
+    elements.push(refs.elView);
+  }
+
+  if (refs.elTime && refs.elTime.textContent !== fresh.publishedTimeText) {
+    elements.push(refs.elTime);
+  }
+
+  return elements;
+}
+
+function updateShortsTextFields({ elItem, fresh }: {
+  elItem: HTMLElement;
+  fresh: VideoSnapshot;
+}) {
+  setNodeTextIfChanged(elItem.querySelector(TITLE_SELECTOR_SHORTS), fresh.title);
+  setAttributeIfChanged(elItem.querySelector(TITLE_LINK_SELECTOR_SHORTS), "title", fresh.title);
+  setNodeTextIfChanged(elItem.querySelector(SUBHEAD_SELECTOR_SHORTS), fresh.viewCountText);
+}
+
+function changingShortsTextElements({ elItem, fresh }: {
+  elItem: HTMLElement;
+  fresh: VideoSnapshot;
+}) {
+  const elements: HTMLElement[] = [];
+  const elTitle = elItem.querySelector<HTMLElement>(TITLE_SELECTOR_SHORTS);
+  if (elTitle && elTitle.textContent !== fresh.title && fresh.title) {
+    elements.push(elTitle);
+  }
+
+  const elSubhead = elItem.querySelector<HTMLElement>(SUBHEAD_SELECTOR_SHORTS);
+  if (elSubhead && elSubhead.textContent !== fresh.viewCountText) {
+    elements.push(elSubhead);
+  }
+
+  return elements;
+}
+
+function updateLegacyRendererTextFields({ elItem, fresh }: {
+  elItem: HTMLElement;
+  fresh: VideoSnapshot;
+}) {
+  setNodeTextIfChanged(elItem.querySelector("#video-title yt-formatted-string, #video-title-link yt-formatted-string, #video-title"), fresh.title);
+
+  const elMeta = elItem.querySelector("#metadata-line");
+  if (elMeta) {
+    const elMetaSpans = elMeta.querySelectorAll<HTMLElement>(":scope > span.inline-metadata-item");
+    setNodeTextIfChanged(elMetaSpans[0] ?? null, fresh.viewCountText);
+    setNodeTextIfChanged(elMetaSpans[1] ?? null, fresh.publishedTimeText);
+  }
+}
+
+function changingLegacyTextElements({ elItem, fresh }: {
+  elItem: HTMLElement;
+  fresh: VideoSnapshot;
+}) {
+  const elements: HTMLElement[] = [];
+  const elTitle = elItem.querySelector<HTMLElement>("#video-title yt-formatted-string, #video-title-link yt-formatted-string, #video-title");
+  if (elTitle && elTitle.textContent !== fresh.title && fresh.title) {
+    elements.push(elTitle);
+  }
+
+  const elMeta = elItem.querySelector("#metadata-line");
+  const elMetaSpans = elMeta?.querySelectorAll<HTMLElement>(":scope > span.inline-metadata-item") ?? [];
+  if (elMetaSpans[0] && elMetaSpans[0].textContent !== fresh.viewCountText) {
+    elements.push(elMetaSpans[0]);
+  }
+
+  if (elMetaSpans[1] && elMetaSpans[1].textContent !== fresh.publishedTimeText) {
+    elements.push(elMetaSpans[1]);
+  }
+
+  return elements;
 }
 
 function findThumbnailImg(elLockup: HTMLElement) {
@@ -131,53 +306,51 @@ async function areThumbnailsDifferent({ currentSrc, newSrc }: {
   }
 }
 
-async function dissolveToNewThumbnail({
-  elImg,
-  newUrl,
-  elItem,
-  afterComplete
-}: {
-  elImg: HTMLImageElement;
-  newUrl: string;
-  elItem: HTMLElement;
-  afterComplete?: () => void;
-}) {
-  if (elItem.matches(":hover")) {
-    return;
-  }
-
-  await new Promise<void>(resolve => {
+function preloadImage(url: string) {
+  return new Promise<void>(resolve => {
     const preload = new Image();
     preload.onload = () => resolve();
     preload.onerror = () => resolve();
-    preload.src = newUrl;
+    preload.src = url;
   });
+}
 
+async function prepareThumbnailDissolve({ elItem, elImg, newUrl }: {
+  elItem: HTMLElement;
+  elImg: HTMLImageElement;
+  newUrl: string;
+}) {
   if (elItem.matches(":hover")) {
-    return;
+    return {
+      willDissolve: false,
+      newUrl
+    };
   }
 
-  const fadeOut = elImg.animate(
-    [{ opacity: 1 }, { opacity: 0 }],
-    {
-      duration: THUMBNAIL_FADE_DURATION_MS,
-      easing: "ease",
-      fill: "forwards"
-    }
-  );
-  await fadeOut.finished;
+  const isDifferent = await areThumbnailsDifferent({
+    currentSrc: elImg.src,
+    newSrc: newUrl
+  });
+  if (!isDifferent) {
+    return {
+      willDissolve: false,
+      newUrl
+    };
+  }
 
-  elImg.src = newUrl;
-  afterComplete?.();
+  await preloadImage(newUrl);
 
-  elImg.animate(
-    [{ opacity: 0 }, { opacity: 1 }],
-    {
-      duration: THUMBNAIL_FADE_DURATION_MS,
-      easing: "ease"
-    }
-  );
-  fadeOut.cancel();
+  if (elItem.matches(":hover")) {
+    return {
+      willDissolve: false,
+      newUrl
+    };
+  }
+
+  return {
+    willDissolve: true,
+    newUrl
+  };
 }
 
 function mutateLockupViewModelInPlace({ existing, incoming, preserveContentImage }: {
@@ -524,42 +697,34 @@ function syncGridModelItem({ videoId, rawRenderer, forcePreserveContentImage = f
   }
 }
 
-function applyTargetedGenericUpdate({ videoId, elItem, previous, fresh }: {
+async function applyTargetedGenericUpdate({ videoId, elItem, previous, fresh }: {
   videoId: string;
   elItem: PolymerElement;
   previous: VideoSnapshot;
   fresh: VideoSnapshot;
 }) {
-  if (previous.title !== fresh.title) {
-    replaceTextInShadowDom({
-      root: elItem,
-      oldText: previous.title,
-      newText: fresh.title
+  const isShorts = !!elItem.querySelector("ytm-shorts-lockup-view-model-v2, ytm-shorts-lockup-view-model");
+  const textElements = isShorts
+    ? changingShortsTextElements({
+      elItem,
+      fresh
+    })
+    : changingLegacyTextElements({
+      elItem,
+      fresh
     });
-  }
-
-  if (previous.viewCountText !== fresh.viewCountText) {
-    replaceTextInShadowDom({
-      root: elItem,
-      oldText: previous.viewCountText,
-      newText: fresh.viewCountText
+  const applyText = isShorts
+    ? () => updateShortsTextFields({
+      elItem,
+      fresh
+    })
+    : () => updateLegacyRendererTextFields({
+      elItem,
+      fresh
     });
-  }
 
-  if (previous.publishedTimeText !== fresh.publishedTimeText) {
-    replaceTextInShadowDom({
-      root: elItem,
-      oldText: previous.publishedTimeText,
-      newText: fresh.publishedTimeText
-    });
-  }
-
-  if (previous.thumbnailUrl === fresh.thumbnailUrl) {
-    return;
-  }
-
-  const elImg = findThumbnailImgInItem(elItem);
-  if (!elImg) {
+  const elImg = previous.thumbnailUrl !== fresh.thumbnailUrl ? findThumbnailImgInItem(elItem) : null;
+  if (previous.thumbnailUrl !== fresh.thumbnailUrl && !elImg) {
     applyPolymerUpdate({
       elItem,
       rawRenderer: fresh.rawRenderer
@@ -571,32 +736,49 @@ function applyTargetedGenericUpdate({ videoId, elItem, previous, fresh }: {
     return;
   }
 
-  void areThumbnailsDifferent({
-    currentSrc: elImg.src,
-    newSrc: fresh.thumbnailUrl
-  }).then(isDifferent => {
-    if (!isDifferent) {
+  const thumbWork = elImg
+    ? await prepareThumbnailDissolve({
+      elItem,
+      elImg,
+      newUrl: fresh.thumbnailUrl
+    })
+    : null;
+  if (textElements.length === 0 && !thumbWork?.willDissolve) {
+    if (elImg && previous.thumbnailUrl !== fresh.thumbnailUrl) {
       syncGridModelItem({
         videoId,
         rawRenderer: fresh.rawRenderer,
         forcePreserveContentImage: true
       });
-      return;
     }
 
-    void dissolveToNewThumbnail({
-      elImg,
-      newUrl: fresh.thumbnailUrl,
-      elItem,
-      afterComplete: () => syncGridModelItem({
+    return;
+  }
+
+  const elements = [...textElements];
+  if (thumbWork?.willDissolve && elImg) {
+    elements.push(elImg);
+  }
+
+  applyWithDissolve({
+    elements,
+    apply() {
+      applyText();
+
+      if (thumbWork?.willDissolve && elImg) {
+        elImg.src = thumbWork.newUrl;
+      }
+
+      syncGridModelItem({
         videoId,
-        rawRenderer: fresh.rawRenderer
-      })
-    });
+        rawRenderer: fresh.rawRenderer,
+        forcePreserveContentImage: !thumbWork?.willDissolve
+      });
+    }
   });
 }
 
-function applyTargetedLockupUpdate({
+async function applyTargetedLockupUpdate({
   videoId,
   elItem,
   elLockup,
@@ -609,32 +791,37 @@ function applyTargetedLockupUpdate({
   previous: VideoSnapshot;
   fresh: VideoSnapshot;
 }) {
-  if (previous.title !== fresh.title) {
-    replaceTextInShadowDom({
-      root: elItem,
-      oldText: previous.title,
-      newText: fresh.title
-    });
-  }
-
-  if (previous.viewCountText !== fresh.viewCountText) {
-    replaceTextInShadowDom({
-      root: elItem,
-      oldText: previous.viewCountText,
-      newText: fresh.viewCountText
-    });
-  }
-
-  if (previous.publishedTimeText !== fresh.publishedTimeText) {
-    replaceTextInShadowDom({
-      root: elItem,
-      oldText: previous.publishedTimeText,
-      newText: fresh.publishedTimeText
-    });
-  }
+  const refs = collectLockupTextElements(elLockup);
+  const textElements = changingLockupTextElements({
+    refs,
+    fresh
+  });
 
   const freshRawRenderer = fresh.rawRenderer;
-  const freshLockup = isLockupViewModel(freshRawRenderer) ? freshRawRenderer : null;  if (previous.thumbnailUrl === fresh.thumbnailUrl) {
+  const freshLockup = isLockupViewModel(freshRawRenderer) ? freshRawRenderer : null;
+  const newUrl = freshLockup?.contentImage?.thumbnailViewModel?.image?.sources?.at(-1)?.url ?? fresh.thumbnailUrl;
+  const thumbUrlDiffers = previous.thumbnailUrl !== fresh.thumbnailUrl;
+  const elImg = thumbUrlDiffers ? findThumbnailImg(elLockup) : null;
+  if (thumbUrlDiffers && !elImg) {
+    applyPolymerUpdate({
+      elItem,
+      rawRenderer: freshRawRenderer
+    });
+    syncGridModelItem({
+      videoId,
+      rawRenderer: freshRawRenderer
+    });
+    return;
+  }
+
+  const thumbWork = elImg
+    ? await prepareThumbnailDissolve({
+      elItem,
+      elImg,
+      newUrl
+    })
+    : null;
+  if (textElements.length === 0 && !thumbWork?.willDissolve) {
     if (freshLockup) {
       mutateLockupMetadata({
         videoId,
@@ -647,52 +834,32 @@ function applyTargetedLockupUpdate({
     return;
   }
 
-  const newUrl = freshLockup?.contentImage?.thumbnailViewModel?.image?.sources?.at(-1)?.url ?? fresh.thumbnailUrl;
-  const elImg = findThumbnailImg(elLockup);
-  if (!elImg) {
-    applyPolymerUpdate({
-      elItem,
-      rawRenderer: freshRawRenderer
-    });
-    syncGridModelItem({
-      videoId,
-      rawRenderer: freshRawRenderer
-    });
-    return;
+  const elements = [...textElements];
+  if (thumbWork?.willDissolve && elImg) {
+    elements.push(elImg);
   }
 
-  void areThumbnailsDifferent({
-    currentSrc: elImg.src,
-    newSrc: newUrl
-  }).then(isDifferent => {
-    if (!isDifferent) {
+  applyWithDissolve({
+    elements,
+    apply() {
+      applyLockupTextChanges({
+        refs,
+        fresh
+      });
+
+      if (thumbWork?.willDissolve && elImg) {
+        elImg.src = thumbWork.newUrl;
+      }
+
       if (freshLockup) {
         mutateLockupMetadata({
           videoId,
           elItem,
           incoming: freshLockup,
-          preserveContentImage: true
+          preserveContentImage: !thumbWork?.willDissolve
         });
       }
-
-      return;
     }
-
-    void dissolveToNewThumbnail({
-      elImg,
-      newUrl,
-      elItem,
-      afterComplete() {
-        if (freshLockup) {
-          mutateLockupMetadata({
-            videoId,
-            elItem,
-            incoming: freshLockup,
-            preserveContentImage: false
-          });
-        }
-      }
-    });
   });
 }
 
@@ -731,7 +898,7 @@ export function applyUpdate({ videoId, elItem, fresh, previous }: {
   if (isRecord(content) && isRecord(content.lockupViewModel)) {
     const elLockup = elItem.querySelector<HTMLElement>("yt-lockup-view-model");
     if (elLockup) {
-      applyTargetedLockupUpdate({
+      void applyTargetedLockupUpdate({
         videoId,
         elItem,
         elLockup,
@@ -742,7 +909,7 @@ export function applyUpdate({ videoId, elItem, fresh, previous }: {
     }
   }
 
-  applyTargetedGenericUpdate({
+  void applyTargetedGenericUpdate({
     videoId,
     elItem,
     previous,
