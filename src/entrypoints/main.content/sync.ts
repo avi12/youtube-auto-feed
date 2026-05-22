@@ -1,13 +1,7 @@
 import { parseSecondsAgo } from "./api/guards";
 import { addVideosToGridDom, cleanOrphanedGridItems } from "./dom/add/grid";
 import { addVideosToDom } from "./dom/add/shelf";
-import {
-  type BandLayout,
-  dismantleAbsentSections,
-  enforceBandLayout,
-  enforceShelfCaps,
-  reorderSections
-} from "./dom/band-layout";
+import { type BandLayout, dismantleAbsentSections, enforceBandLayout, reorderSections } from "./dom/band-layout";
 import { moveVideosToFront } from "./dom/move";
 import { findShelfForSection } from "./dom/query";
 import { removeVideosFromDom } from "./dom/remove";
@@ -700,7 +694,6 @@ export async function detectAndApplyChanges({
 
   if (bandLayout && changes.videosToAdd.length === 0) {
     enforceBandLayout(bandLayout);
-    enforceShelfCaps(bandLayout);
   }
 
   const initialSectionOrder = bandLayout?.sectionOrder ?? [];

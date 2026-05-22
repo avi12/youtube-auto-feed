@@ -7,7 +7,6 @@ const BAND_NORMALIZATION_MAX_POST_SECTION_COUNT = 3;
 export interface BandLayout {
   sectionOrder: string[];
   bandCaps: Map<string, number>;
-  shelfCaps: Map<string, number>;
 }
 
 function readSectionTitle(item: unknown) {
@@ -52,48 +51,9 @@ export function captureBandLayout() {
     bandCaps.set(currentBand, itemCount);
   }
 
-  const shelfCaps = new Map<string, number>();
-  for (const elShelf of document.querySelectorAll<HTMLElement>("ytd-rich-shelf-renderer")) {
-    if (!isPolymerElement(elShelf) || !isRecord(elShelf.data)) {
-      continue;
-    }
-
-    const shelfTitle = deepString(elShelf.data, "title", "runs", "0", "text");
-    if (!shelfTitle) {
-      continue;
-    }
-
-    const shelfContents = deepArray(elShelf.data, "contents");
-    if (shelfContents.length === 0) {
-      continue;
-    }
-
-    const elItems = [...elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer")]
-      .filter(elItem => elItem.offsetWidth > 0);
-    if (elItems.length === 0) {
-      shelfCaps.set(shelfTitle, shelfContents.length);
-      continue;
-    }
-
-    const firstRowTop = Math.round(elItems[0].getBoundingClientRect().top);
-    const itemsInFirstRow = elItems.filter(
-      elItem => Math.round(elItem.getBoundingClientRect().top) === firstRowTop
-    ).length;
-    if (itemsInFirstRow === 0) {
-      shelfCaps.set(shelfTitle, shelfContents.length);
-      continue;
-    }
-
-    const rowCount = new Set(
-      elItems.map(elItem => Math.round(elItem.getBoundingClientRect().top))
-    ).size;
-    shelfCaps.set(shelfTitle, rowCount * itemsInFirstRow);
-  }
-
   return {
     sectionOrder,
-    bandCaps,
-    shelfCaps
+    bandCaps
   };
 }
 
@@ -318,31 +278,6 @@ export async function normalizeCollapsedShelfRows() {
     elShelf.set("data.contents", normalizedContents);
   }
   return trimmedVideoIds;
-}
-
-export function enforceShelfCaps(layout: BandLayout) {
-  for (const elShelf of document.querySelectorAll<HTMLElement>("ytd-rich-shelf-renderer")) {
-    if (!isPolymerElement(elShelf) || !isRecord(elShelf.data)) {
-      continue;
-    }
-
-    const shelfTitle = deepString(elShelf.data, "title", "runs", "0", "text");
-    if (!shelfTitle) {
-      continue;
-    }
-
-    const cap = layout.shelfCaps.get(shelfTitle);
-    if (cap === undefined) {
-      continue;
-    }
-
-    const currentContents = deepArray(elShelf.data, "contents");
-    if (currentContents.length <= cap) {
-      continue;
-    }
-
-    elShelf.set("data.contents", currentContents.slice(0, cap));
-  }
 }
 
 export function enforceBandLayout(layout: BandLayout) {
