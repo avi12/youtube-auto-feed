@@ -1,7 +1,13 @@
 import { parseSecondsAgo } from "./api/guards";
 import { addVideosToGridDom, cleanOrphanedGridItems } from "./dom/add/grid";
 import { addVideosToDom } from "./dom/add/shelf";
-import { type BandLayout, dismantleAbsentSections, enforceBandLayout, reorderSections } from "./dom/band-layout";
+import {
+  type BandLayout,
+  dismantleAbsentSections,
+  enforceBandLayout,
+  moveSectionsToTail,
+  reorderSections
+} from "./dom/band-layout";
 import { moveVideosToFront } from "./dom/move";
 import { findShelfForSection } from "./dom/query";
 import { removeVideosFromDom } from "./dom/remove";
@@ -17,6 +23,18 @@ import {
   videoIdFromShelfListItem
 } from "./helpers";
 import { type VideoSnapshot, VideoStatus } from "./types";
+
+const TAIL_SECTION_TITLES = new Set(["Shorts"]);
+
+function applyTailSectionPreference(sectionOrder: string[]) {
+  const tail = sectionOrder.filter(section => TAIL_SECTION_TITLES.has(section));
+  if (tail.length === 0) {
+    return sectionOrder;
+  }
+
+  const head = sectionOrder.filter(section => !TAIL_SECTION_TITLES.has(section));
+  return [...head, ...tail];
+}
 
 function readCurrentVideoSections() {
   const sections = new Map<string, string>();
@@ -464,13 +482,13 @@ function buildSectionOrder({ initialSectionOrder, polledSectionOrder }: {
   polledSectionOrder: string[];
 }) {
   if (initialSectionOrder.length === 0) {
-    return polledSectionOrder;
+    return applyTailSectionPreference(polledSectionOrder);
   }
 
   const initialSet = new Set(initialSectionOrder);
   const newSections = polledSectionOrder.filter(section => !initialSet.has(section));
   if (newSections.length === 0) {
-    return initialSectionOrder;
+    return applyTailSectionPreference(initialSectionOrder);
   }
 
   const insertBeforeInitial = new Map<string, string | null>();
@@ -502,7 +520,7 @@ function buildSectionOrder({ initialSectionOrder, polledSectionOrder }: {
       result.push(...following);
     }
   }
-  return result;
+  return applyTailSectionPreference(result);
 }
 
 async function executeChanges({
@@ -714,6 +732,8 @@ export async function detectAndApplyChanges({
   if (effectiveSectionOrder.length > 0) {
     reorderSections(effectiveSectionOrder);
   }
+
+  moveSectionsToTail(TAIL_SECTION_TITLES);
 
   preserveStaleEntriesForUnremovedVideos({
     videoIdsToRemove: changes.videoIdsToRemove,

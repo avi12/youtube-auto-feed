@@ -170,6 +170,46 @@ export function reorderSections(polledSectionOrder: string[]) {
   elGrid.set("data.contents", newContents);
 }
 
+export function moveSectionsToTail(tailSectionTitles: Set<string>) {
+  const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
+  if (!elGrid || !isPolymerElement(elGrid) || !isRecord(elGrid.data)) {
+    return;
+  }
+
+  const contents = [...deepArray(elGrid.data, "contents")];
+  const continuationIndex = contents.findIndex(item => isRecord(item) && "continuationItemRenderer" in item);
+  const tailInsertIndex = continuationIndex >= 0 ? continuationIndex : contents.length;
+
+  const tailSectionIndices: number[] = [];
+  for (let i = 0; i < tailInsertIndex; i++) {
+    const title = readSectionTitle(contents[i]);
+    if (title && tailSectionTitles.has(title)) {
+      tailSectionIndices.push(i);
+    }
+  }
+
+  if (tailSectionIndices.length === 0) {
+    return;
+  }
+
+  const lastTailIndex = tailSectionIndices[tailSectionIndices.length - 1];
+  const tailStartIndex = tailInsertIndex - tailSectionIndices.length;
+  const isAlreadyAtTail = lastTailIndex === tailInsertIndex - 1 &&
+    tailSectionIndices.every((sectionIndex, iSection) => sectionIndex === tailStartIndex + iSection);
+  if (isAlreadyAtTail) {
+    return;
+  }
+
+  const tailSections = tailSectionIndices.map(sectionIndex => contents[sectionIndex]);
+  const tailSectionIndexSet = new Set(tailSectionIndices);
+  const remainingContents = contents.filter((_, contentIndex) => !tailSectionIndexSet.has(contentIndex));
+  const newContinuationIndex = remainingContents.findIndex(item => isRecord(item) && "continuationItemRenderer" in item);
+  const insertAt = newContinuationIndex >= 0 ? newContinuationIndex : remainingContents.length;
+  remainingContents.splice(insertAt, 0, ...tailSections);
+
+  elGrid.set("data.contents", remainingContents);
+}
+
 export function normalizeInitialBandLayout() {
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
   if (!elGrid || !isPolymerElement(elGrid) || !isRecord(elGrid.data)) {
