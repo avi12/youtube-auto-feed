@@ -1,3 +1,4 @@
+import { parseSecondsAgo } from "../../api/guards";
 import {
   deepArray,
   deepRecord,
@@ -6,74 +7,110 @@ import {
   isRecord
 } from "../../helpers";
 import { type VideoSnapshot } from "../../types";
+import {
+  assignItemViewTransitionNames,
+  buildNewItemTransitionStyle,
+  buildShiftTransitionStyle,
+  calculateStaggerDelayMs,
+  clearAllItemViewTransitionNames,
+  extractAnimateIds,
+  filterToViewport,
+  isInViewport,
+  prefersReducedMotion,
+  reassignTransitionNames,
+  waitForFrames
+} from "../animations";
 import { type BandLayout, type CapturedBand } from "../band-layout";
 import { buildRichItem, preloadThumbnails } from "../build";
+import { scheduleLazyEntrance } from "../lazy-update";
+import { findItemElement } from "../query";
 import { videoIdFromRichItem } from "../rich-item";
 
-function findAllInlineRuns(contents: unknown[]) {
-  const runs: Array<{
-    start: number;
-    end: number;
-  }> = [];
-  let runStart = -1;
-
+function findRichShelfIndices(contents: unknown[]) {
+  const indices: number[] = [];
   for (let i = 0; i < contents.length; i++) {
-    if (videoIdFromRichItem(contents[i])) {
-      if (runStart < 0) {
-        runStart = i;
+    if (deepRecord(contents[i], "richSectionRenderer", "content", "richShelfRenderer")) {
+      indices.push(i);
+    }
+  }
+  return indices;
+}
+
+function resolveInlineZone(
+  contents: unknown[],
+  iZone: number,
+  richShelfIndices: number[]
+): {
+  insertAt: number;
+  existingItems: unknown[];
+} {
+  let zoneStart: number;
+  const nextBoundary = richShelfIndices[iZone] ?? contents.length;
+  if (iZone === 0) {
+    zoneStart = 0;
+    while (zoneStart < nextBoundary) {
+      if (videoIdFromRichItem(contents[zoneStart])) {
+        break;
       }
 
-      continue;
-    }
+      if (deepRecord(contents[zoneStart], "richSectionRenderer", "content", "richShelfRenderer")) {
+        break;
+      }
 
-    if (runStart >= 0) {
-      runs.push({
-        start: runStart,
-        end: i
-      });
-      runStart = -1;
+      zoneStart++;
+    }
+  } else {
+    zoneStart = (richShelfIndices[iZone - 1] ?? -1) + 1;
+  }
+
+  // End of zone: before the next richShelf boundary, also trim trailing continuation items
+  let zoneEnd = nextBoundary;
+  if (richShelfIndices[iZone] === undefined) {
+    while (zoneEnd > zoneStart && isRecord(contents[zoneEnd - 1]) && "continuationItemRenderer" in contents[zoneEnd - 1]) {
+      zoneEnd--;
     }
   }
 
-  if (runStart >= 0) {
-    runs.push({
-      start: runStart,
-      end: contents.length
-    });
-  }
+  const existingItems = contents.slice(zoneStart, zoneEnd).filter(item => videoIdFromRichItem(item));
+  const firstInlineOffset = contents.slice(zoneStart, zoneEnd).findIndex(item => videoIdFromRichItem(item));
+  const insertAt = firstInlineOffset >= 0 ? zoneStart + firstInlineOffset : zoneStart;
 
-  return runs;
+  return {
+    insertAt,
+    existingItems
+  };
+}
+
+function existingItemSecondsAgo(item: unknown) {
+  const text = deepString(item, "richItemRenderer", "content", "videoRenderer", "publishedTimeText", "simpleText");
+  return text ? parseSecondsAgo(text) : 0;
 }
 
 function applyInlineCascade(
   contents: unknown[],
-  newItems: unknown[],
+  newVideos: VideoSnapshot[],
   inlineBands: CapturedBand[]
 ) {
-  const runs = findAllInlineRuns(contents);
-  let itemsToPlace = [...newItems];
+  if (inlineBands.length === 0) {
+    return;
+  }
 
-  for (let iLevel = 0; iLevel < inlineBands.length && itemsToPlace.length > 0; iLevel++) {
-    const band = inlineBands[iLevel];
-    const run = runs[iLevel];
-    if (!run) {
-      break;
-    }
+  const richShelfIndices = findRichShelfIndices(contents);
+  const { insertAt, existingItems } = resolveInlineZone(contents, 0, richShelfIndices);
 
-    const currentItems = contents.slice(run.start, run.end);
-    const mergedItems = [...itemsToPlace, ...currentItems];
-    const isLastBand = iLevel === inlineBands.length - 1;
-    const shouldCascade = !band.isUnbounded && !isLastBand && mergedItems.length > band.initialCount;
-    const keepItems = shouldCascade ? mergedItems.slice(0, band.initialCount) : mergedItems;
-    itemsToPlace = shouldCascade ? mergedItems.slice(band.initialCount) : [];
-
-    contents.splice(run.start, currentItems.length, ...keepItems);
-    const shift = keepItems.length - currentItems.length;
-    for (let iRun = iLevel + 1; iRun < runs.length; iRun++) {
-      runs[iRun].start += shift;
-      runs[iRun].end += shift;
+  const merged = [...existingItems];
+  for (const video of newVideos) {
+    const secondsAgo = parseSecondsAgo(video.publishedTimeText);
+    const pos = merged.findIndex(existing => existingItemSecondsAgo(existing) >= secondsAgo);
+    const builtItem = buildRichItem(video.rawRenderer);
+    if (pos === -1) {
+      merged.push(builtItem);
+    } else {
+      merged.splice(pos, 0, builtItem);
     }
   }
+
+  contents.splice(insertAt, existingItems.length, ...merged);
 }
 
 function applyRichShelfCascade(
@@ -81,42 +118,67 @@ function applyRichShelfCascade(
   newItems: unknown[],
   shelfBands: CapturedBand[]
 ) {
-  let itemsToPlace = [...newItems];
+  const band = shelfBands[0];
+  if (!band) {
+    return;
+  }
 
-  for (let iLevel = 0; iLevel < shelfBands.length && itemsToPlace.length > 0; iLevel++) {
-    const band = shelfBands[iLevel];
-    const iSection = contents.findIndex(item =>
-      deepString(item, "richSectionRenderer", "content", "richShelfRenderer", "title", "runs", "0", "text") === band.sectionTitle);
-    if (iSection < 0) {
-      break;
-    }
+  const iSection = contents.findIndex(item =>
+    deepString(item, "richSectionRenderer", "content", "richShelfRenderer", "title", "runs", "0", "text") === band.sectionTitle);
+  if (iSection < 0) {
+    return;
+  }
 
-    const richSection = deepRecord(contents[iSection], "richSectionRenderer");
-    const richContent = deepRecord(richSection, "content");
-    const richShelf = deepRecord(richContent, "richShelfRenderer");
-    if (!richSection || !richContent || !richShelf) {
-      break;
-    }
+  const richSection = deepRecord(contents[iSection], "richSectionRenderer");
+  const richContent = deepRecord(richSection, "content");
+  const richShelf = deepRecord(richContent, "richShelfRenderer");
+  if (!richSection || !richContent || !richShelf) {
+    return;
+  }
 
-    const shelfContents = deepArray(richShelf, "contents");
-    const mergedContents = [...itemsToPlace, ...shelfContents];
-    const isLastBand = iLevel === shelfBands.length - 1;
-    const shouldCascade = !band.isUnbounded && !isLastBand && mergedContents.length > band.initialCount;
-    const keepContents = shouldCascade ? mergedContents.slice(0, band.initialCount) : mergedContents;
-    itemsToPlace = shouldCascade ? mergedContents.slice(band.initialCount) : [];
-
-    contents[iSection] = {
-      richSectionRenderer: {
-        ...richSection,
-        content: {
-          ...richContent,
-          richShelfRenderer: {
-            ...richShelf,
-            contents: keepContents
-          }
+  const shelfContents = deepArray(richShelf, "contents");
+  contents[iSection] = {
+    richSectionRenderer: {
+      ...richSection,
+      content: {
+        ...richContent,
+        richShelfRenderer: {
+          ...richShelf,
+          contents: [...newItems, ...shelfContents]
         }
       }
-    };
+    }
+  };
+}
+
+function applyCascades({
+  contents,
+  videosToAdd,
+  bandLayout,
+  inlineVideos,
+  inlineBands
+}: {
+  contents: unknown[];
+  videosToAdd: VideoSnapshot[];
+  bandLayout: BandLayout;
+  inlineVideos: VideoSnapshot[];
+  inlineBands: CapturedBand[];
+}) {
+  if (inlineVideos.length > 0 && inlineBands.length > 0) {
+    applyInlineCascade(contents, inlineVideos, inlineBands);
+  }
+
+  const shelfSectionTitles = new Set(
+    videosToAdd.filter(video => !!video.sectionTitle).map(video => video.sectionTitle)
+  );
+  for (const sectionTitle of shelfSectionTitles) {
+    const shelfBands = bandLayout.bands.filter(band => band.kind === "richShelf" && band.sectionTitle === sectionTitle);
+    if (shelfBands.length === 0) {
+      continue;
+    }
+
+    const sectionVideos = videosToAdd.filter(video => video.sectionTitle === sectionTitle);
+    applyRichShelfCascade(contents, sectionVideos.map(video => buildRichItem(video.rawRenderer)), shelfBands);
   }
 }
 
@@ -137,28 +199,104 @@ export async function cascadeInsertVideos({
   }
 
   await preloadThumbnails(videosToAdd);
-  const contents = [...deepArray(elGrid.data, "contents")];
 
   const inlineVideos = videosToAdd.filter(video => !video.sectionTitle);
-  if (inlineVideos.length > 0) {
-    const inlineBands = bandLayout.bands.filter(band => band.kind === "inline");
-    if (inlineBands.length > 0) {
-      applyInlineCascade(contents, inlineVideos.map(video => buildRichItem(video.rawRenderer)), inlineBands);
-    }
+  const inlineBands = bandLayout.bands.filter(band => band.kind === "inline");
+  const hasInlineCascade = inlineVideos.length > 0 && inlineBands.length > 0;
+  if (prefersReducedMotion() || !hasInlineCascade) {
+    const contents = [...deepArray(elGrid.data, "contents")];
+    applyCascades({
+      contents,
+      videosToAdd,
+      bandLayout,
+      inlineVideos,
+      inlineBands
+    });
+    elGrid.set("data.contents", contents);
+    return;
   }
 
-  const shelfSectionTitles = new Set(
-    videosToAdd.filter(video => !!video.sectionTitle).map(video => video.sectionTitle)
-  );
-  for (const sectionTitle of shelfSectionTitles) {
-    const shelfBands = bandLayout.bands.filter(band => band.kind === "richShelf" && band.sectionTitle === sectionTitle);
-    if (shelfBands.length === 0) {
-      continue;
-    }
-
-    const sectionVideos = videosToAdd.filter(video => video.sectionTitle === sectionTitle);
-    applyRichShelfCascade(contents, sectionVideos.map(video => buildRichItem(video.rawRenderer)), shelfBands);
+  const elGridContents = elGrid.querySelector<HTMLElement>("#contents");
+  if (!elGridContents) {
+    const contents = [...deepArray(elGrid.data, "contents")];
+    applyCascades({
+      contents,
+      videosToAdd,
+      bandLayout,
+      inlineVideos,
+      inlineBands
+    });
+    elGrid.set("data.contents", contents);
+    return;
   }
 
-  elGrid.set("data.contents", contents);
+  clearAllItemViewTransitionNames();
+
+  const elAllInlineItems = [...elGridContents.querySelectorAll<HTMLElement>(":scope > ytd-rich-item-renderer")];
+  const elShiftTargets = filterToViewport(elAllInlineItems);
+  const animateIds = extractAnimateIds(elShiftTargets);
+  assignItemViewTransitionNames(elShiftTargets);
+
+  const elShiftStyle = buildShiftTransitionStyle({
+    elItems: elShiftTargets,
+    excludeNames: new Set(),
+    delayPerItemMs: calculateStaggerDelayMs(elShiftTargets.length)
+  });
+  document.head.append(elShiftStyle);
+
+  let elNewItemStyle: HTMLStyleElement | null = null;
+
+  try {
+    await document.startViewTransition(async () => {
+      const contents = [...deepArray(elGrid.data, "contents")];
+      applyCascades({
+        contents,
+        videosToAdd,
+        bandLayout,
+        inlineVideos,
+        inlineBands
+      });
+      elGrid.set("data.contents", contents);
+
+      await waitForFrames({ predicate: () => inlineVideos.every(video => findItemElement(video.videoId)) });
+
+      for (const elItem of elShiftTargets) {
+        if (elItem.tagName === "YTD-RICH-ITEM-RENDERER") {
+          elItem.style.viewTransitionName = "";
+        }
+      }
+
+      reassignTransitionNames({
+        elItems: elGridContents.querySelectorAll<HTMLElement>(":scope > ytd-rich-item-renderer"),
+        animateIds
+      });
+
+      const elNewViewportItems: HTMLElement[] = [];
+      for (const video of inlineVideos) {
+        const elItem = findItemElement(video.videoId);
+        if (elItem && isInViewport(elItem)) {
+          elItem.style.viewTransitionName = `ytsua-item-${video.videoId}`;
+          elNewViewportItems.push(elItem);
+        }
+      }
+
+      if (elNewViewportItems.length > 0) {
+        elNewItemStyle = buildNewItemTransitionStyle(elNewViewportItems);
+        document.head.append(elNewItemStyle);
+      }
+    }).finished;
+  } finally {
+    elShiftStyle.remove();
+    elNewItemStyle?.remove();
+    clearAllItemViewTransitionNames();
+  }
+
+  const lazyItems: HTMLElement[] = [];
+  for (const video of inlineVideos) {
+    const elItem = findItemElement(video.videoId);
+    if (elItem && !isInViewport(elItem)) {
+      lazyItems.push(elItem);
+    }
+  }
+  scheduleLazyEntrance(lazyItems);
 }
