@@ -251,13 +251,19 @@ function computeFeedDiff({
   const bandMoves: BandMove[] = [];
   const metadataOnly: VideoSnapshot[] = [];
 
-  for (const [videoId] of previousSnapshot) {
-    if (!freshMap.has(videoId)) {
-      if (confirmedAbsentVideoIds.has(videoId)) {
-        removed.push(videoId);
-      } else {
-        candidateRemovals.push(videoId);
-      }
+  for (const [videoId, snapshot] of previousSnapshot) {
+    if (freshMap.has(videoId)) {
+      continue;
+    }
+
+    if (snapshot.sectionTitle) {
+      continue;
+    }
+
+    if (confirmedAbsentVideoIds.has(videoId)) {
+      removed.push(videoId);
+    } else {
+      candidateRemovals.push(videoId);
     }
   }
 
