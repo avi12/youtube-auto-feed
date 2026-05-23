@@ -302,7 +302,7 @@ function computeFeedDiff({
 
     const currentSection = currentVideoSections.get(fresh.videoId);
     if (currentSection !== undefined && currentSection !== fresh.sectionTitle) {
-      if (currentSection === "" && !fresh.sectionTitle) {
+      if (currentSection && !fresh.sectionTitle) {
         if (hasMetadataChange({
           previous,
           fresh
