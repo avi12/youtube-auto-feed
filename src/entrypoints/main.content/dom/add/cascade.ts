@@ -82,8 +82,17 @@ function resolveInlineZone(
 }
 
 function existingItemSecondsAgo(item: unknown) {
-  const text = deepString(item, "richItemRenderer", "content", "videoRenderer", "publishedTimeText", "simpleText");
-  return text ? parseSecondsAgo(text) : 0;
+  const vrText = deepString(item, "richItemRenderer", "content", "videoRenderer", "publishedTimeText", "simpleText");
+  if (vrText) {
+    return parseSecondsAgo(vrText);
+  }
+
+  const lvText = deepString(item, "richItemRenderer", "content", "lockupViewModel", "metadata", "lockupMetadataViewModel", "metadata", "contentMetadataViewModel", "metadataRows", "1", "metadataParts", "1", "text", "content");
+  if (lvText) {
+    return parseSecondsAgo(lvText);
+  }
+
+  return 0;
 }
 
 function applyInlineCascade(
@@ -200,7 +209,7 @@ export async function cascadeInsertVideos({
 
   await preloadThumbnails(videosToAdd);
 
-  const inlineVideos = videosToAdd.filter(video => !video.sectionTitle);
+  const inlineVideos = videosToAdd.filter(video => !video.sectionTitle && video.bandIndex === 0);
   const inlineBands = bandLayout.bands.filter(band => band.kind === "inline");
   const hasInlineCascade = inlineVideos.length > 0 && inlineBands.length > 0;
   if (prefersReducedMotion() || !hasInlineCascade) {
