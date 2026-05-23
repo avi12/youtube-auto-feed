@@ -251,12 +251,23 @@ function computeFeedDiff({
   const bandMoves: BandMove[] = [];
   const metadataOnly: VideoSnapshot[] = [];
 
+  const apiInlineSecondsAgo = freshSnapshots
+    .filter(video => !video.sectionTitle)
+    .map(video => parseSecondsAgo(video.publishedTimeText));
+  const apiInlineOldestSecondsAgo = apiInlineSecondsAgo.length > 0
+    ? Math.max(...apiInlineSecondsAgo)
+    : Infinity;
+
   for (const [videoId, snapshot] of previousSnapshot) {
     if (freshMap.has(videoId)) {
       continue;
     }
 
     if (snapshot.sectionTitle) {
+      continue;
+    }
+
+    if (parseSecondsAgo(snapshot.publishedTimeText) > apiInlineOldestSecondsAgo) {
       continue;
     }
 
