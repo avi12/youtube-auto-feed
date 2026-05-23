@@ -1,15 +1,21 @@
 /**
- * Dev server: production builds (with source maps) + browser with sideloaded extension.
- * On file changes: rebuilds for production and reloads extension + YouTube tabs.
+ * Dev server: production builds (with source maps) + browsers with/without sideloaded extension.
+ * On file changes under src/ or wxt.config.ts: rebuilds the needed formats, reloads sideloaded
+ * extensions, and reloads YouTube tabs in every launched Chromium browser.
  *
- * Usage:
- *   bun scripts/dev-server.ts           - Chrome
- *   bun scripts/dev-server.ts --firefox - Firefox
+ * Usage examples:
+ *   bun scripts/dev-server.ts                          - Edge (sideloaded)            [default]
+ *   bun scripts/dev-server.ts --chrome                 - Chrome (sideloaded)
+ *   bun scripts/dev-server.ts --edge --chrome          - Edge + Chrome (both sideloaded)
+ *   bun scripts/dev-server.ts --edge --chrome.no-extension - Edge (sideloaded) + Chrome (no ext)
+ *   bun scripts/dev-server.ts --firefox                - Firefox (sideloaded)
+ *   bun scripts/dev-server.ts --firefox.no-extension   - Firefox (no extension)
  */
 
 import chokidar from "chokidar";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync, type ChildProcess } from "node:child_process";
 import {
+  createWriteStream,
   existsSync,
   cpSync,
   mkdirSync,
@@ -18,57 +24,177 @@ import {
 } from "node:fs";
 import { homedir, platform } from "node:os";
 import { resolve, join, dirname } from "node:path";
+import { format } from "node:util";
 import webExtRun from "web-ext-run";
 import { consoleStream as webExtConsoleStream } from "web-ext-run/util/logger";
 import { build } from "wxt";
+import yargs from "yargs";
+import { hideBin } from "yargs/helpers";
 
-const IS_FIREFOX = process.argv.includes("--firefox");
+// ── Browser specs ───────────────────────────────────────────────────────────
+
+const CHROMIUM_VENDORS = ["edge", "chrome"] as const;
+const ALL_VENDORS = [...CHROMIUM_VENDORS, "firefox"] as const;
+type ChromiumVendor = typeof CHROMIUM_VENDORS[number];
+type Vendor = typeof ALL_VENDORS[number];
+
+interface BrowserSpec {
+  vendor: Vendor;
+  withExtension: boolean;
+}
+
+function isChromiumVendor(vendor: Vendor): vendor is ChromiumVendor {
+  return CHROMIUM_VENDORS.some(known => known === vendor);
+}
+
+function isChromiumSpec(spec: BrowserSpec): spec is BrowserSpec & { vendor: ChromiumVendor } {
+  return isChromiumVendor(spec.vendor);
+}
+
+function isNoExtensionFlag(value: unknown) {
+  if (typeof value !== "object" || value === null || !("no-extension" in value)) {
+    return false;
+  }
+
+  return Boolean(value["no-extension"]);
+}
+
+const argv = await yargs(hideBin(process.argv))
+  .usage("Usage: $0 [--edge|--chrome|--firefox][.no-extension]...")
+  .option("edge", { description: "Launch Edge; suffix .no-extension to skip sideloading" })
+  .option("chrome", { description: "Launch Chrome; suffix .no-extension to skip sideloading" })
+  .option("firefox", { description: "Launch Firefox; suffix .no-extension to skip sideloading" })
+  .parserConfiguration({ "camel-case-expansion": false })
+  .help()
+  .parse();
+
+const browserSpecs: BrowserSpec[] = [];
+for (const vendor of ALL_VENDORS) {
+  const value = argv[vendor];
+  if (value === undefined) {
+    continue;
+  }
+
+  browserSpecs.push({
+    vendor,
+    withExtension: !isNoExtensionFlag(value)
+  });
+}
+
+if (browserSpecs.length === 0) {
+  browserSpecs.push({
+    vendor: "edge",
+    withExtension: true
+  });
+}
+
+// ── Constants ───────────────────────────────────────────────────────────────
+
 const PROJECT_ROOT = resolve(import.meta.dirname, "..");
-const OUTPUT_DIR = resolve(PROJECT_ROOT, IS_FIREFOX ? ".output/firefox-mv3" : ".output/chrome-mv3");
+const LOG_FILE_PATH = resolve(PROJECT_ROOT, "tmp/dev-server.log");
 const USER_PROFILES_DIR = resolve(PROJECT_ROOT, "user-profiles");
-const EDGE_PROFILE_DIR = join(USER_PROFILES_DIR, "edge");
+
+mkdirSync(dirname(LOG_FILE_PATH), { recursive: true });
+const logStream = createWriteStream(LOG_FILE_PATH, { flags: "w" });
+
+function writeToLog(prefix: string, args: unknown[]) {
+  logStream.write(`[${new Date().toISOString()}] [${prefix}] ${format(...args)}\n`);
+}
+
+const originalConsoleLog = console.log.bind(console);
+const originalConsoleWarn = console.warn.bind(console);
+const originalConsoleError = console.error.bind(console);
+
+console.log = (...args: unknown[]) => {
+  writeToLog("log", args);
+  originalConsoleLog(...args);
+};
+
+console.warn = (...args: unknown[]) => {
+  writeToLog("warn", args);
+  originalConsoleWarn(...args);
+};
+
+console.error = (...args: unknown[]) => {
+  writeToLog("error", args);
+  originalConsoleError(...args);
+};
+
+console.log(`Dev server logging to ${LOG_FILE_PATH}`);
+
+const CHROMIUM_OUTPUT_DIR = resolve(PROJECT_ROOT, ".output/chrome-mv3");
+const FIREFOX_OUTPUT_DIR = resolve(PROJECT_ROOT, ".output/firefox-mv3");
+const FIREFOX_PROFILE_DIR = join(USER_PROFILES_DIR, "firefox");
 const { LANG = "en" } = process.env;
 const START_URL = "https://www.youtube.com/feed/subscriptions";
-const CDP_PORT = 9232;
 const REBUILD_DEBOUNCE_MS = 800;
 const WARN_LOG_LEVEL = 40;
+const CDP_BOOT_POLL_ATTEMPTS = 20;
+const CDP_BOOT_POLL_INTERVAL_MS = 500;
+const CDP_CLOSE_POLL_INTERVAL_MS = 5000;
 
-// ── Edge profile setup ──────────────────────────────────────────────────────
-
-const EDGE_PROFILE_SENTINEL = join(EDGE_PROFILE_DIR, "Default", ".seeded");
-
-function setupEdgeProfile() {
-  if (existsSync(EDGE_PROFILE_SENTINEL)) {
-    return;
+const CHROMIUM_CONFIG: Record<ChromiumVendor, {
+  profileDir: string;
+  cdpPort: number;
+}> = {
+  edge: {
+    profileDir: join(USER_PROFILES_DIR, "edge"),
+    cdpPort: 9232
+  },
+  chrome: {
+    profileDir: join(USER_PROFILES_DIR, "chrome"),
+    cdpPort: 9231
   }
+};
 
+// ── Chromium profile setup ──────────────────────────────────────────────────
+
+function chromiumSourceUserDataDir(vendor: ChromiumVendor) {
   const home = homedir();
   const { LOCALAPPDATA = "" } = process.env;
-  const sourceUserData: Record<string, string> = {
-    win32: join(LOCALAPPDATA, "Microsoft", "Edge", "User Data"),
-    darwin: join(home, "Library", "Application Support", "Microsoft Edge"),
-    linux: join(home, ".config", "microsoft-edge")
+  const map: Record<ChromiumVendor, Record<string, string>> = {
+    edge: {
+      win32: join(LOCALAPPDATA, "Microsoft", "Edge", "User Data"),
+      darwin: join(home, "Library", "Application Support", "Microsoft Edge"),
+      linux: join(home, ".config", "microsoft-edge")
+    },
+    chrome: {
+      win32: join(LOCALAPPDATA, "Google", "Chrome", "User Data"),
+      darwin: join(home, "Library", "Application Support", "Google", "Chrome"),
+      linux: join(home, ".config", "google-chrome")
+    }
   };
-  const source = sourceUserData[platform()];
-  if (!source || !existsSync(source)) {
-    mkdirSync(EDGE_PROFILE_DIR, { recursive: true });
+  return map[vendor][platform()];
+}
+
+function setupChromiumProfile(profileDirectory: string, vendor: ChromiumVendor) {
+  const sentinel = join(profileDirectory, "Default", ".seeded");
+  if (existsSync(sentinel)) {
     return;
   }
 
-  console.log(`Setting up Edge profile from ${source}...`);
+  const source = chromiumSourceUserDataDir(vendor);
+  if (!source || !existsSync(source)) {
+    mkdirSync(dirname(sentinel), { recursive: true });
+    writeFileSync(sentinel, "");
+    return;
+  }
+
+  console.log(`Setting up ${vendor} profile from ${source}...`);
   for (const directory of ["Default", "Profile 1"]) {
     const bookmarksPath = join(source, directory, "Bookmarks");
     if (!existsSync(bookmarksPath)) {
       continue;
     }
 
-    const destinationPath = join(EDGE_PROFILE_DIR, directory, "Bookmarks");
+    const destinationPath = join(profileDirectory, directory, "Bookmarks");
     mkdirSync(dirname(destinationPath), { recursive: true });
     cpSync(bookmarksPath, destinationPath);
   }
   console.log("Profile setup complete.");
 
-  writeFileSync(EDGE_PROFILE_SENTINEL, "");
+  mkdirSync(dirname(sentinel), { recursive: true });
+  writeFileSync(sentinel, "");
 }
 
 // ── Firefox profile setup ───────────────────────────────────────────────────
@@ -110,7 +236,6 @@ function findDefaultFirefoxProfilePath() {
   return isRelative ? join(firefoxDataPath, profilePath) : profilePath;
 }
 
-const FIREFOX_PROFILE_DIR = join(USER_PROFILES_DIR, "firefox");
 const FIREFOX_PROFILE_SENTINEL = join(FIREFOX_PROFILE_DIR, ".seeded");
 
 function setupFirefoxProfile() {
@@ -138,16 +263,14 @@ function setupFirefoxProfile() {
   return FIREFOX_PROFILE_DIR;
 }
 
-// ── Firefox cleanup ─────────────────────────────────────────────────────────
-
-function killExistingFirefoxInstances() {
+function killProcessesByProfileDir(processName: string, profileDir: string) {
   if (platform() !== "win32") {
     return;
   }
 
   const script = `
-$profile = '${FIREFOX_PROFILE_DIR.replace(/'/g, "''")}'
-Get-CimInstance Win32_Process -Filter "name='firefox.exe'" |
+$profile = '${profileDir.replace(/'/g, "''")}'
+Get-CimInstance Win32_Process -Filter "name='${processName}'" |
   Where-Object { $_.CommandLine -and $_.CommandLine.Contains($profile) } |
   ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
 `;
@@ -158,7 +281,28 @@ Get-CimInstance Win32_Process -Filter "name='firefox.exe'" |
   });
 }
 
-// ── Edge launch ─────────────────────────────────────────────────────────────
+function killExistingFirefoxInstances() {
+  killProcessesByProfileDir("firefox.exe", FIREFOX_PROFILE_DIR);
+}
+
+function sweepRemainingBrowsers() {
+  for (const spec of browserSpecs) {
+    if (spec.vendor === "firefox") {
+      killProcessesByProfileDir("firefox.exe", FIREFOX_PROFILE_DIR);
+      continue;
+    }
+
+    const { profileDir } = CHROMIUM_CONFIG[spec.vendor];
+    const processName = spec.vendor === "edge" ? "msedge.exe" : "chrome.exe";
+    killProcessesByProfileDir(processName, profileDir);
+  }
+}
+
+// ── Binary discovery ────────────────────────────────────────────────────────
+
+function firstExistingPath(candidates: string[]) {
+  return candidates.find(existsSync) ?? candidates[0];
+}
 
 function edgeBinaryPath() {
   const { "PROGRAMFILES(X86)": pf86 = "", PROGRAMFILES = "" } = process.env;
@@ -169,7 +313,36 @@ function edgeBinaryPath() {
   }
 }
 
-// ── Tab reload via HTTP CDP ─────────────────────────────────────────────────
+function chromeBinaryPath() {
+  const { "PROGRAMFILES(X86)": pf86 = "", PROGRAMFILES = "", LOCALAPPDATA = "" } = process.env;
+  switch (platform()) {
+    case "win32": return firstExistingPath([
+      join(PROGRAMFILES, "Google", "Chrome", "Application", "chrome.exe"),
+      join(pf86, "Google", "Chrome", "Application", "chrome.exe"),
+      join(LOCALAPPDATA, "Google", "Chrome", "Application", "chrome.exe")
+    ]);
+    case "darwin": return "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+    default: return "/usr/bin/google-chrome";
+  }
+}
+
+function firefoxBinaryPath() {
+  const { "PROGRAMFILES(X86)": pf86 = "", PROGRAMFILES = "" } = process.env;
+  switch (platform()) {
+    case "win32": return firstExistingPath([
+      join(PROGRAMFILES, "Mozilla Firefox", "firefox.exe"),
+      join(pf86, "Mozilla Firefox", "firefox.exe")
+    ]);
+    case "darwin": return "/Applications/Firefox.app/Contents/MacOS/firefox";
+    default: return "/usr/bin/firefox";
+  }
+}
+
+function chromiumBinaryPath(vendor: ChromiumVendor) {
+  return vendor === "edge" ? edgeBinaryPath() : chromeBinaryPath();
+}
+
+// ── CDP helpers ─────────────────────────────────────────────────────────────
 
 interface CdpTarget {
   id: string;
@@ -180,7 +353,7 @@ interface CdpTarget {
 }
 
 function sendCdpCommand(webSocketUrl: string, method: string, params: Record<string, unknown> = {}) {
-  return new Promise<void>(resolve => {
+  return new Promise<void>(resolvePromise => {
     const websocket = new WebSocket(webSocketUrl);
     websocket.onopen = () => {
       websocket.send(
@@ -191,20 +364,20 @@ function sendCdpCommand(webSocketUrl: string, method: string, params: Record<str
         })
       );
     };
-    websocket.onmessage = event => {
-      const data = JSON.parse(String(event.data));
+    websocket.onmessage = e => {
+      const data = JSON.parse(String(e.data));
       if (data.id === 1) {
         websocket.close();
-        resolve();
+        resolvePromise();
       }
     };
-    websocket.onerror = () => resolve();
+    websocket.onerror = () => resolvePromise();
   });
 }
 
-async function reloadYouTubeTabs() {
+async function reloadYouTubeTabsAt(cdpPort: number) {
   try {
-    const response = await fetch(`http://localhost:${CDP_PORT}/json`);
+    const response = await fetch(`http://localhost:${cdpPort}/json`);
     const targets: CdpTarget[] = await response.json();
     for (const target of targets) {
       if (target.type !== "page" || !target.url.includes("youtube.com") || !target.webSocketDebuggerUrl) {
@@ -218,44 +391,83 @@ async function reloadYouTubeTabs() {
   }
 }
 
-async function waitForBrowserClose() {
-  const cdpUrl = `http://localhost:${CDP_PORT}/json/version`;
-
-  let isStarted = false;
-  for (let attempt = 0; attempt < 20 && !isStarted; attempt++) {
-    await new Promise(resolve => setTimeout(resolve, 500));
+async function waitForCdpReady(cdpPort: number) {
+  const cdpUrl = `http://localhost:${cdpPort}/json/version`;
+  for (let attempt = 0; attempt < CDP_BOOT_POLL_ATTEMPTS; attempt++) {
+    await new Promise(resolveTimer => setTimeout(resolveTimer, CDP_BOOT_POLL_INTERVAL_MS));
     try {
-      isStarted = (await fetch(cdpUrl)).ok;
+      if ((await fetch(cdpUrl)).ok) {
+        console.log(`CDP ready on port ${cdpPort} after ${attempt + 1} attempts.`);
+        return true;
+      }
     } catch {}
   }
+  console.warn(`CDP NEVER became ready on port ${cdpPort} (${CDP_BOOT_POLL_ATTEMPTS} attempts)`);
+  return false;
+}
 
-  if (!isStarted) {
-    return;
-  }
-
+async function waitForCdpClose(cdpPort: number) {
+  const cdpUrl = `http://localhost:${cdpPort}/json/version`;
+  let consecutiveFailures = 0;
   while (true) {
-    await new Promise(resolve => setTimeout(resolve, 5000));
+    await new Promise(resolveTimer => setTimeout(resolveTimer, CDP_CLOSE_POLL_INTERVAL_MS));
     try {
       if (!(await fetch(cdpUrl)).ok) {
+        consecutiveFailures++;
+        console.warn(`CDP port ${cdpPort}: HTTP not-ok (failure #${consecutiveFailures})`);
+
+        if (consecutiveFailures >= 2) {
+          return;
+        }
+
+        continue;
+      }
+
+      consecutiveFailures = 0;
+    } catch (error) {
+      consecutiveFailures++;
+      console.warn(`CDP port ${cdpPort}: fetch error (failure #${consecutiveFailures}):`, error instanceof Error ? error.message : error);
+
+      if (consecutiveFailures >= 2) {
         return;
       }
-    } catch {
-      return;
     }
   }
 }
 
 // ── Build ───────────────────────────────────────────────────────────────────
 
-async function buildExtension() {
+type ExtensionFormat = "chromium" | "firefox";
+
+function neededFormats(specs: BrowserSpec[]): ExtensionFormat[] {
+  const formats: ExtensionFormat[] = [];
+  if (specs.some(spec => spec.withExtension && isChromiumVendor(spec.vendor))) {
+    formats.push("chromium");
+  }
+
+  if (specs.some(spec => spec.withExtension && spec.vendor === "firefox")) {
+    formats.push("firefox");
+  }
+
+  return formats;
+}
+
+async function buildExtension(format: ExtensionFormat) {
   await build({
     root: PROJECT_ROOT,
-    browser: IS_FIREFOX ? "firefox" : "chrome",
+    browser: format === "firefox" ? "firefox" : "chrome",
     manifestVersion: 3,
     vite: () => ({
       build: { sourcemap: true }
     })
   });
+}
+
+async function buildNeededFormats(formats: ExtensionFormat[]) {
+  for (const format of formats) {
+    console.log(`Building ${format} extension (production + source maps)...`);
+    await buildExtension(format);
+  }
 }
 
 // ── Debounce ─────────────────────────────────────────────────────────────────
@@ -274,151 +486,303 @@ function debounce<T extends unknown[]>(callback: (...args: T) => void | Promise<
   };
 }
 
-// ── Firefox dev loop ────────────────────────────────────────────────────────
+// ── Child process helpers ───────────────────────────────────────────────────
 
-async function runFirefox() {
-  killExistingFirefoxInstances();
-  const profileDirectory = setupFirefoxProfile();
-
-  console.log("Building extension for Firefox (production + source maps)...");
-  await buildExtension();
-  console.log("Build complete.\n");
-
-  webExtConsoleStream.write = ({ level, msg: message }) => {
-    if (level >= WARN_LOG_LEVEL) {
-      console.warn(message);
-    }
-  };
-
-  const runner = await webExtRun.cmd.run({
-    target: "firefox-desktop",
-    sourceDir: OUTPUT_DIR,
-    startUrl: [START_URL],
-    keepProfileChanges: true,
-    firefoxProfile: profileDirectory,
-    args: [`--lang=${LANG}`, "--marionette"],
-    noReload: true,
-    noInput: true
-  }, { shouldExitProgram: false });
-
-  console.log("Firefox launched with extension sideloaded.");
-  console.log("Watching for file changes...\n");
-
-  const watcher = chokidar.watch(["src", "wxt.config.ts"], {
-    cwd: PROJECT_ROOT.replaceAll("\\", "/"),
-    ignoreInitial: true,
-    usePolling: true,
-    interval: 500
-  });
-
-  const onFileChange = debounce(async (_event: string, filePath: string) => {
-    console.log(`\nChange detected: ${filePath}`);
-    console.log("Rebuilding...");
-    try {
-      await buildExtension();
-      await runner.reloadAllExtensions();
-      console.log(`Reloaded at ${new Date().toLocaleTimeString()}`);
-    } catch (error) {
-      console.error("Rebuild failed:", error);
-    }
-  }, REBUILD_DEBOUNCE_MS);
-
-  watcher.on("all", (event, filePath) => onFileChange(event, filePath));
-
-  for (const signal of ["SIGINT", "SIGTERM"] as const) {
-    process.on(signal, async () => {
-      await watcher.close();
-      await runner.exit();
-      process.exit(0);
-    });
+function killChild(child: ChildProcess) {
+  if (child.exitCode !== null || child.killed) {
+    return;
   }
 
-  await new Promise(() => {});
+  if (platform() === "win32" && child.pid !== undefined) {
+    spawnSync("taskkill", ["/PID", String(child.pid), "/T", "/F"], { stdio: "ignore" });
+    return;
+  }
+
+  child.kill();
 }
 
-// ── Edge dev loop ───────────────────────────────────────────────────────────
+// ── Browser handles ─────────────────────────────────────────────────────────
 
-async function runEdge() {
-  setupEdgeProfile();
+interface BrowserHandle {
+  spec: BrowserSpec;
+  reloadExtension: () => Promise<void>;
+  reloadTabs: () => Promise<void>;
+  shutdown: () => Promise<void>;
+  waitForClose: () => Promise<void>;
+}
 
-  console.log("Building extension for Edge (production + source maps)...");
-  await buildExtension();
-  console.log("Build complete.\n");
+async function launchChromium(spec: BrowserSpec & { vendor: ChromiumVendor }): Promise<BrowserHandle> {
+  const { profileDir, cdpPort } = CHROMIUM_CONFIG[spec.vendor];
+  const binary = chromiumBinaryPath(spec.vendor);
+  setupChromiumProfile(profileDir, spec.vendor);
 
-  webExtConsoleStream.write = ({ level, msg: message }) => {
-    if (level >= WARN_LOG_LEVEL) {
-      console.warn(message);
-    }
-  };
+  const sharedArgs = [
+    `--lang=${LANG}`,
+    `--remote-debugging-port=${cdpPort}`,
+    "--disable-blink-features=AutomationControlled"
+  ];
+  if (spec.withExtension) {
+    const runner = await webExtRun.cmd.run({
+      target: "chromium",
+      sourceDir: CHROMIUM_OUTPUT_DIR,
+      startUrl: [START_URL],
+      keepProfileChanges: true,
+      chromiumProfile: profileDir,
+      chromiumBinary: binary,
+      args: sharedArgs,
+      noReload: true,
+      noInput: true
+    }, { shouldExitProgram: false });
 
-  const runner = await webExtRun.cmd.run({
-    target: "chromium",
-    sourceDir: OUTPUT_DIR,
-    startUrl: [START_URL],
-    keepProfileChanges: true,
-    chromiumProfile: EDGE_PROFILE_DIR,
-    chromiumBinary: edgeBinaryPath(),
-    args: [
-      `--lang=${LANG}`,
-      `--remote-debugging-port=${CDP_PORT}`,
-      "--disable-blink-features=AutomationControlled"
-    ],
-    noReload: true,
-    noInput: true
-  }, { shouldExitProgram: false });
+    console.log(`${spec.vendor} launched with extension sideloaded.`);
+    await waitForCdpReady(cdpPort);
 
-  console.log("Edge launched with extension sideloaded.");
-  console.log("Watching for file changes...\n");
-
-  const watcher = chokidar.watch(["src", "wxt.config.ts"], {
-    cwd: PROJECT_ROOT.replaceAll("\\", "/"),
-    ignoreInitial: true,
-    usePolling: true,
-    interval: 500
-  });
-
-  const onFileChange = debounce(async (_event: string, filePath: string) => {
-    console.log(`\nChange detected: ${filePath}`);
-    console.log("Rebuilding...");
-    try {
-      await buildExtension();
-      await runner.reloadAllExtensions();
-      await reloadYouTubeTabs();
-      console.log(`Reloaded at ${new Date().toLocaleTimeString()}`);
-    } catch (error) {
-      console.error("Rebuild failed:", error);
-    }
-  }, REBUILD_DEBOUNCE_MS);
-
-  watcher.on("all", (event, filePath) => onFileChange(event, filePath));
-
-  for (const signal of ["SIGINT", "SIGTERM"] as const) {
-    process.on(signal, async () => {
-      await watcher.close();
-      await runner.exit();
-      process.exit(0);
-    });
+    return {
+      spec,
+      reloadExtension: () => runner.reloadAllExtensions(),
+      reloadTabs: () => reloadYouTubeTabsAt(cdpPort),
+      shutdown: () => runner.exit(),
+      waitForClose: () => waitForCdpClose(cdpPort)
+    };
   }
 
-  await waitForBrowserClose();
-  await watcher.close();
-  await runner.exit();
-  process.exit(0);
+  const child = spawn(binary, [
+    `--user-data-dir=${profileDir}`,
+    ...sharedArgs,
+    "--no-first-run",
+    "--no-default-browser-check",
+    START_URL
+  ], { stdio: "ignore" });
+  child.on("error", error => console.error(`${spec.vendor} failed to launch:`, error));
+  child.on("exit", (code, signal) => console.warn(`${spec.vendor} child exited (code=${code}, signal=${signal})`));
+  console.log(`${spec.vendor} launched without extension (pid=${child.pid}).`);
+  await waitForCdpReady(cdpPort);
+
+  return {
+    spec,
+    async reloadExtension() {},
+    reloadTabs: () => reloadYouTubeTabsAt(cdpPort),
+    shutdown: async () => killChild(child),
+    waitForClose: () => waitForCdpClose(cdpPort)
+  };
+}
+
+async function launchFirefox(spec: BrowserSpec): Promise<BrowserHandle> {
+  killExistingFirefoxInstances();
+  const profileDirectory = setupFirefoxProfile();
+  if (spec.withExtension) {
+    const runner = await webExtRun.cmd.run({
+      target: "firefox-desktop",
+      sourceDir: FIREFOX_OUTPUT_DIR,
+      startUrl: [START_URL],
+      keepProfileChanges: true,
+      firefoxProfile: profileDirectory,
+      args: [`--lang=${LANG}`, "--marionette"],
+      noReload: true,
+      noInput: true
+    }, { shouldExitProgram: false });
+
+    console.log("firefox launched with extension sideloaded.");
+
+    return {
+      spec,
+      reloadExtension: () => runner.reloadAllExtensions(),
+      async reloadTabs() {},
+      shutdown: () => runner.exit(),
+      waitForClose: () => new Promise(() => {})
+    };
+  }
+
+  const child = spawn(firefoxBinaryPath(), [
+    "--profile", profileDirectory,
+    "--new-instance",
+    START_URL
+  ], { stdio: "ignore" });
+  child.on("error", error => console.error("firefox failed to launch:", error));
+  child.on("exit", (code, signal) => console.warn(`firefox child exited (code=${code}, signal=${signal})`));
+  console.log(`firefox launched without extension (pid=${child.pid}).`);
+
+  return {
+    spec,
+    async reloadExtension() {},
+    async reloadTabs() {},
+    shutdown: async () => killChild(child),
+    waitForClose: () => new Promise(() => {})
+  };
+}
+
+async function launchBrowser(spec: BrowserSpec) {
+  if (isChromiumSpec(spec)) {
+    return launchChromium(spec);
+  }
+
+  return launchFirefox(spec);
 }
 
 // ── Main ────────────────────────────────────────────────────────────────────
 
+function timestamp() {
+  return new Date().toISOString().slice(11, 23);
+}
+
+function log(message: string) {
+  console.log(`[${timestamp()}] ${message}`);
+}
+
+function logError(message: string, error: unknown) {
+  console.error(`[${timestamp()}] ${message}`, error);
+}
+
+process.on("uncaughtException", error => {
+  logError("uncaughtException", error);
+});
+
+process.on("unhandledRejection", reason => {
+  logError("unhandledRejection", reason);
+});
+
+process.on("exit", code => {
+  originalConsoleLog(`[${new Date().toISOString()}] [log] process exiting with code ${code}`);
+  logStream.write(`[${new Date().toISOString()}] [log] process exiting with code ${code}\n`);
+  logStream.end();
+});
+
 async function main() {
   process.chdir(PROJECT_ROOT);
+  log(`Specs: ${browserSpecs.map(spec => `${spec.vendor}${spec.withExtension ? "" : ".no-extension"}`).join(", ")}`);
 
-  if (IS_FIREFOX) {
-    await runFirefox();
-  } else {
-    await runEdge();
+  log("Sweeping any orphan browser processes from previous runs...");
+  sweepRemainingBrowsers();
+
+  const formats = neededFormats(browserSpecs);
+  await buildNeededFormats(formats);
+
+  if (formats.length > 0) {
+    log("Initial build complete.\n");
   }
+
+  webExtConsoleStream.write = ({ level, msg: message }) => {
+    if (level >= WARN_LOG_LEVEL) {
+      console.warn(`[${timestamp()}] web-ext: ${message}`);
+    }
+  };
+
+  const handles: BrowserHandle[] = [];
+  for (const spec of browserSpecs) {
+    log(`Launching ${spec.vendor} (withExtension=${spec.withExtension})...`);
+    try {
+      handles.push(await launchBrowser(spec));
+      log(`${spec.vendor} launch complete.`);
+    } catch (error) {
+      logError(`Failed to launch ${spec.vendor}:`, error);
+      throw error;
+    }
+  }
+
+  log("\nWatching for file changes...\n");
+
+  const watcher = chokidar.watch(["src", "wxt.config.ts"], {
+    cwd: PROJECT_ROOT.replaceAll("\\", "/"),
+    ignoreInitial: true,
+    usePolling: true,
+    interval: 500
+  });
+
+  watcher.on("error", error => logError("chokidar error:", error));
+  watcher.on("ready", () => log("chokidar ready."));
+
+  const onFileChange = debounce(async (_event: string, filePath: string) => {
+    log(`\nChange detected: ${filePath}`);
+    log("Rebuilding...");
+    try {
+      await buildNeededFormats(formats);
+      log("Build complete. Reloading extensions...");
+      for (const handle of handles) {
+        try {
+          await handle.reloadExtension();
+          log(`${handle.spec.vendor}: extension reloaded.`);
+        } catch (error) {
+          logError(`${handle.spec.vendor}: reloadExtension failed:`, error);
+        }
+      }
+
+      log("Reloading tabs...");
+      for (const handle of handles) {
+        try {
+          await handle.reloadTabs();
+          log(`${handle.spec.vendor}: tabs reloaded.`);
+        } catch (error) {
+          logError(`${handle.spec.vendor}: reloadTabs failed:`, error);
+        }
+      }
+
+      log(`Rebuild cycle finished at ${new Date().toLocaleTimeString()}`);
+    } catch (error) {
+      logError("Rebuild failed:", error);
+    }
+  }, REBUILD_DEBOUNCE_MS);
+
+  watcher.on("all", (event, filePath) => onFileChange(event, filePath));
+
+  let isShuttingDown = false;
+  async function shutdown(reason: string) {
+    if (isShuttingDown) {
+      log(`shutdown re-entered (reason=${reason}), ignoring.`);
+      return;
+    }
+
+    isShuttingDown = true;
+    log(`Shutting down (reason=${reason})...`);
+    try {
+      await watcher.close();
+      log("watcher closed.");
+    } catch (error) {
+      logError("watcher.close failed:", error);
+    }
+
+    for (const handle of handles) {
+      try {
+        await handle.shutdown();
+        log(`${handle.spec.vendor}: shutdown complete.`);
+      } catch (error) {
+        logError(`${handle.spec.vendor}: shutdown failed:`, error);
+      }
+    }
+
+    log("Sweeping any remaining browser processes by profile dir...");
+    sweepRemainingBrowsers();
+    log("Sweep complete.");
+  }
+
+  const terminationSignals = ["SIGINT", "SIGTERM", "SIGHUP", "SIGBREAK"] as const;
+  for (const signal of terminationSignals) {
+    process.on(signal, async () => {
+      log(`Received ${signal}.`);
+      await shutdown(`signal=${signal}`);
+      process.exit(0);
+    });
+  }
+
+  if (process.stdin.isTTY) {
+    process.stdin.on("close", async () => {
+      log("stdin closed (terminal likely terminated).");
+      await shutdown("stdin closed");
+      process.exit(0);
+    });
+  }
+
+  const closeRace = handles.map(async handle => {
+    await handle.waitForClose();
+    log(`${handle.spec.vendor}: waitForClose resolved (browser closed or CDP unreachable).`);
+    return handle.spec.vendor;
+  });
+  const closedVendor = await Promise.race(closeRace);
+  await shutdown(`${closedVendor} closed first`);
+  log("Exiting cleanly.");
+  process.exit(0);
 }
 
 main().catch(error => {
-  console.error("Fatal:", error);
+  logError("Fatal in main():", error);
   process.exit(1);
 });

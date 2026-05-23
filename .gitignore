@@ -1,5 +1,6 @@
 screenshots/
 .tmp/
+tmp/
 
 # Logs
 logs
