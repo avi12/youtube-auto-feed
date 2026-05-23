@@ -347,6 +347,37 @@ async function prepareThumbnailDissolve({ elItem, elImg, newUrl }: {
   };
 }
 
+function mergeContentImagePreservingThumbnail(
+  existing: LockupViewModel["contentImage"],
+  incoming: LockupViewModel["contentImage"]
+): LockupViewModel["contentImage"] {
+  if (!existing) {
+    return incoming;
+  }
+
+  if (!incoming) {
+    return existing;
+  }
+
+  const existingThumb = existing.thumbnailViewModel;
+  const incomingThumb = incoming.thumbnailViewModel;
+  if (!incomingThumb) {
+    return existing;
+  }
+
+  if (!existingThumb) {
+    return incoming;
+  }
+
+  return {
+    ...incoming,
+    thumbnailViewModel: {
+      ...incomingThumb,
+      image: existingThumb.image ?? incomingThumb.image
+    }
+  };
+}
+
 function mutateLockupViewModelInPlace({ existing, incoming, preserveContentImage }: {
   existing: LockupViewModel;
   incoming: LockupViewModel;
@@ -359,7 +390,7 @@ function mutateLockupViewModelInPlace({ existing, incoming, preserveContentImage
   Object.assign(existing, incoming);
 
   if (preserveContentImage) {
-    existing.contentImage = preservedContentImage;
+    existing.contentImage = mergeContentImagePreservingThumbnail(preservedContentImage, incoming.contentImage);
   }
 
   if (
@@ -460,7 +491,9 @@ function mergeLockupViewModel({ existing, incoming, forcePreserveContentImage = 
       image: incomingAvatarImage ?? existingAvatarImage
     }
     : undefined;
-  const mergedContentImage = isSameThumbnail ? existing.contentImage : incoming.contentImage;
+  const mergedContentImage = isSameThumbnail
+    ? mergeContentImagePreservingThumbnail(existing.contentImage, incoming.contentImage)
+    : incoming.contentImage;
   return {
     ...incoming,
     contentImage: mergedContentImage,
