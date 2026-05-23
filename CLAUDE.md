@@ -9,10 +9,9 @@ A browser extension that keeps the YouTube subscriptions feed (`/feed/subscripti
 
 # Constraints
 - Page is live YouTube. The extension mutates `ytd-rich-grid-renderer.data.contents` through Polymer's `elGrid.set(path, value)`, never through `innerHTML`.
-- InnerTube renderer shapes vary (`videoRenderer`, `lockupViewModel`, `shortsLockupViewModel`, legacy `shelfRenderer` / `gridRenderer`). Always go through the deep accessors in `helpers.ts` and the predicates in `api/guards.ts`; never index into raw shapes.
-- On page load (the initial DOM baseline before any sync), the section order emitted by YouTube must be preserved verbatim, including any repeats. If YouTube returns `Latest -> Most relevant -> Latest -> Shorts`, the extension must render exactly that order, and likewise for any other order. `normalizeInitialBandLayout` only relocates orphan band-0 inline videos (videos before any section header at all); it must never reorder, drop, or merge sections.
-- After page load (during polling/sync), `moveSectionsToTail()` in `dom/band-layout.ts` still forces `Shorts` to the tail of `#contents` to handle the case where a later poll wedges Shorts between Latest items. Don't remove without a replacement.
-- Dev server: `pnpm dev` (`scripts/dev-server.ts`) is the supported path. It launches Edge through `web-ext-run` and reloads via `runner.reloadAllExtensions()`. Direct `--load-extension` Edge launch with manual `chrome.runtime.reload()` over CDP silently disables the extension on every content-script rebuild.
+- InnerTube renderer shapes vary (`videoRenderer`, `lockupViewModel`, `shortsLockupViewModel`, legacy `shelfRenderer` / `gridRenderer`). Always go through the deep accessors and predicates the module exposes; never index into raw shapes.
+- **Section structure is read-only.** The extension may only append or remove videos within sections. It must not reorder, move, merge, dismantle, or tail-pin section markers. Whatever section order YouTube emits is what gets rendered, including repeats.
+- Dev server: `pnpm dev` is the supported path. It launches Edge through `web-ext-run` and reloads via `runner.reloadAllExtensions()`. Direct `--load-extension` Edge launch with manual `chrome.runtime.reload()` over CDP silently disables the extension on every content-script rebuild.
 
 # Layout ordering
 `ytd-rich-grid-renderer > #contents` is a flat list that mixes two kinds of items:
@@ -21,19 +20,13 @@ A browser extension that keeps the YouTube subscriptions feed (`/feed/subscripti
 
 Band attribution is positional: any root-level video that follows a section header belongs to that section until the next header. The `Latest` band is special - its header is a title-only legacy shelf, and its videos are root siblings rather than nested in a rich shelf. Section detection must treat both shelf kinds as boundaries; do not regress to only counting rich shelves.
 
-Four pieces of logic decide order:
-1. A baseline capture snapshots the initial section order and per-band video counts at page load. Every subsequent poll reconciles against this baseline.
-2. Initial-baseline normalization only relocates orphan band-0 inline videos (videos that appear before any section header at all). Once any header exists, the videos that follow belong to it and stay put.
-3. Section reordering groups `data.contents` into blocks (section header + its trailing videos) after each poll, then re-emits them in the desired order: the initial sectionOrder, plus any newly-appearing polled sections inserted relative to their neighbors, plus a tail-section preference pushing `Shorts` last.
-4. A post-sync sweep is idempotent and physically moves `Shorts` to the end of `#contents` if YouTube wedged it between Latest items.
-
-Within-section ordering:
+Within-section ordering (the only ordering the extension is allowed to influence):
 - A finished livestream drops from front-of-band to its time-correct position.
 - Upcoming -> live transitions move the video to the front of its band; live videos lead.
 - New videos are inserted at the time-correct index using parsed seconds-ago from the published-time text.
 - When a rich shelf's video set matches the API but the order differs, the shelf contents are re-emitted in API order.
 
-Contract: **baseline = YouTube verbatim; post-poll = baseline + Shorts pinned to tail, all reconciliations relative to that.**
+Contract: **section markers stay exactly where YouTube placed them; the extension only adds or removes videos.**
 
 # Stack
 - bun
@@ -74,6 +67,56 @@ Contract: **baseline = YouTube verbatim; post-poll = baseline + Shorts pinned to
 - 100% type safety: no `any`, avoid `unknown` unless absolutely necessary
 - Let TypeScript infer variable and function return types - don't annotate explicitly
 - Exception: type predicates require an explicit return type
+
+# State comparison (Chrome = ground truth, no extension)
+After every change, compare Edge (with extension) vs Chrome (no extension):
+
+1. **Row counts per band** - Each band's video count must match Chrome's. Rows = ceil(count / 3) at 3-column layout.
+2. **Video presence per band** - Every video Chrome shows in a band must appear in the same band on Edge. A video in the wrong band counts as missing from the correct band.
+
+Run this script in both browsers to collect the state:
+```js
+(() => {
+  const grid = document.querySelector('ytd-rich-grid-renderer');
+  if (!grid?.data) return null;
+  const contents = grid.data.contents ?? [];
+  const bands = [];
+  let currentSection = '';
+  let currentInlineIds = null;
+  for (const item of contents) {
+    const inlineId = item?.richItemRenderer?.content?.videoRenderer?.videoId
+      ?? item?.richItemRenderer?.content?.lockupViewModel?.contentId
+      ?? item?.richItemRenderer?.content?.lockupViewModel?.videoId
+      ?? item?.richItemRenderer?.content?.shortsLockupViewModel?.onTap?.innertubeCommand?.reelWatchEndpoint?.videoId;
+    if (inlineId) {
+      if (!currentInlineIds) {
+        currentInlineIds = [];
+        bands.push({ section: currentSection || '(Latest)', ids: currentInlineIds });
+      }
+      currentInlineIds.push(inlineId);
+      continue;
+    }
+    currentInlineIds = null;
+    const shelfTitle = item?.richSectionRenderer?.content?.richShelfRenderer?.title?.runs?.[0]?.text;
+    if (shelfTitle) {
+      const shelfIds = (item?.richSectionRenderer?.content?.richShelfRenderer?.contents ?? [])
+        .map(i => i?.richItemRenderer?.content?.videoRenderer?.videoId
+          ?? i?.richItemRenderer?.content?.lockupViewModel?.contentId
+          ?? i?.richItemRenderer?.content?.lockupViewModel?.videoId
+          ?? i?.richItemRenderer?.content?.shortsLockupViewModel?.onTap?.innertubeCommand?.reelWatchEndpoint?.videoId)
+        .filter(Boolean);
+      bands.push({ section: shelfTitle, ids: shelfIds });
+      currentSection = shelfTitle;
+      continue;
+    }
+    const titleOnly = item?.richSectionRenderer?.content?.shelfRenderer?.title?.runs?.[0]?.text;
+    if (titleOnly) currentSection = titleOnly;
+  }
+  return bands.map(b => ({ section: b.section, count: b.ids.length, ids: b.ids }));
+})()
+```
+
+Compare output band-by-band: same section names, same counts, Chrome's IDs present in Edge's matching band. Any video in the wrong section is a bug.
 
 # Workflow
 - After each modification, run `pnpm lint` across the project

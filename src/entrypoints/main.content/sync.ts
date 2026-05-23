@@ -296,7 +296,7 @@ function computeFeedDiff({
 
     const currentSection = currentVideoSections.get(fresh.videoId);
     if (currentSection !== undefined && currentSection !== fresh.sectionTitle) {
-      if (currentSection === "") {
+      if (currentSection === "" && !fresh.sectionTitle) {
         if (hasMetadataChange({
           previous,
           fresh
@@ -397,6 +397,10 @@ function classifyChanges({
   });
 
   for (const move of diff.sectionMoves) {
+    if (!move.toSection) {
+      continue;
+    }
+
     const isMoveShapeOk = isShapeMatch || move.toSection || move.fromSection;
     const isMoveConfirmed = confirmedSectionMoves.has(move.videoId) || isInitialLoad;
     if (isMoveShapeOk && isMoveConfirmed) {
@@ -646,7 +650,13 @@ export async function detectAndApplyChanges({
   confirmedBandMoves?: Set<string>;
   isInitialLoad?: boolean;
 }) {
-  const freshMap = new Map(freshSnapshots.map(video => [video.videoId, video]));
+  const freshMap = new Map<string, VideoSnapshot>();
+  for (const video of freshSnapshots) {
+    const existing = freshMap.get(video.videoId);
+    if (!existing || !existing.sectionTitle) {
+      freshMap.set(video.videoId, video);
+    }
+  }
   const currentVideoIds = readCurrentVideoIds();
   const currentVideoSections = readCurrentVideoSections();
 
