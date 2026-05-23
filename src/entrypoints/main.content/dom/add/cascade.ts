@@ -26,6 +26,8 @@ import { scheduleLazyEntrance } from "../lazy-update";
 import { findItemElement } from "../query";
 import { videoIdFromRichItem } from "../rich-item";
 
+const RICHSHELF_COLUMNS = 3;
+
 function findRichShelfIndices(contents: unknown[]) {
   const indices: number[] = [];
   for (let i = 0; i < contents.length; i++) {
@@ -146,6 +148,10 @@ function applyRichShelfCascade(
   }
 
   const shelfContents = deepArray(richShelf, "contents");
+  const totalDesired = shelfContents.length + newItems.length;
+  const alignedTotal = Math.max(shelfContents.length, Math.floor(totalDesired / RICHSHELF_COLUMNS) * RICHSHELF_COLUMNS);
+  const acceptedNewItems = newItems.slice(0, alignedTotal - shelfContents.length);
+
   contents[iSection] = {
     richSectionRenderer: {
       ...richSection,
@@ -153,7 +159,7 @@ function applyRichShelfCascade(
         ...richContent,
         richShelfRenderer: {
           ...richShelf,
-          contents: [...newItems, ...shelfContents]
+          contents: [...acceptedNewItems, ...shelfContents]
         }
       }
     }
