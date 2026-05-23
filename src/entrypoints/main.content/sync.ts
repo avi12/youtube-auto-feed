@@ -267,6 +267,10 @@ function computeFeedDiff({
       continue;
     }
 
+    if (currentVideoSections.get(videoId)) {
+      continue;
+    }
+
     if (parseSecondsAgo(snapshot.publishedTimeText) > apiInlineOldestSecondsAgo) {
       continue;
     }
