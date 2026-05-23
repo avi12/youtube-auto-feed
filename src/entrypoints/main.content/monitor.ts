@@ -3,12 +3,7 @@ import { fetchInitialVideos } from "./api/fetch";
 import { isInnerTubeBrowseResponse } from "./api/guards";
 import { extractApiSectionOrder, parseApiResponse } from "./api/parse";
 import { cleanOrphanedGridItems } from "./dom/add/grid";
-import {
-  type BandLayout,
-  captureBandLayout,
-  normalizeCollapsedShelfRows,
-  normalizeInitialBandLayout
-} from "./dom/band-layout";
+import { type BandLayout, captureBandLayout, normalizeCollapsedShelfRows } from "./dom/band-layout";
 import { resetLazyUpdates } from "./dom/lazy-update";
 import { readDomSnapshot } from "./dom/query";
 import { isOnSubscriptionsPage } from "./helpers";
@@ -42,7 +37,6 @@ export function createSubscriptionMonitor() {
   let cancelBroadcastListener: (() => void) | null = null;
   let initialBandLayout: BandLayout | null = null;
   let pendingRemovals = new Map<string, number>();
-  let pendingSectionRemovals = new Map<string, number>();
   let pendingSectionMoves = new Map<string, {
     toSection: string;
     count: number;
@@ -73,11 +67,6 @@ export function createSubscriptionMonitor() {
           .filter(([, count]) => count >= ABSENCE_REMOVAL_THRESHOLD)
           .map(([id]) => id)
       );
-      const confirmedAbsentSections = new Set(
-        [...pendingSectionRemovals.entries()]
-          .filter(([, count]) => count >= ABSENCE_REMOVAL_THRESHOLD)
-          .map(([title]) => title)
-      );
       const confirmedSectionMoves = new Set(
         [...pendingSectionMoves.entries()]
           .filter(([, { count }]) => count >= ABSENCE_REMOVAL_THRESHOLD)
@@ -93,7 +82,6 @@ export function createSubscriptionMonitor() {
         isLayoutChange,
         snapshot,
         candidateRemovals,
-        candidateSectionRemovals,
         candidateSectionMoves,
         candidateBandMoves
       } = await detectAndApplyChanges({
@@ -102,7 +90,6 @@ export function createSubscriptionMonitor() {
         bandLayout: initialBandLayout,
         polledSectionOrder: payload.sectionOrder,
         confirmedAbsentVideoIds,
-        confirmedAbsentSections,
         confirmedSectionMoves,
         confirmedBandMoves,
         isInitialLoad
@@ -123,12 +110,6 @@ export function createSubscriptionMonitor() {
         }
       }
       pendingRemovals = newPendingRemovals;
-
-      const newPendingSectionRemovals = new Map<string, number>();
-      for (const sectionTitle of candidateSectionRemovals) {
-        newPendingSectionRemovals.set(sectionTitle, (pendingSectionRemovals.get(sectionTitle) ?? 0) + 1);
-      }
-      pendingSectionRemovals = newPendingSectionRemovals;
 
       const newPendingMoves = new Map<string, {
         toSection: string;
@@ -159,7 +140,6 @@ export function createSubscriptionMonitor() {
       pendingBandMoves = newPendingBandMoves;
 
       if (shouldNormalizeAfter) {
-        normalizeInitialBandLayout();
         const trimmedVideoIds = await normalizeCollapsedShelfRows();
         lastSnapshot = readDomSnapshot();
         for (const videoId of trimmedVideoIds) {
@@ -356,7 +336,6 @@ export function createSubscriptionMonitor() {
         payload: pending,
         isInitialLoad: false
       });
-      normalizeInitialBandLayout();
       const trimmedAfterApply = await normalizeCollapsedShelfRows();
       lastSnapshot = readDomSnapshot();
       for (const videoId of trimmedAfterApply) {
@@ -371,7 +350,6 @@ export function createSubscriptionMonitor() {
     lastSnapshot.clear();
     initialBandLayout = null;
     pendingRemovals = new Map();
-    pendingSectionRemovals = new Map();
     pendingSectionMoves = new Map();
     pendingBandMoves = new Map();
     apiKnownVideoIds = new Set();
