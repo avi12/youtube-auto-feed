@@ -267,21 +267,11 @@ async function fetchImageBase64(url: string) {
   return btoa(binary);
 }
 
-function videoIdFromThumbnailUrl(url: string) {
-  return /\/vi(?:_webp)?\/([^/]+)\//.exec(url)?.[1] ?? null;
-}
-
 async function areThumbnailsDifferent({ currentSrc, newSrc }: {
   currentSrc: string;
   newSrc: string;
 }) {
   if (currentSrc.split("?")[0] === newSrc.split("?")[0]) {
-    return false;
-  }
-
-  const currentVideoId = videoIdFromThumbnailUrl(currentSrc);
-  const newVideoId = videoIdFromThumbnailUrl(newSrc);
-  if (currentVideoId !== null && currentVideoId === newVideoId) {
     return false;
   }
 
