@@ -254,8 +254,7 @@ function computeFeedDiff({
   currentVideoIds,
   currentVideoSections,
   currentVideoBandIndices,
-  confirmedAbsentVideoIds,
-  knownApiSections
+  confirmedAbsentVideoIds
 }: {
   previousSnapshot: Map<string, VideoSnapshot>;
   freshSnapshots: VideoSnapshot[];
@@ -264,7 +263,6 @@ function computeFeedDiff({
   currentVideoSections: Map<string, string>;
   currentVideoBandIndices: Map<string, number>;
   confirmedAbsentVideoIds: Set<string>;
-  knownApiSections: Set<string>;
 }): FeedDiff {
   const removed: string[] = [];
   const candidateRemovals: string[] = [];
@@ -314,16 +312,6 @@ function computeFeedDiff({
 
     const previous = previousSnapshot.get(fresh.videoId);
     if (!previous) {
-      const currentSection = currentVideoSections.get(fresh.videoId);
-      if (currentSection !== undefined && currentSection !== fresh.sectionTitle && currentSection !== "") {
-        sectionMoves.push({
-          videoId: fresh.videoId,
-          fromSection: currentSection,
-          toSection: fresh.sectionTitle,
-          fresh
-        });
-      }
-
       continue;
     }
 
@@ -341,18 +329,7 @@ function computeFeedDiff({
 
     const currentSection = currentVideoSections.get(fresh.videoId);
     if (currentSection !== undefined && currentSection !== fresh.sectionTitle) {
-      if (currentSection && !fresh.sectionTitle) {
-        if (hasMetadataChange({
-          previous,
-          fresh
-        })) {
-          metadataOnly.push(fresh);
-        }
-
-        continue;
-      }
-
-      if (currentSection && !knownApiSections.has(currentSection)) {
+      if (currentSection) {
         if (hasMetadataChange({
           previous,
           fresh
@@ -435,8 +412,7 @@ function classifyChanges({
     currentVideoIds,
     currentVideoSections,
     currentVideoBandIndices,
-    confirmedAbsentVideoIds,
-    knownApiSections: new Set(polledSectionOrder)
+    confirmedAbsentVideoIds
   });
   const isShapeMatch = polledShapeMatchesBaseline({
     polledSectionOrder,
