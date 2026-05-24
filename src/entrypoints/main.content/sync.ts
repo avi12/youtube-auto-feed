@@ -182,10 +182,6 @@ interface ClassifiedChanges {
     videoId: string;
     toSection: string;
   }[];
-  candidateBandMoves: {
-    videoId: string;
-    toBandIndex: number;
-  }[];
 }
 
 interface SectionMove {
@@ -418,7 +414,6 @@ function classifyChanges({
   polledSectionOrder,
   confirmedAbsentVideoIds,
   confirmedSectionMoves,
-  confirmedBandMoves,
   isInitialLoad
 }: {
   previousSnapshot: Map<string, VideoSnapshot>;
@@ -431,7 +426,6 @@ function classifyChanges({
   polledSectionOrder: string[];
   confirmedAbsentVideoIds: Set<string>;
   confirmedSectionMoves: Set<string>;
-  confirmedBandMoves: Set<string>;
   isInitialLoad: boolean;
 }): ClassifiedChanges {
   const diff = computeFeedDiff({
@@ -463,7 +457,7 @@ function classifyChanges({
   }
 
   for (const move of diff.bandMoves) {
-    if (isInitialLoad || confirmedBandMoves.has(move.videoId)) {
+    if (isInitialLoad) {
       diff.removed.push(move.videoId);
       diff.added.push(move.fresh);
     }
@@ -500,10 +494,6 @@ function classifyChanges({
     candidateSectionMoves: diff.sectionMoves.map(({ videoId, toSection }) => ({
       videoId,
       toSection
-    })),
-    candidateBandMoves: diff.bandMoves.map(({ videoId, toBandIndex }) => ({
-      videoId,
-      toBandIndex
     }))
   };
 }
@@ -703,7 +693,6 @@ export async function detectAndApplyChanges({
   polledSectionOrder = [],
   confirmedAbsentVideoIds = new Set(),
   confirmedSectionMoves = new Set(),
-  confirmedBandMoves = new Set(),
   isInitialLoad = false
 }: {
   previousSnapshot: Map<string, VideoSnapshot>;
@@ -712,7 +701,6 @@ export async function detectAndApplyChanges({
   polledSectionOrder?: string[];
   confirmedAbsentVideoIds?: Set<string>;
   confirmedSectionMoves?: Set<string>;
-  confirmedBandMoves?: Set<string>;
   isInitialLoad?: boolean;
 }) {
   const freshMap = new Map<string, VideoSnapshot>();
@@ -737,7 +725,6 @@ export async function detectAndApplyChanges({
     polledSectionOrder,
     confirmedAbsentVideoIds,
     confirmedSectionMoves,
-    confirmedBandMoves,
     isInitialLoad
   });
   const isLayoutChange = changes.videoIdsToRemove.length > 0 ||
@@ -767,8 +754,7 @@ export async function detectAndApplyChanges({
     isLayoutChange,
     snapshot: freshMap,
     candidateRemovals: changes.candidateRemovals,
-    candidateSectionMoves: changes.candidateSectionMoves,
-    candidateBandMoves: changes.candidateBandMoves
+    candidateSectionMoves: changes.candidateSectionMoves
   };
 }
 
