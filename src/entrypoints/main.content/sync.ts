@@ -518,7 +518,7 @@ async function executeChanges({
 
   const videosForCascade = bandLayout
     ? changes.videosToAdd.filter(video =>
-      (!video.sectionTitle && hasInlineBands) ||
+      (!video.sectionTitle && video.bandIndex === 0 && hasInlineBands) ||
       (!!video.sectionTitle && cascadeSectionTitles.has(video.sectionTitle)))
     : [];
   const videosForFallback = changes.videosToAdd.filter(
