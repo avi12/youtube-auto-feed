@@ -59,6 +59,32 @@ function readCurrentVideoSections() {
   return sections;
 }
 
+function readCurrentVideoBandIndices() {
+  const bandIndices = new Map<string, number>();
+  const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
+  if (!elGrid || !isPolymerElement(elGrid) || !isRecord(elGrid.data)) {
+    return bandIndices;
+  }
+
+  let currentBandIndex = 0;
+  for (const item of deepArray(elGrid.data, "contents")) {
+    const inlineVideoId = videoIdFromData(deepRecord(item, "richItemRenderer"));
+    if (inlineVideoId) {
+      if (!bandIndices.has(inlineVideoId)) {
+        bandIndices.set(inlineVideoId, currentBandIndex);
+      }
+
+      continue;
+    }
+
+    if (deepRecord(item, "richSectionRenderer", "content", "richShelfRenderer")) {
+      currentBandIndex++;
+    }
+  }
+
+  return bandIndices;
+}
+
 function readCurrentVideoIds() {
   const videoIds = new Set<string>();
   collectFromDomRichItems(videoIds);
@@ -231,6 +257,7 @@ function computeFeedDiff({
   freshMap,
   currentVideoIds,
   currentVideoSections,
+  currentVideoBandIndices,
   confirmedAbsentVideoIds,
   knownApiSections
 }: {
@@ -239,6 +266,7 @@ function computeFeedDiff({
   freshMap: Map<string, VideoSnapshot>;
   currentVideoIds: Set<string>;
   currentVideoSections: Map<string, string>;
+  currentVideoBandIndices: Map<string, number>;
   confirmedAbsentVideoIds: Set<string>;
   knownApiSections: Set<string>;
 }): FeedDiff {
@@ -348,10 +376,11 @@ function computeFeedDiff({
       continue;
     }
 
-    if (fresh.sectionTitle === "" && fresh.bandIndex > previous.bandIndex) {
+    const currentBandIndex = currentVideoBandIndices.get(fresh.videoId);
+    if (fresh.sectionTitle === "" && currentBandIndex !== undefined && fresh.bandIndex > currentBandIndex) {
       bandMoves.push({
         videoId: fresh.videoId,
-        fromBandIndex: previous.bandIndex,
+        fromBandIndex: currentBandIndex,
         toBandIndex: fresh.bandIndex,
         fresh
       });
@@ -384,6 +413,7 @@ function classifyChanges({
   freshMap,
   currentVideoIds,
   currentVideoSections,
+  currentVideoBandIndices,
   bandLayout,
   polledSectionOrder,
   confirmedAbsentVideoIds,
@@ -396,6 +426,7 @@ function classifyChanges({
   freshMap: Map<string, VideoSnapshot>;
   currentVideoIds: Set<string>;
   currentVideoSections: Map<string, string>;
+  currentVideoBandIndices: Map<string, number>;
   bandLayout: BandLayout | null;
   polledSectionOrder: string[];
   confirmedAbsentVideoIds: Set<string>;
@@ -409,6 +440,7 @@ function classifyChanges({
     freshMap,
     currentVideoIds,
     currentVideoSections,
+    currentVideoBandIndices,
     confirmedAbsentVideoIds,
     knownApiSections: new Set(polledSectionOrder)
   });
@@ -692,6 +724,7 @@ export async function detectAndApplyChanges({
   }
   const currentVideoIds = readCurrentVideoIds();
   const currentVideoSections = readCurrentVideoSections();
+  const currentVideoBandIndices = readCurrentVideoBandIndices();
 
   const changes = classifyChanges({
     previousSnapshot,
@@ -699,6 +732,7 @@ export async function detectAndApplyChanges({
     freshMap,
     currentVideoIds,
     currentVideoSections,
+    currentVideoBandIndices,
     bandLayout,
     polledSectionOrder,
     confirmedAbsentVideoIds,
