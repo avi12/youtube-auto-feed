@@ -4,12 +4,12 @@
  * extensions, and reloads YouTube tabs in every launched Chromium browser.
  *
  * Usage examples:
- *   bun scripts/dev-server.ts                          - Edge (sideloaded)            [default]
- *   bun scripts/dev-server.ts --chrome                 - Chrome (sideloaded)
- *   bun scripts/dev-server.ts --edge --chrome          - Edge + Chrome (both sideloaded)
- *   bun scripts/dev-server.ts --edge --chrome.no-extension - Edge (sideloaded) + Chrome (no ext)
- *   bun scripts/dev-server.ts --firefox                - Firefox (sideloaded)
- *   bun scripts/dev-server.ts --firefox.no-extension   - Firefox (no extension)
+ *   pnpm dev                                              - Edge (sideloaded)            [default]
+ *   pnpm exec tsx scripts/dev-server.ts --chrome          - Chrome (sideloaded)
+ *   pnpm exec tsx scripts/dev-server.ts --edge --chrome   - Edge + Chrome (both sideloaded)
+ *   pnpm dev:edge-chrome-no-extension                     - Edge (sideloaded) + Chrome (no ext)
+ *   pnpm exec tsx scripts/dev-server.ts --firefox         - Firefox (sideloaded)
+ *   pnpm exec tsx scripts/dev-server.ts --firefox.no-extension - Firefox (no extension)
  */
 
 import chokidar from "chokidar";
@@ -95,7 +95,8 @@ const LOG_FILE_PATH = resolve(PROJECT_ROOT, "tmp/dev-server.log");
 const USER_PROFILES_DIR = resolve(PROJECT_ROOT, "user-profiles");
 
 mkdirSync(dirname(LOG_FILE_PATH), { recursive: true });
-const logStream = createWriteStream(LOG_FILE_PATH, { flags: "w" });
+const logStream = createWriteStream(LOG_FILE_PATH, { flags: "a" });
+logStream.write(`\n========== session start ${new Date().toISOString()} pid=${process.pid} node=${process.version} ==========\n`);
 
 function writeToLog(prefix: string, args: unknown[]) {
   logStream.write(`[${new Date().toISOString()}] [${prefix}] ${format(...args)}\n`);
@@ -131,7 +132,7 @@ const REBUILD_DEBOUNCE_MS = 800;
 const WARN_LOG_LEVEL = 40;
 const CDP_BOOT_POLL_ATTEMPTS = 20;
 const CDP_BOOT_POLL_INTERVAL_MS = 500;
-const CDP_CLOSE_POLL_INTERVAL_MS = 5000;
+const CDP_COMMAND_TIMEOUT_MS = 5000;
 
 const CHROMIUM_CONFIG: Record<ChromiumVendor, {
   profileDir: string;
@@ -355,6 +356,26 @@ interface CdpTarget {
 function sendCdpCommand(webSocketUrl: string, method: string, params: Record<string, unknown> = {}) {
   return new Promise<void>(resolvePromise => {
     const websocket = new WebSocket(webSocketUrl);
+    let isSettled = false;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    function settle() {
+      if (isSettled) {
+        return;
+      }
+
+      isSettled = true;
+
+      if (timer !== null) {
+        clearTimeout(timer);
+      }
+
+      try {
+        websocket.close();
+      } catch {}
+      resolvePromise();
+    }
+
+    timer = setTimeout(settle, CDP_COMMAND_TIMEOUT_MS);
     websocket.onopen = () => {
       websocket.send(
         JSON.stringify({
@@ -367,11 +388,11 @@ function sendCdpCommand(webSocketUrl: string, method: string, params: Record<str
     websocket.onmessage = e => {
       const data = JSON.parse(String(e.data));
       if (data.id === 1) {
-        websocket.close();
-        resolvePromise();
+        settle();
       }
     };
-    websocket.onerror = () => resolvePromise();
+    websocket.onerror = settle;
+    websocket.onclose = settle;
   });
 }
 
@@ -404,35 +425,6 @@ async function waitForCdpReady(cdpPort: number) {
   }
   console.warn(`CDP NEVER became ready on port ${cdpPort} (${CDP_BOOT_POLL_ATTEMPTS} attempts)`);
   return false;
-}
-
-async function waitForCdpClose(cdpPort: number) {
-  const cdpUrl = `http://localhost:${cdpPort}/json/version`;
-  let consecutiveFailures = 0;
-  while (true) {
-    await new Promise(resolveTimer => setTimeout(resolveTimer, CDP_CLOSE_POLL_INTERVAL_MS));
-    try {
-      if (!(await fetch(cdpUrl)).ok) {
-        consecutiveFailures++;
-        console.warn(`CDP port ${cdpPort}: HTTP not-ok (failure #${consecutiveFailures})`);
-
-        if (consecutiveFailures >= 2) {
-          return;
-        }
-
-        continue;
-      }
-
-      consecutiveFailures = 0;
-    } catch (error) {
-      consecutiveFailures++;
-      console.warn(`CDP port ${cdpPort}: fetch error (failure #${consecutiveFailures}):`, error instanceof Error ? error.message : error);
-
-      if (consecutiveFailures >= 2) {
-        return;
-      }
-    }
-  }
 }
 
 // ── Build ───────────────────────────────────────────────────────────────────
@@ -508,7 +500,6 @@ interface BrowserHandle {
   reloadExtension: () => Promise<void>;
   reloadTabs: () => Promise<void>;
   shutdown: () => Promise<void>;
-  waitForClose: () => Promise<void>;
 }
 
 async function launchChromium(spec: BrowserSpec & { vendor: ChromiumVendor }): Promise<BrowserHandle> {
@@ -541,8 +532,7 @@ async function launchChromium(spec: BrowserSpec & { vendor: ChromiumVendor }): P
       spec,
       reloadExtension: () => runner.reloadAllExtensions(),
       reloadTabs: () => reloadYouTubeTabsAt(cdpPort),
-      shutdown: () => runner.exit(),
-      waitForClose: () => waitForCdpClose(cdpPort)
+      shutdown: () => runner.exit()
     };
   }
 
@@ -562,8 +552,7 @@ async function launchChromium(spec: BrowserSpec & { vendor: ChromiumVendor }): P
     spec,
     async reloadExtension() {},
     reloadTabs: () => reloadYouTubeTabsAt(cdpPort),
-    shutdown: async () => killChild(child),
-    waitForClose: () => waitForCdpClose(cdpPort)
+    shutdown: async () => killChild(child)
   };
 }
 
@@ -588,8 +577,7 @@ async function launchFirefox(spec: BrowserSpec): Promise<BrowserHandle> {
       spec,
       reloadExtension: () => runner.reloadAllExtensions(),
       async reloadTabs() {},
-      shutdown: () => runner.exit(),
-      waitForClose: () => new Promise(() => {})
+      shutdown: () => runner.exit()
     };
   }
 
@@ -606,8 +594,7 @@ async function launchFirefox(spec: BrowserSpec): Promise<BrowserHandle> {
     spec,
     async reloadExtension() {},
     async reloadTabs() {},
-    shutdown: async () => killChild(child),
-    waitForClose: () => new Promise(() => {})
+    shutdown: async () => killChild(child)
   };
 }
 
@@ -763,23 +750,7 @@ async function main() {
     });
   }
 
-  if (process.stdin.isTTY) {
-    process.stdin.on("close", async () => {
-      log("stdin closed (terminal likely terminated).");
-      await shutdown("stdin closed");
-      process.exit(0);
-    });
-  }
-
-  const closeRace = handles.map(async handle => {
-    await handle.waitForClose();
-    log(`${handle.spec.vendor}: waitForClose resolved (browser closed or CDP unreachable).`);
-    return handle.spec.vendor;
-  });
-  const closedVendor = await Promise.race(closeRace);
-  await shutdown(`${closedVendor} closed first`);
-  log("Exiting cleanly.");
-  process.exit(0);
+  await new Promise(() => {});
 }
 
 main().catch(error => {
