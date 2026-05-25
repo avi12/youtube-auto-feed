@@ -85,6 +85,9 @@ export interface LockupViewModel {
               text?: string;
             };
           }>;
+          progressBar?: {
+            thumbnailOverlayProgressBarViewModel?: { startPercent?: number };
+          };
         };
       }>;
     };
@@ -305,6 +308,7 @@ export interface VideoSnapshot {
   viewCountText: string;
   publishedTimeText: string;
   isChannelLive: boolean;
+  watchProgressPercent: number | null;
   sectionTitle: string;
   bandIndex: number;
   rawRenderer: InnerTubeVideoRenderer | LockupViewModel | ShortsLockupViewModel;

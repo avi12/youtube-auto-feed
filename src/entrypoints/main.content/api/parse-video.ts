@@ -7,6 +7,16 @@ interface ParseVideoParams {
   bandIndex: number;
 }
 
+function watchProgressFromLockup(lockup: LockupViewModel): number | null {
+  for (const overlay of lockup.contentImage?.thumbnailViewModel?.overlays ?? []) {
+    const progress = overlay.thumbnailBottomOverlayViewModel?.progressBar?.thumbnailOverlayProgressBarViewModel;
+    if (typeof progress?.startPercent === "number") {
+      return progress.startPercent;
+    }
+  }
+  return null;
+}
+
 export function parseRenderer({ renderer, sectionTitle, bandIndex }:
   ParseVideoParams & { renderer: InnerTubeVideoRenderer }) {
   const {
@@ -24,6 +34,7 @@ export function parseRenderer({ renderer, sectionTitle, bandIndex }:
     viewCountText: viewCountFromRenderer(renderer),
     publishedTimeText: publishedTimeText?.simpleText ?? "",
     isChannelLive: false,
+    watchProgressPercent: null,
     sectionTitle,
     bandIndex,
     rawRenderer: renderer
@@ -55,6 +66,7 @@ export function parseLockupViewModel({ lockup, sectionTitle, bandIndex }:
     viewCountText,
     publishedTimeText,
     isChannelLive,
+    watchProgressPercent: watchProgressFromLockup(lockup),
     sectionTitle,
     bandIndex,
     rawRenderer: lockup
@@ -79,6 +91,7 @@ export function parseShortsLockupViewModel({ shortsLockup, sectionTitle, bandInd
     viewCountText,
     publishedTimeText: "",
     isChannelLive: false,
+    watchProgressPercent: null,
     sectionTitle,
     bandIndex,
     rawRenderer: shortsLockup

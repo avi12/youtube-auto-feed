@@ -913,7 +913,11 @@ export function applyUpdate({ videoId, elItem, fresh, previous }: {
   previous?: VideoSnapshot;
 }) {
   const isChannelLiveChanged = !!previous && previous.isChannelLive !== fresh.isChannelLive;
-  if (!previous || previous.status !== fresh.status || isChannelLiveChanged) {
+  const isWatchProgressChanged = !!previous && previous.watchProgressPercent !== fresh.watchProgressPercent;
+  const isAvatarOrProgressOnly = (isChannelLiveChanged || isWatchProgressChanged)
+    && !!previous
+    && previous.status === fresh.status;
+  if (!previous || previous.status !== fresh.status || isChannelLiveChanged || isWatchProgressChanged) {
     applyPolymerUpdate({
       elItem,
       rawRenderer: fresh.rawRenderer
@@ -921,7 +925,7 @@ export function applyUpdate({ videoId, elItem, fresh, previous }: {
     syncGridModelItem({
       videoId,
       rawRenderer: fresh.rawRenderer,
-      forcePreserveContentImage: isChannelLiveChanged && previous.status === fresh.status
+      forcePreserveContentImage: isAvatarOrProgressOnly
     });
     return;
   }

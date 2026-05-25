@@ -474,17 +474,6 @@ function classifyChanges({
   };
 }
 
-function readWatchProgress(snapshot: VideoSnapshot) {
-  const overlays = deepArray(snapshot.rawRenderer, "contentImage", "thumbnailViewModel", "overlays");
-  for (const overlay of overlays) {
-    const percent = deepRecord(overlay, "thumbnailBottomOverlayViewModel", "progressBar", "thumbnailOverlayProgressBarViewModel")?.startPercent;
-    if (typeof percent === "number") {
-      return percent;
-    }
-  }
-  return null;
-}
-
 function hasMetadataChange({ previous, fresh }: {
   previous: VideoSnapshot;
   fresh: VideoSnapshot;
@@ -495,7 +484,7 @@ function hasMetadataChange({ previous, fresh }: {
     previous.viewCountText !== fresh.viewCountText ||
     previous.publishedTimeText !== fresh.publishedTimeText ||
     previous.isChannelLive !== fresh.isChannelLive ||
-    readWatchProgress(previous) !== readWatchProgress(fresh);
+    previous.watchProgressPercent !== fresh.watchProgressPercent;
 }
 
 async function executeChanges({
