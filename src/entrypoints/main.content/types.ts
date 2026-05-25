@@ -164,14 +164,42 @@ export interface InnerTubeShelfRenderer {
   };
 }
 
+export interface InnerTubeContinuationItem {
+  trigger: string;
+  continuationEndpoint: {
+    clickTrackingParams: string;
+    commandMetadata?: {
+      webCommandMetadata?: {
+        sendPost?: boolean;
+        apiUrl?: string;
+      };
+    };
+    continuationCommand: {
+      token: string;
+      request: string;
+    };
+  };
+  ghostCards?: {
+    ghostGridRenderer?: { rows: number };
+  };
+}
+
 export interface InnerTubeRichGridItem {
   richSectionRenderer?: {
     content: {
       richShelfRenderer?: InnerTubeRichShelfRenderer;
       shelfRenderer?: InnerTubeShelfRenderer;
     };
+    trackingParams?: string;
   };
-  richItemRenderer?: { content: InnerTubeRichItemContent };
+  richItemRenderer?: {
+    content: InnerTubeRichItemContent;
+    trackingParams?: string;
+    onFocusEffect?: unknown;
+    rowIndex?: number;
+    colIndex?: number;
+  };
+  continuationItemRenderer?: InnerTubeContinuationItem;
 }
 
 export interface InnerTubeBrowseResponse {
@@ -282,8 +310,8 @@ export interface VideoSnapshot {
   rawRenderer: InnerTubeVideoRenderer | LockupViewModel | ShortsLockupViewModel;
 }
 
-export interface PolymerElement extends HTMLElement {
-  data: unknown;
+export interface PolymerElement<TData = unknown> extends HTMLElement {
+  data: TData;
   set(path: string, value: unknown): void;
   splice(path: string, start: number, deleteCount: number, ...items: unknown[]): unknown[];
 }
