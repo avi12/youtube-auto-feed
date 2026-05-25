@@ -167,10 +167,11 @@ export function createSubscriptionMonitor() {
     }
 
     try {
-      return await applyChanges({
+      const isLayoutChange = await applyChanges({
         payload: result,
         isInitialLoad
       });
+      return isLayoutChange;
     } catch {
       return false;
     }
