@@ -29,20 +29,25 @@ const viewportLabel = process.argv[2] ?? "full";
 interface CdpTarget { type: string;
   url: string;
   webSocketDebuggerUrl: string; }
+type CdpJsonValue = string | number | boolean | null | CdpJsonValue[] | { [key: string]: CdpJsonValue };
 interface CdpMsg { id: number;
   result?: {
-    result?: { value?: unknown };
+    result?: { value?: CdpJsonValue };
   }; }
 
 async function fetchTargets(): Promise<CdpTarget[]> {
   const raw: unknown = await (await fetch(`http://localhost:${CDP_PORT}/json`)).json();
-  return Array.isArray(raw) ? raw : [];
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+
+  return raw;
 }
 
 function openCdp(wsUrl: string) {
   const socket = new WebSocket(wsUrl);
   let seq = 1;
-  const pending = new Map<number, (value: unknown) => void>();
+  const pending = new Map<number, (value: CdpJsonValue | undefined) => void>();
   socket.addEventListener("message", event => {
     const msg: CdpMsg = JSON.parse(String(event.data));
     pending.get(msg.id)?.(msg.result?.result?.value);
@@ -53,7 +58,7 @@ function openCdp(wsUrl: string) {
     await ready;
     const id = seq++;
     return new Promise<T>(resolve => {
-      function handle(value: unknown) {
+      function handle(value: CdpJsonValue | undefined) {
         resolve(JSON.parse(JSON.stringify(value)));
       }
 
@@ -168,7 +173,10 @@ const PARSE_BANDS = `() => {
   return bands;
 }`;
 
-function buildBrowsePayload(contents: unknown[]) {
+type BrowseContentItem = Record<string, unknown>;
+type BrowsePayload = ReturnType<typeof buildBrowsePayload>;
+
+function buildBrowsePayload(contents: BrowseContentItem[]) {
   return {
     contents: {
       twoColumnBrowseResultsRenderer: {
@@ -184,7 +192,7 @@ function buildBrowsePayload(contents: unknown[]) {
   };
 }
 
-async function dispatch(cdp: Cdp, payload: unknown) {
+async function dispatch(cdp: Cdp, payload: BrowsePayload) {
   await cdp.evalAsync<void>(
     `() => {
     dispatchEvent(new CustomEvent("ytsua-browse-response", { detail: ${JSON.stringify(payload)} }));
@@ -458,8 +466,8 @@ async function testLayoutReordering(cdp: Cdp) {
   // cause spurious removals by dispatch 3+).
   const sampledInlineIds = inlineBand?.videoIds ?? [];
 
-  function buildPayloadContents(perm: Band[]): unknown[] {
-    const contents: unknown[] = [];
+  function buildPayloadContents(perm: Band[]): BrowseContentItem[] {
+    const contents: BrowseContentItem[] = [];
     for (let i = 0; i < perm.length; i++) {
       contents.push(buildSectionContents(perm[i].title, perm[i].videoIds));
 
