@@ -245,6 +245,35 @@ function findThumbnailImg(elLockup: HTMLElement) {
   return root.querySelector<HTMLImageElement>("yt-thumbnail-view-model img");
 }
 
+function applyProgressBarUpdate({ elLockup, percent }: {
+  elLockup: HTMLElement;
+  percent: number | null;
+}) {
+  const root: ShadowRoot | HTMLElement = elLockup.shadowRoot ?? elLockup;
+  const elProgressHost = root.querySelector<HTMLElement>("yt-thumbnail-overlay-progress-bar-view-model");
+  if (!elProgressHost) {
+    return false;
+  }
+
+  if (percent === null) {
+    return false;
+  }
+
+  if ("progressBarViewModel" in elProgressHost) {
+    Object.assign(elProgressHost, {
+      progressBarViewModel: { startPercent: percent }
+    });
+  }
+
+  const fillRoot: ShadowRoot | HTMLElement = elProgressHost.shadowRoot ?? elProgressHost;
+  const elFill = fillRoot.querySelector<HTMLElement>("[class*='ProgressBar']:not(yt-thumbnail-overlay-progress-bar-view-model), [style*='width']");
+  if (elFill) {
+    elFill.style.width = `${percent}%`;
+  }
+
+  return true;
+}
+
 function findThumbnailImgInItem(elItem: HTMLElement) {
   const elLockup = elItem.querySelector<HTMLElement>("yt-lockup-view-model");
   if (elLockup) {
@@ -864,6 +893,7 @@ async function applyTargetedLockupUpdate({
       newUrl
     })
     : null;
+  const isWatchProgressChanged = previous.watchProgressPercent !== fresh.watchProgressPercent;
   if (textElements.length === 0 && !thumbWork?.willDissolve) {
     if (freshLockup) {
       mutateLockupMetadata({
@@ -872,6 +902,24 @@ async function applyTargetedLockupUpdate({
         incoming: freshLockup,
         preserveContentImage: true
       });
+    }
+
+    if (isWatchProgressChanged) {
+      const didUpdate = applyProgressBarUpdate({
+        elLockup,
+        percent: fresh.watchProgressPercent
+      });
+      if (!didUpdate) {
+        applyPolymerUpdate({
+          elItem,
+          rawRenderer: freshRawRenderer
+        });
+        syncGridModelItem({
+          videoId,
+          rawRenderer: freshRawRenderer,
+          forcePreserveContentImage: true
+        });
+      }
     }
 
     return;
@@ -902,6 +950,13 @@ async function applyTargetedLockupUpdate({
           preserveContentImage: !thumbWork?.willDissolve
         });
       }
+
+      if (isWatchProgressChanged) {
+        applyProgressBarUpdate({
+          elLockup,
+          percent: fresh.watchProgressPercent
+        });
+      }
     }
   });
 }
@@ -913,11 +968,7 @@ export function applyUpdate({ videoId, elItem, fresh, previous }: {
   previous?: VideoSnapshot;
 }) {
   const isChannelLiveChanged = !!previous && previous.isChannelLive !== fresh.isChannelLive;
-  const isWatchProgressChanged = !!previous && previous.watchProgressPercent !== fresh.watchProgressPercent;
-  const isAvatarOrProgressOnly = (isChannelLiveChanged || isWatchProgressChanged)
-    && !!previous
-    && previous.status === fresh.status;
-  if (!previous || previous.status !== fresh.status || isChannelLiveChanged || isWatchProgressChanged) {
+  if (!previous || previous.status !== fresh.status || isChannelLiveChanged) {
     applyPolymerUpdate({
       elItem,
       rawRenderer: fresh.rawRenderer
@@ -925,7 +976,7 @@ export function applyUpdate({ videoId, elItem, fresh, previous }: {
     syncGridModelItem({
       videoId,
       rawRenderer: fresh.rawRenderer,
-      forcePreserveContentImage: isAvatarOrProgressOnly
+      forcePreserveContentImage: isChannelLiveChanged && previous.status === fresh.status
     });
     return;
   }
