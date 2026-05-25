@@ -31,9 +31,13 @@ export function deepString(object: unknown, ...path: string[]) {
   return typeof value === "string" ? value : "";
 }
 
-export function deepArray(object: unknown, ...path: string[]) {
+export function deepArray<T = unknown>(object: unknown, ...path: string[]): T[] {
   const value = dig(object, ...path);
-  return Array.isArray(value) ? value : [];
+  if (Array.isArray(value)) {
+    return value;
+  }
+
+  return [];
 }
 
 export function deepRecord(object: unknown, ...path: string[]) {

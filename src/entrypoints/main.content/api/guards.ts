@@ -2,6 +2,8 @@ import { isRecord } from "../helpers";
 import {
   BadgeStyle,
   type InnerTubeBrowseResponse,
+  type InnerTubeRichShelfRenderer,
+  type InnerTubeShelfRenderer,
   type InnerTubeVideoRenderer,
   LockupBadgeStyle,
   LockupContentType,
@@ -25,6 +27,14 @@ export function isShortsLockupViewModel(value: unknown): value is ShortsLockupVi
 
 export function isInnerTubeBrowseResponse(value: unknown): value is InnerTubeBrowseResponse {
   return isRecord(value) && isRecord(value.contents);
+}
+
+export function isRichShelfRenderer(value: unknown): value is InnerTubeRichShelfRenderer {
+  return isRecord(value) && isRecord(value.title) && Array.isArray(value.contents);
+}
+
+export function isShelfRenderer(value: unknown): value is InnerTubeShelfRenderer {
+  return isRecord(value) && isRecord(value.title) && isRecord(value.content);
 }
 
 export function viewCountFromRenderer(renderer: InnerTubeVideoRenderer) {
