@@ -10,7 +10,8 @@ import {
   filterToViewport,
   prefersReducedMotion,
   reassignTransitionNames,
-  waitForFrames
+  waitForFrames,
+  withViewTransitionLock
 } from "../animations";
 import { buildRichItem, preloadThumbnails } from "../build";
 import { findItemElement, findShelfForSection, leadingLiveCount } from "../query";
@@ -201,43 +202,43 @@ async function runShelfInsertTransition({
   const wasExpanded = isRecord(elShelf.data) ? elShelf.data.isExpanded : undefined;
   const elNewItemTransitionStyles: HTMLStyleElement[] = [];
 
-  const transition = document.startViewTransition(async () => {
-    elShelf.set("data.contents", displayContents);
+  await withViewTransitionLock(async () => {
+    try {
+      await document.startViewTransition(async () => {
+        elShelf.set("data.contents", displayContents);
 
-    if (wasExpanded === false) {
-      elShelf.set("data.isExpanded", false);
-    }
+        if (wasExpanded === false) {
+          elShelf.set("data.isExpanded", false);
+        }
 
-    clearItemViewTransitionNames(elExistingItems);
-    await waitForVideosToRender(visibleVideosToInsert);
-    reassignTransitionNames({
-      elItems: elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer"),
-      animateIds
-    });
+        clearItemViewTransitionNames(elExistingItems);
+        await waitForVideosToRender(visibleVideosToInsert);
+        reassignTransitionNames({
+          elItems: elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer"),
+          animateIds
+        });
 
-    const elNewItems = collectNewItemElements(insertOperations);
-    if (elNewItems.length > 0) {
-      const elNewItemTransitionStyle = buildNewItemTransitionStyle(elNewItems);
-      document.head.append(elNewItemTransitionStyle);
-      elNewItemTransitionStyles.push(elNewItemTransitionStyle);
-    }
-  });
-
-  try {
-    await transition.finished;
-  } finally {
-    clearItemViewTransitionNames(elExistingItems);
-    clearAllItemViewTransitionNames();
-    overflowResult?.elStyle.remove();
-    elShiftStyle.remove();
-    elNewItemTransitionStyles[0]?.remove();
-    for (const { video } of insertOperations) {
-      const elNewItem = findItemElement(video.videoId);
-      if (elNewItem) {
-        elNewItem.style.viewTransitionName = "";
+        const elNewItems = collectNewItemElements(insertOperations);
+        if (elNewItems.length > 0) {
+          const elNewItemTransitionStyle = buildNewItemTransitionStyle(elNewItems);
+          document.head.append(elNewItemTransitionStyle);
+          elNewItemTransitionStyles.push(elNewItemTransitionStyle);
+        }
+      }).finished;
+    } finally {
+      clearItemViewTransitionNames(elExistingItems);
+      clearAllItemViewTransitionNames();
+      overflowResult?.elStyle.remove();
+      elShiftStyle.remove();
+      elNewItemTransitionStyles[0]?.remove();
+      for (const { video } of insertOperations) {
+        const elNewItem = findItemElement(video.videoId);
+        if (elNewItem) {
+          elNewItem.style.viewTransitionName = "";
+        }
       }
     }
-  }
+  });
 }
 
 async function waitForVideosToRender(videos: VideoSnapshot[]) {

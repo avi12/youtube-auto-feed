@@ -20,7 +20,8 @@ import {
   isInViewport,
   prefersReducedMotion,
   reassignTransitionNames,
-  waitForFrames
+  waitForFrames,
+  withViewTransitionLock
 } from "../animations";
 import { buildRichItem, preloadThumbnails } from "../build";
 import { scheduleLazyEntrance } from "../lazy-update";
@@ -72,31 +73,33 @@ export async function addVideosToGridDom({ videosToAdd, allFreshSnapshots }: {
       freshOrderMap
     });
 
-    try {
-      await document.startViewTransition(async () => {
-        const actuallyAddedVideos = applyVideoInsertions({
-          elGrid,
-          sortedVideos,
-          freshOrderMap,
-          allSnapshotMap
-        });
-        transitionContext.actuallyAddedVideos = actuallyAddedVideos;
+    await withViewTransitionLock(async () => {
+      try {
+        await document.startViewTransition(async () => {
+          const actuallyAddedVideos = applyVideoInsertions({
+            elGrid,
+            sortedVideos,
+            freshOrderMap,
+            allSnapshotMap
+          });
+          transitionContext.actuallyAddedVideos = actuallyAddedVideos;
 
-        const elNewItems = await applyNewItemAnimations({
-          elGridContents,
-          elElementsToAnimate: transitionContext.elElementsToAnimate,
-          actuallyAddedVideos,
-          animateIds: transitionContext.animateIds
-        });
-        if (elNewItems.length > 0) {
-          const elStyle = buildNewItemTransitionStyle(elNewItems);
-          document.head.append(elStyle);
-          transitionContext.elNewItemTransitionStyles.push(elStyle);
-        }
-      }).finished;
-    } finally {
-      teardownGridTransition(transitionContext);
-    }
+          const elNewItems = await applyNewItemAnimations({
+            elGridContents,
+            elElementsToAnimate: transitionContext.elElementsToAnimate,
+            actuallyAddedVideos,
+            animateIds: transitionContext.animateIds
+          });
+          if (elNewItems.length > 0) {
+            const elStyle = buildNewItemTransitionStyle(elNewItems);
+            document.head.append(elStyle);
+            transitionContext.elNewItemTransitionStyles.push(elStyle);
+          }
+        }).finished;
+      } finally {
+        teardownGridTransition(transitionContext);
+      }
+    });
 
     const lazyEntranceItems: HTMLElement[] = [...transitionContext.aboveViewportShiftItems];
     for (const video of transitionContext.actuallyAddedVideos) {

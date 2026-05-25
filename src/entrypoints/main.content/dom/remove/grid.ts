@@ -10,7 +10,8 @@ import {
   extractAnimateIds,
   isInViewport,
   prefersReducedMotion,
-  reassignTransitionNames
+  reassignTransitionNames,
+  withViewTransitionLock
 } from "../animations";
 import { filterOutRichItems } from "../rich-item";
 import type { ItemInfo } from "./index";
@@ -135,38 +136,38 @@ async function removeGridItemsAnimated({ elGrid, gridVideoIdSet, allGridElements
   });
   document.head.append(elShiftStyle);
 
-  const transition = document.startViewTransition(() => {
-    const currentContents = deepArray<InnerTubeRichGridItem>(elGrid.data, "contents");
-    const filteredContents = filterOutRichItems({
-      contents: currentContents,
-      excludeVideoIds: gridVideoIdSet
-    });
+  await withViewTransitionLock(async () => {
+    try {
+      await document.startViewTransition(() => {
+        const currentContents = deepArray<InnerTubeRichGridItem>(elGrid.data, "contents");
+        const filteredContents = filterOutRichItems({
+          contents: currentContents,
+          excludeVideoIds: gridVideoIdSet
+        });
 
-    for (const elItem of allGridElements) {
-      elItem.remove();
-    }
+        for (const elItem of allGridElements) {
+          elItem.remove();
+        }
 
-    if (filteredContents.length < currentContents.length) {
-      elGrid.set("data.contents", filteredContents);
-    }
+        if (filteredContents.length < currentContents.length) {
+          elGrid.set("data.contents", filteredContents);
+        }
 
-    for (const elItem of elElementsAfterFirstRemoved) {
-      elItem.style.viewTransitionName = "";
+        for (const elItem of elElementsAfterFirstRemoved) {
+          elItem.style.viewTransitionName = "";
+        }
+        reassignTransitionNames({
+          elItems: elGridContents?.querySelectorAll<HTMLElement>(":scope > ytd-rich-item-renderer") ?? [],
+          animateIds
+        });
+      }).finished;
+    } finally {
+      elShiftStyle.remove();
+      clearItemViewTransitionNames(elElementsAfterFirstRemoved);
+      clearItemViewTransitionNames(elSectionsAfterFirstRemoved);
+      clearAllItemViewTransitionNames();
     }
-    reassignTransitionNames({
-      elItems: elGridContents?.querySelectorAll<HTMLElement>(":scope > ytd-rich-item-renderer") ?? [],
-      animateIds
-    });
   });
-
-  try {
-    await transition.finished;
-  } finally {
-    elShiftStyle.remove();
-    clearItemViewTransitionNames(elElementsAfterFirstRemoved);
-    clearItemViewTransitionNames(elSectionsAfterFirstRemoved);
-    clearAllItemViewTransitionNames();
-  }
 }
 
 function collectShiftTargets({ elGridContents, removedElSet }: {

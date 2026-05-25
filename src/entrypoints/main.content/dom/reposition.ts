@@ -7,7 +7,8 @@ import {
   extractAnimateIds,
   filterToViewport,
   prefersReducedMotion,
-  reassignTransitionNames
+  reassignTransitionNames,
+  withViewTransitionLock
 } from "./animations";
 import { buildRichItem } from "./build";
 import { findShelfForSection } from "./query";
@@ -86,21 +87,23 @@ export async function repositionVideoInSection({
   const elShiftStyle = buildShiftTransitionStyle({ elItems });
   document.head.append(elShiftStyle);
 
-  try {
-    await document.startViewTransition(() => {
-      elShelf.set("data.contents", newContents);
-      for (const elItem of elItems) {
-        elItem.style.viewTransitionName = "";
-      }
-      reassignTransitionNames({
-        elItems: elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer"),
-        animateIds
-      });
-    }).finished;
-  } finally {
-    clearAllItemViewTransitionNames();
-    elShiftStyle.remove();
-  }
+  await withViewTransitionLock(async () => {
+    try {
+      await document.startViewTransition(() => {
+        elShelf.set("data.contents", newContents);
+        for (const elItem of elItems) {
+          elItem.style.viewTransitionName = "";
+        }
+        reassignTransitionNames({
+          elItems: elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer"),
+          animateIds
+        });
+      }).finished;
+    } finally {
+      clearAllItemViewTransitionNames();
+      elShiftStyle.remove();
+    }
+  });
 }
 
 function resolveInsertIndex({

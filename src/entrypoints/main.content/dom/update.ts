@@ -15,7 +15,7 @@ import type {
   PolymerElement,
   VideoSnapshot
 } from "../types";
-import { isInViewport } from "./animations";
+import { isInViewport, withViewTransitionLock } from "./animations";
 import { scheduleLazyUpdate } from "./lazy-update";
 import { findItemElement } from "./query";
 import { findRichItemIndex } from "./rich-item";
@@ -39,7 +39,7 @@ interface NamedElement {
   previousName: string;
 }
 
-function applyWithDissolve({ elements, apply }: {
+async function applyWithDissolve({ elements, apply }: {
   elements: HTMLElement[];
   apply: () => void;
 }) {
@@ -48,26 +48,32 @@ function applyWithDissolve({ elements, apply }: {
     return;
   }
 
-  transitionCounter++;
-  const transitionId = transitionCounter;
-  const named: NamedElement[] = elements.map((elTarget, iElement) => {
-    const previousName = elTarget.style.viewTransitionName;
-    elTarget.style.viewTransitionName = `ytsua-${transitionId}-${iElement}`;
-    return {
-      elTarget,
-      previousName
-    };
-  });
+  await withViewTransitionLock(async () => {
+    transitionCounter++;
+    const transitionId = transitionCounter;
+    const named: NamedElement[] = elements.map((elTarget, iElement) => {
+      const previousName = elTarget.style.viewTransitionName;
+      elTarget.style.viewTransitionName = `ytsua-${transitionId}-${iElement}`;
+      return {
+        elTarget,
+        previousName
+      };
+    });
 
-  function restoreNames() {
-    for (const { elTarget, previousName } of named) {
-      if (elTarget.style.viewTransitionName.startsWith(`ytsua-${transitionId}-`)) {
-        elTarget.style.viewTransitionName = previousName;
+    function restoreNames() {
+      for (const { elTarget, previousName } of named) {
+        if (elTarget.style.viewTransitionName.startsWith(`ytsua-${transitionId}-`)) {
+          elTarget.style.viewTransitionName = previousName;
+        }
       }
     }
-  }
 
-  document.startViewTransition(apply).finished.then(restoreNames, restoreNames);
+    try {
+      await document.startViewTransition(apply).finished;
+    } finally {
+      restoreNames();
+    }
+  });
 }
 
 function setNodeTextIfChanged(elNode: Element | null, newText: string) {
@@ -797,7 +803,7 @@ async function applyTargetedGenericUpdate({ videoId, elItem, previous, fresh }: 
     elements.push(elImg);
   }
 
-  applyWithDissolve({
+  await applyWithDissolve({
     elements,
     apply() {
       applyText();
@@ -876,7 +882,7 @@ async function applyTargetedLockupUpdate({
     elements.push(elImg);
   }
 
-  applyWithDissolve({
+  await applyWithDissolve({
     elements,
     apply() {
       applyLockupTextChanges({

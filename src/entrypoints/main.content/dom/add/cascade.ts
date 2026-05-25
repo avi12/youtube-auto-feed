@@ -18,7 +18,8 @@ import {
   isInViewport,
   prefersReducedMotion,
   reassignTransitionNames,
-  waitForFrames
+  waitForFrames,
+  withViewTransitionLock
 } from "../animations";
 import { type BandLayout, type CapturedBand } from "../band-layout";
 import { buildRichItem, preloadThumbnails } from "../build";
@@ -261,50 +262,52 @@ export async function cascadeInsertVideos({
 
   let elNewItemStyle: HTMLStyleElement | null = null;
 
-  try {
-    await document.startViewTransition(async () => {
-      const contents = [...deepArray<InnerTubeRichGridItem>(elGrid.data, "contents")];
-      applyCascades({
-        contents,
-        videosToAdd,
-        bandLayout,
-        inlineVideos,
-        inlineBands
-      });
-      elGrid.set("data.contents", contents);
+  await withViewTransitionLock(async () => {
+    try {
+      await document.startViewTransition(async () => {
+        const contents = [...deepArray<InnerTubeRichGridItem>(elGrid.data, "contents")];
+        applyCascades({
+          contents,
+          videosToAdd,
+          bandLayout,
+          inlineVideos,
+          inlineBands
+        });
+        elGrid.set("data.contents", contents);
 
-      await waitForFrames({ predicate: () => inlineVideos.every(video => findItemElement(video.videoId)) });
+        await waitForFrames({ predicate: () => inlineVideos.every(video => findItemElement(video.videoId)) });
 
-      for (const elItem of elShiftTargets) {
-        if (elItem.tagName === "YTD-RICH-ITEM-RENDERER") {
-          elItem.style.viewTransitionName = "";
+        for (const elItem of elShiftTargets) {
+          if (elItem.tagName === "YTD-RICH-ITEM-RENDERER") {
+            elItem.style.viewTransitionName = "";
+          }
         }
-      }
 
-      reassignTransitionNames({
-        elItems: elGridContents.querySelectorAll<HTMLElement>(":scope > ytd-rich-item-renderer"),
-        animateIds
-      });
+        reassignTransitionNames({
+          elItems: elGridContents.querySelectorAll<HTMLElement>(":scope > ytd-rich-item-renderer"),
+          animateIds
+        });
 
-      const elNewViewportItems: HTMLElement[] = [];
-      for (const video of inlineVideos) {
-        const elItem = findItemElement(video.videoId);
-        if (elItem && isInViewport(elItem)) {
-          elItem.style.viewTransitionName = `ytsua-item-${video.videoId}`;
-          elNewViewportItems.push(elItem);
+        const elNewViewportItems: HTMLElement[] = [];
+        for (const video of inlineVideos) {
+          const elItem = findItemElement(video.videoId);
+          if (elItem && isInViewport(elItem)) {
+            elItem.style.viewTransitionName = `ytsua-item-${video.videoId}`;
+            elNewViewportItems.push(elItem);
+          }
         }
-      }
 
-      if (elNewViewportItems.length > 0) {
-        elNewItemStyle = buildNewItemTransitionStyle(elNewViewportItems);
-        document.head.append(elNewItemStyle);
-      }
-    }).finished;
-  } finally {
-    elShiftStyle.remove();
-    elNewItemStyle?.remove();
-    clearAllItemViewTransitionNames();
-  }
+        if (elNewViewportItems.length > 0) {
+          elNewItemStyle = buildNewItemTransitionStyle(elNewViewportItems);
+          document.head.append(elNewItemStyle);
+        }
+      }).finished;
+    } finally {
+      elShiftStyle.remove();
+      elNewItemStyle?.remove();
+      clearAllItemViewTransitionNames();
+    }
+  });
 
   const lazyItems: HTMLElement[] = [];
   for (const video of inlineVideos) {

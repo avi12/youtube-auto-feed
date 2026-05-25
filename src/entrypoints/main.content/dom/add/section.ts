@@ -7,7 +7,8 @@ import {
   clearAllItemViewTransitionNames,
   extractAnimateIds,
   reassignTransitionNames,
-  waitForFrames
+  waitForFrames,
+  withViewTransitionLock
 } from "../animations";
 import { buildRichItem } from "../build";
 import { findItemElement } from "../query";
@@ -57,56 +58,56 @@ export async function addSectionToDom({ sectionTitle, videos, allFreshSnapshots 
 
   const elNewItemTransitionStyles: HTMLStyleElement[] = [];
 
-  const transition = document.startViewTransition(async () => {
-    const contents = [...deepArray<InnerTubeRichGridItem>(elGrid.data, "contents")];
-    const iInsert = findSectionInsertIndex({
-      contents,
-      sectionMinimumFreshIndex,
-      freshOrderMap
-    });
-    contents.splice(iInsert, 0, newSection);
-    elGrid.set("data.contents", contents);
-    for (const elItem of elAllItems) {
-      elItem.style.viewTransitionName = "";
-    }
+  await withViewTransitionLock(async () => {
+    try {
+      await document.startViewTransition(async () => {
+        const contents = [...deepArray<InnerTubeRichGridItem>(elGrid.data, "contents")];
+        const iInsert = findSectionInsertIndex({
+          contents,
+          sectionMinimumFreshIndex,
+          freshOrderMap
+        });
+        contents.splice(iInsert, 0, newSection);
+        elGrid.set("data.contents", contents);
+        for (const elItem of elAllItems) {
+          elItem.style.viewTransitionName = "";
+        }
 
-    await waitForFrames({ predicate: () => videos.every(video => findItemElement(video.videoId)) });
+        await waitForFrames({ predicate: () => videos.every(video => findItemElement(video.videoId)) });
 
-    const elQueryItems = elGridContents
-      ? elGridContents.querySelectorAll<HTMLElement>(":scope > ytd-rich-item-renderer")
-      : document.querySelectorAll<HTMLElement>("ytd-rich-item-renderer");
-    reassignTransitionNames({
-      elItems: elQueryItems,
-      animateIds
-    });
+        const elQueryItems = elGridContents
+          ? elGridContents.querySelectorAll<HTMLElement>(":scope > ytd-rich-item-renderer")
+          : document.querySelectorAll<HTMLElement>("ytd-rich-item-renderer");
+        reassignTransitionNames({
+          elItems: elQueryItems,
+          animateIds
+        });
 
-    const elNewItems: HTMLElement[] = [];
-    for (const video of videos) {
-      const elNewItem = findItemElement(video.videoId);
-      if (elNewItem) {
-        elNewItem.style.viewTransitionName = `ytsua-item-${video.videoId}`;
-        elNewItems.push(elNewItem);
+        const elNewItems: HTMLElement[] = [];
+        for (const video of videos) {
+          const elNewItem = findItemElement(video.videoId);
+          if (elNewItem) {
+            elNewItem.style.viewTransitionName = `ytsua-item-${video.videoId}`;
+            elNewItems.push(elNewItem);
+          }
+        }
+
+        if (elNewItems.length > 0) {
+          const elNewItemTransitionStyle = buildNewItemTransitionStyle(elNewItems);
+          document.head.append(elNewItemTransitionStyle);
+          elNewItemTransitionStyles.push(elNewItemTransitionStyle);
+        }
+      }).finished;
+    } finally {
+      clearAllItemViewTransitionNames();
+      elShiftStyle.remove();
+      elNewItemTransitionStyles[0]?.remove();
+      for (const video of videos) {
+        const elNewItem = findItemElement(video.videoId);
+        if (elNewItem) {
+          elNewItem.style.viewTransitionName = "";
+        }
       }
-    }
-
-    if (elNewItems.length > 0) {
-      const elNewItemTransitionStyle = buildNewItemTransitionStyle(elNewItems);
-      document.head.append(elNewItemTransitionStyle);
-      elNewItemTransitionStyles.push(elNewItemTransitionStyle);
     }
   });
-
-  try {
-    await transition.finished;
-  } finally {
-    clearAllItemViewTransitionNames();
-    elShiftStyle.remove();
-    elNewItemTransitionStyles[0]?.remove();
-    for (const video of videos) {
-      const elNewItem = findItemElement(video.videoId);
-      if (elNewItem) {
-        elNewItem.style.viewTransitionName = "";
-      }
-    }
-  }
 }

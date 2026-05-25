@@ -16,7 +16,8 @@ import {
   extractAnimateIds,
   filterToViewport,
   prefersReducedMotion,
-  reassignTransitionNames
+  reassignTransitionNames,
+  withViewTransitionLock
 } from "../animations";
 import { filterOutRichItems } from "../rich-item";
 import type { ItemInfo } from "./index";
@@ -67,25 +68,27 @@ async function removeItemsFromShelf({
   });
   document.head.append(elShiftStyle);
 
-  try {
-    await document.startViewTransition(() => {
-      for (const elItem of group.elOnScreenItems) {
-        elItem.remove();
-      }
-      applyFilteredContents();
-      for (const elItem of elSiblings) {
-        elItem.style.viewTransitionName = "";
-      }
-      reassignTransitionNames({
-        elItems: elShelf.querySelectorAll<HTMLElement>(itemSelector),
-        animateIds
-      });
-    }).finished;
-  } finally {
-    clearItemViewTransitionNames(elSiblings);
-    elShiftStyle.remove();
-    clearAllItemViewTransitionNames();
-  }
+  await withViewTransitionLock(async () => {
+    try {
+      await document.startViewTransition(() => {
+        for (const elItem of group.elOnScreenItems) {
+          elItem.remove();
+        }
+        applyFilteredContents();
+        for (const elItem of elSiblings) {
+          elItem.style.viewTransitionName = "";
+        }
+        reassignTransitionNames({
+          elItems: elShelf.querySelectorAll<HTMLElement>(itemSelector),
+          animateIds
+        });
+      }).finished;
+    } finally {
+      clearItemViewTransitionNames(elSiblings);
+      elShiftStyle.remove();
+      clearAllItemViewTransitionNames();
+    }
+  });
 }
 
 export async function removeRichShelfItems(items: ItemInfo[]) {
@@ -225,29 +228,31 @@ async function removeEmptyShelfSection({ elRichShelf, shelfTitle }: {
 
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
   const elGridContents = elGrid?.querySelector<HTMLElement>("#contents");
-  try {
-    await document.startViewTransition(() => {
-      elSection.remove();
-      tryRemoveSectionViaGridData({
-        elGrid,
-        shelfTitle
-      });
-      for (const elItem of elItemsAfterSection) {
-        if (elItem.tagName === "YTD-RICH-ITEM-RENDERER") {
-          elItem.style.viewTransitionName = "";
+  await withViewTransitionLock(async () => {
+    try {
+      await document.startViewTransition(() => {
+        elSection.remove();
+        tryRemoveSectionViaGridData({
+          elGrid,
+          shelfTitle
+        });
+        for (const elItem of elItemsAfterSection) {
+          if (elItem.tagName === "YTD-RICH-ITEM-RENDERER") {
+            elItem.style.viewTransitionName = "";
+          }
         }
-      }
-      reassignTransitionNames({
-        elItems: elGridContents?.querySelectorAll<HTMLElement>(":scope > ytd-rich-item-renderer") ?? [],
-        animateIds: afterSectionAnimateIds
-      });
-    }).finished;
-  } finally {
-    elShiftStyle.remove();
-    clearItemViewTransitionNames(elItemsAfterSection);
-    clearItemViewTransitionNames(elSectionsAfterSection);
-    clearAllItemViewTransitionNames();
-  }
+        reassignTransitionNames({
+          elItems: elGridContents?.querySelectorAll<HTMLElement>(":scope > ytd-rich-item-renderer") ?? [],
+          animateIds: afterSectionAnimateIds
+        });
+      }).finished;
+    } finally {
+      elShiftStyle.remove();
+      clearItemViewTransitionNames(elItemsAfterSection);
+      clearItemViewTransitionNames(elSectionsAfterSection);
+      clearAllItemViewTransitionNames();
+    }
+  });
 }
 
 function tryRemoveSectionViaGridData({ elGrid, shelfTitle }: {
