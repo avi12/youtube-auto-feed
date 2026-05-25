@@ -203,11 +203,13 @@ function updateLegacyRendererTextFields({ elItem, fresh }: {
   setNodeTextIfChanged(elItem.querySelector("#video-title yt-formatted-string, #video-title-link yt-formatted-string, #video-title"), fresh.title);
 
   const elMeta = elItem.querySelector("#metadata-line");
-  if (elMeta) {
-    const elMetaSpans = elMeta.querySelectorAll<HTMLElement>(":scope > span.inline-metadata-item");
-    setNodeTextIfChanged(elMetaSpans[0] ?? null, fresh.viewCountText);
-    setNodeTextIfChanged(elMetaSpans[1] ?? null, fresh.publishedTimeText);
+  if (!elMeta) {
+    return;
   }
+
+  const elMetaSpans = elMeta.querySelectorAll<HTMLElement>(":scope > span.inline-metadata-item");
+  setNodeTextIfChanged(elMetaSpans[0] ?? null, fresh.viewCountText);
+  setNodeTextIfChanged(elMetaSpans[1] ?? null, fresh.publishedTimeText);
 }
 
 function changingLegacyTextElements({ elItem, fresh }: {
@@ -379,6 +381,18 @@ async function prepareThumbnailDissolve({ elItem, elImg, newUrl }: {
   };
 }
 
+function getThumbnailUrlKey(contentImage: LockupViewModel["contentImage"]) {
+  return contentImage?.thumbnailViewModel?.image?.sources?.[0]?.url?.split("?")[0];
+}
+
+function getAvatarImage(viewModel: LockupViewModel) {
+  return viewModel.metadata?.lockupMetadataViewModel?.image;
+}
+
+function hasSameThumbnail(existing: LockupViewModel, incoming: LockupViewModel) {
+  return getThumbnailUrlKey(existing.contentImage) === getThumbnailUrlKey(incoming.contentImage);
+}
+
 function mergeContentImagePreservingThumbnail(
   existing: LockupViewModel["contentImage"],
   incoming: LockupViewModel["contentImage"]
@@ -415,8 +429,8 @@ function mutateLockupViewModelInPlace({ existing, incoming, preserveContentImage
   incoming: LockupViewModel;
   preserveContentImage: boolean;
 }) {
-  const existingAvatarImage = existing.metadata?.lockupMetadataViewModel?.image;
-  const incomingAvatarImage = incoming.metadata?.lockupMetadataViewModel?.image;
+  const existingAvatarImage = getAvatarImage(existing);
+  const incomingAvatarImage = getAvatarImage(incoming);
   const preservedContentImage = existing.contentImage;
 
   Object.assign(existing, incoming);
@@ -425,19 +439,20 @@ function mutateLockupViewModelInPlace({ existing, incoming, preserveContentImage
     existing.contentImage = mergeContentImagePreservingThumbnail(preservedContentImage, incoming.contentImage);
   }
 
-  if (
-    incomingAvatarImage === undefined
+  const shouldRestoreAvatar = incomingAvatarImage === undefined
     && existingAvatarImage !== undefined
-    && existing.metadata?.lockupMetadataViewModel
-  ) {
-    existing.metadata = {
-      ...existing.metadata,
-      lockupMetadataViewModel: {
-        ...existing.metadata.lockupMetadataViewModel,
-        image: existingAvatarImage
-      }
-    };
+    && existing.metadata?.lockupMetadataViewModel !== undefined;
+  if (!shouldRestoreAvatar) {
+    return;
   }
+
+  existing.metadata = {
+    ...existing.metadata,
+    lockupMetadataViewModel: {
+      ...existing.metadata?.lockupMetadataViewModel,
+      image: existingAvatarImage
+    }
+  };
 }
 
 function mutateLockupMetadata({ videoId, elItem, incoming, preserveContentImage }: {
@@ -506,35 +521,41 @@ function mutateLockupMetadata({ videoId, elItem, incoming, preserveContentImage 
   }
 }
 
+function buildPreservedAvatarMetadata({ existing, incoming }: {
+  existing: LockupViewModel;
+  incoming: LockupViewModel;
+}) {
+  const existingAvatarImage = getAvatarImage(existing);
+  const incomingLockupMeta = incoming.metadata?.lockupMetadataViewModel;
+  if (incomingLockupMeta === undefined && existingAvatarImage === undefined) {
+    return incoming.metadata;
+  }
+
+  return {
+    ...incoming.metadata,
+    lockupMetadataViewModel: {
+      ...incomingLockupMeta,
+      image: getAvatarImage(incoming) ?? existingAvatarImage
+    }
+  };
+}
+
 function mergeLockupViewModel({ existing, incoming, forcePreserveContentImage = false }: {
   existing: LockupViewModel;
   incoming: LockupViewModel;
   forcePreserveContentImage?: boolean;
 }) {
-  const isSameThumbnail = forcePreserveContentImage || (
-    existing.contentImage?.thumbnailViewModel?.image?.sources?.[0]?.url?.split("?")[0] ===
-    incoming.contentImage?.thumbnailViewModel?.image?.sources?.[0]?.url?.split("?")[0]
-  );
-  const existingAvatarImage = existing.metadata?.lockupMetadataViewModel?.image;
-  const incomingAvatarImage = incoming.metadata?.lockupMetadataViewModel?.image;
-  const mergedLockupMeta = incoming.metadata?.lockupMetadataViewModel !== undefined || existingAvatarImage !== undefined
-    ? {
-      ...incoming.metadata?.lockupMetadataViewModel,
-      image: incomingAvatarImage ?? existingAvatarImage
-    }
-    : undefined;
-  const mergedContentImage = isSameThumbnail
+  const shouldPreserveThumbnail = forcePreserveContentImage || hasSameThumbnail(existing, incoming);
+  const contentImage = shouldPreserveThumbnail
     ? mergeContentImagePreservingThumbnail(existing.contentImage, incoming.contentImage)
     : incoming.contentImage;
   return {
     ...incoming,
-    contentImage: mergedContentImage,
-    metadata: mergedLockupMeta !== undefined
-      ? {
-        ...incoming.metadata,
-        lockupMetadataViewModel: mergedLockupMeta
-      }
-      : incoming.metadata
+    contentImage,
+    metadata: buildPreservedAvatarMetadata({
+      existing,
+      incoming
+    })
   };
 }
 
@@ -550,7 +571,10 @@ function applyPolymerUpdate({ elItem, rawRenderer }: {
   const { content } = itemData;
   if (!isRecord(content)) {
     elItem.set("data", rawRenderer);
-  } else if (isLockupViewModel(content.lockupViewModel) && isLockupViewModel(rawRenderer)) {
+    return;
+  }
+
+  if (isLockupViewModel(content.lockupViewModel) && isLockupViewModel(rawRenderer)) {
     const merged = mergeLockupViewModel({
       existing: content.lockupViewModel,
       incoming: rawRenderer
@@ -558,37 +582,48 @@ function applyPolymerUpdate({ elItem, rawRenderer }: {
     const elLockup = elItem.querySelector<HTMLElement>("yt-lockup-view-model");
     if (elLockup && "lockupViewModel" in elLockup) {
       Object.assign(elLockup, { lockupViewModel: merged });
-    } else {
-      elItem.set("data", {
-        ...itemData,
-        content: {
-          ...content,
-          lockupViewModel: merged
-        }
-      });
+      return;
     }
-  } else if (isShortsLockupViewModel(content.shortsLockupViewModel) && isShortsLockupViewModel(rawRenderer)) {
+
+    elItem.set("data", {
+      ...itemData,
+      content: {
+        ...content,
+        lockupViewModel: merged
+      }
+    });
+    return;
+  }
+
+  if (isShortsLockupViewModel(content.shortsLockupViewModel) && isShortsLockupViewModel(rawRenderer)) {
     const elShortsLockup = elItem.querySelector<HTMLElement>("yt-shorts-lockup-view-model");
     if (elShortsLockup && "shortsLockupViewModel" in elShortsLockup) {
       Object.assign(elShortsLockup, { shortsLockupViewModel: rawRenderer });
-    } else {
-      elItem.set("data", {
-        ...itemData,
-        content: {
-          ...content,
-          shortsLockupViewModel: rawRenderer
-        }
-      });
+      return;
     }
-  } else if (isRecord(content.videoRenderer)) {
+
+    elItem.set("data", {
+      ...itemData,
+      content: {
+        ...content,
+        shortsLockupViewModel: rawRenderer
+      }
+    });
+    return;
+  }
+
+  if (isRecord(content.videoRenderer)) {
     elItem.set("data.content.videoRenderer", rawRenderer);
-  } else if (isRecord(content.gridVideoRenderer)) {
+    return;
+  }
+
+  if (isRecord(content.gridVideoRenderer)) {
     elItem.set("data.content.gridVideoRenderer", rawRenderer);
-  } else {
-    const richGridMedia = deepRecord(content, "richGridMediaRenderer");
-    if (richGridMedia) {
-      elItem.set("data.content.richGridMediaRenderer.content.videoRenderer", rawRenderer);
-    }
+    return;
+  }
+
+  if (deepRecord(content, "richGridMediaRenderer")) {
+    elItem.set("data.content.richGridMediaRenderer.content.videoRenderer", rawRenderer);
   }
 }
 
@@ -676,32 +711,50 @@ function applyRichItemContentUpdate({
   );
 }
 
+function tryApplyToGrid({ videoId, rawRenderer, forcePreserveContentImage }: {
+  videoId: string;
+  rawRenderer: VideoSnapshot["rawRenderer"];
+  forcePreserveContentImage: boolean;
+}) {
+  const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
+  if (!elGrid || !isPolymerElement(elGrid) || !isRecord(elGrid.data)) {
+    return false;
+  }
+
+  const contents = deepArray<InnerTubeRichGridItem>(elGrid.data, "contents");
+  const iItem = findRichItemIndex({
+    contents,
+    videoId
+  });
+  if (iItem < 0) {
+    return false;
+  }
+
+  const existingContent = deepRecord(contents[iItem], "richItemRenderer", "content");
+  if (existingContent) {
+    applyRichItemContentUpdate({
+      elElement: elGrid,
+      basePath: `data.contents.${iItem}.richItemRenderer.content`,
+      existingContent,
+      rawRenderer,
+      forcePreserveContentImage
+    });
+  }
+
+  return true;
+}
+
 function syncGridModelItem({ videoId, rawRenderer, forcePreserveContentImage = false }: {
   videoId: string;
   rawRenderer: VideoSnapshot["rawRenderer"];
   forcePreserveContentImage?: boolean;
 }) {
-  const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
-  if (elGrid && isPolymerElement(elGrid) && isRecord(elGrid.data)) {
-    const contents = deepArray<InnerTubeRichGridItem>(elGrid.data, "contents");
-    const iItem = findRichItemIndex({
-      contents,
-      videoId
-    });
-    if (iItem >= 0) {
-      const existingContent = deepRecord(contents[iItem], "richItemRenderer", "content");
-      if (existingContent) {
-        applyRichItemContentUpdate({
-          elElement: elGrid,
-          basePath: `data.contents.${iItem}.richItemRenderer.content`,
-          existingContent,
-          rawRenderer,
-          forcePreserveContentImage
-        });
-      }
-
-      return;
-    }
+  if (tryApplyToGrid({
+    videoId,
+    rawRenderer,
+    forcePreserveContentImage
+  })) {
+    return;
   }
 
   for (const elShelf of document.querySelectorAll<HTMLElement>("ytd-rich-shelf-renderer")) {
@@ -995,18 +1048,18 @@ export function applyUpdate({ videoId, elItem, fresh, previous }: {
   }
 
   const { content } = itemData;
-  if (isRecord(content) && isRecord(content.lockupViewModel)) {
-    const elLockup = elItem.querySelector<HTMLElement>("yt-lockup-view-model");
-    if (elLockup) {
-      void applyTargetedLockupUpdate({
-        videoId,
-        elItem,
-        elLockup,
-        previous,
-        fresh
-      });
-      return;
-    }
+  const elLockup = isRecord(content) && isRecord(content.lockupViewModel)
+    ? elItem.querySelector<HTMLElement>("yt-lockup-view-model")
+    : null;
+  if (elLockup) {
+    void applyTargetedLockupUpdate({
+      videoId,
+      elItem,
+      elLockup,
+      previous,
+      fresh
+    });
+    return;
   }
 
   void applyTargetedGenericUpdate({
