@@ -29,7 +29,7 @@ Within-section ordering (the only ordering the extension is allowed to influence
 Contract: **section markers stay exactly where YouTube placed them; the extension only adds or removes videos.**
 
 # Stack
-- bun
+- pnpm + tsx (Node)
 - WXT extension framework
 - TypeScript (100% type safety, let TypeScript infer types)
 - @webext-core/messaging for message passing
