@@ -11,6 +11,25 @@ export function prefersReducedMotion() {
   return matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
+let viewTransitionLock: Promise<void> = Promise.resolve();
+
+function noop() {}
+
+export async function withViewTransitionLock<T>(work: () => Promise<T> | T): Promise<T> {
+  const previous = viewTransitionLock;
+  let release: () => void = noop;
+  viewTransitionLock = new Promise<void>(resolve => {
+    release = resolve;
+  });
+  try {
+    await previous;
+    const result = await work();
+    return result;
+  } finally {
+    release();
+  }
+}
+
 const animationClasses = ["ytsua-new", "ytsua-updated"] as const;
 type AnimationClass = typeof animationClasses[number];
 
