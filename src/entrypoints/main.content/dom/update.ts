@@ -906,14 +906,16 @@ export function applyUpdate({ videoId, elItem, fresh, previous }: {
   fresh: VideoSnapshot;
   previous?: VideoSnapshot;
 }) {
-  if (!previous || previous.status !== fresh.status) {
+  const isChannelLiveChanged = !!previous && previous.isChannelLive !== fresh.isChannelLive;
+  if (!previous || previous.status !== fresh.status || isChannelLiveChanged) {
     applyPolymerUpdate({
       elItem,
       rawRenderer: fresh.rawRenderer
     });
     syncGridModelItem({
       videoId,
-      rawRenderer: fresh.rawRenderer
+      rawRenderer: fresh.rawRenderer,
+      forcePreserveContentImage: isChannelLiveChanged && previous.status === fresh.status
     });
     return;
   }
