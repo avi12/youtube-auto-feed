@@ -1,5 +1,5 @@
 import { deepArray, isPolymerElement, isRecord, videoIdFromData } from "../../helpers";
-import { type PolymerElement, type VideoSnapshot, VideoStatus } from "../../types";
+import { type InnerTubeRichGridItem, type PolymerElement, type VideoSnapshot, VideoStatus } from "../../types";
 import {
   assignItemViewTransitionNames,
   buildNewItemTransitionStyle,
@@ -69,7 +69,7 @@ async function addVideosToSection({
     return;
   }
 
-  const shelfContents = deepArray(elShelf.data, "contents");
+  const shelfContents = deepArray<InnerTubeRichGridItem>(elShelf.data, "contents");
   const videosToInsert = videos.filter(
     video => !shelfContents.some(item => videoIdFromRichItem(item) === video.videoId)
   );
@@ -169,7 +169,7 @@ async function runShelfInsertTransition({
   elShelf: PolymerElement;
   elExistingItems: HTMLElement[];
   insertOperations: InsertOperation[];
-  newShelfContents: unknown[];
+  newShelfContents: InnerTubeRichGridItem[];
   displayCap: number;
   isCollapsed: boolean;
 }) {

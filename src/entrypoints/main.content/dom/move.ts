@@ -5,7 +5,7 @@ import {
   isRecord,
   videoIdFromData
 } from "../helpers";
-import type { VideoSnapshot } from "../types";
+import type { InnerTubeRichGridItem, VideoSnapshot } from "../types";
 import {
   assignItemViewTransitionNames,
   buildShiftTransitionStyle,
@@ -100,7 +100,7 @@ async function moveVideosToShelfFront({
 
   try {
     await document.startViewTransition(async () => {
-      const freshShelfContents = deepArray(elShelf.data, "contents");
+      const freshShelfContents = deepArray<InnerTubeRichGridItem>(elShelf.data, "contents");
       const remainingContents = filterOutRichItems({
         contents: freshShelfContents,
         excludeVideoIds: movingVideoIds
@@ -179,7 +179,7 @@ async function moveVideosToGridFront({ videos, freshOrder }: {
 
   try {
     await document.startViewTransition(async () => {
-      const freshGridContents = deepArray(elGrid.data, "contents");
+      const freshGridContents = deepArray<InnerTubeRichGridItem>(elGrid.data, "contents");
       const remainingContents = filterOutRichItems({
         contents: freshGridContents,
         excludeVideoIds: movingVideoIds

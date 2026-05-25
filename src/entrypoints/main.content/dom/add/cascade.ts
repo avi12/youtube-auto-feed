@@ -1,4 +1,4 @@
-import { parseSecondsAgo } from "../../api/guards";
+import { isRichShelfRenderer, parseSecondsAgo } from "../../api/guards";
 import {
   deepArray,
   deepRecord,
@@ -6,7 +6,7 @@ import {
   isPolymerElement,
   isRecord
 } from "../../helpers";
-import { type VideoSnapshot } from "../../types";
+import { type InnerTubeRichGridItem, type VideoSnapshot } from "../../types";
 import {
   assignItemViewTransitionNames,
   buildNewItemTransitionStyle,
@@ -28,7 +28,7 @@ import { videoIdFromRichItem } from "../rich-item";
 
 const RICHSHELF_COLUMNS = 3;
 
-function findRichShelfIndices(contents: unknown[]) {
+function findRichShelfIndices(contents: InnerTubeRichGridItem[]) {
   const indices: number[] = [];
   for (let i = 0; i < contents.length; i++) {
     if (deepRecord(contents[i], "richSectionRenderer", "content", "richShelfRenderer")) {
@@ -39,12 +39,12 @@ function findRichShelfIndices(contents: unknown[]) {
 }
 
 function resolveInlineZone(
-  contents: unknown[],
+  contents: InnerTubeRichGridItem[],
   iZone: number,
   richShelfIndices: number[]
 ): {
   insertAt: number;
-  existingItems: unknown[];
+  existingItems: InnerTubeRichGridItem[];
 } {
   let zoneStart: number;
   const nextBoundary = richShelfIndices[iZone] ?? contents.length;
@@ -83,7 +83,7 @@ function resolveInlineZone(
   };
 }
 
-function existingItemSecondsAgo(item: unknown) {
+function existingItemSecondsAgo(item: InnerTubeRichGridItem) {
   const vrText = deepString(item, "richItemRenderer", "content", "videoRenderer", "publishedTimeText", "simpleText");
   if (vrText) {
     return parseSecondsAgo(vrText);
@@ -98,7 +98,7 @@ function existingItemSecondsAgo(item: unknown) {
 }
 
 function applyInlineCascade(
-  contents: unknown[],
+  contents: InnerTubeRichGridItem[],
   newVideos: VideoSnapshot[],
   inlineBands: CapturedBand[]
 ) {
@@ -125,8 +125,8 @@ function applyInlineCascade(
 }
 
 function applyRichShelfCascade(
-  contents: unknown[],
-  newItems: unknown[],
+  contents: InnerTubeRichGridItem[],
+  newItems: InnerTubeRichGridItem[],
   shelfBands: CapturedBand[]
 ) {
   const band = shelfBands[0];
@@ -142,12 +142,12 @@ function applyRichShelfCascade(
 
   const richSection = deepRecord(contents[iSection], "richSectionRenderer");
   const richContent = deepRecord(richSection, "content");
-  const richShelf = deepRecord(richContent, "richShelfRenderer");
-  if (!richSection || !richContent || !richShelf) {
+  const richShelfRaw = deepRecord(richContent, "richShelfRenderer");
+  if (!richSection || !richContent || !richShelfRaw || !isRichShelfRenderer(richShelfRaw)) {
     return;
   }
 
-  const shelfContents = deepArray(richShelf, "contents");
+  const shelfContents = richShelfRaw.contents;
   const totalDesired = shelfContents.length + newItems.length;
   const alignedTotal = Math.max(shelfContents.length, Math.floor(totalDesired / RICHSHELF_COLUMNS) * RICHSHELF_COLUMNS);
   const acceptedNewItems = newItems.slice(0, alignedTotal - shelfContents.length);
@@ -158,7 +158,7 @@ function applyRichShelfCascade(
       content: {
         ...richContent,
         richShelfRenderer: {
-          ...richShelf,
+          ...richShelfRaw,
           contents: [...acceptedNewItems, ...shelfContents]
         }
       }
@@ -173,7 +173,7 @@ function applyCascades({
   inlineVideos,
   inlineBands
 }: {
-  contents: unknown[];
+  contents: InnerTubeRichGridItem[];
   videosToAdd: VideoSnapshot[];
   bandLayout: BandLayout;
   inlineVideos: VideoSnapshot[];
@@ -219,7 +219,7 @@ export async function cascadeInsertVideos({
   const inlineBands = bandLayout.bands.filter(band => band.kind === "inline");
   const hasInlineCascade = inlineVideos.length > 0 && inlineBands.length > 0;
   if (prefersReducedMotion() || !hasInlineCascade) {
-    const contents = [...deepArray(elGrid.data, "contents")];
+    const contents = [...deepArray<InnerTubeRichGridItem>(elGrid.data, "contents")];
     applyCascades({
       contents,
       videosToAdd,
@@ -233,7 +233,7 @@ export async function cascadeInsertVideos({
 
   const elGridContents = elGrid.querySelector<HTMLElement>("#contents");
   if (!elGridContents) {
-    const contents = [...deepArray(elGrid.data, "contents")];
+    const contents = [...deepArray<InnerTubeRichGridItem>(elGrid.data, "contents")];
     applyCascades({
       contents,
       videosToAdd,
@@ -263,7 +263,7 @@ export async function cascadeInsertVideos({
 
   try {
     await document.startViewTransition(async () => {
-      const contents = [...deepArray(elGrid.data, "contents")];
+      const contents = [...deepArray<InnerTubeRichGridItem>(elGrid.data, "contents")];
       applyCascades({
         contents,
         videosToAdd,

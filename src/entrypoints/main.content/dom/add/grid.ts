@@ -1,4 +1,4 @@
-import { isVideoRenderer } from "../../api/guards";
+import { isRichShelfRenderer, isShelfRenderer, isVideoRenderer } from "../../api/guards";
 import {
   deepArray,
   deepRecord,
@@ -8,7 +8,7 @@ import {
   videoIdFromData,
   videoIdFromShelfListItem
 } from "../../helpers";
-import { type PolymerElement, type VideoSnapshot, VideoStatus } from "../../types";
+import { type InnerTubeRichGridItem, type PolymerElement, type VideoSnapshot, VideoStatus } from "../../types";
 import {
   assignItemViewTransitionNames,
   buildNewItemTransitionStyle,
@@ -152,7 +152,7 @@ function pruneOrphanedDomSections({ elGrid, elGridContents }: {
   }
 
   const titleCounts = new Map<string, number>();
-  for (const item of deepArray(elGrid.data, "contents")) {
+  for (const item of deepArray<InnerTubeRichGridItem>(elGrid.data, "contents")) {
     const richShelfTitle = deepString(item, "richSectionRenderer", "content", "richShelfRenderer", "title", "runs", "0", "text");
     const innerShelfTitle = deepString(item, "richSectionRenderer", "content", "shelfRenderer", "title", "runs", "0", "text");
     const title = richShelfTitle || innerShelfTitle;
@@ -271,7 +271,7 @@ function applyVideoInsertions({
   freshOrderMap: Map<string, number>;
   allSnapshotMap: Map<string, VideoSnapshot>;
 }) {
-  const newContents = [...deepArray(elGrid.data, "contents")];
+  const newContents = [...deepArray<InnerTubeRichGridItem>(elGrid.data, "contents")];
   const { newSectionGroups, videosForNormalPath } = planInsertions({
     newContents,
     sortedVideos
@@ -302,7 +302,7 @@ function applyVideoInsertions({
 }
 
 function planInsertions({ newContents, sortedVideos }: {
-  newContents: unknown[];
+  newContents: InnerTubeRichGridItem[];
   sortedVideos: VideoSnapshot[];
 }) {
   const newSectionGroups = new Map<string, VideoSnapshot[]>();
@@ -333,7 +333,7 @@ function insertVideoOrStandalone({
   allSnapshotMap,
   actuallyAddedVideos
 }: {
-  newContents: unknown[];
+  newContents: InnerTubeRichGridItem[];
   video: VideoSnapshot;
   freshOrderMap: Map<string, number>;
   allSnapshotMap: Map<string, VideoSnapshot>;
@@ -387,7 +387,7 @@ function insertVideoOrStandalone({
 }
 
 function findExistingSectionIndex({ contents, sectionTitle }: {
-  contents: unknown[];
+  contents: InnerTubeRichGridItem[];
   sectionTitle: string;
 }) {
   if (!sectionTitle) {
@@ -405,7 +405,7 @@ function insertNewSection({
   sectionVideos,
   freshOrderMap
 }: {
-  newContents: unknown[];
+  newContents: InnerTubeRichGridItem[];
   sectionTitle: string;
   sectionVideos: VideoSnapshot[];
   freshOrderMap: Map<string, number>;
@@ -428,18 +428,18 @@ function insertNewSection({
 }
 
 function tryInsertIntoExistingRichShelf({ newContents, iSection, video }: {
-  newContents: unknown[];
+  newContents: InnerTubeRichGridItem[];
   iSection: number;
   video: VideoSnapshot;
 }) {
   const section = deepRecord(newContents[iSection], "richSectionRenderer");
   const content = deepRecord(section, "content");
-  const richShelf = deepRecord(content, "richShelfRenderer");
-  if (!section || !content || !richShelf) {
+  const richShelfRaw = deepRecord(content, "richShelfRenderer");
+  if (!section || !content || !richShelfRaw || !isRichShelfRenderer(richShelfRaw)) {
     return false;
   }
 
-  const shelfContents = deepArray(richShelf, "contents");
+  const shelfContents = richShelfRaw.contents;
   if (!shelfContents.some(item => videoIdFromRichItem(item) === video.videoId)) {
     newContents[iSection] = {
       richSectionRenderer: {
@@ -447,7 +447,7 @@ function tryInsertIntoExistingRichShelf({ newContents, iSection, video }: {
         content: {
           ...content,
           richShelfRenderer: {
-            ...richShelf,
+            ...richShelfRaw,
             contents: [buildRichItem(video.rawRenderer), ...shelfContents]
           }
         }
@@ -459,17 +459,23 @@ function tryInsertIntoExistingRichShelf({ newContents, iSection, video }: {
 }
 
 function tryInsertIntoExistingInnerShelf({ newContents, iSection, video }: {
-  newContents: unknown[];
+  newContents: InnerTubeRichGridItem[];
   iSection: number;
   video: VideoSnapshot;
 }) {
   const section = deepRecord(newContents[iSection], "richSectionRenderer");
   const content = deepRecord(section, "content");
-  const innerShelf = deepRecord(content, "shelfRenderer");
-  const innerContent = deepRecord(innerShelf, "content");
-  if (!section || !content || !innerShelf || !innerContent || !isVideoRenderer(video.rawRenderer)) {
+  const innerShelfRaw = deepRecord(content, "shelfRenderer");
+  if (!section || !content || !innerShelfRaw || !isShelfRenderer(innerShelfRaw)) {
     return false;
   }
+
+  if (!isVideoRenderer(video.rawRenderer)) {
+    return false;
+  }
+
+  const innerShelf = innerShelfRaw;
+  const innerContent = innerShelf.content;
 
   const horizontalList = deepRecord(innerContent, "horizontalListRenderer");
   const gridList = deepRecord(innerContent, "gridRenderer");
@@ -548,7 +554,7 @@ function collectGridModelIds(elGrid: PolymerElement) {
   const standaloneModelIds = new Set<string>();
   const standaloneModelDuplicates = new Set<string>();
 
-  for (const item of deepArray(elGrid.data, "contents")) {
+  for (const item of deepArray<InnerTubeRichGridItem>(elGrid.data, "contents")) {
     const topId = videoIdFromRichItem(item);
     if (!topId) {
       continue;
@@ -581,7 +587,7 @@ function filterMisplacedAndDuplicates({
   }
 
   const seenDuplicates = new Set<string>();
-  const filteredContents = deepArray(elGrid.data, "contents").filter(item => {
+  const filteredContents = deepArray<InnerTubeRichGridItem>(elGrid.data, "contents").filter(item => {
     const videoId = videoIdFromRichItem(item);
     if (!videoId) {
       return true;
@@ -626,7 +632,7 @@ function pruneOrphanedDomItems({ elGridContents, standaloneModelIds }: {
 }
 
 export function findSectionInsertIndex({ contents, sectionMinimumFreshIndex, freshOrderMap }: {
-  contents: unknown[];
+  contents: InnerTubeRichGridItem[];
   sectionMinimumFreshIndex: number;
   freshOrderMap: Map<string, number>;
 }) {
@@ -686,7 +692,7 @@ function buildNewRichSection({ sectionTitle, videos }: {
   };
 }
 
-function findZoneBoundaries(contents: unknown[]) {
+function findZoneBoundaries(contents: InnerTubeRichGridItem[]) {
   const continuationIndex = contents.findIndex(item => isRecord(item) && "continuationItemRenderer" in item);
   const end = continuationIndex >= 0 ? continuationIndex : contents.length;
   const sectionBoundaries: number[] = [];
@@ -714,7 +720,7 @@ function findZoneInsertIndex({
   videoStatus,
   allSnapshotMap
 }: {
-  contents: unknown[];
+  contents: InnerTubeRichGridItem[];
   bandIndex: number;
   freshIndex: number;
   freshOrderMap: Map<string, number>;
@@ -741,7 +747,7 @@ function findGridInsertIndex({
   videoStatus,
   allSnapshotMap
 }: {
-  contents: unknown[];
+  contents: InnerTubeRichGridItem[];
   freshIndex: number;
   freshOrderMap: Map<string, number>;
   videoStatus: VideoStatus;

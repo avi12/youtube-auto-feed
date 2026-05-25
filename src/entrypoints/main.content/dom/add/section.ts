@@ -1,5 +1,5 @@
 import { deepArray, isPolymerElement, isRecord } from "../../helpers";
-import type { VideoSnapshot } from "../../types";
+import type { InnerTubeRichGridItem, VideoSnapshot } from "../../types";
 import {
   assignItemViewTransitionNames,
   buildNewItemTransitionStyle,
@@ -58,7 +58,7 @@ export async function addSectionToDom({ sectionTitle, videos, allFreshSnapshots 
   const elNewItemTransitionStyles: HTMLStyleElement[] = [];
 
   const transition = document.startViewTransition(async () => {
-    const contents = [...deepArray(elGrid.data, "contents")];
+    const contents = [...deepArray<InnerTubeRichGridItem>(elGrid.data, "contents")];
     const iInsert = findSectionInsertIndex({
       contents,
       sectionMinimumFreshIndex,

@@ -17,7 +17,7 @@ import {
   videoIdFromData,
   videoIdFromShelfListItem
 } from "./helpers";
-import { type VideoSnapshot, VideoStatus } from "./types";
+import { type InnerTubeRichGridItem, type VideoSnapshot, VideoStatus } from "./types";
 
 function readCurrentVideoSections() {
   const sections = new Map<string, string>();
@@ -629,7 +629,7 @@ function reconcileShelfOrders(freshSnapshots: VideoSnapshot[]) {
       continue;
     }
 
-    const shelfContents = deepArray(elShelf.data, "contents");
+    const shelfContents = deepArray<InnerTubeRichGridItem>(elShelf.data, "contents");
     if (shelfContents.some(item => !!deepRecord(item, "richItemRenderer", "content", "shortsLockupViewModel"))) {
       continue;
     }
@@ -649,7 +649,7 @@ function reconcileShelfOrders(freshSnapshots: VideoSnapshot[]) {
       continue;
     }
 
-    const itemByVideoId = new Map<string, unknown>();
+    const itemByVideoId = new Map<string, InnerTubeRichGridItem>();
     for (const item of shelfContents) {
       const id = videoIdFromData(deepRecord(item, "richItemRenderer"));
       if (id) {

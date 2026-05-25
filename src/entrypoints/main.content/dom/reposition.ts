@@ -1,5 +1,5 @@
 import { deepArray, deepRecord, isPolymerElement, videoIdFromData } from "../helpers";
-import { type VideoSnapshot, VideoStatus } from "../types";
+import { type InnerTubeRichGridItem, type VideoSnapshot, VideoStatus } from "../types";
 import {
   assignItemViewTransitionNames,
   buildShiftTransitionStyle,
@@ -35,7 +35,7 @@ export async function repositionVideoInSection({
     return;
   }
 
-  const shelfContents = deepArray(elShelf.data, "contents");
+  const shelfContents = deepArray<InnerTubeRichGridItem>(elShelf.data, "contents");
   const iCurrent = findRichItemIndex({
     contents: shelfContents,
     videoId
@@ -110,7 +110,7 @@ function resolveInsertIndex({
   status,
   allSnapshots
 }: {
-  contentsWithoutVideo: unknown[];
+  contentsWithoutVideo: InnerTubeRichGridItem[];
   videoId: string;
   sectionVideos: VideoSnapshot[];
   status: VideoStatus;

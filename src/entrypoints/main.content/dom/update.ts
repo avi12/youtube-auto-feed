@@ -7,7 +7,14 @@ import {
   isRecord,
   videoIdFromData
 } from "../helpers";
-import type { InnerTubeVideoRenderer, LockupViewModel, PolymerElement, VideoSnapshot } from "../types";
+import type {
+  InnerTubeRichGridItem,
+  InnerTubeRichItemContent,
+  InnerTubeVideoRenderer,
+  LockupViewModel,
+  PolymerElement,
+  VideoSnapshot
+} from "../types";
 import { isInViewport } from "./animations";
 import { scheduleLazyUpdate } from "./lazy-update";
 import { findItemElement } from "./query";
@@ -428,7 +435,7 @@ function mutateLockupMetadata({ videoId, elItem, incoming, preserveContentImage 
       continue;
     }
 
-    const contents = deepArray(elGrid.data, "contents");
+    const contents = deepArray<InnerTubeRichGridItem>(elGrid.data, "contents");
     const iItem = findRichItemIndex({
       contents,
       videoId
@@ -448,7 +455,7 @@ function mutateLockupMetadata({ videoId, elItem, incoming, preserveContentImage 
       continue;
     }
 
-    const contents = deepArray(elShelf.data, "contents");
+    const contents = deepArray<InnerTubeRichGridItem>(elShelf.data, "contents");
     const iItem = findRichItemIndex({
       contents,
       videoId
@@ -559,7 +566,7 @@ function buildMergedVideoRenderer({
   incoming,
   forcePreserveContentImage
 }: {
-  existing: Record<string, unknown> | null;
+  existing: InnerTubeVideoRenderer | Record<string, unknown> | null;
   incoming: VideoSnapshot["rawRenderer"];
   forcePreserveContentImage: boolean;
 }) {
@@ -587,7 +594,7 @@ function applyRichItemContentUpdate({
 }: {
   elElement: PolymerElement;
   basePath: string;
-  existingContent: Record<string, unknown>;
+  existingContent: InnerTubeRichItemContent | Record<string, unknown>;
   rawRenderer: VideoSnapshot["rawRenderer"];
   forcePreserveContentImage: boolean;
 }) {
@@ -641,7 +648,7 @@ function syncGridModelItem({ videoId, rawRenderer, forcePreserveContentImage = f
 }) {
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
   if (elGrid && isPolymerElement(elGrid) && isRecord(elGrid.data)) {
-    const contents = deepArray(elGrid.data, "contents");
+    const contents = deepArray<InnerTubeRichGridItem>(elGrid.data, "contents");
     const iItem = findRichItemIndex({
       contents,
       videoId
@@ -667,7 +674,7 @@ function syncGridModelItem({ videoId, rawRenderer, forcePreserveContentImage = f
       continue;
     }
 
-    const contents = deepArray(elShelf.data, "contents");
+    const contents = deepArray<InnerTubeRichGridItem>(elShelf.data, "contents");
     const iItem = findRichItemIndex({
       contents,
       videoId
@@ -697,7 +704,11 @@ function syncGridModelItem({ videoId, rawRenderer, forcePreserveContentImage = f
 
     const shelfContent = deepRecord(elShelf.data, "content");
     for (const listKey of ["horizontalListRenderer", "gridRenderer"] as const) {
-      const items = deepArray(shelfContent, listKey, "items");
+      type ShelfListItem = {
+        videoRenderer?: InnerTubeVideoRenderer;
+        gridVideoRenderer?: InnerTubeVideoRenderer;
+      };
+      const items = deepArray<ShelfListItem>(shelfContent, listKey, "items");
       for (const [iItem, item] of items.entries()) {
         let rendererKey: "videoRenderer" | "gridVideoRenderer" | null = null;
         if (deepString(item, "videoRenderer", "videoId") === videoId) {

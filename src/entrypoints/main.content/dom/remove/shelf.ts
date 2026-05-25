@@ -5,6 +5,7 @@ import {
   isPolymerElement,
   isRecord
 } from "../../helpers";
+import type { InnerTubeRichGridItem } from "../../types";
 import {
   animateItemsOut,
   assignItemViewTransitionNames,
@@ -134,7 +135,7 @@ async function removeRichShelfGroup({ elRichShelf, group }: {
 
   const shelfTitle = deepString(shelfData, "title", "runs", "0", "text");
   const shelfVideoIdSet = new Set(group.videoIds);
-  const shelfContents = deepArray(shelfData, "contents");
+  const shelfContents = deepArray<InnerTubeRichGridItem>(shelfData, "contents");
   const filteredShelfContents = filterOutRichItems({
     contents: shelfContents,
     excludeVideoIds: shelfVideoIdSet
@@ -257,7 +258,7 @@ function tryRemoveSectionViaGridData({ elGrid, shelfTitle }: {
     return false;
   }
 
-  const currentGridContents = deepArray(elGrid.data, "contents");
+  const currentGridContents = deepArray<InnerTubeRichGridItem>(elGrid.data, "contents");
   const filteredGridContents = currentGridContents.filter(item => {
     const sectionContent = deepRecord(item, "richSectionRenderer", "content");
     if (!isRecord(sectionContent)) {
@@ -342,7 +343,11 @@ async function removeInnerShelfGroup({ elInnerShelf, group }: {
   const innerShelfVideoIdSet = new Set(group.videoIds);
   const isHorizontalList = isRecord(content.horizontalListRenderer);
   const listPath = isHorizontalList ? "data.content.horizontalListRenderer.items" : "data.content.gridRenderer.items";
-  const listItems = deepArray(isHorizontalList ? content.horizontalListRenderer : content.gridRenderer, "items");
+  type ShelfListItem = {
+    videoRenderer?: { videoId: string };
+    gridVideoRenderer?: { videoId: string };
+  };
+  const listItems = deepArray<ShelfListItem>(isHorizontalList ? content.horizontalListRenderer : content.gridRenderer, "items");
   const filteredListItems = listItems.filter(
     item => !innerShelfVideoIdSet.has(deepString(item, "videoRenderer", "videoId"))
       && !innerShelfVideoIdSet.has(deepString(item, "gridVideoRenderer", "videoId"))

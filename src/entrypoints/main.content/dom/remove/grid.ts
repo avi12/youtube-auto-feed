@@ -1,5 +1,5 @@
 import { deepArray, isPolymerElement, isRecord } from "../../helpers";
-import type { PolymerElement } from "../../types";
+import type { InnerTubeRichGridItem, PolymerElement } from "../../types";
 import {
   animateItemsOut,
   assignItemViewTransitionNames,
@@ -78,7 +78,7 @@ function cleanupOrphanIdsInGridData({
   }
 
   const unfoundSet = new Set(unfoundVideoIds);
-  const currentContents = deepArray(elGrid.data, "contents");
+  const currentContents = deepArray<InnerTubeRichGridItem>(elGrid.data, "contents");
   const filteredContents = filterOutRichItems({
     contents: currentContents,
     excludeVideoIds: unfoundSet
@@ -93,7 +93,7 @@ function removeAllOrNothing({ elGrid, gridVideoIdSet, allGridElements }: {
   gridVideoIdSet: Set<string>;
   allGridElements: HTMLElement[];
 }) {
-  const currentContents = deepArray(elGrid.data, "contents");
+  const currentContents = deepArray<InnerTubeRichGridItem>(elGrid.data, "contents");
   const filteredContents = filterOutRichItems({
     contents: currentContents,
     excludeVideoIds: gridVideoIdSet
@@ -136,7 +136,7 @@ async function removeGridItemsAnimated({ elGrid, gridVideoIdSet, allGridElements
   document.head.append(elShiftStyle);
 
   const transition = document.startViewTransition(() => {
-    const currentContents = deepArray(elGrid.data, "contents");
+    const currentContents = deepArray<InnerTubeRichGridItem>(elGrid.data, "contents");
     const filteredContents = filterOutRichItems({
       contents: currentContents,
       excludeVideoIds: gridVideoIdSet

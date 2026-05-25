@@ -5,6 +5,7 @@ import {
   isPolymerElement,
   isRecord
 } from "../helpers";
+import type { InnerTubeRichGridItem } from "../types";
 import { videoIdFromRichItem } from "./rich-item";
 
 export type BandKind = "inline" | "richShelf";
@@ -19,11 +20,11 @@ export interface BandLayout {
   sectionOrder: string[];
 }
 
-function readRichShelfTitle(item: unknown) {
+function readRichShelfTitle(item: InnerTubeRichGridItem) {
   return deepString(item, "richSectionRenderer", "content", "richShelfRenderer", "title", "runs", "0", "text");
 }
 
-function readTitleOnlyShelfTitle(item: unknown) {
+function readTitleOnlyShelfTitle(item: InnerTubeRichGridItem) {
   if (deepRecord(item, "richSectionRenderer", "content", "richShelfRenderer")) {
     return "";
   }
@@ -37,7 +38,7 @@ export function captureBandLayout() {
     return null;
   }
 
-  const contents = deepArray(elGrid.data, "contents");
+  const contents = deepArray<InnerTubeRichGridItem>(elGrid.data, "contents");
   const bands: CapturedBand[] = [];
   const sectionOrder: string[] = [];
   let currentInlineSection = "";
@@ -123,7 +124,7 @@ export async function normalizeCollapsedShelfRows() {
     );
 
     // Filter data by video ID (not index) so hidden items beyond the visible set are untouched.
-    const currentContents = deepArray(elShelf.data, "contents");
+    const currentContents = deepArray<InnerTubeRichGridItem>(elShelf.data, "contents");
     const normalizedContents = currentContents.filter(item => {
       const videoId = videoIdFromRichItem(item);
       if (videoId && overflowVideoIds.has(videoId)) {
