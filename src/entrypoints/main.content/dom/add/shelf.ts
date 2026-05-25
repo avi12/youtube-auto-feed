@@ -80,7 +80,6 @@ async function addVideosToSection({
 
   const insertOperations = buildInsertOperations({
     videosToInsert,
-    sectionVideos,
     elShelf,
     snapshot
   });
@@ -116,26 +115,20 @@ async function addVideosToSection({
 
 function buildInsertOperations({
   videosToInsert,
-  sectionVideos,
   elShelf,
   snapshot
 }: {
   videosToInsert: VideoSnapshot[];
-  sectionVideos: VideoSnapshot[];
   elShelf: PolymerElement;
   snapshot: Map<string, VideoSnapshot>;
 }) {
+  const iLeadingLive = leadingLiveCount({
+    elShelf,
+    snapshot
+  });
   return videosToInsert
-    .map(video => {
-      const iApiInsert = Math.max(0, sectionVideos.findIndex(sectionVideo => sectionVideo.videoId === video.videoId));
-      const iInsert = video.status !== VideoStatus.Live
-        ? Math.max(
-          iApiInsert, leadingLiveCount({
-            elShelf,
-            snapshot
-          })
-        )
-        : iApiInsert;
+    .map((video, iVideo) => {
+      const iInsert = video.status === VideoStatus.Live ? iVideo : iLeadingLive + iVideo;
       return {
         video,
         iInsert
