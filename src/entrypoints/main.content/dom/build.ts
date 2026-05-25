@@ -31,19 +31,22 @@ export function preloadThumbnails(videos: VideoSnapshot[]) {
   return Promise.all(videos.map(video => preloadThumbnail(rawThumbnailUrl(video.rawRenderer))));
 }
 
-export function buildRichItem(rawRenderer: InnerTubeVideoRenderer | LockupViewModel | ShortsLockupViewModel) {
-  let content;
+function buildRichItemContent(rawRenderer: InnerTubeVideoRenderer | LockupViewModel | ShortsLockupViewModel) {
   if (isLockupViewModel(rawRenderer)) {
-    content = { lockupViewModel: rawRenderer };
-  } else if (isShortsLockupViewModel(rawRenderer)) {
-    content = { shortsLockupViewModel: rawRenderer };
-  } else {
-    content = { videoRenderer: rawRenderer };
+    return { lockupViewModel: rawRenderer };
   }
 
+  if (isShortsLockupViewModel(rawRenderer)) {
+    return { shortsLockupViewModel: rawRenderer };
+  }
+
+  return { videoRenderer: rawRenderer };
+}
+
+export function buildRichItem(rawRenderer: InnerTubeVideoRenderer | LockupViewModel | ShortsLockupViewModel) {
   return {
     richItemRenderer: {
-      content,
+      content: buildRichItemContent(rawRenderer),
       trackingParams: ""
     }
   };

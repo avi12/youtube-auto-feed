@@ -17,6 +17,40 @@ interface CollectSnapshotParams {
   shortsLockup?: ShortsLockupViewModel;
 }
 
+function parseAnyRenderer({ sectionTitle, bandIndex, renderer, lockup, shortsLockup }: {
+  sectionTitle: string;
+  bandIndex: number;
+  renderer?: InnerTubeVideoRenderer;
+  lockup?: LockupViewModel;
+  shortsLockup?: ShortsLockupViewModel;
+}) {
+  if (renderer) {
+    return parseRenderer({
+      renderer,
+      sectionTitle,
+      bandIndex
+    });
+  }
+
+  if (lockup) {
+    return parseLockupViewModel({
+      lockup,
+      sectionTitle,
+      bandIndex
+    });
+  }
+
+  if (shortsLockup) {
+    return parseShortsLockupViewModel({
+      shortsLockup,
+      sectionTitle,
+      bandIndex
+    });
+  }
+
+  return null;
+}
+
 function collectSnapshot({
   sectionTitle,
   bandIndex,
@@ -26,31 +60,19 @@ function collectSnapshot({
   lockup,
   shortsLockup
 }: CollectSnapshotParams) {
-  let snapshot = null;
-  if (renderer) {
-    snapshot = parseRenderer({
-      renderer,
-      sectionTitle,
-      bandIndex
-    });
-  } else if (lockup) {
-    snapshot = parseLockupViewModel({
-      lockup,
-      sectionTitle,
-      bandIndex
-    });
-  } else if (shortsLockup) {
-    snapshot = parseShortsLockupViewModel({
-      shortsLockup,
-      sectionTitle,
-      bandIndex
-    });
+  const snapshot = parseAnyRenderer({
+    sectionTitle,
+    bandIndex,
+    renderer,
+    lockup,
+    shortsLockup
+  });
+  if (!snapshot || seenVideoIds.has(snapshot.videoId)) {
+    return;
   }
 
-  if (snapshot && !seenVideoIds.has(snapshot.videoId)) {
-    seenVideoIds.add(snapshot.videoId);
-    snapshots.push(snapshot);
-  }
+  seenVideoIds.add(snapshot.videoId);
+  snapshots.push(snapshot);
 }
 
 export function extractApiSectionOrder(data: InnerTubeBrowseResponse) {

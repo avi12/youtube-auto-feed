@@ -255,6 +255,18 @@ async function removeEmptyShelfSection({ elRichShelf, shelfTitle }: {
   });
 }
 
+function pickShelfRenderer(sectionContent: Record<string, unknown>) {
+  if (isRecord(sectionContent.richShelfRenderer)) {
+    return sectionContent.richShelfRenderer;
+  }
+
+  if (isRecord(sectionContent.shelfRenderer)) {
+    return sectionContent.shelfRenderer;
+  }
+
+  return null;
+}
+
 function tryRemoveSectionViaGridData({ elGrid, shelfTitle }: {
   elGrid: HTMLElement | null;
   shelfTitle: string;
@@ -270,13 +282,7 @@ function tryRemoveSectionViaGridData({ elGrid, shelfTitle }: {
       return true;
     }
 
-    let shelf: Record<string, unknown> | null = null;
-    if (isRecord(sectionContent.richShelfRenderer)) {
-      shelf = sectionContent.richShelfRenderer;
-    } else if (isRecord(sectionContent.shelfRenderer)) {
-      shelf = sectionContent.shelfRenderer;
-    }
-
+    const shelf = pickShelfRenderer(sectionContent);
     if (!shelf) {
       return true;
     }

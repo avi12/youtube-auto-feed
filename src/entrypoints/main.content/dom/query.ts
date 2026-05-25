@@ -39,6 +39,38 @@ export function findShelfForSection(sectionTitle: string) {
   return null;
 }
 
+function parseRichItemRenderer({ rawRenderer, sectionTitle, bandIndex }: {
+  rawRenderer: Record<string, unknown> | null;
+  sectionTitle: string;
+  bandIndex: number;
+}) {
+  if (isVideoRenderer(rawRenderer)) {
+    return parseRenderer({
+      renderer: rawRenderer,
+      sectionTitle,
+      bandIndex
+    });
+  }
+
+  if (isLockupViewModel(rawRenderer)) {
+    return parseLockupViewModel({
+      lockup: rawRenderer,
+      sectionTitle,
+      bandIndex
+    });
+  }
+
+  if (isShortsLockupViewModel(rawRenderer)) {
+    return parseShortsLockupViewModel({
+      shortsLockup: rawRenderer,
+      sectionTitle,
+      bandIndex
+    });
+  }
+
+  return null;
+}
+
 export function readDomSnapshot() {
   const snapshot = new Map<string, VideoSnapshot>();
 
@@ -57,27 +89,11 @@ export function readDomSnapshot() {
       deepRecord(elItem.data, "content", "richGridMediaRenderer", "content", "videoRenderer") ??
       deepRecord(elItem.data, "content", "lockupViewModel") ??
       deepRecord(elItem.data, "content", "shortsLockupViewModel");
-    let videoSnapshot = null;
-    if (isVideoRenderer(rawRenderer)) {
-      videoSnapshot = parseRenderer({
-        renderer: rawRenderer,
-        sectionTitle,
-        bandIndex
-      });
-    } else if (isLockupViewModel(rawRenderer)) {
-      videoSnapshot = parseLockupViewModel({
-        lockup: rawRenderer,
-        sectionTitle,
-        bandIndex
-      });
-    } else if (isShortsLockupViewModel(rawRenderer)) {
-      videoSnapshot = parseShortsLockupViewModel({
-        shortsLockup: rawRenderer,
-        sectionTitle,
-        bandIndex
-      });
-    }
-
+    const videoSnapshot = parseRichItemRenderer({
+      rawRenderer,
+      sectionTitle,
+      bandIndex
+    });
     if (videoSnapshot && !snapshot.has(videoSnapshot.videoId)) {
       snapshot.set(videoSnapshot.videoId, videoSnapshot);
     }
