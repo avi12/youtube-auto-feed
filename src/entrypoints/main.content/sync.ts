@@ -470,10 +470,8 @@ async function executeChanges({
   }
 
   for (const video of changes.videosToReposition) {
-    const sectionVideos = freshSnapshots.filter(snapshot => snapshot.sectionTitle === video.sectionTitle);
     await repositionVideoInSection({
       freshSnapshot: video,
-      sectionVideos,
       allSnapshots: freshMap
     });
   }
