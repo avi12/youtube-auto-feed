@@ -251,28 +251,23 @@ function applyProgressBarUpdate({ elLockup, percent }: {
   elLockup: HTMLElement;
   percent: number | null;
 }) {
+  if (percent === null) {
+    return false;
+  }
+
   const root: ShadowRoot | HTMLElement = elLockup.shadowRoot ?? elLockup;
   const elProgressHost = root.querySelector<HTMLElement>("yt-thumbnail-overlay-progress-bar-view-model");
   if (!elProgressHost) {
     return false;
   }
 
-  if (percent === null) {
+  const fillRoot: ShadowRoot | HTMLElement = elProgressHost.shadowRoot ?? elProgressHost;
+  const elFill = fillRoot.querySelector<HTMLElement>(":scope > div > div");
+  if (!elFill) {
     return false;
   }
 
-  if ("progressBarViewModel" in elProgressHost) {
-    Object.assign(elProgressHost, {
-      progressBarViewModel: { startPercent: percent }
-    });
-  }
-
-  const fillRoot: ShadowRoot | HTMLElement = elProgressHost.shadowRoot ?? elProgressHost;
-  const elFill = fillRoot.querySelector<HTMLElement>(":scope > div > div");
-  if (elFill) {
-    elFill.style.width = `${percent}%`;
-  }
-
+  elFill.style.width = `${percent}%`;
   return true;
 }
 
