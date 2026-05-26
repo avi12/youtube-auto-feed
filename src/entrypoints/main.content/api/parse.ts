@@ -79,8 +79,9 @@ export function extractApiSectionOrder(data: InnerTubeBrowseResponse) {
   try {
     const tabContent = data.contents.twoColumnBrowseResultsRenderer.tabs[0]?.tabRenderer.content;
     for (const item of tabContent?.richGridRenderer?.contents ?? []) {
-      const title = item.richSectionRenderer?.content?.richShelfRenderer?.title?.runs?.[0]?.text
-                ?? item.richSectionRenderer?.content?.shelfRenderer?.title?.runs?.[0]?.text;
+      const { richShelfRenderer, shelfRenderer } = item.richSectionRenderer?.content ?? {};
+      const title = richShelfRenderer?.title?.runs?.[0]?.text
+                ?? shelfRenderer?.title?.runs?.[0]?.text;
       if (!title) {
         continue;
       }
@@ -120,25 +121,30 @@ export function parseApiResponse(data: InnerTubeBrowseResponse) {
       if (item.richSectionRenderer) {
         const { richShelfRenderer, shelfRenderer } = item.richSectionRenderer.content;
         if (richShelfRenderer) {
-          currentSectionTitle = richShelfRenderer.title.runs[0]?.text ?? "";
-          for (const richItem of richShelfRenderer.contents) {
-            const content = richItem.richItemRenderer?.content;
-            const renderer = content?.videoRenderer
-              ?? content?.gridVideoRenderer
-              ?? content?.richGridMediaRenderer?.content?.videoRenderer;
+          const { title, contents } = richShelfRenderer;
+          currentSectionTitle = title.runs[0]?.text ?? "";
+          for (const richItem of contents) {
+            const {
+              videoRenderer,
+              gridVideoRenderer,
+              richGridMediaRenderer,
+              lockupViewModel,
+              shortsLockupViewModel
+            } = richItem.richItemRenderer?.content ?? {};
             pushSnapshot({
               sectionTitle: currentSectionTitle,
               bandIndex: currentBandIndex,
-              renderer,
-              lockup: content?.lockupViewModel,
-              shortsLockup: content?.shortsLockupViewModel
+              renderer: videoRenderer ?? gridVideoRenderer ?? richGridMediaRenderer?.content?.videoRenderer,
+              lockup: lockupViewModel,
+              shortsLockup: shortsLockupViewModel
             });
           }
           currentBandIndex++;
         } else if (shelfRenderer) {
-          currentSectionTitle = shelfRenderer.title.runs[0]?.text ?? "";
-          const shelfItems = shelfRenderer.content?.horizontalListRenderer?.items
-            ?? shelfRenderer.content?.gridRenderer?.items
+          const { title, content } = shelfRenderer;
+          currentSectionTitle = title.runs[0]?.text ?? "";
+          const shelfItems = content?.horizontalListRenderer?.items
+            ?? content?.gridRenderer?.items
             ?? [];
           for (const shelfItem of shelfItems) {
             pushSnapshot({
@@ -156,16 +162,19 @@ export function parseApiResponse(data: InnerTubeBrowseResponse) {
         // Root-level video items following a shelf are Latest-band siblings, not part of the shelf.
         currentSectionTitle = "";
       } else if (item.richItemRenderer) {
-        const { content } = item.richItemRenderer;
-        const renderer = content?.videoRenderer
-          ?? content?.gridVideoRenderer
-          ?? content?.richGridMediaRenderer?.content?.videoRenderer;
+        const {
+          videoRenderer,
+          gridVideoRenderer,
+          richGridMediaRenderer,
+          lockupViewModel,
+          shortsLockupViewModel
+        } = item.richItemRenderer.content;
         pushSnapshot({
           sectionTitle: currentSectionTitle,
           bandIndex: currentBandIndex,
-          renderer,
-          lockup: content?.lockupViewModel,
-          shortsLockup: content?.shortsLockupViewModel
+          renderer: videoRenderer ?? gridVideoRenderer ?? richGridMediaRenderer?.content?.videoRenderer,
+          lockup: lockupViewModel,
+          shortsLockup: shortsLockupViewModel
         });
       }
     }
@@ -179,9 +188,10 @@ export function parseApiResponse(data: InnerTubeBrowseResponse) {
             continue;
           }
 
-          const sectionTitle = shelf.title.runs[0]?.text ?? "";
-          const shelfItems = shelf.content?.horizontalListRenderer?.items
-            ?? shelf.content?.gridRenderer?.items
+          const { title, content } = shelf;
+          const sectionTitle = title.runs[0]?.text ?? "";
+          const shelfItems = content?.horizontalListRenderer?.items
+            ?? content?.gridRenderer?.items
             ?? [];
           for (const shelfItem of shelfItems) {
             pushSnapshot({

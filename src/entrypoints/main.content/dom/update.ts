@@ -160,31 +160,32 @@ interface ItemTextChange {
 }
 
 function applyLockupTextChanges({ refs, fresh }: LockupTextChange) {
-  const existingTitle = refs.elTitle?.textContent ?? "";
+  const { elTitle, elHeading, elTitleLink, elView, elTime } = refs;
+  const existingTitle = elTitle?.textContent ?? "";
   setNodeTextIfChanged({
-    elNode: refs.elTitle,
+    elNode: elTitle,
     newText: fresh.title
   });
   setAttributeIfChanged({
-    elNode: refs.elHeading,
+    elNode: elHeading,
     name: "title",
     value: fresh.title
   });
   const newAriaLabel = buildAriaLabelUpdate({
-    elTitleLink: refs.elTitleLink,
+    elTitleLink,
     existingTitle,
     newTitle: fresh.title
   });
   if (newAriaLabel !== null) {
-    refs.elTitleLink?.setAttribute("aria-label", newAriaLabel);
+    elTitleLink?.setAttribute("aria-label", newAriaLabel);
   }
 
   setNodeTextIfChanged({
-    elNode: refs.elView,
+    elNode: elView,
     newText: fresh.viewCountText
   });
   setNodeTextIfChanged({
-    elNode: refs.elTime,
+    elNode: elTime,
     newText: fresh.publishedTimeText
   });
 }
@@ -888,6 +889,7 @@ interface TargetedUpdateParams {
 }
 
 async function applyTargetedGenericUpdate({ videoId, elItem, previous, fresh }: TargetedUpdateParams) {
+  const { rawRenderer, thumbnailUrl } = fresh;
   const isShorts = !!elItem.querySelector("ytm-shorts-lockup-view-model-v2, ytm-shorts-lockup-view-model");
   const textElements = isShorts
     ? changingShortsTextElements({
@@ -908,17 +910,17 @@ async function applyTargetedGenericUpdate({ videoId, elItem, previous, fresh }: 
       fresh
     });
 
-  const isThumbnailChanging = previous.thumbnailUrl !== fresh.thumbnailUrl;
+  const isThumbnailChanging = previous.thumbnailUrl !== thumbnailUrl;
   const elImg = isThumbnailChanging ? findThumbnailImgInItem(elItem) : null;
   // Thumbnail changed but the live <img> couldn't be located, so rebuild the whole renderer
   if (isThumbnailChanging && !elImg) {
     applyPolymerUpdate({
       elItem,
-      rawRenderer: fresh.rawRenderer
+      rawRenderer
     });
     syncGridModelItem({
       videoId,
-      rawRenderer: fresh.rawRenderer
+      rawRenderer
     });
     return;
   }
@@ -927,7 +929,7 @@ async function applyTargetedGenericUpdate({ videoId, elItem, previous, fresh }: 
     ? await prepareThumbnailDissolve({
       elItem,
       elImg,
-      newUrl: fresh.thumbnailUrl
+      newUrl: thumbnailUrl
     })
     : null;
   const isNothingToAnimate = textElements.length === 0 && !thumbWork?.willDissolve;
@@ -936,7 +938,7 @@ async function applyTargetedGenericUpdate({ videoId, elItem, previous, fresh }: 
     if (elImg && isThumbnailChanging) {
       syncGridModelItem({
         videoId,
-        rawRenderer: fresh.rawRenderer,
+        rawRenderer,
         forcePreserveContentImage: true
       });
     }
@@ -960,7 +962,7 @@ async function applyTargetedGenericUpdate({ videoId, elItem, previous, fresh }: 
 
       syncGridModelItem({
         videoId,
-        rawRenderer: fresh.rawRenderer,
+        rawRenderer,
         forcePreserveContentImage: !thumbWork?.willDissolve
       });
     }
@@ -982,10 +984,10 @@ async function applyTargetedLockupUpdate({
     fresh
   });
 
-  const freshRawRenderer = fresh.rawRenderer;
+  const { rawRenderer: freshRawRenderer, thumbnailUrl, watchProgressPercent } = fresh;
   const freshLockup = isLockupViewModel(freshRawRenderer) ? freshRawRenderer : null;
-  const newUrl = freshLockup?.contentImage?.thumbnailViewModel?.image?.sources?.at(-1)?.url ?? fresh.thumbnailUrl;
-  const thumbUrlDiffers = previous.thumbnailUrl !== fresh.thumbnailUrl;
+  const newUrl = freshLockup?.contentImage?.thumbnailViewModel?.image?.sources?.at(-1)?.url ?? thumbnailUrl;
+  const thumbUrlDiffers = previous.thumbnailUrl !== thumbnailUrl;
   const elImg = thumbUrlDiffers ? findThumbnailImg(elLockup) : null;
   // Thumbnail changed but the live <img> couldn't be located, so rebuild the whole renderer
   const isThumbnailUnreachable = thumbUrlDiffers && !elImg;
@@ -1008,7 +1010,7 @@ async function applyTargetedLockupUpdate({
       newUrl
     })
     : null;
-  const isWatchProgressChanged = previous.watchProgressPercent !== fresh.watchProgressPercent;
+  const isWatchProgressChanged = previous.watchProgressPercent !== watchProgressPercent;
   const isNothingToAnimate = textElements.length === 0 && !thumbWork?.willDissolve;
   if (isNothingToAnimate) {
     if (freshLockup) {
@@ -1023,7 +1025,7 @@ async function applyTargetedLockupUpdate({
     if (isWatchProgressChanged) {
       const didUpdate = applyProgressBarUpdate({
         elLockup,
-        percent: fresh.watchProgressPercent
+        percent: watchProgressPercent
       });
       if (!didUpdate) {
         applyPolymerUpdate({
@@ -1071,7 +1073,7 @@ async function applyTargetedLockupUpdate({
       if (isWatchProgressChanged) {
         isProgressBarDirty = !applyProgressBarUpdate({
           elLockup,
-          percent: fresh.watchProgressPercent
+          percent: watchProgressPercent
         });
       }
     }
@@ -1096,19 +1098,20 @@ export function applyUpdate({ videoId, elItem, fresh, previous }: {
   fresh: VideoSnapshot;
   previous?: VideoSnapshot;
 }) {
+  const { rawRenderer } = fresh;
   const isChannelLiveChanged = !!previous && previous.isChannelLive !== fresh.isChannelLive;
   // Status flips and channel-live flips require a full renderer swap; targeted DOM patches only handle metadata
   const needsFullRebuild = !previous || previous.status !== fresh.status || isChannelLiveChanged;
   if (needsFullRebuild) {
     applyPolymerUpdate({
       elItem,
-      rawRenderer: fresh.rawRenderer
+      rawRenderer
     });
     // When only the channel-live flag changed, the thumbnail bytes are the same - keep them
     const isOnlyChannelLiveFlip = isChannelLiveChanged && previous !== undefined && previous.status === fresh.status;
     syncGridModelItem({
       videoId,
-      rawRenderer: fresh.rawRenderer,
+      rawRenderer,
       forcePreserveContentImage: isOnlyChannelLiveFlip
     });
     return;
@@ -1118,11 +1121,11 @@ export function applyUpdate({ videoId, elItem, fresh, previous }: {
   if (!isRecord(itemData)) {
     applyPolymerUpdate({
       elItem,
-      rawRenderer: fresh.rawRenderer
+      rawRenderer
     });
     syncGridModelItem({
       videoId,
-      rawRenderer: fresh.rawRenderer
+      rawRenderer
     });
     return;
   }

@@ -197,7 +197,7 @@ function setupGridTransition({
   clearAllItemViewTransitionNames();
 
   const elAllItems = [...elGridContents.querySelectorAll<HTMLElement>(":scope > ytd-rich-item-renderer")];
-  const shiftTargets = standaloneVideos.length > 0
+  const { elElementsToAnimate, elSectionsToAnimate, aboveViewportShiftItems } = standaloneVideos.length > 0
     ? collectGridShiftTargets({
       elGridContents,
       elAllItems,
@@ -210,32 +210,39 @@ function setupGridTransition({
       aboveViewportShiftItems: []
     };
 
-  assignItemViewTransitionNames(shiftTargets.elElementsToAnimate);
+  assignItemViewTransitionNames(elElementsToAnimate);
   const elShiftStyle = buildShiftTransitionStyle({
-    elItems: shiftTargets.elElementsToAnimate,
+    elItems: elElementsToAnimate,
     excludeNames: new Set(),
-    delayPerItemMs: calculateStaggerDelayMs(shiftTargets.elElementsToAnimate.length)
+    delayPerItemMs: calculateStaggerDelayMs(elElementsToAnimate.length)
   });
   document.head.append(elShiftStyle);
 
   return {
     elShiftStyle,
-    elElementsToAnimate: shiftTargets.elElementsToAnimate,
-    elSectionsToAnimate: shiftTargets.elSectionsToAnimate,
-    animateIds: extractAnimateIds(shiftTargets.elElementsToAnimate),
+    elElementsToAnimate,
+    elSectionsToAnimate,
+    animateIds: extractAnimateIds(elElementsToAnimate),
     elNewItemTransitionStyles: [],
     actuallyAddedVideos: [],
-    aboveViewportShiftItems: shiftTargets.aboveViewportShiftItems
+    aboveViewportShiftItems
   };
 }
 
 function teardownGridTransition(context: GridTransitionContext) {
-  context.elShiftStyle.remove();
-  context.elNewItemTransitionStyles[0]?.remove();
-  clearItemViewTransitionNames(context.elElementsToAnimate);
-  clearItemViewTransitionNames(context.elSectionsToAnimate);
-  for (const video of context.actuallyAddedVideos) {
-    const elNewItem = findItemElement(video.videoId);
+  const {
+    elShiftStyle,
+    elNewItemTransitionStyles,
+    elElementsToAnimate,
+    elSectionsToAnimate,
+    actuallyAddedVideos
+  } = context;
+  elShiftStyle.remove();
+  elNewItemTransitionStyles[0]?.remove();
+  clearItemViewTransitionNames(elElementsToAnimate);
+  clearItemViewTransitionNames(elSectionsToAnimate);
+  for (const { videoId } of actuallyAddedVideos) {
+    const elNewItem = findItemElement(videoId);
     if (elNewItem) {
       elNewItem.style.viewTransitionName = "";
     }
@@ -341,9 +348,10 @@ function insertVideoOrStandalone({
   allSnapshotMap: Map<string, VideoSnapshot>;
   actuallyAddedVideos: VideoSnapshot[];
 }) {
+  const { videoId, sectionTitle, bandIndex, status, rawRenderer } = video;
   const iSection = findExistingSectionIndex({
     contents: newContents,
-    sectionTitle: video.sectionTitle
+    sectionTitle
   });
   let wasInserted = false;
   if (iSection >= 0) {
@@ -363,28 +371,28 @@ function insertVideoOrStandalone({
     return;
   }
 
-  if (newContents.some(item => videoIdFromRichItem(item) === video.videoId)) {
+  if (newContents.some(item => videoIdFromRichItem(item) === videoId)) {
     return;
   }
 
-  const freshIndex = freshOrderMap.get(video.videoId) ?? 0;
-  const iInsert = !video.sectionTitle
+  const freshIndex = freshOrderMap.get(videoId) ?? 0;
+  const iInsert = !sectionTitle
     ? findZoneInsertIndex({
       contents: newContents,
-      bandIndex: video.bandIndex,
+      bandIndex,
       freshIndex,
       freshOrderMap,
-      videoStatus: video.status,
+      videoStatus: status,
       allSnapshotMap
     })
     : findGridInsertIndex({
       contents: newContents,
       freshIndex,
       freshOrderMap,
-      videoStatus: video.status,
+      videoStatus: status,
       allSnapshotMap
     });
-  newContents.splice(iInsert, 0, buildRichItem(video.rawRenderer));
+  newContents.splice(iInsert, 0, buildRichItem(rawRenderer));
   actuallyAddedVideos.push(video);
 }
 
@@ -441,8 +449,9 @@ function tryInsertIntoExistingRichShelf({ newContents, iSection, video }: {
     return false;
   }
 
+  const { videoId, rawRenderer } = video;
   const shelfContents = richShelfRaw.contents;
-  if (!shelfContents.some(item => videoIdFromRichItem(item) === video.videoId)) {
+  if (!shelfContents.some(item => videoIdFromRichItem(item) === videoId)) {
     newContents[iSection] = {
       richSectionRenderer: {
         ...section,
@@ -450,7 +459,7 @@ function tryInsertIntoExistingRichShelf({ newContents, iSection, video }: {
           ...content,
           richShelfRenderer: {
             ...richShelfRaw,
-            contents: [buildRichItem(video.rawRenderer), ...shelfContents]
+            contents: [buildRichItem(rawRenderer), ...shelfContents]
           }
         }
       }
@@ -472,7 +481,8 @@ function tryInsertIntoExistingInnerShelf({ newContents, iSection, video }: {
     return false;
   }
 
-  if (!isVideoRenderer(video.rawRenderer)) {
+  const { videoId, rawRenderer } = video;
+  if (!isVideoRenderer(rawRenderer)) {
     return false;
   }
 
@@ -485,7 +495,7 @@ function tryInsertIntoExistingInnerShelf({ newContents, iSection, video }: {
   const listKey = !horizontalList && gridList ? "gridRenderer" : "horizontalListRenderer";
   const existingList: Record<string, unknown> = horizontalList ?? gridList ?? {};
   const items = deepArray(existingList, "items");
-  const isAlreadyPresent = items.some(item => videoIdFromShelfListItem(item) === video.videoId);
+  const isAlreadyPresent = items.some(item => videoIdFromShelfListItem(item) === videoId);
   if (!isAlreadyPresent) {
     newContents[iSection] = {
       richSectionRenderer: {
@@ -498,7 +508,7 @@ function tryInsertIntoExistingInnerShelf({ newContents, iSection, video }: {
               ...innerContent,
               [listKey]: {
                 ...existingList,
-                items: [{ videoRenderer: video.rawRenderer }, ...items]
+                items: [{ videoRenderer: rawRenderer }, ...items]
               }
             }
           }

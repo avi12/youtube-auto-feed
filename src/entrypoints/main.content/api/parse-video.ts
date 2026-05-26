@@ -26,9 +26,10 @@ export function parseRenderer({ renderer, sectionTitle, bandIndex }:
     return null;
   }
 
+  const { runs, simpleText } = title;
   return {
     videoId,
-    title: title.runs?.[0]?.text ?? title.simpleText ?? "",
+    title: runs?.[0]?.text ?? simpleText ?? "",
     thumbnailUrl: thumbnail.thumbnails.at(-1)?.url.split("?")[0] ?? "",
     status: statusFromRenderer(renderer),
     viewCountText: viewCountFromRenderer(renderer),
@@ -75,14 +76,16 @@ export function parseLockupViewModel({ lockup, sectionTitle, bandIndex }:
 
 export function parseShortsLockupViewModel({ shortsLockup, sectionTitle, bandIndex }:
   ParseVideoParams & { shortsLockup: ShortsLockupViewModel }) {
-  const videoId = shortsLockup.onTap?.innertubeCommand?.reelWatchEndpoint?.videoId ?? "";
+  const { onTap, overlayMetadata, thumbnail, accessibilityText = "" } = shortsLockup;
+  const videoId = onTap?.innertubeCommand?.reelWatchEndpoint?.videoId ?? "";
   if (videoId === "") {
     return null;
   }
 
-  const title = shortsLockup.overlayMetadata?.primaryText?.content ?? shortsLockup.accessibilityText ?? "";
-  const thumbnailUrl = shortsLockup.thumbnail?.sources?.at(-1)?.url.split("?")[0] ?? "";
-  const viewCountText = shortsLockup.overlayMetadata?.secondaryText?.content ?? "";
+  const { primaryText, secondaryText } = overlayMetadata ?? {};
+  const title = primaryText?.content ?? accessibilityText;
+  const thumbnailUrl = thumbnail?.sources?.at(-1)?.url.split("?")[0] ?? "";
+  const viewCountText = secondaryText?.content ?? "";
   return {
     videoId,
     title,

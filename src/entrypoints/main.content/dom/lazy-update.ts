@@ -63,13 +63,14 @@ function ensureObserver() {
         continue;
       }
 
+      const { fresh, previous } = pending;
       pendingUpdates.delete(videoId);
       intersectionObserver?.unobserve(elItem);
       pendingApplyBatch.push({
         videoId,
         elItem,
-        fresh: pending.fresh,
-        previous: pending.previous
+        fresh,
+        previous
       });
     }
 

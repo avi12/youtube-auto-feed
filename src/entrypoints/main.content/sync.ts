@@ -340,7 +340,7 @@ function classifyChanges({
   currentVideoBandIndices,
   confirmedAbsentVideoIds
 }: DiffInputs): ClassifiedChanges {
-  const diff = computeFeedDiff({
+  const { removed, candidateRemovals, added, liveTransitions, finishedStreams, metadataOnly } = computeFeedDiff({
     previousSnapshot,
     freshSnapshots,
     freshMap,
@@ -350,7 +350,7 @@ function classifyChanges({
     confirmedAbsentVideoIds
   });
 
-  for (const fresh of diff.metadataOnly) {
+  for (const fresh of metadataOnly) {
     const previous = previousSnapshot.get(fresh.videoId);
     if (previous) {
       updateVideoInDom({
@@ -361,7 +361,7 @@ function classifyChanges({
     }
   }
 
-  for (const fresh of diff.finishedStreams) {
+  for (const fresh of finishedStreams) {
     const previous = previousSnapshot.get(fresh.videoId);
     if (previous) {
       updateVideoInDom({
@@ -373,11 +373,11 @@ function classifyChanges({
   }
 
   return {
-    videoIdsToRemove: diff.removed,
-    candidateRemovals: diff.candidateRemovals,
-    videosToAdd: diff.added,
-    videosToReposition: diff.finishedStreams,
-    videosToMoveToFront: diff.liveTransitions
+    videoIdsToRemove: removed,
+    candidateRemovals,
+    videosToAdd: added,
+    videosToReposition: finishedStreams,
+    videosToMoveToFront: liveTransitions
   };
 }
 
@@ -405,11 +405,12 @@ async function executeChanges({
   freshMap: Map<string, VideoSnapshot>;
   bandLayout: BandLayout | null;
 }) {
+  const { videoIdsToRemove, videosToAdd, videosToReposition, videosToMoveToFront } = changes;
   const timeOrderedSnapshots = freshSnapshots.toSorted(
     (videoA, videoB) => parseSecondsAgo(videoA.publishedTimeText) - parseSecondsAgo(videoB.publishedTimeText)
   );
 
-  const videoIdsToRemoveSet = new Set(changes.videoIdsToRemove);
+  const videoIdsToRemoveSet = new Set(videoIdsToRemove);
   const innerShelfSections = new Set(
     [...document.querySelectorAll<HTMLElement>("ytd-shelf-renderer")]
       .filter(isPolymerElement)
@@ -424,13 +425,13 @@ async function executeChanges({
 
   // Cascade handles inline Latest additions + known richShelf sections; everything else falls back to direct insert.
   const videosForCascade = bandLayout
-    ? changes.videosToAdd.filter(video => {
+    ? videosToAdd.filter(video => {
       const isInlineCascadeCandidate = !video.sectionTitle && video.bandIndex === 0 && hasInlineBands;
       const isShelfCascadeCandidate = !!video.sectionTitle && cascadeSectionTitles.has(video.sectionTitle);
       return isInlineCascadeCandidate || isShelfCascadeCandidate;
     })
     : [];
-  const videosForFallback = changes.videosToAdd.filter(
+  const videosForFallback = videosToAdd.filter(
     video => !videosForCascade.includes(video) && !innerShelfSections.has(video.sectionTitle)
   );
   const gridFallbackVideos = videosForFallback.filter(video => !video.sectionTitle);
@@ -462,14 +463,14 @@ async function executeChanges({
     });
   }
 
-  if (changes.videoIdsToRemove.length > 0) {
+  if (videoIdsToRemove.length > 0) {
     await removeVideosFromDom({
-      videoIds: changes.videoIdsToRemove,
+      videoIds: videoIdsToRemove,
       shelfProtectedIds
     });
   }
 
-  for (const video of changes.videosToReposition) {
+  for (const video of videosToReposition) {
     await repositionVideoInSection({
       freshSnapshot: video,
       allSnapshots: freshMap
@@ -483,9 +484,9 @@ async function executeChanges({
     });
   }
 
-  if (changes.videosToMoveToFront.length > 0) {
+  if (videosToMoveToFront.length > 0) {
     await moveVideosToFront({
-      videos: changes.videosToMoveToFront,
+      videos: videosToMoveToFront,
       allFreshSnapshots: freshSnapshots
     });
   }
@@ -544,10 +545,11 @@ export async function detectAndApplyChanges({
     currentVideoBandIndices,
     confirmedAbsentVideoIds
   });
+  const { videoIdsToRemove, videosToAdd, videosToReposition, candidateRemovals } = changes;
   // Layout-changing edits invalidate the cached band layout; metadata-only and move-to-front edits don't.
-  const isLayoutChange = changes.videoIdsToRemove.length > 0
-    || changes.videosToAdd.length > 0
-    || changes.videosToReposition.length > 0;
+  const isLayoutChange = videoIdsToRemove.length > 0
+    || videosToAdd.length > 0
+    || videosToReposition.length > 0;
 
   await executeChanges({
     changes,
@@ -558,8 +560,8 @@ export async function detectAndApplyChanges({
   cleanOrphanedGridItems();
 
   preserveStaleEntriesForUnremovedVideos({
-    videoIdsToRemove: changes.videoIdsToRemove,
-    candidateRemovals: changes.candidateRemovals,
+    videoIdsToRemove,
+    candidateRemovals,
     previousSnapshot,
     freshMap
   });
@@ -567,7 +569,7 @@ export async function detectAndApplyChanges({
   return {
     isLayoutChange,
     snapshot: freshMap,
-    candidateRemovals: changes.candidateRemovals
+    candidateRemovals
   };
 }
 

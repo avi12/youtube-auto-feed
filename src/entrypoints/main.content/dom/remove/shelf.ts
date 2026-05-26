@@ -345,13 +345,14 @@ async function removeInnerShelfGroup({ elInnerShelf, group }: {
   }
 
   const innerShelfVideoIdSet = new Set(group.videoIds);
-  const isHorizontalList = isRecord(content.horizontalListRenderer);
+  const { horizontalListRenderer, gridRenderer } = content;
+  const isHorizontalList = isRecord(horizontalListRenderer);
   const listPath = isHorizontalList ? "data.content.horizontalListRenderer.items" : "data.content.gridRenderer.items";
   type ShelfListItem = {
     videoRenderer?: { videoId: string };
     gridVideoRenderer?: { videoId: string };
   };
-  const listItems = deepArray<ShelfListItem>(isHorizontalList ? content.horizontalListRenderer : content.gridRenderer, "items");
+  const listItems = deepArray<ShelfListItem>(isHorizontalList ? horizontalListRenderer : gridRenderer, "items");
   const filteredListItems = listItems.filter(
     item => !innerShelfVideoIdSet.has(item.videoRenderer?.videoId ?? "")
       && !innerShelfVideoIdSet.has(item.gridVideoRenderer?.videoId ?? "")

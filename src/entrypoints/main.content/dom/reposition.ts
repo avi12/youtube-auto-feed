@@ -247,7 +247,8 @@ function resolveInsertIndex({
   freshSnapshot: VideoSnapshot;
   allSnapshots: Map<string, VideoSnapshot>;
 }) {
-  const targetSecondsAgo = parseSecondsAgo(freshSnapshot.publishedTimeText);
+  const { publishedTimeText, status } = freshSnapshot;
+  const targetSecondsAgo = parseSecondsAgo(publishedTimeText);
 
   // Slot in by publishedTimeText: newest first; live items don't compete on time and are skipped here
   let iInsert = contentsWithoutVideo.length;
@@ -268,7 +269,7 @@ function resolveInsertIndex({
     }
   }
 
-  if (freshSnapshot.status === VideoStatus.Live) {
+  if (status === VideoStatus.Live) {
     return iInsert;
   }
 

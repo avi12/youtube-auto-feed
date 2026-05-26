@@ -161,17 +161,18 @@ function computeBandDiffs({ domBands, apiBands }: BandCollections) {
   let isAllBandsPass = true;
 
   for (const domBand of domBands) {
-    const apiBand = apiBandByTitle.get(domBand.title);
+    const { title, domIndex, videoIds: domVideoIds } = domBand;
+    const apiBand = apiBandByTitle.get(title);
     const apiVideoIds = apiBand?.videoIds ?? [];
 
-    const domVideoIdSet = new Set(domBand.videoIds);
+    const domVideoIdSet = new Set(domVideoIds);
     const apiVideoIdSet = new Set(apiVideoIds);
 
-    const onlyInDom = domBand.videoIds.filter(id => !apiVideoIdSet.has(id));
+    const onlyInDom = domVideoIds.filter(id => !apiVideoIdSet.has(id));
     const onlyInApi = apiVideoIds.filter(id => !domVideoIdSet.has(id));
 
     // Compare shared-id sequences from each side to detect ordering drift
-    const sharedInDomOrder = domBand.videoIds.filter(id => apiVideoIdSet.has(id));
+    const sharedInDomOrder = domVideoIds.filter(id => apiVideoIdSet.has(id));
     const sharedInApiOrder = apiVideoIds.filter(id => domVideoIdSet.has(id));
     const isOrderMatch = JSON.stringify(sharedInDomOrder) === JSON.stringify(sharedInApiOrder);
     const isBandFailing = onlyInDom.length > 0 || onlyInApi.length > 0 || !isOrderMatch;
@@ -180,9 +181,9 @@ function computeBandDiffs({ domBands, apiBands }: BandCollections) {
     }
 
     bandDiffs.push({
-      title: domBand.title || "(inline)",
-      domIndex: domBand.domIndex,
-      domVideoIds: domBand.videoIds,
+      title: title || "(inline)",
+      domIndex,
+      domVideoIds,
       apiVideoIds,
       onlyInDom,
       onlyInApi,
@@ -233,34 +234,36 @@ function persistReport(report: LayoutIntegrityReport) {
 }
 
 function logReport(report: LayoutIntegrityReport) {
-  const statusLabel = report.isPass ? "PASS" : "FAIL";
-  console.group(`[YTSUA] Layout Integrity ${statusLabel} - ${report.timestamp}`);
+  const { isPass, timestamp, isBandOrderMatch, domBandTitles, apiBandTitles, bandDiffs } = report;
+  const statusLabel = isPass ? "PASS" : "FAIL";
+  console.group(`[YTSUA] Layout Integrity ${statusLabel} - ${timestamp}`);
 
-  if (!report.isBandOrderMatch) {
+  if (!isBandOrderMatch) {
     console.warn("Band order MISMATCH");
-    console.log("DOM:", report.domBandTitles);
-    console.log("API:", report.apiBandTitles);
+    console.log("DOM:", domBandTitles);
+    console.log("API:", apiBandTitles);
   } else {
-    console.log("Band order OK:", report.domBandTitles.join(" -> "));
+    console.log("Band order OK:", domBandTitles.join(" -> "));
   }
 
-  for (const diff of report.bandDiffs) {
-    const isBandPass = diff.onlyInDom.length === 0 && diff.onlyInApi.length === 0 && diff.isOrderMatch;
+  for (const diff of bandDiffs) {
+    const { title, domIndex, domVideoIds, apiVideoIds, onlyInDom, onlyInApi, isOrderMatch } = diff;
+    const isBandPass = onlyInDom.length === 0 && onlyInApi.length === 0 && isOrderMatch;
     const bandLabel = isBandPass ? "OK" : "FAIL";
-    console.group(`[${bandLabel}] "${diff.title}" DOM[${diff.domIndex}] - DOM ${diff.domVideoIds.length} ids vs API ${diff.apiVideoIds.length} ids`);
+    console.group(`[${bandLabel}] "${title}" DOM[${domIndex}] - DOM ${domVideoIds.length} ids vs API ${apiVideoIds.length} ids`);
 
-    if (diff.onlyInDom.length > 0) {
-      console.warn("Only in DOM:", diff.onlyInDom);
+    if (onlyInDom.length > 0) {
+      console.warn("Only in DOM:", onlyInDom);
     }
 
-    if (diff.onlyInApi.length > 0) {
-      console.warn("Only in API:", diff.onlyInApi);
+    if (onlyInApi.length > 0) {
+      console.warn("Only in API:", onlyInApi);
     }
 
-    if (!diff.isOrderMatch) {
+    if (!isOrderMatch) {
       console.warn("Intra-band order MISMATCH");
-      console.log("DOM order:", diff.domVideoIds);
-      console.log("API order:", diff.apiVideoIds);
+      console.log("DOM order:", domVideoIds);
+      console.log("API order:", apiVideoIds);
     }
 
     if (isBandPass) {

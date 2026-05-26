@@ -29,10 +29,10 @@ interface PageSnapshot {
 async function getYouTubeTarget(port: number) {
   const response = await fetch(`http://localhost:${port}/json`);
   const targets: CdpTarget[] = await response.json();
-  return targets.find(target =>
-    target.type === "page"
-    && target.url.includes("youtube.com/feed/subscriptions")
-    && target.webSocketDebuggerUrl);
+  return targets.find(({ type, url, webSocketDebuggerUrl }) =>
+    type === "page"
+    && url.includes("youtube.com/feed/subscriptions")
+    && webSocketDebuggerUrl);
 }
 
 function sendCommand<T>(webSocketUrl: string, method: string, params: Record<string, unknown> = {}) {
@@ -46,18 +46,18 @@ function sendCommand<T>(webSocketUrl: string, method: string, params: Record<str
       })
     );
     socket.onmessage = e => {
-      const data = JSON.parse(String(e.data));
-      if (data.id !== 1) {
+      const { id, error, result } = JSON.parse(String(e.data));
+      if (id !== 1) {
         return;
       }
 
       socket.close();
 
-      if (data.error) {
-        return reject(new Error(JSON.stringify(data.error)));
+      if (error) {
+        return reject(new Error(JSON.stringify(error)));
       }
 
-      resolvePromise(data.result);
+      resolvePromise(result);
     };
     socket.onerror = () => reject(new Error("ws error"));
   });
@@ -142,10 +142,10 @@ async function snapshot(port: number, label: string) {
 
 function foldByHeader(snap: PageSnapshot) {
   const map = new Map<string, string[]>();
-  for (const band of snap.bands) {
-    const key = band.header ?? "<inline>";
+  for (const { header, videoIds } of snap.bands) {
+    const key = header ?? "<inline>";
     const ids = map.get(key) ?? [];
-    ids.push(...band.videoIds);
+    ids.push(...videoIds);
     map.set(key, ids);
   }
   return map;

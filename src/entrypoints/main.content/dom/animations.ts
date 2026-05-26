@@ -54,8 +54,8 @@ export function triggerAnimation({ elTarget, animationClass }: {
 }
 
 export function isInViewport(element: Element) {
-  const rect = element.getBoundingClientRect();
-  return rect.bottom > 0 && rect.top < innerHeight;
+  const { bottom, top } = element.getBoundingClientRect();
+  return bottom > 0 && top < innerHeight;
 }
 
 export function filterToViewport(elItems: Iterable<HTMLElement>) {

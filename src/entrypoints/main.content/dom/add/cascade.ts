@@ -121,11 +121,11 @@ function applyInlineCascade({ contents, newVideos, inlineBands }: {
   const { insertAt, existingItems } = resolveInlineZone(contents);
 
   const merged = [...existingItems];
-  for (const video of newVideos) {
-    const secondsAgo = parseSecondsAgo(video.publishedTimeText);
+  for (const { publishedTimeText, rawRenderer } of newVideos) {
+    const secondsAgo = parseSecondsAgo(publishedTimeText);
     // Slot each new video by published age so older items sit lower.
     const pos = merged.findIndex(existing => existingItemSecondsAgo(existing) >= secondsAgo);
-    const builtItem = buildRichItem(video.rawRenderer);
+    const builtItem = buildRichItem(rawRenderer);
     if (pos === -1) {
       merged.push(builtItem);
     } else {

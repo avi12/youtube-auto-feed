@@ -55,32 +55,31 @@ export function videoIdFromData(data: unknown) {
     return null;
   }
 
-  if (isVideoRenderer(content.videoRenderer)) {
-    return content.videoRenderer.videoId || null;
+  const { videoRenderer, gridVideoRenderer, richGridMediaRenderer, lockupViewModel, shortsLockupViewModel } = content;
+  if (isVideoRenderer(videoRenderer)) {
+    return videoRenderer.videoId || null;
   }
 
-  if (isVideoRenderer(content.gridVideoRenderer)) {
-    return content.gridVideoRenderer.videoId || null;
+  if (isVideoRenderer(gridVideoRenderer)) {
+    return gridVideoRenderer.videoId || null;
   }
 
-  const richGridMedia = content.richGridMediaRenderer;
-  const richGridInner = isRecord(richGridMedia) ? richGridMedia.content : null;
+  const richGridInner = isRecord(richGridMediaRenderer) ? richGridMediaRenderer.content : null;
   if (isRecord(richGridInner) && isVideoRenderer(richGridInner.videoRenderer)) {
     return richGridInner.videoRenderer.videoId || null;
   }
 
-  const lockup = content.lockupViewModel;
-  if (isLockupViewModel(lockup)) {
-    return lockup.contentId || stringOrNull(lockup.videoId);
+  // Some lockup payloads use `videoId` instead of `contentId`; fall through to a Record check for those
+  if (isLockupViewModel(lockupViewModel) && lockupViewModel.contentId) {
+    return lockupViewModel.contentId;
   }
 
-  if (isRecord(lockup)) {
-    return stringOrNull(lockup.videoId);
+  if (isRecord(lockupViewModel)) {
+    return stringOrNull(lockupViewModel.videoId);
   }
 
-  const shorts = content.shortsLockupViewModel;
-  if (isShortsLockupViewModel(shorts)) {
-    return shorts.onTap?.innertubeCommand?.reelWatchEndpoint?.videoId || null;
+  if (isShortsLockupViewModel(shortsLockupViewModel)) {
+    return shortsLockupViewModel.onTap?.innertubeCommand?.reelWatchEndpoint?.videoId || null;
   }
 
   return null;
@@ -91,12 +90,13 @@ export function videoIdFromShelfListItem(listItem: unknown) {
     return "";
   }
 
-  if (isVideoRenderer(listItem.videoRenderer)) {
-    return listItem.videoRenderer.videoId;
+  const { videoRenderer, gridVideoRenderer } = listItem;
+  if (isVideoRenderer(videoRenderer)) {
+    return videoRenderer.videoId;
   }
 
-  if (isVideoRenderer(listItem.gridVideoRenderer)) {
-    return listItem.gridVideoRenderer.videoId;
+  if (isVideoRenderer(gridVideoRenderer)) {
+    return gridVideoRenderer.videoId;
   }
 
   return "";

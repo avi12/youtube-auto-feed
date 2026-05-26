@@ -39,8 +39,9 @@ export function isShelfRenderer(value: unknown): value is InnerTubeShelfRenderer
 
 export function viewCountFromRenderer(renderer: InnerTubeVideoRenderer) {
   const { viewCountText, shortViewCountText } = renderer;
-  return viewCountText?.simpleText
-    ?? viewCountText?.runs?.map(({ text }) => text).join("")
+  const { simpleText, runs } = viewCountText ?? {};
+  return simpleText
+    ?? runs?.map(({ text }) => text).join("")
     ?? shortViewCountText?.simpleText
     ?? "";
 }
@@ -78,14 +79,15 @@ export function statusFromRenderer(renderer: InnerTubeVideoRenderer) {
 }
 
 export function statusFromLockup(lockup: LockupViewModel) {
-  if (lockup.contentType === LockupContentType.Shorts) {
+  const { contentType, contentImage } = lockup;
+  if (contentType === LockupContentType.Shorts) {
     return VideoStatus.Short;
   }
 
-  const overlays = lockup.contentImage?.thumbnailViewModel?.overlays ?? [];
+  const overlays = contentImage?.thumbnailViewModel?.overlays ?? [];
   for (const overlay of overlays) {
     for (const badge of overlay.thumbnailBottomOverlayViewModel?.badges ?? []) {
-      const badgeStyle = badge.thumbnailBadgeViewModel?.badgeStyle;
+      const { badgeStyle, text } = badge.thumbnailBadgeViewModel ?? {};
       if (badgeStyle === LockupBadgeStyle.Live) {
         return VideoStatus.Live;
       }
@@ -95,7 +97,7 @@ export function statusFromLockup(lockup: LockupViewModel) {
       }
 
       // Fallback when YouTube omits the structured badgeStyle but still renders the label.
-      if (badge.thumbnailBadgeViewModel?.text === "Upcoming") {
+      if (text === "Upcoming") {
         return VideoStatus.Upcoming;
       }
     }
