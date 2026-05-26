@@ -1,6 +1,12 @@
-import { isLockupViewModel, isShortsLockupViewModel, isVideoRenderer } from "../api/guards";
+import {
+  isLockupViewModel,
+  isRichShelfRenderer,
+  isShelfRenderer,
+  isShortsLockupViewModel,
+  isVideoRenderer
+} from "../api/guards";
 import { parseLockupViewModel, parseRenderer, parseShortsLockupViewModel } from "../api/parse-video";
-import { deepRecord, deepString, isPolymerElement, videoIdFromData } from "../helpers";
+import { deepRecord, isPolymerElement, videoIdFromData } from "../helpers";
 import { type VideoSnapshot, VideoStatus } from "../types";
 
 export function findItemElement(videoId: string) {
@@ -19,7 +25,8 @@ export function findItemElement(videoId: string) {
       continue;
     }
 
-    if (deepString(elItem.data, "videoId") === videoId) {
+    const gridVideoData = elItem.data;
+    if (isVideoRenderer(gridVideoData) && gridVideoData.videoId === videoId) {
       return elItem;
     }
   }
@@ -32,7 +39,8 @@ export function findShelfForSection(sectionTitle: string) {
       continue;
     }
 
-    if (deepString(elShelf.data, "title", "runs", "0", "text") === sectionTitle) {
+    const shelfData = elShelf.data;
+    if (isRichShelfRenderer(shelfData) && (shelfData.title?.runs?.[0]?.text ?? "") === sectionTitle) {
       return elShelf;
     }
   }
@@ -104,7 +112,8 @@ export function readDomSnapshot() {
       continue;
     }
 
-    const sectionTitle = deepString(elShelf.data, "title", "runs", "0", "text");
+    const shelfData = elShelf.data;
+    const sectionTitle = isRichShelfRenderer(shelfData) ? shelfData.title?.runs?.[0]?.text ?? "" : "";
     for (const elItem of elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer")) {
       addRichItemToSnapshot({
         elItem,
@@ -119,7 +128,8 @@ export function readDomSnapshot() {
       continue;
     }
 
-    const sectionTitle = deepString(elShelf.data, "title", "runs", "0", "text");
+    const shelfData = elShelf.data;
+    const sectionTitle = isShelfRenderer(shelfData) ? shelfData.title?.runs?.[0]?.text ?? "" : "";
     for (const elItem of elShelf.querySelectorAll<HTMLElement>("ytd-grid-video-renderer")) {
       if (!isPolymerElement(elItem)) {
         continue;

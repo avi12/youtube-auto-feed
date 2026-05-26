@@ -1,4 +1,4 @@
-import { parseSecondsAgo } from "./api/guards";
+import { isShelfRenderer, parseSecondsAgo } from "./api/guards";
 import { cascadeInsertVideos } from "./dom/add/cascade";
 import { addVideosToGridDom, cleanOrphanedGridItems } from "./dom/add/grid";
 import { addVideosToDom } from "./dom/add/shelf";
@@ -10,13 +10,12 @@ import { batchUpdateVideosInDom, updateVideoInDom } from "./dom/update";
 import {
   deepArray,
   deepRecord,
-  deepString,
   isPolymerElement,
   isRecord,
   videoIdFromData,
   videoIdFromShelfListItem
 } from "./helpers";
-import { type VideoSnapshot, VideoStatus } from "./types";
+import { type InnerTubeRichGridItem, type VideoSnapshot, VideoStatus } from "./types";
 
 function readCurrentVideoSections() {
   const sections = new Map<string, string>();
@@ -25,7 +24,7 @@ function readCurrentVideoSections() {
     return sections;
   }
 
-  for (const item of deepArray(elGrid.data, "contents")) {
+  for (const item of deepArray<InnerTubeRichGridItem>(elGrid.data, "contents")) {
     const inlineVideoId = videoIdFromData(deepRecord(item, "richItemRenderer"));
     if (inlineVideoId) {
       if (!sections.has(inlineVideoId)) {
@@ -35,7 +34,7 @@ function readCurrentVideoSections() {
       continue;
     }
 
-    const richShelfTitle = deepString(item, "richSectionRenderer", "content", "richShelfRenderer", "title", "runs", "0", "text");
+    const richShelfTitle = item?.richSectionRenderer?.content?.richShelfRenderer?.title?.runs?.[0]?.text ?? "";
     for (const shelfItem of deepArray(item, "richSectionRenderer", "content", "richShelfRenderer", "contents")) {
       const videoId = videoIdFromData(deepRecord(shelfItem, "richItemRenderer"));
       if (videoId && !sections.has(videoId)) {
@@ -43,7 +42,7 @@ function readCurrentVideoSections() {
       }
     }
 
-    const innerShelfTitle = deepString(item, "richSectionRenderer", "content", "shelfRenderer", "title", "runs", "0", "text");
+    const innerShelfTitle = item?.richSectionRenderer?.content?.shelfRenderer?.title?.runs?.[0]?.text ?? "";
     for (const listItem of [
       ...deepArray(item, "richSectionRenderer", "content", "shelfRenderer", "content", "horizontalListRenderer", "items"),
       ...deepArray(item, "richSectionRenderer", "content", "shelfRenderer", "content", "gridRenderer", "items")
@@ -413,7 +412,7 @@ async function executeChanges({
   const innerShelfSections = new Set(
     [...document.querySelectorAll<HTMLElement>("ytd-shelf-renderer")]
       .filter(isPolymerElement)
-      .map(elShelf => deepString(elShelf.data, "title", "runs", "0", "text"))
+      .map(elShelf => isShelfRenderer(elShelf.data) ? elShelf.data.title?.runs?.[0]?.text ?? "" : "")
       .filter(Boolean)
   );
 

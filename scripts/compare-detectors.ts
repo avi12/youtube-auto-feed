@@ -79,21 +79,16 @@ const SNAPSHOT_EXPRESSION = `(() => {
   if (!elGrid) return { url: location.href, bands: [], contentsLength: 0, hasExtension: !!globalThis.__ytsuaDebug };
   const contents = elGrid.data?.contents ?? [];
 
-  const deepString = (data, ...path) => {
-    let cur = data;
-    for (const key of path) { if (cur && typeof cur === "object") cur = cur[key]; else return ""; }
-    return typeof cur === "string" ? cur : "";
-  };
-  const videoIdFromData = data => deepString(data, "videoId")
-    || deepString(data, "content", "videoRenderer", "videoId")
-    || deepString(data, "content", "gridVideoRenderer", "videoId")
-    || deepString(data, "content", "richGridMediaRenderer", "content", "videoRenderer", "videoId")
-    || deepString(data, "content", "lockupViewModel", "contentId")
-    || deepString(data, "content", "lockupViewModel", "videoId")
-    || deepString(data, "content", "shortsLockupViewModel", "onTap", "innertubeCommand", "reelWatchEndpoint", "videoId")
+  const videoIdFromData = data => (data?.videoId ?? "")
+    || (data?.content?.videoRenderer?.videoId ?? "")
+    || (data?.content?.gridVideoRenderer?.videoId ?? "")
+    || (data?.content?.richGridMediaRenderer?.content?.videoRenderer?.videoId ?? "")
+    || (data?.content?.lockupViewModel?.contentId ?? "")
+    || (data?.content?.lockupViewModel?.videoId ?? "")
+    || (data?.content?.shortsLockupViewModel?.onTap?.innertubeCommand?.reelWatchEndpoint?.videoId ?? "")
     || null;
   const richItemVideoId = item => videoIdFromData(item?.richItemRenderer);
-  const shelfListItemId = item => deepString(item, "videoRenderer", "videoId") || deepString(item, "gridVideoRenderer", "videoId") || null;
+  const shelfListItemId = item => (item?.videoRenderer?.videoId ?? "") || (item?.gridVideoRenderer?.videoId ?? "") || null;
 
   const bands = [];
   let currentInline = null;

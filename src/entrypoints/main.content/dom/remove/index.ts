@@ -1,4 +1,5 @@
-import { deepString, isPolymerElement, videoIdFromData } from "../../helpers";
+import { isVideoRenderer } from "../../api/guards";
+import { isPolymerElement, videoIdFromData } from "../../helpers";
 import { removeGridItems } from "./grid";
 import { removeInnerShelfItems, removeRichShelfItems } from "./shelf";
 
@@ -95,7 +96,8 @@ function collectItems({ videoIdSet, shelfProtectedIds }: {
       continue;
     }
 
-    const videoId = deepString(elGridVideo.data, "videoId");
+    const { data } = elGridVideo;
+    const videoId = isVideoRenderer(data) ? data.videoId : "";
     if (!videoId || !videoIdSet.has(videoId)) {
       continue;
     }

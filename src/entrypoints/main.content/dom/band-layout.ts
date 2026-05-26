@@ -1,10 +1,4 @@
-import {
-  deepArray,
-  deepRecord,
-  deepString,
-  isPolymerElement,
-  isRecord
-} from "../helpers";
+import { deepArray, deepRecord, isPolymerElement, isRecord } from "../helpers";
 import type { InnerTubeRichGridItem } from "../types";
 import { videoIdFromRichItem } from "./rich-item";
 
@@ -21,7 +15,7 @@ export interface BandLayout {
 }
 
 function readRichShelfTitle(item: InnerTubeRichGridItem) {
-  return deepString(item, "richSectionRenderer", "content", "richShelfRenderer", "title", "runs", "0", "text");
+  return item?.richSectionRenderer?.content?.richShelfRenderer?.title?.runs?.[0]?.text ?? "";
 }
 
 function readTitleOnlyShelfTitle(item: InnerTubeRichGridItem) {
@@ -29,7 +23,7 @@ function readTitleOnlyShelfTitle(item: InnerTubeRichGridItem) {
     return "";
   }
 
-  return deepString(item, "richSectionRenderer", "content", "shelfRenderer", "title", "runs", "0", "text");
+  return item?.richSectionRenderer?.content?.shelfRenderer?.title?.runs?.[0]?.text ?? "";
 }
 
 export function captureBandLayout() {

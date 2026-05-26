@@ -1,10 +1,5 @@
-import {
-  deepArray,
-  deepRecord,
-  deepString,
-  isPolymerElement,
-  isRecord
-} from "../../helpers";
+import { isRichShelfRenderer, isShelfRenderer } from "../../api/guards";
+import { deepArray, deepRecord, isPolymerElement, isRecord } from "../../helpers";
 import type { InnerTubeRichGridItem } from "../../types";
 import {
   animateItemsOut,
@@ -136,7 +131,7 @@ async function removeRichShelfGroup({ elRichShelf, group }: {
     return;
   }
 
-  const shelfTitle = deepString(shelfData, "title", "runs", "0", "text");
+  const shelfTitle = isRichShelfRenderer(shelfData) ? shelfData.title?.runs?.[0]?.text ?? "" : "";
   const shelfVideoIdSet = new Set(group.videoIds);
   const shelfContents = deepArray<InnerTubeRichGridItem>(shelfData, "contents");
   const filteredShelfContents = filterOutRichItems({
@@ -255,13 +250,14 @@ async function removeEmptyShelfSection({ elRichShelf, shelfTitle }: {
   });
 }
 
-function pickShelfRenderer(sectionContent: Record<string, unknown>) {
-  if (isRecord(sectionContent.richShelfRenderer)) {
-    return sectionContent.richShelfRenderer;
+function shelfTitleFromSection(sectionContent: Record<string, unknown>) {
+  const { richShelfRenderer, shelfRenderer } = sectionContent;
+  if (isRichShelfRenderer(richShelfRenderer)) {
+    return richShelfRenderer.title?.runs?.[0]?.text ?? "";
   }
 
-  if (isRecord(sectionContent.shelfRenderer)) {
-    return sectionContent.shelfRenderer;
+  if (isShelfRenderer(shelfRenderer)) {
+    return shelfRenderer.title?.runs?.[0]?.text ?? "";
   }
 
   return null;
@@ -282,12 +278,7 @@ function tryRemoveSectionViaGridData({ elGrid, shelfTitle }: {
       return true;
     }
 
-    const shelf = pickShelfRenderer(sectionContent);
-    if (!shelf) {
-      return true;
-    }
-
-    const title = deepString(shelf, "title", "runs", "0", "text");
+    const title = shelfTitleFromSection(sectionContent);
     return !shelfTitle || !title || title !== shelfTitle;
   });
   if (filteredGridContents.length === currentGridContents.length) {
@@ -360,8 +351,8 @@ async function removeInnerShelfGroup({ elInnerShelf, group }: {
   };
   const listItems = deepArray<ShelfListItem>(isHorizontalList ? content.horizontalListRenderer : content.gridRenderer, "items");
   const filteredListItems = listItems.filter(
-    item => !innerShelfVideoIdSet.has(deepString(item, "videoRenderer", "videoId"))
-      && !innerShelfVideoIdSet.has(deepString(item, "gridVideoRenderer", "videoId"))
+    item => !innerShelfVideoIdSet.has(item.videoRenderer?.videoId ?? "")
+      && !innerShelfVideoIdSet.has(item.gridVideoRenderer?.videoId ?? "")
   );
 
   await removeItemsFromShelf({

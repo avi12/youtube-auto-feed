@@ -1,3 +1,4 @@
+import { isLockupViewModel, isShortsLockupViewModel, isVideoRenderer } from "./api/guards";
 import { type PolymerElement } from "./types";
 
 const SUBSCRIPTIONS_PATH = "/feed/subscriptions";
@@ -26,11 +27,6 @@ function dig(object: unknown, ...path: string[]) {
   return current;
 }
 
-export function deepString(object: unknown, ...path: string[]) {
-  const value = dig(object, ...path);
-  return typeof value === "string" ? value : "";
-}
-
 export function deepArray<T = unknown>(object: unknown, ...path: string[]): T[] {
   const value = dig(object, ...path);
   if (Array.isArray(value)) {
@@ -46,19 +42,68 @@ export function deepRecord(object: unknown, ...path: string[]) {
 }
 
 export function videoIdFromData(data: unknown) {
-  const videoId =
-    deepString(data, "videoId") ||
-    deepString(data, "content", "videoRenderer", "videoId") ||
-    deepString(data, "content", "gridVideoRenderer", "videoId") ||
-    deepString(data, "content", "richGridMediaRenderer", "content", "videoRenderer", "videoId") ||
-    deepString(data, "content", "lockupViewModel", "contentId") ||
-    deepString(data, "content", "lockupViewModel", "videoId") ||
-    deepString(data, "content", "shortsLockupViewModel", "onTap", "innertubeCommand", "reelWatchEndpoint", "videoId");
-  return videoId !== "" ? videoId : null;
+  if (!isRecord(data)) {
+    return null;
+  }
+
+  if (isVideoRenderer(data)) {
+    return data.videoId || null;
+  }
+
+  const content = data.content;
+  if (!isRecord(content)) {
+    return null;
+  }
+
+  if (isVideoRenderer(content.videoRenderer)) {
+    return content.videoRenderer.videoId || null;
+  }
+
+  if (isVideoRenderer(content.gridVideoRenderer)) {
+    return content.gridVideoRenderer.videoId || null;
+  }
+
+  const richGridMedia = content.richGridMediaRenderer;
+  const richGridInner = isRecord(richGridMedia) ? richGridMedia.content : null;
+  if (isRecord(richGridInner) && isVideoRenderer(richGridInner.videoRenderer)) {
+    return richGridInner.videoRenderer.videoId || null;
+  }
+
+  const lockup = content.lockupViewModel;
+  if (isLockupViewModel(lockup)) {
+    return lockup.contentId || stringOrNull(lockup.videoId);
+  }
+
+  if (isRecord(lockup)) {
+    return stringOrNull(lockup.videoId);
+  }
+
+  const shorts = content.shortsLockupViewModel;
+  if (isShortsLockupViewModel(shorts)) {
+    return shorts.onTap?.innertubeCommand?.reelWatchEndpoint?.videoId || null;
+  }
+
+  return null;
 }
 
 export function videoIdFromShelfListItem(listItem: unknown) {
-  return deepString(listItem, "videoRenderer", "videoId") || deepString(listItem, "gridVideoRenderer", "videoId");
+  if (!isRecord(listItem)) {
+    return "";
+  }
+
+  if (isVideoRenderer(listItem.videoRenderer)) {
+    return listItem.videoRenderer.videoId;
+  }
+
+  if (isVideoRenderer(listItem.gridVideoRenderer)) {
+    return listItem.gridVideoRenderer.videoId;
+  }
+
+  return "";
+}
+
+function stringOrNull(value: unknown) {
+  return typeof value === "string" && value ? value : null;
 }
 
 export function isOnSubscriptionsPage() {

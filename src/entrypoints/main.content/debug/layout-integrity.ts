@@ -1,9 +1,9 @@
 import { fetchInitialVideos } from "../api/fetch";
+import { isRichShelfRenderer, isShelfRenderer } from "../api/guards";
 import { videoIdFromRichItem } from "../dom/rich-item";
 import {
   deepArray,
   deepRecord,
-  deepString,
   isPolymerElement,
   isRecord,
   videoIdFromShelfListItem
@@ -74,7 +74,7 @@ function captureDomBands() {
 
     const richShelfRenderer = deepRecord(item, "richSectionRenderer", "content", "richShelfRenderer");
     if (richShelfRenderer) {
-      const title = deepString(richShelfRenderer, "title", "runs", "0", "text");
+      const title = isRichShelfRenderer(richShelfRenderer) ? richShelfRenderer.title?.runs?.[0]?.text ?? "" : "";
       const shelfContents = deepArray(richShelfRenderer, "contents");
       const videoIds = shelfContents
         .map(shelfItem => videoIdFromRichItem(shelfItem))
@@ -88,7 +88,8 @@ function captureDomBands() {
       continue;
     }
 
-    const shelfTitle = deepString(item, "richSectionRenderer", "content", "shelfRenderer", "title", "runs", "0", "text");
+    const shelfRenderer = deepRecord(item, "richSectionRenderer", "content", "shelfRenderer");
+    const shelfTitle = isShelfRenderer(shelfRenderer) ? shelfRenderer.title?.runs?.[0]?.text ?? "" : "";
     const listItems = [
       ...deepArray(item, "richSectionRenderer", "content", "shelfRenderer", "content", "horizontalListRenderer", "items"),
       ...deepArray(item, "richSectionRenderer", "content", "shelfRenderer", "content", "gridRenderer", "items")

@@ -2,7 +2,6 @@ import { isRichShelfRenderer, isShelfRenderer, isVideoRenderer } from "../../api
 import {
   deepArray,
   deepRecord,
-  deepString,
   isPolymerElement,
   isRecord,
   videoIdFromData,
@@ -156,8 +155,8 @@ function pruneOrphanedDomSections({ elGrid, elGridContents }: {
 
   const titleCounts = new Map<string, number>();
   for (const item of deepArray<InnerTubeRichGridItem>(elGrid.data, "contents")) {
-    const richShelfTitle = deepString(item, "richSectionRenderer", "content", "richShelfRenderer", "title", "runs", "0", "text");
-    const innerShelfTitle = deepString(item, "richSectionRenderer", "content", "shelfRenderer", "title", "runs", "0", "text");
+    const richShelfTitle = item?.richSectionRenderer?.content?.richShelfRenderer?.title?.runs?.[0]?.text ?? "";
+    const innerShelfTitle = item?.richSectionRenderer?.content?.shelfRenderer?.title?.runs?.[0]?.text ?? "";
     const title = richShelfTitle || innerShelfTitle;
     if (title) {
       titleCounts.set(title, (titleCounts.get(title) ?? 0) + 1);
@@ -398,8 +397,8 @@ function findExistingSectionIndex({ contents, sectionTitle }: {
   }
 
   return contents.findIndex(item =>
-    deepString(item, "richSectionRenderer", "content", "richShelfRenderer", "title", "runs", "0", "text") === sectionTitle ||
-    deepString(item, "richSectionRenderer", "content", "shelfRenderer", "title", "runs", "0", "text") === sectionTitle);
+    (item?.richSectionRenderer?.content?.richShelfRenderer?.title?.runs?.[0]?.text ?? "") === sectionTitle ||
+    (item?.richSectionRenderer?.content?.shelfRenderer?.title?.runs?.[0]?.text ?? "") === sectionTitle);
 }
 
 function insertNewSection({

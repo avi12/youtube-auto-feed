@@ -2,7 +2,6 @@ import { isLockupViewModel, isShortsLockupViewModel, isVideoRenderer } from "../
 import {
   deepArray,
   deepRecord,
-  deepString,
   isPolymerElement,
   isRecord,
   videoIdFromData
@@ -794,9 +793,9 @@ function syncGridModelItem({ videoId, rawRenderer, forcePreserveContentImage = f
       const items = deepArray<ShelfListItem>(shelfContent, listKey, "items");
       for (const [iItem, item] of items.entries()) {
         let rendererKey: "videoRenderer" | "gridVideoRenderer" | null = null;
-        if (deepString(item, "videoRenderer", "videoId") === videoId) {
+        if ((item.videoRenderer?.videoId ?? "") === videoId) {
           rendererKey = "videoRenderer";
-        } else if (deepString(item, "gridVideoRenderer", "videoId") === videoId) {
+        } else if ((item.gridVideoRenderer?.videoId ?? "") === videoId) {
           rendererKey = "gridVideoRenderer";
         }
 
@@ -1121,7 +1120,8 @@ function buildVideoElementMap() {
       continue;
     }
 
-    const videoId = deepString(elItem.data, "videoId");
+    const { data } = elItem;
+    const videoId = isVideoRenderer(data) ? data.videoId : "";
     if (videoId) {
       map.set(videoId, elItem);
     }
