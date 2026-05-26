@@ -1,4 +1,10 @@
-import { deepArray, deepRecord, isPolymerElement, videoIdFromData } from "../helpers";
+import {
+  deepArray,
+  deepRecord,
+  isPolymerElement,
+  isRecord,
+  videoIdFromData
+} from "../helpers";
 import { type InnerTubeRichGridItem, type VideoSnapshot, VideoStatus } from "../types";
 import {
   assignItemViewTransitionNames,
@@ -16,6 +22,31 @@ import { findRichItemIndex, videoIdFromRichItem } from "./rich-item";
 import { updateVideoInDom } from "./update";
 
 export async function repositionVideoInSection({
+  freshSnapshot,
+  sectionVideos,
+  allSnapshots
+}: {
+  freshSnapshot: VideoSnapshot;
+  sectionVideos: VideoSnapshot[];
+  allSnapshots: Map<string, VideoSnapshot>;
+}) {
+  if (!freshSnapshot.sectionTitle) {
+    await repositionVideoInGrid({
+      freshSnapshot,
+      sectionVideos,
+      allSnapshots
+    });
+    return;
+  }
+
+  await repositionVideoInShelf({
+    freshSnapshot,
+    sectionVideos,
+    allSnapshots
+  });
+}
+
+async function repositionVideoInShelf({
   freshSnapshot,
   sectionVideos,
   allSnapshots
@@ -106,6 +137,138 @@ export async function repositionVideoInSection({
   });
 }
 
+async function repositionVideoInGrid({
+  freshSnapshot,
+  sectionVideos,
+  allSnapshots
+}: {
+  freshSnapshot: VideoSnapshot;
+  sectionVideos: VideoSnapshot[];
+  allSnapshots: Map<string, VideoSnapshot>;
+}) {
+  const {
+    videoId, rawRenderer, status
+  } = freshSnapshot;
+  const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
+  if (!elGrid || !isPolymerElement(elGrid) || !isRecord(elGrid.data)) {
+    updateVideoInDom({
+      videoId,
+      freshSnapshot
+    });
+    return;
+  }
+
+  const gridContents = deepArray<InnerTubeRichGridItem>(elGrid.data, "contents");
+  const { zoneStart, zoneEnd } = resolveLatestBandZone(gridContents);
+  const zoneContents = gridContents.slice(zoneStart, zoneEnd);
+  const iCurrentInZone = findRichItemIndex({
+    contents: zoneContents,
+    videoId
+  });
+  if (iCurrentInZone < 0) {
+    updateVideoInDom({
+      videoId,
+      freshSnapshot
+    });
+    return;
+  }
+
+  const contentsWithoutVideo = zoneContents.filter((_, i) => i !== iCurrentInZone);
+  const iInsert = resolveInsertIndex({
+    contentsWithoutVideo,
+    videoId,
+    sectionVideos,
+    status,
+    allSnapshots
+  });
+  if (iInsert === iCurrentInZone) {
+    updateVideoInDom({
+      videoId,
+      freshSnapshot
+    });
+    return;
+  }
+
+  const newZoneContents = [...contentsWithoutVideo];
+  newZoneContents.splice(iInsert, 0, buildRichItem(rawRenderer));
+  const newGridContents = [
+    ...gridContents.slice(0, zoneStart),
+    ...newZoneContents,
+    ...gridContents.slice(zoneEnd)
+  ];
+  if (prefersReducedMotion()) {
+    elGrid.set("data.contents", newGridContents);
+    updateVideoInDom({
+      videoId,
+      freshSnapshot
+    });
+    return;
+  }
+
+  clearAllItemViewTransitionNames();
+
+  const elGridContents = elGrid.querySelector<HTMLElement>("#contents");
+  const elItems = filterToViewport(
+    elGridContents
+      ? [...elGridContents.querySelectorAll<HTMLElement>(":scope > ytd-rich-item-renderer")]
+      : [...document.querySelectorAll<HTMLElement>("ytd-rich-item-renderer")]
+  );
+  assignItemViewTransitionNames(elItems);
+
+  const animateIds = extractAnimateIds(elItems);
+
+  const elShiftStyle = buildShiftTransitionStyle({ elItems });
+  document.head.append(elShiftStyle);
+
+  await withViewTransitionLock(async () => {
+    try {
+      await document.startViewTransition(() => {
+        elGrid.set("data.contents", newGridContents);
+        for (const elItem of elItems) {
+          elItem.style.viewTransitionName = "";
+        }
+        reassignTransitionNames({
+          elItems: elGridContents
+            ? elGridContents.querySelectorAll<HTMLElement>(":scope > ytd-rich-item-renderer")
+            : document.querySelectorAll<HTMLElement>("ytd-rich-item-renderer"),
+          animateIds
+        });
+      }).finished;
+    } finally {
+      clearAllItemViewTransitionNames();
+      elShiftStyle.remove();
+    }
+  });
+}
+
+function resolveLatestBandZone(contents: InnerTubeRichGridItem[]) {
+  let zoneEnd = contents.length;
+  for (let i = 0; i < contents.length; i++) {
+    if (deepRecord(contents[i], "richSectionRenderer", "content", "richShelfRenderer")) {
+      zoneEnd = i;
+      break;
+    }
+  }
+
+  let zoneStart = 0;
+  while (zoneStart < zoneEnd) {
+    if (videoIdFromRichItem(contents[zoneStart])) {
+      break;
+    }
+
+    if (deepRecord(contents[zoneStart], "richSectionRenderer", "content", "richShelfRenderer")) {
+      break;
+    }
+
+    zoneStart++;
+  }
+
+  return {
+    zoneStart,
+    zoneEnd
+  };
+}
+
 function resolveInsertIndex({
   contentsWithoutVideo,
   videoId,
@@ -136,15 +299,19 @@ function resolveInsertIndex({
     return iInsert;
   }
 
-  let leadingLiveVideoCount = 0;
-  for (const item of contentsWithoutVideo) {
-    const itemVideoId = videoIdFromRichItem(item) ?? "";
+  let leadingLiveSplice = 0;
+  for (let i = 0; i < contentsWithoutVideo.length; i++) {
+    const itemVideoId = videoIdFromRichItem(contentsWithoutVideo[i]);
+    if (!itemVideoId) {
+      continue;
+    }
+
     const itemSnapshot = allSnapshots.get(itemVideoId);
     if (itemSnapshot?.status !== VideoStatus.Live) {
       break;
     }
 
-    leadingLiveVideoCount++;
+    leadingLiveSplice = i + 1;
   }
-  return Math.max(iInsert, leadingLiveVideoCount);
+  return Math.max(iInsert, leadingLiveSplice);
 }
