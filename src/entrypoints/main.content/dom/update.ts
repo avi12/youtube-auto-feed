@@ -978,6 +978,7 @@ async function applyTargetedLockupUpdate({
     elements.push(elImg);
   }
 
+  let isProgressBarDirty = false;
   await applyWithDissolve({
     elements,
     apply() {
@@ -1000,13 +1001,25 @@ async function applyTargetedLockupUpdate({
       }
 
       if (isWatchProgressChanged) {
-        applyProgressBarUpdate({
+        isProgressBarDirty = !applyProgressBarUpdate({
           elLockup,
           percent: fresh.watchProgressPercent
         });
       }
     }
   });
+
+  if (isProgressBarDirty) {
+    applyPolymerUpdate({
+      elItem,
+      rawRenderer: freshRawRenderer
+    });
+    syncGridModelItem({
+      videoId,
+      rawRenderer: freshRawRenderer,
+      forcePreserveContentImage: !thumbWork?.willDissolve
+    });
+  }
 }
 
 export function applyUpdate({ videoId, elItem, fresh, previous }: {
