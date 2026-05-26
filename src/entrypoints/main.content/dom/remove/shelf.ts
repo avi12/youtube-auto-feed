@@ -279,7 +279,9 @@ function tryRemoveSectionViaGridData({ elGrid, shelfTitle }: {
     }
 
     const title = shelfTitleFromSection(sectionContent);
-    return !shelfTitle || !title || title !== shelfTitle;
+    // Keep sections whose title doesn't match the one being removed; untitled or unknown sections also stay.
+    const isDifferentSection = !shelfTitle || !title || title !== shelfTitle;
+    return isDifferentSection;
   });
   if (filteredGridContents.length === currentGridContents.length) {
     return false;

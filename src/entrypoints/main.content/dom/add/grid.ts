@@ -481,6 +481,7 @@ function tryInsertIntoExistingInnerShelf({ newContents, iSection, video }: {
 
   const horizontalList = deepRecord(innerContent, "horizontalListRenderer");
   const gridList = deepRecord(innerContent, "gridRenderer");
+  // Inner shelves emit either horizontalListRenderer or gridRenderer; preserve whichever YouTube used.
   const listKey = !horizontalList && gridList ? "gridRenderer" : "horizontalListRenderer";
   const existingList: Record<string, unknown> = horizontalList ?? gridList ?? {};
   const items = deepArray(existingList, "items");
@@ -667,7 +668,8 @@ export function findSectionInsertIndex({ contents, sectionMinimumFreshIndex, fre
         return videoId !== null ? freshOrderMap.get(videoId) : undefined;
       })
       .filter((index): index is number => index !== undefined);
-    if (knownIndices.length > 0 && Math.min(...knownIndices) > sectionMinimumFreshIndex) {
+    const isExistingSectionNewer = knownIndices.length > 0 && Math.min(...knownIndices) > sectionMinimumFreshIndex;
+    if (isExistingSectionNewer) {
       return i;
     }
 
@@ -789,7 +791,8 @@ function findGridInsertIndex({
         return videoId !== null ? freshOrderMap.get(videoId) : undefined;
       })
       .filter((index): index is number => index !== undefined);
-    if (knownIndices.length > 0 && Math.min(...knownIndices) > freshIndex) {
+    const isSectionNewer = knownIndices.length > 0 && Math.min(...knownIndices) > freshIndex;
+    if (isSectionNewer) {
       iInsert = i;
       break;
     }
@@ -801,6 +804,7 @@ function findGridInsertIndex({
     return iInsert;
   }
 
+  // Non-live items must land after every leading live item to keep live videos at the band head.
   let leadingLiveCount = 0;
   for (const item of contents) {
     const itemVideoId = videoIdFromRichItem(item);
@@ -830,10 +834,12 @@ function collectGridShiftTargets({
   freshOrderMap: Map<string, number>;
 }) {
   const minFreshIndex = freshOrderMap.get(sortedVideos[0]?.videoId ?? "") ?? 0;
+  // First DOM item whose fresh-order position is at or below an incoming video's; items from here downward shift.
   let firstShiftingItem: HTMLElement | undefined;
   for (const elItem of elAllItems) {
     const existingId = isPolymerElement(elItem) ? videoIdFromData(elItem.data) : null;
-    if ((freshOrderMap.get(existingId ?? "") ?? Infinity) >= minFreshIndex) {
+    const existingFreshIndex = freshOrderMap.get(existingId ?? "") ?? Infinity;
+    if (existingFreshIndex >= minFreshIndex) {
       firstShiftingItem = elItem;
       break;
     }

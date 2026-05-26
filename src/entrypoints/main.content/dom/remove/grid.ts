@@ -44,7 +44,9 @@ export async function removeGridItems({ items, allRequestedVideoIds }: {
   const gridVideoIdSet = new Set(gridItems.map(({ videoId }) => videoId));
   const allGridElements = gridItems.map(({ elItem }) => elItem);
   const onScreenGridElements = gridItems.filter(({ isOffScreen }) => !isOffScreen).map(({ elItem }) => elItem);
-  if (onScreenGridElements.length === 0 || prefersReducedMotion()) {
+  // Nothing visible to animate, or motion is disabled.
+  const shouldSkipAnimation = onScreenGridElements.length === 0 || prefersReducedMotion();
+  if (shouldSkipAnimation) {
     removeAllOrNothing({
       elGrid,
       gridVideoIdSet,

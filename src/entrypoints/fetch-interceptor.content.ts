@@ -11,8 +11,12 @@ export default defineContentScript({
       const url = input instanceof Request ? input.url : String(input);
       if (url.includes("/youtubei/v1/browse")) {
         const body = typeof init?.body === "string" ? init.body : "";
-        const isOurRequest = typeof init?.headers === "object" && init.headers !== null && "X-YTSUA" in init.headers;
-        if (body.includes("FEsubscriptions") && !isOurRequest) {
+        // The X-YTSUA header is the marker for fetches we issue ourselves, so we don't re-broadcast our own responses.
+        const isOurRequest = typeof init?.headers === "object"
+          && init.headers !== null
+          && "X-YTSUA" in init.headers;
+        const isSubscriptionsBrowse = body.includes("FEsubscriptions") && !isOurRequest;
+        if (isSubscriptionsBrowse) {
           const response = await originalFetch(input, init);
           response.clone().json()
             .then(data => dispatchEvent(new CustomEvent("ytsua-browse-response", { detail: data })))

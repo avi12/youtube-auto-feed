@@ -55,20 +55,18 @@ export function statusFromRenderer(renderer: InnerTubeVideoRenderer) {
   const overlayStyle = thumbnailOverlays
     ?.find(overlay => overlay.thumbnailOverlayTimeStatusRenderer)
     ?.thumbnailOverlayTimeStatusRenderer?.style;
-  if (badgeStyle === BadgeStyle.LiveNow || overlayStyle === OverlayStyle.Live) {
+  const isLive = badgeStyle === BadgeStyle.LiveNow || overlayStyle === OverlayStyle.Live;
+  if (isLive) {
     return VideoStatus.Live;
   }
 
   // publishedTimeText wins over stale badge/eventData: when a scheduled stream ends,
   // YouTube sets "Streamed X ago" before clearing upcomingEventData or badges.
   const isStreamedAgo = publishedTimeText?.simpleText?.toLowerCase().startsWith("streamed") ?? false;
-  if (
-    !isStreamedAgo && (
-      badgeStyle === BadgeStyle.Upcoming ||
-      overlayStyle === OverlayStyle.Upcoming ||
-      upcomingEventData !== undefined
-    )
-  ) {
+  const hasUpcomingSignal = badgeStyle === BadgeStyle.Upcoming
+    || overlayStyle === OverlayStyle.Upcoming
+    || upcomingEventData !== undefined;
+  if (!isStreamedAgo && hasUpcomingSignal) {
     return VideoStatus.Upcoming;
   }
 
@@ -96,6 +94,7 @@ export function statusFromLockup(lockup: LockupViewModel) {
         return VideoStatus.Upcoming;
       }
 
+      // Fallback when YouTube omits the structured badgeStyle but still renders the label.
       if (badge.thumbnailBadgeViewModel?.text === "Upcoming") {
         return VideoStatus.Upcoming;
       }

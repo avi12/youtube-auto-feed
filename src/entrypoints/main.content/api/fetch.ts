@@ -16,6 +16,8 @@ function extractYtInitialData(html: string) {
   }
 }
 
+// Re-fetch the page HTML rather than reading window.ytInitialData: that global stays
+// frozen across YouTube SPA navigation and would feed us stale snapshots.
 export async function fetchInitialVideos() {
   const response = await fetch("/feed/subscriptions", {
     credentials: "include"

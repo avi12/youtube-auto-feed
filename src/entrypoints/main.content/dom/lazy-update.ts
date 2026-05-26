@@ -73,7 +73,8 @@ function ensureObserver() {
       });
     }
 
-    if (pendingApplyBatch.length > 0 && !isIdleCallbackScheduled) {
+    const hasBatchToFlush = pendingApplyBatch.length > 0 && !isIdleCallbackScheduled;
+    if (hasBatchToFlush) {
       isIdleCallbackScheduled = true;
       requestIdleCallback(flushApplyBatch, { timeout: IDLE_CALLBACK_TIMEOUT_MS });
     }
@@ -133,7 +134,8 @@ function ensureEntranceObserver() {
 }
 
 export function scheduleLazyEntrance(elItems: HTMLElement[]) {
-  if (elItems.length === 0 || prefersReducedMotion()) {
+  const shouldSkipAnimation = elItems.length === 0 || prefersReducedMotion();
+  if (shouldSkipAnimation) {
     return;
   }
 

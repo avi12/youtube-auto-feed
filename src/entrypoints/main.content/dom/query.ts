@@ -9,6 +9,11 @@ import { parseLockupViewModel, parseRenderer, parseShortsLockupViewModel } from 
 import { deepRecord, isPolymerElement, videoIdFromData } from "../helpers";
 import { type VideoSnapshot, VideoStatus } from "../types";
 
+interface SectionContext {
+  sectionTitle: string;
+  bandIndex: number;
+}
+
 export function findItemElement(videoId: string) {
   for (const elItem of document.querySelectorAll<HTMLElement>("ytd-rich-item-renderer")) {
     if (!isPolymerElement(elItem)) {
@@ -26,7 +31,8 @@ export function findItemElement(videoId: string) {
     }
 
     const gridVideoData = elItem.data;
-    if (isVideoRenderer(gridVideoData) && gridVideoData.videoId === videoId) {
+    const isMatchingGridVideo = isVideoRenderer(gridVideoData) && gridVideoData.videoId === videoId;
+    if (isMatchingGridVideo) {
       return elItem;
     }
   }
@@ -40,17 +46,17 @@ export function findShelfForSection(sectionTitle: string) {
     }
 
     const shelfData = elShelf.data;
-    if (isRichShelfRenderer(shelfData) && (shelfData.title?.runs?.[0]?.text ?? "") === sectionTitle) {
+    const isMatchingShelf = isRichShelfRenderer(shelfData)
+      && (shelfData.title?.runs?.[0]?.text ?? "") === sectionTitle;
+    if (isMatchingShelf) {
       return elShelf;
     }
   }
   return null;
 }
 
-function parseRichItemRenderer({ rawRenderer, sectionTitle, bandIndex }: {
+function parseRichItemRenderer({ rawRenderer, sectionTitle, bandIndex }: SectionContext & {
   rawRenderer: Record<string, unknown> | null;
-  sectionTitle: string;
-  bandIndex: number;
 }) {
   if (isVideoRenderer(rawRenderer)) {
     return parseRenderer({
@@ -82,15 +88,14 @@ function parseRichItemRenderer({ rawRenderer, sectionTitle, bandIndex }: {
 export function readDomSnapshot() {
   const snapshot = new Map<string, VideoSnapshot>();
 
-  function addRichItemToSnapshot({ elItem, sectionTitle, bandIndex }: {
+  function addRichItemToSnapshot({ elItem, sectionTitle, bandIndex }: SectionContext & {
     elItem: Element;
-    sectionTitle: string;
-    bandIndex: number;
   }) {
     if (!isPolymerElement(elItem)) {
       return;
     }
 
+    // Renderer shape varies; try each known wrapper in priority order
     const rawRenderer =
       deepRecord(elItem.data, "content", "videoRenderer") ??
       deepRecord(elItem.data, "content", "gridVideoRenderer") ??
@@ -102,9 +107,11 @@ export function readDomSnapshot() {
       sectionTitle,
       bandIndex
     });
-    if (videoSnapshot && !snapshot.has(videoSnapshot.videoId)) {
-      snapshot.set(videoSnapshot.videoId, videoSnapshot);
+    if (!videoSnapshot || snapshot.has(videoSnapshot.videoId)) {
+      return;
     }
+
+    snapshot.set(videoSnapshot.videoId, videoSnapshot);
   }
 
   for (const elShelf of document.querySelectorAll<HTMLElement>("ytd-rich-shelf-renderer")) {
@@ -145,9 +152,11 @@ export function readDomSnapshot() {
         sectionTitle,
         bandIndex: 0
       });
-      if (videoSnapshot && !snapshot.has(videoSnapshot.videoId)) {
-        snapshot.set(videoSnapshot.videoId, videoSnapshot);
+      if (!videoSnapshot || snapshot.has(videoSnapshot.videoId)) {
+        continue;
       }
+
+      snapshot.set(videoSnapshot.videoId, videoSnapshot);
     }
   }
 
@@ -160,8 +169,10 @@ export function readDomSnapshot() {
         currentSectionTitle = "";
         const elRichShelf = elChild.querySelector("ytd-rich-shelf-renderer");
         const elInnerShelf = elChild.querySelector("ytd-shelf-renderer");
-        const isContentBearingSection = elRichShelf !== null
-          || (elInnerShelf !== null && elInnerShelf.querySelectorAll("ytd-grid-video-renderer, ytd-video-renderer").length > 0);
+        // Title-only legacy shelves still mark a band boundary even with no inline contents
+        const hasInnerShelfVideos = elInnerShelf !== null
+          && elInnerShelf.querySelectorAll("ytd-grid-video-renderer, ytd-video-renderer").length > 0;
+        const isContentBearingSection = elRichShelf !== null || hasInnerShelfVideos;
         if (isContentBearingSection) {
           currentBandIndex++;
         }
@@ -175,6 +186,7 @@ export function readDomSnapshot() {
     }
   }
 
+  // Fallback for legacy grid-only layouts (no rich-grid-renderer)
   if (snapshot.size === 0) {
     for (const elGridVideo of document.querySelectorAll<HTMLElement>("ytd-grid-video-renderer")) {
       if (!isPolymerElement(elGridVideo)) {

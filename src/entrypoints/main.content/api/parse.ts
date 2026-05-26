@@ -7,23 +7,20 @@ import type {
 } from "../types";
 import { parseLockupViewModel, parseRenderer, parseShortsLockupViewModel } from "./parse-video";
 
-interface CollectSnapshotParams {
+interface AnyRendererParams {
   sectionTitle: string;
   bandIndex: number;
-  snapshots: VideoSnapshot[];
-  seenVideoIds: Set<string>;
   renderer?: InnerTubeVideoRenderer;
   lockup?: LockupViewModel;
   shortsLockup?: ShortsLockupViewModel;
 }
 
-function parseAnyRenderer({ sectionTitle, bandIndex, renderer, lockup, shortsLockup }: {
-  sectionTitle: string;
-  bandIndex: number;
-  renderer?: InnerTubeVideoRenderer;
-  lockup?: LockupViewModel;
-  shortsLockup?: ShortsLockupViewModel;
-}) {
+interface CollectSnapshotParams extends AnyRendererParams {
+  snapshots: VideoSnapshot[];
+  seenVideoIds: Set<string>;
+}
+
+function parseAnyRenderer({ sectionTitle, bandIndex, renderer, lockup, shortsLockup }: AnyRendererParams) {
   if (renderer) {
     return parseRenderer({
       renderer,
@@ -67,7 +64,8 @@ function collectSnapshot({
     lockup,
     shortsLockup
   });
-  if (!snapshot || seenVideoIds.has(snapshot.videoId)) {
+  const isDuplicateOrEmpty = !snapshot || seenVideoIds.has(snapshot.videoId);
+  if (isDuplicateOrEmpty) {
     return;
   }
 
@@ -83,10 +81,16 @@ export function extractApiSectionOrder(data: InnerTubeBrowseResponse) {
     for (const item of tabContent?.richGridRenderer?.contents ?? []) {
       const title = item.richSectionRenderer?.content?.richShelfRenderer?.title?.runs?.[0]?.text
                 ?? item.richSectionRenderer?.content?.shelfRenderer?.title?.runs?.[0]?.text;
-      if (title && !seen.has(title)) {
-        seen.add(title);
-        order.push(title);
+      if (!title) {
+        continue;
       }
+
+      if (seen.has(title)) {
+        continue;
+      }
+
+      seen.add(title);
+      order.push(title);
     }
   } catch {}
   return order;
@@ -98,13 +102,7 @@ export function parseApiResponse(data: InnerTubeBrowseResponse) {
   try {
     const tabContent = data.contents.twoColumnBrowseResultsRenderer.tabs[0]?.tabRenderer.content;
 
-    function pushSnapshot(
-      sectionTitle: string,
-      bandIndex: number,
-      renderer?: InnerTubeVideoRenderer,
-      lockup?: LockupViewModel,
-      shortsLockup?: ShortsLockupViewModel
-    ) {
+    function pushSnapshot({ sectionTitle, bandIndex, renderer, lockup, shortsLockup }: AnyRendererParams) {
       collectSnapshot({
         sectionTitle,
         bandIndex,
@@ -128,13 +126,13 @@ export function parseApiResponse(data: InnerTubeBrowseResponse) {
             const renderer = content?.videoRenderer
               ?? content?.gridVideoRenderer
               ?? content?.richGridMediaRenderer?.content?.videoRenderer;
-            pushSnapshot(
-              currentSectionTitle,
-              currentBandIndex,
+            pushSnapshot({
+              sectionTitle: currentSectionTitle,
+              bandIndex: currentBandIndex,
               renderer,
-              content?.lockupViewModel,
-              content?.shortsLockupViewModel
-            );
+              lockup: content?.lockupViewModel,
+              shortsLockup: content?.shortsLockupViewModel
+            });
           }
           currentBandIndex++;
         } else if (shelfRenderer) {
@@ -143,11 +141,11 @@ export function parseApiResponse(data: InnerTubeBrowseResponse) {
             ?? shelfRenderer.content?.gridRenderer?.items
             ?? [];
           for (const shelfItem of shelfItems) {
-            pushSnapshot(
-              currentSectionTitle,
-              currentBandIndex,
-              shelfItem.videoRenderer ?? shelfItem.gridVideoRenderer
-            );
+            pushSnapshot({
+              sectionTitle: currentSectionTitle,
+              bandIndex: currentBandIndex,
+              renderer: shelfItem.videoRenderer ?? shelfItem.gridVideoRenderer
+            });
           }
 
           if (shelfItems.length > 0) {
@@ -155,22 +153,24 @@ export function parseApiResponse(data: InnerTubeBrowseResponse) {
           }
         }
 
+        // Root-level video items following a shelf are Latest-band siblings, not part of the shelf.
         currentSectionTitle = "";
       } else if (item.richItemRenderer) {
         const { content } = item.richItemRenderer;
         const renderer = content?.videoRenderer
           ?? content?.gridVideoRenderer
           ?? content?.richGridMediaRenderer?.content?.videoRenderer;
-        pushSnapshot(
-          currentSectionTitle,
-          currentBandIndex,
+        pushSnapshot({
+          sectionTitle: currentSectionTitle,
+          bandIndex: currentBandIndex,
           renderer,
-          content?.lockupViewModel,
-          content?.shortsLockupViewModel
-        );
+          lockup: content?.lockupViewModel,
+          shortsLockup: content?.shortsLockupViewModel
+        });
       }
     }
 
+    // Legacy sectionListRenderer fallback for older feed shapes.
     if (snapshots.length === 0) {
       for (const sectionItem of tabContent?.sectionListRenderer?.contents ?? []) {
         for (const innerItem of sectionItem.itemSectionRenderer?.contents ?? []) {
@@ -184,7 +184,11 @@ export function parseApiResponse(data: InnerTubeBrowseResponse) {
             ?? shelf.content?.gridRenderer?.items
             ?? [];
           for (const shelfItem of shelfItems) {
-            pushSnapshot(sectionTitle, 0, shelfItem.videoRenderer ?? shelfItem.gridVideoRenderer);
+            pushSnapshot({
+              sectionTitle,
+              bandIndex: 0,
+              renderer: shelfItem.videoRenderer ?? shelfItem.gridVideoRenderer
+            });
           }
         }
       }

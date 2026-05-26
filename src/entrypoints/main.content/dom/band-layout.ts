@@ -121,7 +121,8 @@ export async function normalizeCollapsedShelfRows() {
     const currentContents = deepArray<InnerTubeRichGridItem>(elShelf.data, "contents");
     const normalizedContents = currentContents.filter(item => {
       const videoId = videoIdFromRichItem(item);
-      if (videoId && overflowVideoIds.has(videoId)) {
+      const isOverflowItem = !!videoId && overflowVideoIds.has(videoId);
+      if (isOverflowItem) {
         trimmedVideoIds.add(videoId);
         return false;
       }

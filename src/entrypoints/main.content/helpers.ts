@@ -103,7 +103,8 @@ export function videoIdFromShelfListItem(listItem: unknown) {
 }
 
 function stringOrNull(value: unknown) {
-  return typeof value === "string" && value ? value : null;
+  const isNonEmptyString = typeof value === "string" && value.length > 0;
+  return isNonEmptyString ? value : null;
 }
 
 export function isOnSubscriptionsPage() {

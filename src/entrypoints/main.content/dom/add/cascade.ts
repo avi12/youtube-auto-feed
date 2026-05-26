@@ -32,7 +32,10 @@ function findFirstRichShelfIndex(contents: InnerTubeRichGridItem[]) {
   return contents.length;
 }
 
-function findInlineZoneStart(contents: InnerTubeRichGridItem[], boundary: number) {
+function findInlineZoneStart({ contents, boundary }: {
+  contents: InnerTubeRichGridItem[];
+  boundary: number;
+}) {
   for (let i = 0; i < boundary; i++) {
     if (videoIdFromRichItem(contents[i])) {
       return i;
@@ -49,7 +52,10 @@ function isContinuationItem(item: InnerTubeRichGridItem) {
   return isRecord(item) && "continuationItemRenderer" in item;
 }
 
-function trimTrailingContinuations(contents: InnerTubeRichGridItem[], floor: number) {
+function trimTrailingContinuations({ contents, floor }: {
+  contents: InnerTubeRichGridItem[];
+  floor: number;
+}) {
   let end = contents.length;
   while (end > floor && isContinuationItem(contents[end - 1])) {
     end--;
@@ -62,10 +68,17 @@ function resolveInlineZone(contents: InnerTubeRichGridItem[]): {
   existingItems: InnerTubeRichGridItem[];
 } {
   const firstShelfIndex = findFirstRichShelfIndex(contents);
-  const zoneStart = findInlineZoneStart(contents, firstShelfIndex);
+  const zoneStart = findInlineZoneStart({
+    contents,
+    boundary: firstShelfIndex
+  });
+  // Inline zone ends at the first rich shelf, or just before trailing continuations when no shelf exists.
   const zoneEnd = firstShelfIndex < contents.length
     ? firstShelfIndex
-    : trimTrailingContinuations(contents, zoneStart);
+    : trimTrailingContinuations({
+      contents,
+      floor: zoneStart
+    });
 
   const zoneSlice = contents.slice(zoneStart, zoneEnd);
   const firstInlineOffset = zoneSlice.findIndex(item => videoIdFromRichItem(item));
@@ -96,11 +109,11 @@ function existingItemSecondsAgo(item: InnerTubeRichGridItem) {
   return 0;
 }
 
-function applyInlineCascade(
-  contents: InnerTubeRichGridItem[],
-  newVideos: VideoSnapshot[],
-  inlineBands: CapturedBand[]
-) {
+function applyInlineCascade({ contents, newVideos, inlineBands }: {
+  contents: InnerTubeRichGridItem[];
+  newVideos: VideoSnapshot[];
+  inlineBands: CapturedBand[];
+}) {
   if (inlineBands.length === 0) {
     return;
   }
@@ -110,6 +123,7 @@ function applyInlineCascade(
   const merged = [...existingItems];
   for (const video of newVideos) {
     const secondsAgo = parseSecondsAgo(video.publishedTimeText);
+    // Slot each new video by published age so older items sit lower.
     const pos = merged.findIndex(existing => existingItemSecondsAgo(existing) >= secondsAgo);
     const builtItem = buildRichItem(video.rawRenderer);
     if (pos === -1) {
@@ -122,11 +136,11 @@ function applyInlineCascade(
   contents.splice(insertAt, existingItems.length, ...merged);
 }
 
-function applyRichShelfCascade(
-  contents: InnerTubeRichGridItem[],
-  newItems: InnerTubeRichGridItem[],
-  shelfBands: CapturedBand[]
-) {
+function applyRichShelfCascade({ contents, newItems, shelfBands }: {
+  contents: InnerTubeRichGridItem[];
+  newItems: InnerTubeRichGridItem[];
+  shelfBands: CapturedBand[];
+}) {
   const band = shelfBands[0];
   if (!band) {
     return;
@@ -147,6 +161,7 @@ function applyRichShelfCascade(
 
   const shelfContents = richShelfRaw.contents;
   const totalDesired = shelfContents.length + newItems.length;
+  // Cap additions so the resulting shelf stays row-complete (multiple of 3 columns).
   const alignedTotal = Math.max(shelfContents.length, Math.floor(totalDesired / RICHSHELF_COLUMNS) * RICHSHELF_COLUMNS);
   const acceptedNewItems = newItems.slice(0, alignedTotal - shelfContents.length);
 
@@ -177,8 +192,13 @@ function applyCascades({
   inlineVideos: VideoSnapshot[];
   inlineBands: CapturedBand[];
 }) {
-  if (inlineVideos.length > 0 && inlineBands.length > 0) {
-    applyInlineCascade(contents, inlineVideos, inlineBands);
+  const hasInlineCascade = inlineVideos.length > 0 && inlineBands.length > 0;
+  if (hasInlineCascade) {
+    applyInlineCascade({
+      contents,
+      newVideos: inlineVideos,
+      inlineBands
+    });
   }
 
   const shelfSectionTitles = new Set(
@@ -191,7 +211,11 @@ function applyCascades({
     }
 
     const sectionVideos = videosToAdd.filter(video => video.sectionTitle === sectionTitle);
-    applyRichShelfCascade(contents, sectionVideos.map(video => buildRichItem(video.rawRenderer)), shelfBands);
+    applyRichShelfCascade({
+      contents,
+      newItems: sectionVideos.map(video => buildRichItem(video.rawRenderer)),
+      shelfBands
+    });
   }
 }
 
@@ -213,10 +237,12 @@ export async function cascadeInsertVideos({
 
   await preloadThumbnails(videosToAdd);
 
+  // Inline-band videos sit as root-level grid siblings under the Latest header (bandIndex 0).
   const inlineVideos = videosToAdd.filter(video => !video.sectionTitle && video.bandIndex === 0);
   const inlineBands = bandLayout.bands.filter(band => band.kind === "inline");
   const hasInlineCascade = inlineVideos.length > 0 && inlineBands.length > 0;
-  if (prefersReducedMotion() || !hasInlineCascade) {
+  const shouldSkipInlineAnimation = prefersReducedMotion() || !hasInlineCascade;
+  if (shouldSkipInlineAnimation) {
     const contents = [...deepArray<InnerTubeRichGridItem>(elGrid.data, "contents")];
     applyCascades({
       contents,

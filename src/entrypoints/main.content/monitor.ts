@@ -72,7 +72,9 @@ export function createSubscriptionMonitor() {
       });
       lastSnapshot = snapshot;
 
-      if (isLayoutChange && !isInitialLoad && initialBandLayout !== null) {
+      // Refresh band layout only after non-initial structural mutations; the initial load handles layout below.
+      const shouldRecaptureLayout = isLayoutChange && !isInitialLoad && initialBandLayout !== null;
+      if (shouldRecaptureLayout) {
         const updatedLayout = captureBandLayout();
         if (updatedLayout !== null) {
           initialBandLayout = updatedLayout;
@@ -103,7 +105,8 @@ export function createSubscriptionMonitor() {
   }
 
   function handleBrowseResponse(e: Event) {
-    if (!isOnSubscriptionsPage() || !(e instanceof CustomEvent)) {
+    const isApplicableBrowseEvent = isOnSubscriptionsPage() && e instanceof CustomEvent;
+    if (!isApplicableBrowseEvent) {
       return;
     }
 
@@ -124,13 +127,15 @@ export function createSubscriptionMonitor() {
     pendingApiSnapshots = payload;
     pendingApiSnapshotsTime = Date.now();
 
-    if (isDomReady && !document.hidden) {
+    const canApplyImmediately = isDomReady && !document.hidden;
+    if (canApplyImmediately) {
       void applyChanges({ payload });
     }
   }
 
   async function fetchFreshVideos(isInitialLoad = false) {
-    if (!isOnSubscriptionsPage() || !isDomReady) {
+    const isPollEligible = isOnSubscriptionsPage() && isDomReady;
+    if (!isPollEligible) {
       return false;
     }
 
@@ -151,7 +156,11 @@ export function createSubscriptionMonitor() {
   }
 
   async function fetchAndApplyMetadataUpdates() {
-    if (!isOnSubscriptionsPage() || !isDomReady || isApplyingChanges || document.hidden) {
+    const isMetadataPollSkippable = !isOnSubscriptionsPage()
+      || !isDomReady
+      || isApplyingChanges
+      || document.hidden;
+    if (isMetadataPollSkippable) {
       return;
     }
 
@@ -203,7 +212,8 @@ export function createSubscriptionMonitor() {
   }
 
   function handlePageFocus() {
-    if (!isOnSubscriptionsPage() || !isDomReady) {
+    const isPageFocusEligible = isOnSubscriptionsPage() && isDomReady;
+    if (!isPageFocusEligible) {
       return;
     }
 
@@ -235,7 +245,8 @@ export function createSubscriptionMonitor() {
       void fetchAndApplyMetadataUpdates();
     }, METADATA_POLL_INTERVAL_MS);
     orphanCleanupTimer = setInterval(() => {
-      if (isDomReady && !isApplyingChanges) {
+      const canCleanNow = isDomReady && !isApplyingChanges;
+      if (canCleanNow) {
         requestIdleCallback(() => cleanOrphanedGridItems());
       }
     }, 5000);
@@ -301,7 +312,9 @@ export function createSubscriptionMonitor() {
     pendingRemovals = new Map();
     apiKnownVideoIds = new Set();
 
-    if (Date.now() - pendingApiSnapshotsTime >= PENDING_SNAPSHOT_STALE_MS) {
+    // Discard a pending response if the SPA navigation took long enough that it likely belongs to a prior page state.
+    const isPendingPayloadStale = Date.now() - pendingApiSnapshotsTime >= PENDING_SNAPSHOT_STALE_MS;
+    if (isPendingPayloadStale) {
       pendingApiSnapshots = null;
     }
 
@@ -337,7 +350,8 @@ export function createSubscriptionMonitor() {
   }
 
   function resumePolling() {
-    if (pollingDelayTimer === null && pollingTimer === null) {
+    const isPollingIdle = pollingDelayTimer === null && pollingTimer === null;
+    if (isPollingIdle) {
       restartPolling();
     }
   }

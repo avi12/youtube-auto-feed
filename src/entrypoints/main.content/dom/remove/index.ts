@@ -24,8 +24,10 @@ export async function removeVideosFromDom({ videoIds, shelfProtectedIds = new Se
     shelfProtectedIds
   });
 
+  // Off-screen shelf items skip animation since their teardown isn't visible.
   for (const { container, isOffScreen, elItem } of items) {
-    if (isOffScreen && container !== "grid") {
+    const isInvisibleShelfItem = isOffScreen && container !== "grid";
+    if (isInvisibleShelfItem) {
       elItem.remove();
     }
   }

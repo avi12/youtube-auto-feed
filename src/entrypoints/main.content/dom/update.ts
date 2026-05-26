@@ -42,7 +42,8 @@ async function applyWithDissolve({ elements, apply }: {
   elements: HTMLElement[];
   apply: () => void;
 }) {
-  if (elements.length === 0 || !("startViewTransition" in document)) {
+  const isViewTransitionUnavailable = elements.length === 0 || !("startViewTransition" in document);
+  if (isViewTransitionUnavailable) {
     apply();
     return;
   }
@@ -75,16 +76,25 @@ async function applyWithDissolve({ elements, apply }: {
   });
 }
 
-function setNodeTextIfChanged(elNode: Element | null, newText: string) {
-  if (!elNode || elNode.textContent === newText) {
+function setNodeTextIfChanged({ elNode, newText }: {
+  elNode: Element | null;
+  newText: string;
+}) {
+  const isUpdateNeeded = elNode !== null && elNode.textContent !== newText;
+  if (!isUpdateNeeded) {
     return;
   }
 
   elNode.textContent = newText;
 }
 
-function setAttributeIfChanged(elNode: Element | null, name: string, value: string) {
-  if (!elNode || !value || elNode.getAttribute(name) === value) {
+function setAttributeIfChanged({ elNode, name, value }: {
+  elNode: Element | null;
+  name: string;
+  value: string;
+}) {
+  const isUpdateNeeded = elNode !== null && value !== "" && elNode.getAttribute(name) !== value;
+  if (!isUpdateNeeded) {
     return;
   }
 
@@ -119,87 +129,124 @@ function collectLockupTextElements(elLockup: HTMLElement): LockupTextElements {
   };
 }
 
-function buildAriaLabelUpdate(elTitleLink: HTMLAnchorElement | null, existingTitle: string, newTitle: string) {
-  if (!elTitleLink || !newTitle || !existingTitle || existingTitle === newTitle) {
+function buildAriaLabelUpdate({ elTitleLink, existingTitle, newTitle }: {
+  elTitleLink: HTMLAnchorElement | null;
+  existingTitle: string;
+  newTitle: string;
+}) {
+  const isNoOp = !elTitleLink || !newTitle || !existingTitle || existingTitle === newTitle;
+  if (isNoOp) {
     return null;
   }
 
   const existingAriaLabel = elTitleLink.getAttribute("aria-label");
-  if (!existingAriaLabel || !existingAriaLabel.startsWith(existingTitle)) {
+  // Aria-label is "{title} by {channel} {views} {time}"; only patch when prefix matches the prior title
+  const isAriaLabelPatchable = existingAriaLabel !== null && existingAriaLabel.startsWith(existingTitle);
+  if (!isAriaLabelPatchable) {
     return null;
   }
 
   return `${newTitle}${existingAriaLabel.slice(existingTitle.length)}`;
 }
 
-function applyLockupTextChanges({ refs, fresh }: {
+interface LockupTextChange {
   refs: LockupTextElements;
   fresh: VideoSnapshot;
-}) {
+}
+
+interface ItemTextChange {
+  elItem: HTMLElement;
+  fresh: VideoSnapshot;
+}
+
+function applyLockupTextChanges({ refs, fresh }: LockupTextChange) {
   const existingTitle = refs.elTitle?.textContent ?? "";
-  setNodeTextIfChanged(refs.elTitle, fresh.title);
-  setAttributeIfChanged(refs.elHeading, "title", fresh.title);
-  const newAriaLabel = buildAriaLabelUpdate(refs.elTitleLink, existingTitle, fresh.title);
+  setNodeTextIfChanged({
+    elNode: refs.elTitle,
+    newText: fresh.title
+  });
+  setAttributeIfChanged({
+    elNode: refs.elHeading,
+    name: "title",
+    value: fresh.title
+  });
+  const newAriaLabel = buildAriaLabelUpdate({
+    elTitleLink: refs.elTitleLink,
+    existingTitle,
+    newTitle: fresh.title
+  });
   if (newAriaLabel !== null) {
     refs.elTitleLink?.setAttribute("aria-label", newAriaLabel);
   }
 
-  setNodeTextIfChanged(refs.elView, fresh.viewCountText);
-  setNodeTextIfChanged(refs.elTime, fresh.publishedTimeText);
+  setNodeTextIfChanged({
+    elNode: refs.elView,
+    newText: fresh.viewCountText
+  });
+  setNodeTextIfChanged({
+    elNode: refs.elTime,
+    newText: fresh.publishedTimeText
+  });
 }
 
-function changingLockupTextElements({ refs, fresh }: {
-  refs: LockupTextElements;
-  fresh: VideoSnapshot;
-}) {
+function changingLockupTextElements({ refs, fresh }: LockupTextChange) {
   const elements: HTMLElement[] = [];
-  if (refs.elTitle && refs.elTitle.textContent !== fresh.title && fresh.title) {
-    elements.push(refs.elTitle);
+  const { elTitle, elView, elTime } = refs;
+  if (elTitle && elTitle.textContent !== fresh.title && fresh.title !== "") {
+    elements.push(elTitle);
   }
 
-  if (refs.elView && refs.elView.textContent !== fresh.viewCountText) {
-    elements.push(refs.elView);
+  if (elView && elView.textContent !== fresh.viewCountText) {
+    elements.push(elView);
   }
 
-  if (refs.elTime && refs.elTime.textContent !== fresh.publishedTimeText) {
-    elements.push(refs.elTime);
+  if (elTime && elTime.textContent !== fresh.publishedTimeText) {
+    elements.push(elTime);
   }
 
   return elements;
 }
 
-function updateShortsTextFields({ elItem, fresh }: {
-  elItem: HTMLElement;
-  fresh: VideoSnapshot;
-}) {
-  setNodeTextIfChanged(elItem.querySelector(TITLE_SELECTOR_SHORTS), fresh.title);
-  setAttributeIfChanged(elItem.querySelector(TITLE_LINK_SELECTOR_SHORTS), "title", fresh.title);
-  setNodeTextIfChanged(elItem.querySelector(SUBHEAD_SELECTOR_SHORTS), fresh.viewCountText);
+function updateShortsTextFields({ elItem, fresh }: ItemTextChange) {
+  setNodeTextIfChanged({
+    elNode: elItem.querySelector(TITLE_SELECTOR_SHORTS),
+    newText: fresh.title
+  });
+  setAttributeIfChanged({
+    elNode: elItem.querySelector(TITLE_LINK_SELECTOR_SHORTS),
+    name: "title",
+    value: fresh.title
+  });
+  setNodeTextIfChanged({
+    elNode: elItem.querySelector(SUBHEAD_SELECTOR_SHORTS),
+    newText: fresh.viewCountText
+  });
 }
 
-function changingShortsTextElements({ elItem, fresh }: {
-  elItem: HTMLElement;
-  fresh: VideoSnapshot;
-}) {
+function changingShortsTextElements({ elItem, fresh }: ItemTextChange) {
   const elements: HTMLElement[] = [];
   const elTitle = elItem.querySelector<HTMLElement>(TITLE_SELECTOR_SHORTS);
-  if (elTitle && elTitle.textContent !== fresh.title && fresh.title) {
+  const isTitleChanging = elTitle !== null && elTitle.textContent !== fresh.title && fresh.title !== "";
+  if (isTitleChanging) {
     elements.push(elTitle);
   }
 
   const elSubhead = elItem.querySelector<HTMLElement>(SUBHEAD_SELECTOR_SHORTS);
-  if (elSubhead && elSubhead.textContent !== fresh.viewCountText) {
+  const isSubheadChanging = elSubhead !== null && elSubhead.textContent !== fresh.viewCountText;
+  if (isSubheadChanging) {
     elements.push(elSubhead);
   }
 
   return elements;
 }
 
-function updateLegacyRendererTextFields({ elItem, fresh }: {
-  elItem: HTMLElement;
-  fresh: VideoSnapshot;
-}) {
-  setNodeTextIfChanged(elItem.querySelector("#video-title yt-formatted-string, #video-title-link yt-formatted-string, #video-title"), fresh.title);
+const LEGACY_TITLE_SELECTOR = "#video-title yt-formatted-string, #video-title-link yt-formatted-string, #video-title";
+
+function updateLegacyRendererTextFields({ elItem, fresh }: ItemTextChange) {
+  setNodeTextIfChanged({
+    elNode: elItem.querySelector(LEGACY_TITLE_SELECTOR),
+    newText: fresh.title
+  });
 
   const elMeta = elItem.querySelector("#metadata-line");
   if (!elMeta) {
@@ -207,28 +254,35 @@ function updateLegacyRendererTextFields({ elItem, fresh }: {
   }
 
   const elMetaSpans = elMeta.querySelectorAll<HTMLElement>(":scope > span.inline-metadata-item");
-  setNodeTextIfChanged(elMetaSpans[0] ?? null, fresh.viewCountText);
-  setNodeTextIfChanged(elMetaSpans[1] ?? null, fresh.publishedTimeText);
+  setNodeTextIfChanged({
+    elNode: elMetaSpans[0] ?? null,
+    newText: fresh.viewCountText
+  });
+  setNodeTextIfChanged({
+    elNode: elMetaSpans[1] ?? null,
+    newText: fresh.publishedTimeText
+  });
 }
 
-function changingLegacyTextElements({ elItem, fresh }: {
-  elItem: HTMLElement;
-  fresh: VideoSnapshot;
-}) {
+function changingLegacyTextElements({ elItem, fresh }: ItemTextChange) {
   const elements: HTMLElement[] = [];
-  const elTitle = elItem.querySelector<HTMLElement>("#video-title yt-formatted-string, #video-title-link yt-formatted-string, #video-title");
-  if (elTitle && elTitle.textContent !== fresh.title && fresh.title) {
+  const elTitle = elItem.querySelector<HTMLElement>(LEGACY_TITLE_SELECTOR);
+  const isTitleChanging = elTitle !== null && elTitle.textContent !== fresh.title && fresh.title !== "";
+  if (isTitleChanging) {
     elements.push(elTitle);
   }
 
   const elMeta = elItem.querySelector("#metadata-line");
   const elMetaSpans = elMeta?.querySelectorAll<HTMLElement>(":scope > span.inline-metadata-item") ?? [];
-  if (elMetaSpans[0] && elMetaSpans[0].textContent !== fresh.viewCountText) {
-    elements.push(elMetaSpans[0]);
+  const [elViews, elTime] = elMetaSpans;
+  const isViewsChanging = elViews !== undefined && elViews.textContent !== fresh.viewCountText;
+  if (isViewsChanging) {
+    elements.push(elViews);
   }
 
-  if (elMetaSpans[1] && elMetaSpans[1].textContent !== fresh.publishedTimeText) {
-    elements.push(elMetaSpans[1]);
+  const isTimeChanging = elTime !== undefined && elTime.textContent !== fresh.publishedTimeText;
+  if (isTimeChanging) {
+    elements.push(elTime);
   }
 
   return elements;
@@ -383,14 +437,19 @@ function getAvatarImage(viewModel: LockupViewModel) {
   return viewModel.metadata?.lockupMetadataViewModel?.image;
 }
 
-function hasSameThumbnail(existing: LockupViewModel, incoming: LockupViewModel) {
+interface LockupPair {
+  existing: LockupViewModel;
+  incoming: LockupViewModel;
+}
+
+function hasSameThumbnail({ existing, incoming }: LockupPair) {
   return getThumbnailUrlKey(existing.contentImage) === getThumbnailUrlKey(incoming.contentImage);
 }
 
-function mergeContentImagePreservingThumbnail(
-  existing: LockupViewModel["contentImage"],
-  incoming: LockupViewModel["contentImage"]
-): LockupViewModel["contentImage"] {
+function mergeContentImagePreservingThumbnail({ existing, incoming }: {
+  existing: LockupViewModel["contentImage"];
+  incoming: LockupViewModel["contentImage"];
+}): LockupViewModel["contentImage"] {
   if (!existing) {
     return incoming;
   }
@@ -409,6 +468,7 @@ function mergeContentImagePreservingThumbnail(
     return incoming;
   }
 
+  // Keep the already-loaded image bytes to avoid a network re-fetch when the URL key is unchanged
   return {
     ...incoming,
     thumbnailViewModel: {
@@ -418,9 +478,7 @@ function mergeContentImagePreservingThumbnail(
   };
 }
 
-function mutateLockupViewModelInPlace({ existing, incoming, preserveContentImage }: {
-  existing: LockupViewModel;
-  incoming: LockupViewModel;
+function mutateLockupViewModelInPlace({ existing, incoming, preserveContentImage }: LockupPair & {
   preserveContentImage: boolean;
 }) {
   const existingAvatarImage = getAvatarImage(existing);
@@ -430,7 +488,10 @@ function mutateLockupViewModelInPlace({ existing, incoming, preserveContentImage
   Object.assign(existing, incoming);
 
   if (preserveContentImage) {
-    existing.contentImage = mergeContentImagePreservingThumbnail(preservedContentImage, incoming.contentImage);
+    existing.contentImage = mergeContentImagePreservingThumbnail({
+      existing: preservedContentImage,
+      incoming: incoming.contentImage
+    });
   }
 
   const shouldRestoreAvatar = incomingAvatarImage === undefined
@@ -515,10 +576,7 @@ function mutateLockupMetadata({ videoId, elItem, incoming, preserveContentImage 
   }
 }
 
-function buildPreservedAvatarMetadata({ existing, incoming }: {
-  existing: LockupViewModel;
-  incoming: LockupViewModel;
-}) {
+function buildPreservedAvatarMetadata({ existing, incoming }: LockupPair) {
   const existingAvatarImage = getAvatarImage(existing);
   const incomingLockupMeta = incoming.metadata?.lockupMetadataViewModel;
   if (incomingLockupMeta === undefined && existingAvatarImage === undefined) {
@@ -534,14 +592,18 @@ function buildPreservedAvatarMetadata({ existing, incoming }: {
   };
 }
 
-function mergeLockupViewModel({ existing, incoming, forcePreserveContentImage = false }: {
-  existing: LockupViewModel;
-  incoming: LockupViewModel;
+function mergeLockupViewModel({ existing, incoming, forcePreserveContentImage = false }: LockupPair & {
   forcePreserveContentImage?: boolean;
 }) {
-  const shouldPreserveThumbnail = forcePreserveContentImage || hasSameThumbnail(existing, incoming);
+  const shouldPreserveThumbnail = forcePreserveContentImage || hasSameThumbnail({
+    existing,
+    incoming
+  });
   const contentImage = shouldPreserveThumbnail
-    ? mergeContentImagePreservingThumbnail(existing.contentImage, incoming.contentImage)
+    ? mergeContentImagePreservingThumbnail({
+      existing: existing.contentImage,
+      incoming: incoming.contentImage
+    })
     : incoming.contentImage;
   return {
     ...incoming,
@@ -634,7 +696,8 @@ function buildMergedVideoRenderer({
   incoming: VideoSnapshot["rawRenderer"];
   forcePreserveContentImage: boolean;
 }) {
-  if (!forcePreserveContentImage || existing === null || !isVideoRenderer(incoming)) {
+  const isMergeSkipped = !forcePreserveContentImage || existing === null || !isVideoRenderer(incoming);
+  if (isMergeSkipped) {
     return incoming;
   }
 
@@ -643,6 +706,7 @@ function buildMergedVideoRenderer({
     return incoming;
   }
 
+  // Preserve the existing thumbnail object so the in-flight <img> keeps its decoded bytes
   return {
     ...incoming,
     thumbnail
@@ -816,12 +880,14 @@ function syncGridModelItem({ videoId, rawRenderer, forcePreserveContentImage = f
   }
 }
 
-async function applyTargetedGenericUpdate({ videoId, elItem, previous, fresh }: {
+interface TargetedUpdateParams {
   videoId: string;
   elItem: PolymerElement;
   previous: VideoSnapshot;
   fresh: VideoSnapshot;
-}) {
+}
+
+async function applyTargetedGenericUpdate({ videoId, elItem, previous, fresh }: TargetedUpdateParams) {
   const isShorts = !!elItem.querySelector("ytm-shorts-lockup-view-model-v2, ytm-shorts-lockup-view-model");
   const textElements = isShorts
     ? changingShortsTextElements({
@@ -842,8 +908,10 @@ async function applyTargetedGenericUpdate({ videoId, elItem, previous, fresh }: 
       fresh
     });
 
-  const elImg = previous.thumbnailUrl !== fresh.thumbnailUrl ? findThumbnailImgInItem(elItem) : null;
-  if (previous.thumbnailUrl !== fresh.thumbnailUrl && !elImg) {
+  const isThumbnailChanging = previous.thumbnailUrl !== fresh.thumbnailUrl;
+  const elImg = isThumbnailChanging ? findThumbnailImgInItem(elItem) : null;
+  // Thumbnail changed but the live <img> couldn't be located, so rebuild the whole renderer
+  if (isThumbnailChanging && !elImg) {
     applyPolymerUpdate({
       elItem,
       rawRenderer: fresh.rawRenderer
@@ -862,8 +930,10 @@ async function applyTargetedGenericUpdate({ videoId, elItem, previous, fresh }: 
       newUrl: fresh.thumbnailUrl
     })
     : null;
-  if (textElements.length === 0 && !thumbWork?.willDissolve) {
-    if (elImg && previous.thumbnailUrl !== fresh.thumbnailUrl) {
+  const isNothingToAnimate = textElements.length === 0 && !thumbWork?.willDissolve;
+  if (isNothingToAnimate) {
+    // Thumbnail bytes are identical though URL changed; sync the model but keep DOM <img> alone
+    if (elImg && isThumbnailChanging) {
       syncGridModelItem({
         videoId,
         rawRenderer: fresh.rawRenderer,
@@ -903,12 +973,8 @@ async function applyTargetedLockupUpdate({
   elLockup,
   previous,
   fresh
-}: {
-  videoId: string;
-  elItem: PolymerElement;
+}: TargetedUpdateParams & {
   elLockup: HTMLElement;
-  previous: VideoSnapshot;
-  fresh: VideoSnapshot;
 }) {
   const refs = collectLockupTextElements(elLockup);
   const textElements = changingLockupTextElements({
@@ -921,7 +987,9 @@ async function applyTargetedLockupUpdate({
   const newUrl = freshLockup?.contentImage?.thumbnailViewModel?.image?.sources?.at(-1)?.url ?? fresh.thumbnailUrl;
   const thumbUrlDiffers = previous.thumbnailUrl !== fresh.thumbnailUrl;
   const elImg = thumbUrlDiffers ? findThumbnailImg(elLockup) : null;
-  if (thumbUrlDiffers && !elImg) {
+  // Thumbnail changed but the live <img> couldn't be located, so rebuild the whole renderer
+  const isThumbnailUnreachable = thumbUrlDiffers && !elImg;
+  if (isThumbnailUnreachable) {
     applyPolymerUpdate({
       elItem,
       rawRenderer: freshRawRenderer
@@ -941,7 +1009,8 @@ async function applyTargetedLockupUpdate({
     })
     : null;
   const isWatchProgressChanged = previous.watchProgressPercent !== fresh.watchProgressPercent;
-  if (textElements.length === 0 && !thumbWork?.willDissolve) {
+  const isNothingToAnimate = textElements.length === 0 && !thumbWork?.willDissolve;
+  if (isNothingToAnimate) {
     if (freshLockup) {
       mutateLockupMetadata({
         videoId,
@@ -1028,15 +1097,19 @@ export function applyUpdate({ videoId, elItem, fresh, previous }: {
   previous?: VideoSnapshot;
 }) {
   const isChannelLiveChanged = !!previous && previous.isChannelLive !== fresh.isChannelLive;
-  if (!previous || previous.status !== fresh.status || isChannelLiveChanged) {
+  // Status flips and channel-live flips require a full renderer swap; targeted DOM patches only handle metadata
+  const needsFullRebuild = !previous || previous.status !== fresh.status || isChannelLiveChanged;
+  if (needsFullRebuild) {
     applyPolymerUpdate({
       elItem,
       rawRenderer: fresh.rawRenderer
     });
+    // When only the channel-live flag changed, the thumbnail bytes are the same - keep them
+    const isOnlyChannelLiveFlip = isChannelLiveChanged && previous !== undefined && previous.status === fresh.status;
     syncGridModelItem({
       videoId,
       rawRenderer: fresh.rawRenderer,
-      forcePreserveContentImage: isChannelLiveChanged && previous.status === fresh.status
+      forcePreserveContentImage: isOnlyChannelLiveFlip
     });
     return;
   }
@@ -1055,9 +1128,8 @@ export function applyUpdate({ videoId, elItem, fresh, previous }: {
   }
 
   const { content } = itemData;
-  const elLockup = isRecord(content) && isRecord(content.lockupViewModel)
-    ? elItem.querySelector<HTMLElement>("yt-lockup-view-model")
-    : null;
+  const hasLockupContent = isRecord(content) && isRecord(content.lockupViewModel);
+  const elLockup = hasLockupContent ? elItem.querySelector<HTMLElement>("yt-lockup-view-model") : null;
   if (elLockup) {
     void applyTargetedLockupUpdate({
       videoId,

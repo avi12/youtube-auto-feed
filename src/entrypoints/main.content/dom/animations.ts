@@ -11,6 +11,7 @@ export function prefersReducedMotion() {
   return matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
+// Only one view transition can run at a time per document; serialize callers through this lock.
 let viewTransitionLock: Promise<void> = Promise.resolve();
 
 function noop() {}
@@ -75,7 +76,9 @@ export function assignItemViewTransitionNames(elItems: Iterable<HTMLElement>) {
     }
 
     const videoId = videoIdFromData(elItem.data);
-    if (videoId && !assignedIds.has(videoId)) {
+    // View transition names must be unique per document; skip duplicates from repeat shelves.
+    const isFirstOccurrence = !!videoId && !assignedIds.has(videoId);
+    if (isFirstOccurrence) {
       assignedIds.add(videoId);
       elItem.style.viewTransitionName = `ytsua-item-${videoId}`;
     }
@@ -127,7 +130,8 @@ export function reassignTransitionNames({ elItems, animateIds }: {
     }
 
     const videoId = videoIdFromData(elItem.data);
-    if (videoId && animateIds.has(videoId) && !reassignedIds.has(videoId)) {
+    const isAnimatableAndUnseen = !!videoId && animateIds.has(videoId) && !reassignedIds.has(videoId);
+    if (isAnimatableAndUnseen) {
       reassignedIds.add(videoId);
       elItem.style.viewTransitionName = `ytsua-item-${videoId}`;
     }
@@ -148,6 +152,7 @@ export async function animateItemsOut(elItems: HTMLElement[]) {
   }
 
   await new Promise<void>(resolve => {
+    // Fallback timer in case animationend never fires (e.g. element removed mid-animation).
     const timer = setTimeout(resolve, ANIMATION_DURATION_MS + 50);
     elItems[0].addEventListener("animationend", () => {
       clearTimeout(timer);
@@ -193,7 +198,8 @@ export function buildShiftTransitionStyle({
   let css = "";
   for (const elItem of elItems) {
     const { viewTransitionName } = elItem.style;
-    if (viewTransitionName && !excludeNames.has(viewTransitionName)) {
+    const isShiftable = !!viewTransitionName && !excludeNames.has(viewTransitionName);
+    if (isShiftable) {
       css += `::view-transition-old(${viewTransitionName}){animation:none;opacity:0}\n`;
       css += `::view-transition-new(${viewTransitionName}){animation:none;opacity:1}\n`;
       const delayMs = Math.round(iItem * delayPerItemMs);

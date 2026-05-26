@@ -21,15 +21,14 @@ import { findShelfForSection } from "./query";
 import { findRichItemIndex, videoIdFromRichItem } from "./rich-item";
 import { updateVideoInDom } from "./update";
 
-export async function repositionVideoInSection({
-  freshSnapshot,
-  sectionVideos,
-  allSnapshots
-}: {
+interface RepositionParams {
   freshSnapshot: VideoSnapshot;
   sectionVideos: VideoSnapshot[];
   allSnapshots: Map<string, VideoSnapshot>;
-}) {
+}
+
+export async function repositionVideoInSection({ freshSnapshot, sectionVideos, allSnapshots }: RepositionParams) {
+  // Latest band has no sectionTitle and lives at grid root; named shelves own their own contents array
   if (!freshSnapshot.sectionTitle) {
     await repositionVideoInGrid({
       freshSnapshot,
@@ -46,20 +45,13 @@ export async function repositionVideoInSection({
   });
 }
 
-async function repositionVideoInShelf({
-  freshSnapshot,
-  sectionVideos,
-  allSnapshots
-}: {
-  freshSnapshot: VideoSnapshot;
-  sectionVideos: VideoSnapshot[];
-  allSnapshots: Map<string, VideoSnapshot>;
-}) {
+async function repositionVideoInShelf({ freshSnapshot, sectionVideos, allSnapshots }: RepositionParams) {
   const {
     videoId, sectionTitle, rawRenderer, status
   } = freshSnapshot;
   const elShelf = findShelfForSection(sectionTitle);
-  if (!elShelf || !isPolymerElement(elShelf)) {
+  const isShelfUsable = elShelf !== null && isPolymerElement(elShelf);
+  if (!isShelfUsable) {
     updateVideoInDom({
       videoId,
       freshSnapshot
@@ -137,20 +129,13 @@ async function repositionVideoInShelf({
   });
 }
 
-async function repositionVideoInGrid({
-  freshSnapshot,
-  sectionVideos,
-  allSnapshots
-}: {
-  freshSnapshot: VideoSnapshot;
-  sectionVideos: VideoSnapshot[];
-  allSnapshots: Map<string, VideoSnapshot>;
-}) {
+async function repositionVideoInGrid({ freshSnapshot, sectionVideos, allSnapshots }: RepositionParams) {
   const {
     videoId, rawRenderer, status
   } = freshSnapshot;
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
-  if (!elGrid || !isPolymerElement(elGrid) || !isRecord(elGrid.data)) {
+  const isGridUsable = elGrid !== null && isPolymerElement(elGrid) && isRecord(elGrid.data);
+  if (!isGridUsable) {
     updateVideoInDom({
       videoId,
       freshSnapshot
@@ -241,6 +226,7 @@ async function repositionVideoInGrid({
   });
 }
 
+// The Latest band runs from grid start (or first inline video) up to the first named rich shelf
 function resolveLatestBandZone(contents: InnerTubeRichGridItem[]) {
   let zoneEnd = contents.length;
   for (let i = 0; i < contents.length; i++) {
@@ -252,11 +238,10 @@ function resolveLatestBandZone(contents: InnerTubeRichGridItem[]) {
 
   let zoneStart = 0;
   while (zoneStart < zoneEnd) {
-    if (videoIdFromRichItem(contents[zoneStart])) {
-      break;
-    }
-
-    if (deepRecord(contents[zoneStart], "richSectionRenderer", "content", "richShelfRenderer")) {
+    const item = contents[zoneStart];
+    const isBandBoundary = videoIdFromRichItem(item) !== null
+      || deepRecord(item, "richSectionRenderer", "content", "richShelfRenderer") !== null;
+    if (isBandBoundary) {
       break;
     }
 
@@ -289,7 +274,8 @@ function resolveInsertIndex({
   for (let i = 0; i < contentsWithoutVideo.length; i++) {
     const itemVideoId = videoIdFromData(deepRecord(contentsWithoutVideo[i], "richItemRenderer")) ?? "";
     const itemApiRank = sectionVideoIds.indexOf(itemVideoId);
-    if (itemApiRank >= 0 && itemApiRank > videoApiRank) {
+    const isFirstHigherRanked = itemApiRank >= 0 && itemApiRank > videoApiRank;
+    if (isFirstHigherRanked) {
       iInsert = i;
       break;
     }
@@ -299,6 +285,7 @@ function resolveInsertIndex({
     return iInsert;
   }
 
+  // Non-live videos must never overtake the leading live cluster
   let leadingLiveSplice = 0;
   for (let i = 0; i < contentsWithoutVideo.length; i++) {
     const itemVideoId = videoIdFromRichItem(contentsWithoutVideo[i]);

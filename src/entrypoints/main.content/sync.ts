@@ -20,7 +20,8 @@ import { type InnerTubeRichGridItem, type VideoSnapshot, VideoStatus } from "./t
 function readCurrentVideoSections() {
   const sections = new Map<string, string>();
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
-  if (!elGrid || !isPolymerElement(elGrid) || !isRecord(elGrid.data)) {
+  const isGridReadable = !!elGrid && isPolymerElement(elGrid) && isRecord(elGrid.data);
+  if (!isGridReadable) {
     return sections;
   }
 
@@ -60,7 +61,8 @@ function readCurrentVideoSections() {
 function readCurrentVideoBandIndices() {
   const bandIndices = new Map<string, number>();
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
-  if (!elGrid || !isPolymerElement(elGrid) || !isRecord(elGrid.data)) {
+  const isGridReadable = !!elGrid && isPolymerElement(elGrid) && isRecord(elGrid.data);
+  if (!isGridReadable) {
     return bandIndices;
   }
 
@@ -107,7 +109,8 @@ function collectFromDomRichItems(videoIds: Set<string>) {
 
 function collectFromGridDataModel(videoIds: Set<string>) {
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
-  if (!elGrid || !isPolymerElement(elGrid) || !isRecord(elGrid.data)) {
+  const isGridReadable = !!elGrid && isPolymerElement(elGrid) && isRecord(elGrid.data);
+  if (!isGridReadable) {
     return;
   }
 
@@ -187,6 +190,17 @@ interface FeedDiff {
   metadataOnly: VideoSnapshot[];
 }
 
+interface DiffInputs {
+  previousSnapshot: Map<string, VideoSnapshot>;
+  freshSnapshots: VideoSnapshot[];
+  freshMap: Map<string, VideoSnapshot>;
+  currentVideoIds: Set<string>;
+  currentVideoSections: Map<string, string>;
+  currentVideoBandIndices: Map<string, number>;
+  confirmedAbsentVideoIds: Set<string>;
+}
+
+// Latest band (sectionTitle === "", bandIndex 0) is the only zone the extension may add/remove videos in.
 function isLatestSnapshot(snapshot: VideoSnapshot) {
   return snapshot.sectionTitle === "" && snapshot.bandIndex === 0;
 }
@@ -215,15 +229,7 @@ function computeFeedDiff({
   currentVideoSections,
   currentVideoBandIndices,
   confirmedAbsentVideoIds
-}: {
-  previousSnapshot: Map<string, VideoSnapshot>;
-  freshSnapshots: VideoSnapshot[];
-  freshMap: Map<string, VideoSnapshot>;
-  currentVideoIds: Set<string>;
-  currentVideoSections: Map<string, string>;
-  currentVideoBandIndices: Map<string, number>;
-  confirmedAbsentVideoIds: Set<string>;
-}): FeedDiff {
+}: DiffInputs): FeedDiff {
   const removed: string[] = [];
   const candidateRemovals: string[] = [];
   const added: VideoSnapshot[] = [];
@@ -269,10 +275,13 @@ function computeFeedDiff({
   for (const fresh of freshSnapshots) {
     const previous = previousSnapshot.get(fresh.videoId);
     if (!isLatestSnapshot(fresh)) {
-      if (previous && currentVideoIds.has(fresh.videoId) && hasMetadataChange({
-        previous,
-        fresh
-      })) {
+      const isMetadataOnlyChange = !!previous
+        && currentVideoIds.has(fresh.videoId)
+        && hasMetadataChange({
+          previous,
+          fresh
+        });
+      if (isMetadataOnlyChange) {
         metadataOnly.push(fresh);
       }
 
@@ -330,15 +339,7 @@ function classifyChanges({
   currentVideoSections,
   currentVideoBandIndices,
   confirmedAbsentVideoIds
-}: {
-  previousSnapshot: Map<string, VideoSnapshot>;
-  freshSnapshots: VideoSnapshot[];
-  freshMap: Map<string, VideoSnapshot>;
-  currentVideoIds: Set<string>;
-  currentVideoSections: Map<string, string>;
-  currentVideoBandIndices: Map<string, number>;
-  confirmedAbsentVideoIds: Set<string>;
-}): ClassifiedChanges {
+}: DiffInputs): ClassifiedChanges {
   const diff = computeFeedDiff({
     previousSnapshot,
     freshSnapshots,
@@ -421,10 +422,13 @@ async function executeChanges({
   );
   const hasInlineBands = bandLayout?.bands.some(band => band.kind === "inline") ?? false;
 
+  // Cascade handles inline Latest additions + known richShelf sections; everything else falls back to direct insert.
   const videosForCascade = bandLayout
-    ? changes.videosToAdd.filter(video =>
-      (!video.sectionTitle && video.bandIndex === 0 && hasInlineBands) ||
-      (!!video.sectionTitle && cascadeSectionTitles.has(video.sectionTitle)))
+    ? changes.videosToAdd.filter(video => {
+      const isInlineCascadeCandidate = !video.sectionTitle && video.bandIndex === 0 && hasInlineBands;
+      const isShelfCascadeCandidate = !!video.sectionTitle && cascadeSectionTitles.has(video.sectionTitle);
+      return isInlineCascadeCandidate || isShelfCascadeCandidate;
+    })
     : [];
   const videosForFallback = changes.videosToAdd.filter(
     video => !videosForCascade.includes(video) && !innerShelfSections.has(video.sectionTitle)
@@ -440,8 +444,10 @@ async function executeChanges({
   const shelfFallbackMoveIds = new Set(
     shelfFallbackVideos.filter(video => videoIdsToRemoveSet.has(video.videoId)).map(video => video.videoId)
   );
+  // Videos in both cascade and remove lists are moves; shield them so we don't strip the just-inserted node.
   const shelfProtectedIds = new Set([...cascadeShelfMoveIds, ...shelfFallbackMoveIds]);
-  if (videosForCascade.length > 0 && bandLayout) {
+  const hasCascadeWork = videosForCascade.length > 0 && bandLayout !== null;
+  if (hasCascadeWork) {
     await cascadeInsertVideos({
       videosToAdd: videosForCascade,
       bandLayout
@@ -521,7 +527,9 @@ export async function detectAndApplyChanges({
   const freshMap = new Map<string, VideoSnapshot>();
   for (const video of freshSnapshots) {
     const existing = freshMap.get(video.videoId);
-    if (!existing || !existing.sectionTitle) {
+    // Latest-band entries take precedence so the snapshot reflects the mutable zone, not shelf duplicates.
+    const shouldOverwrite = !existing || !existing.sectionTitle;
+    if (shouldOverwrite) {
       freshMap.set(video.videoId, video);
     }
   }
@@ -538,9 +546,10 @@ export async function detectAndApplyChanges({
     currentVideoBandIndices,
     confirmedAbsentVideoIds
   });
-  const isLayoutChange = changes.videoIdsToRemove.length > 0 ||
-    changes.videosToAdd.length > 0 ||
-    changes.videosToReposition.length > 0;
+  // Layout-changing edits invalidate the cached band layout; metadata-only and move-to-front edits don't.
+  const isLayoutChange = changes.videoIdsToRemove.length > 0
+    || changes.videosToAdd.length > 0
+    || changes.videosToReposition.length > 0;
 
   await executeChanges({
     changes,

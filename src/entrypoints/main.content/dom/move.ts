@@ -84,6 +84,7 @@ async function moveVideosToShelfFront({
   const isAlreadyAtFront = sortedVideos.every(
     (video, i) => videoIdFromRichItem(shelfContents[i]) === video.videoId
   );
+  // Already in position: skip the view transition but still refresh metadata via the fallback.
   if (isAlreadyAtFront) {
     await fallbackUpdate(sortedVideos);
     return;
@@ -159,6 +160,7 @@ async function moveVideosToGridFront({ videos, freshOrder }: {
   const isAlreadyAtFront = sortedVideos.every(
     (video, i) => videoIdFromRichItem(gridContents[iTargetInsert + i]) === video.videoId
   );
+  // Already in position: skip the view transition but still refresh metadata via the fallback.
   if (isAlreadyAtFront) {
     await fallbackUpdate(sortedVideos);
     return;

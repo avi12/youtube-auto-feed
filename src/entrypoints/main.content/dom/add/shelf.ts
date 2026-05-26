@@ -97,8 +97,10 @@ async function addVideosToSection({
   const displayCap = visibleCap ?? elAllShelfItems.length;
   const isCollapsed = isShelfCollapsed(elShelf);
 
+  // Collapsed shelves always animate; expanded shelves only animate when the insert lands within the visible cap.
   const anyVisibleInsert = isCollapsed || insertOperations.some(({ iInsert }) => iInsert < displayCap);
-  if (!anyVisibleInsert || prefersReducedMotion()) {
+  const shouldSkipAnimation = !anyVisibleInsert || prefersReducedMotion();
+  if (shouldSkipAnimation) {
     elShelf.set("data.contents", newShelfContents);
     return;
   }
@@ -275,7 +277,9 @@ function buildCollapsedOverflowStyle({ elExistingItems, iInsert }: {
 }) {
   const visibleItems = [...elExistingItems].filter(elItem => elItem.offsetWidth > 0);
   const elLastVisible = visibleItems.at(-1);
-  if (!elLastVisible || iInsert >= visibleItems.length) {
+  // No overflow animation needed when nothing is currently visible or the insert lands after the visible tail.
+  const isOverflowMoot = !elLastVisible || iInsert >= visibleItems.length;
+  if (isOverflowMoot) {
     return null;
   }
 

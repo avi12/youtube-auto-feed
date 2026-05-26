@@ -41,6 +41,11 @@ export interface LayoutIntegrityReport {
   bandDiffs: BandDiff[];
 }
 
+interface BandCollections {
+  domBands: DomBand[];
+  apiBands: ApiBand[];
+}
+
 function captureDomBands() {
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
   if (!elGrid || !isPolymerElement(elGrid) || !isRecord(elGrid.data)) {
@@ -54,6 +59,7 @@ function captureDomBands() {
   for (let i = 0; i < contents.length; i++) {
     const item = contents[i];
 
+    // Positional band attribution: root-level videos belong to whatever section header preceded them
     const inlineVideoId = videoIdFromRichItem(item);
     if (inlineVideoId) {
       if (!currentInlineBand) {
@@ -126,6 +132,7 @@ function captureApiBands({ snapshots, sectionOrder }: {
     });
   }
 
+  // sectionOrder may repeat the same shelf when YouTube emits duplicates; collapse to first occurrence
   const seenSections = new Set<string>();
   for (const sectionTitle of sectionOrder) {
     if (seenSections.has(sectionTitle)) {
@@ -148,10 +155,7 @@ function captureApiBands({ snapshots, sectionOrder }: {
   return bands;
 }
 
-function computeBandDiffs({ domBands, apiBands }: {
-  domBands: DomBand[];
-  apiBands: ApiBand[];
-}) {
+function computeBandDiffs({ domBands, apiBands }: BandCollections) {
   const apiBandByTitle = new Map(apiBands.map(band => [band.title, band]));
   const bandDiffs: BandDiff[] = [];
   let isAllBandsPass = true;
@@ -166,9 +170,12 @@ function computeBandDiffs({ domBands, apiBands }: {
     const onlyInDom = domBand.videoIds.filter(id => !apiVideoIdSet.has(id));
     const onlyInApi = apiVideoIds.filter(id => !domVideoIdSet.has(id));
 
+    // Compare shared-id sequences from each side to detect ordering drift
     const sharedInDomOrder = domBand.videoIds.filter(id => apiVideoIdSet.has(id));
     const sharedInApiOrder = apiVideoIds.filter(id => domVideoIdSet.has(id));
-    const isOrderMatch = JSON.stringify(sharedInDomOrder) === JSON.stringify(sharedInApiOrder);    if (onlyInDom.length > 0 || onlyInApi.length > 0 || !isOrderMatch) {
+    const isOrderMatch = JSON.stringify(sharedInDomOrder) === JSON.stringify(sharedInApiOrder);
+    const isBandFailing = onlyInDom.length > 0 || onlyInApi.length > 0 || !isOrderMatch;
+    if (isBandFailing) {
       isAllBandsPass = false;
     }
 
@@ -189,10 +196,7 @@ function computeBandDiffs({ domBands, apiBands }: {
   };
 }
 
-function buildReport({ domBands, apiBands }: {
-  domBands: DomBand[];
-  apiBands: ApiBand[];
-}) {
+function buildReport({ domBands, apiBands }: BandCollections) {
   const domBandTitles = domBands.map(band => band.title || "(inline)");
   const apiBandTitles = apiBands.map(band => band.title || "(inline)");
   const isBandOrderMatch = JSON.stringify(domBandTitles) === JSON.stringify(apiBandTitles);
@@ -219,6 +223,7 @@ function persistReport(report: LayoutIntegrityReport) {
     const history: LayoutIntegrityReport[] = Array.isArray(parsed) ? parsed : [];
     history.push(report);
 
+    // Cap stored history so repeated checks don't fill sessionStorage
     if (history.length > 10) {
       history.splice(0, history.length - 10);
     }
@@ -271,7 +276,8 @@ function logReport(report: LayoutIntegrityReport) {
 
 export async function checkLayoutIntegrity() {
   const domBands = captureDomBands();
-  const apiResult = await fetchInitialVideos();  if (!apiResult) {
+  const apiResult = await fetchInitialVideos();
+  if (!apiResult) {
     console.error("[YTSUA] Layout integrity check: API fetch failed");
     return null;
   }
