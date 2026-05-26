@@ -441,7 +441,8 @@ async function executeChanges({
   const shelfFallbackMoveIds = new Set(
     shelfFallbackVideos.filter(video => videoIdsToRemoveSet.has(video.videoId)).map(video => video.videoId)
   );
-  const shelfProtectedIds = new Set([...cascadeShelfMoveIds, ...shelfFallbackMoveIds]);  if (videosForCascade.length > 0 && bandLayout) {
+  const shelfProtectedIds = new Set([...cascadeShelfMoveIds, ...shelfFallbackMoveIds]);
+  if (videosForCascade.length > 0 && bandLayout) {
     await cascadeInsertVideos({
       videosToAdd: videosForCascade,
       bandLayout
