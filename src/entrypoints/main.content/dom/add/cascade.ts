@@ -1,11 +1,5 @@
 import { isRichShelfRenderer, parseSecondsAgo } from "../../api/guards";
-import {
-  deepArray,
-  deepRecord,
-  deepString,
-  isPolymerElement,
-  isRecord
-} from "../../helpers";
+import { deepArray, deepRecord, isPolymerElement, isRecord } from "../../helpers";
 import { type InnerTubeRichGridItem, type VideoSnapshot } from "../../types";
 import {
   assignItemViewTransitionNames,
@@ -29,68 +23,72 @@ import { videoIdFromRichItem } from "../rich-item";
 
 const RICHSHELF_COLUMNS = 3;
 
-function findRichShelfIndices(contents: InnerTubeRichGridItem[]) {
-  const indices: number[] = [];
+function findFirstRichShelfIndex(contents: InnerTubeRichGridItem[]) {
   for (let i = 0; i < contents.length; i++) {
     if (deepRecord(contents[i], "richSectionRenderer", "content", "richShelfRenderer")) {
-      indices.push(i);
+      return i;
     }
   }
-  return indices;
+  return contents.length;
 }
 
-function resolveInlineZone(
-  contents: InnerTubeRichGridItem[],
-  iZone: number,
-  richShelfIndices: number[]
-): {
+function findInlineZoneStart(contents: InnerTubeRichGridItem[], boundary: number) {
+  for (let i = 0; i < boundary; i++) {
+    if (videoIdFromRichItem(contents[i])) {
+      return i;
+    }
+
+    if (deepRecord(contents[i], "richSectionRenderer", "content", "richShelfRenderer")) {
+      return i;
+    }
+  }
+  return boundary;
+}
+
+function isContinuationItem(item: InnerTubeRichGridItem) {
+  return isRecord(item) && "continuationItemRenderer" in item;
+}
+
+function trimTrailingContinuations(contents: InnerTubeRichGridItem[], floor: number) {
+  let end = contents.length;
+  while (end > floor && isContinuationItem(contents[end - 1])) {
+    end--;
+  }
+  return end;
+}
+
+function resolveInlineZone(contents: InnerTubeRichGridItem[]): {
   insertAt: number;
   existingItems: InnerTubeRichGridItem[];
 } {
-  let zoneStart: number;
-  const nextBoundary = richShelfIndices[iZone] ?? contents.length;
-  if (iZone === 0) {
-    zoneStart = 0;
-    while (zoneStart < nextBoundary) {
-      if (videoIdFromRichItem(contents[zoneStart])) {
-        break;
-      }
+  const firstShelfIndex = findFirstRichShelfIndex(contents);
+  const zoneStart = findInlineZoneStart(contents, firstShelfIndex);
+  const zoneEnd = firstShelfIndex < contents.length
+    ? firstShelfIndex
+    : trimTrailingContinuations(contents, zoneStart);
 
-      if (deepRecord(contents[zoneStart], "richSectionRenderer", "content", "richShelfRenderer")) {
-        break;
-      }
-
-      zoneStart++;
-    }
-  } else {
-    zoneStart = (richShelfIndices[iZone - 1] ?? -1) + 1;
+  const zoneSlice = contents.slice(zoneStart, zoneEnd);
+  const firstInlineOffset = zoneSlice.findIndex(item => videoIdFromRichItem(item));
+  if (firstInlineOffset < 0) {
+    return {
+      insertAt: zoneStart,
+      existingItems: []
+    };
   }
-
-  // End of zone: before the next richShelf boundary, also trim trailing continuation items
-  let zoneEnd = nextBoundary;
-  if (richShelfIndices[iZone] === undefined) {
-    while (zoneEnd > zoneStart && isRecord(contents[zoneEnd - 1]) && "continuationItemRenderer" in contents[zoneEnd - 1]) {
-      zoneEnd--;
-    }
-  }
-
-  const existingItems = contents.slice(zoneStart, zoneEnd).filter(item => videoIdFromRichItem(item));
-  const firstInlineOffset = contents.slice(zoneStart, zoneEnd).findIndex(item => videoIdFromRichItem(item));
-  const insertAt = firstInlineOffset >= 0 ? zoneStart + firstInlineOffset : zoneStart;
 
   return {
-    insertAt,
-    existingItems
+    insertAt: zoneStart + firstInlineOffset,
+    existingItems: zoneSlice.filter(item => videoIdFromRichItem(item))
   };
 }
 
 function existingItemSecondsAgo(item: InnerTubeRichGridItem) {
-  const vrText = deepString(item, "richItemRenderer", "content", "videoRenderer", "publishedTimeText", "simpleText");
+  const vrText = item?.richItemRenderer?.content?.videoRenderer?.publishedTimeText?.simpleText ?? "";
   if (vrText) {
     return parseSecondsAgo(vrText);
   }
 
-  const lvText = deepString(item, "richItemRenderer", "content", "lockupViewModel", "metadata", "lockupMetadataViewModel", "metadata", "contentMetadataViewModel", "metadataRows", "1", "metadataParts", "1", "text", "content");
+  const lvText = item?.richItemRenderer?.content?.lockupViewModel?.metadata?.lockupMetadataViewModel?.metadata?.contentMetadataViewModel?.metadataRows?.[1]?.metadataParts?.[1]?.text?.content ?? "";
   if (lvText) {
     return parseSecondsAgo(lvText);
   }
@@ -107,8 +105,7 @@ function applyInlineCascade(
     return;
   }
 
-  const richShelfIndices = findRichShelfIndices(contents);
-  const { insertAt, existingItems } = resolveInlineZone(contents, 0, richShelfIndices);
+  const { insertAt, existingItems } = resolveInlineZone(contents);
 
   const merged = [...existingItems];
   for (const video of newVideos) {
@@ -136,7 +133,7 @@ function applyRichShelfCascade(
   }
 
   const iSection = contents.findIndex(item =>
-    deepString(item, "richSectionRenderer", "content", "richShelfRenderer", "title", "runs", "0", "text") === band.sectionTitle);
+    (item?.richSectionRenderer?.content?.richShelfRenderer?.title?.runs?.[0]?.text ?? "") === band.sectionTitle);
   if (iSection < 0) {
     return;
   }
