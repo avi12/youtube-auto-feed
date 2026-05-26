@@ -268,7 +268,7 @@ function applyProgressBarUpdate({ elLockup, percent }: {
   }
 
   const fillRoot: ShadowRoot | HTMLElement = elProgressHost.shadowRoot ?? elProgressHost;
-  const elFill = fillRoot.querySelector<HTMLElement>("[class*='ProgressBar']:not(yt-thumbnail-overlay-progress-bar-view-model), [style*='width']");
+  const elFill = fillRoot.querySelector<HTMLElement>(":scope > div > div");
   if (elFill) {
     elFill.style.width = `${percent}%`;
   }
