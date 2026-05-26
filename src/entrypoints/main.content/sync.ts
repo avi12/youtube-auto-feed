@@ -4,7 +4,6 @@ import { addVideosToGridDom, cleanOrphanedGridItems } from "./dom/add/grid";
 import { addVideosToDom } from "./dom/add/shelf";
 import { type BandLayout } from "./dom/band-layout";
 import { moveVideosToFront } from "./dom/move";
-import { findShelfForSection } from "./dom/query";
 import { removeVideosFromDom } from "./dom/remove";
 import { repositionVideoInSection } from "./dom/reposition";
 import { batchUpdateVideosInDom, updateVideoInDom } from "./dom/update";
@@ -17,7 +16,7 @@ import {
   videoIdFromData,
   videoIdFromShelfListItem
 } from "./helpers";
-import { type InnerTubeRichGridItem, type VideoSnapshot, VideoStatus } from "./types";
+import { type VideoSnapshot, VideoStatus } from "./types";
 
 function readCurrentVideoSections() {
   const sections = new Map<string, string>();
@@ -178,24 +177,6 @@ interface ClassifiedChanges {
   videosToAdd: VideoSnapshot[];
   videosToReposition: VideoSnapshot[];
   videosToMoveToFront: VideoSnapshot[];
-  candidateSectionMoves: {
-    videoId: string;
-    toSection: string;
-  }[];
-}
-
-interface SectionMove {
-  videoId: string;
-  fromSection: string;
-  toSection: string;
-  fresh: VideoSnapshot;
-}
-
-interface BandMove {
-  videoId: string;
-  fromBandIndex: number;
-  toBandIndex: number;
-  fresh: VideoSnapshot;
 }
 
 interface FeedDiff {
@@ -204,31 +185,11 @@ interface FeedDiff {
   added: VideoSnapshot[];
   liveTransitions: VideoSnapshot[];
   finishedStreams: VideoSnapshot[];
-  sectionMoves: SectionMove[];
-  bandMoves: BandMove[];
   metadataOnly: VideoSnapshot[];
 }
 
-function polledShapeMatchesBaseline({ polledSectionOrder, bandLayout }: {
-  polledSectionOrder: string[];
-  bandLayout: BandLayout | null;
-}) {
-  if (!bandLayout || polledSectionOrder.length === 0) {
-    return true;
-  }
-
-  const polledSet = new Set(polledSectionOrder);
-  const baselineSet = new Set(bandLayout.sectionOrder);
-  if (polledSet.size !== baselineSet.size) {
-    return false;
-  }
-
-  for (const section of polledSet) {
-    if (!baselineSet.has(section)) {
-      return false;
-    }
-  }
-  return true;
+function isLatestSnapshot(snapshot: VideoSnapshot) {
+  return snapshot.sectionTitle === "" && snapshot.bandIndex === 0;
 }
 
 function classifyStatusTransition({ previous, fresh }: {
@@ -269,8 +230,6 @@ function computeFeedDiff({
   const added: VideoSnapshot[] = [];
   const liveTransitions: VideoSnapshot[] = [];
   const finishedStreams: VideoSnapshot[] = [];
-  const sectionMoves: SectionMove[] = [];
-  const bandMoves: BandMove[] = [];
   const metadataOnly: VideoSnapshot[] = [];
 
   const apiInlineSecondsAgo = freshSnapshots
@@ -285,11 +244,15 @@ function computeFeedDiff({
       continue;
     }
 
-    if (snapshot.sectionTitle) {
+    if (!isLatestSnapshot(snapshot)) {
       continue;
     }
 
     if (currentVideoSections.get(videoId)) {
+      continue;
+    }
+
+    if ((currentVideoBandIndices.get(videoId) ?? 0) !== 0) {
       continue;
     }
 
@@ -305,6 +268,10 @@ function computeFeedDiff({
   }
 
   for (const fresh of freshSnapshots) {
+    if (!isLatestSnapshot(fresh)) {
+      continue;
+    }
+
     if (!currentVideoIds.has(fresh.videoId)) {
       added.push(fresh);
       continue;
@@ -327,36 +294,7 @@ function computeFeedDiff({
       finishedStreams.push(fresh); continue;
     }
 
-    const currentSection = currentVideoSections.get(fresh.videoId);
-    if (currentSection !== undefined && currentSection !== fresh.sectionTitle) {
-      if (currentSection) {
-        if (hasMetadataChange({
-          previous,
-          fresh
-        })) {
-          metadataOnly.push(fresh);
-        }
-
-        continue;
-      }
-
-      sectionMoves.push({
-        videoId: fresh.videoId,
-        fromSection: currentSection,
-        toSection: fresh.sectionTitle,
-        fresh
-      });
-      continue;
-    }
-
-    const currentBandIndex = currentVideoBandIndices.get(fresh.videoId);
-    if (fresh.sectionTitle === "" && currentBandIndex !== undefined && fresh.bandIndex > currentBandIndex) {
-      bandMoves.push({
-        videoId: fresh.videoId,
-        fromBandIndex: currentBandIndex,
-        toBandIndex: fresh.bandIndex,
-        fresh
-      });
+    if ((currentVideoBandIndices.get(fresh.videoId) ?? 0) !== 0) {
       continue;
     }
 
@@ -374,8 +312,6 @@ function computeFeedDiff({
     added,
     liveTransitions,
     finishedStreams,
-    sectionMoves,
-    bandMoves,
     metadataOnly
   };
 }
@@ -387,11 +323,7 @@ function classifyChanges({
   currentVideoIds,
   currentVideoSections,
   currentVideoBandIndices,
-  bandLayout,
-  polledSectionOrder,
-  confirmedAbsentVideoIds,
-  confirmedSectionMoves,
-  isInitialLoad
+  confirmedAbsentVideoIds
 }: {
   previousSnapshot: Map<string, VideoSnapshot>;
   freshSnapshots: VideoSnapshot[];
@@ -399,11 +331,7 @@ function classifyChanges({
   currentVideoIds: Set<string>;
   currentVideoSections: Map<string, string>;
   currentVideoBandIndices: Map<string, number>;
-  bandLayout: BandLayout | null;
-  polledSectionOrder: string[];
   confirmedAbsentVideoIds: Set<string>;
-  confirmedSectionMoves: Set<string>;
-  isInitialLoad: boolean;
 }): ClassifiedChanges {
   const diff = computeFeedDiff({
     previousSnapshot,
@@ -414,30 +342,6 @@ function classifyChanges({
     currentVideoBandIndices,
     confirmedAbsentVideoIds
   });
-  const isShapeMatch = polledShapeMatchesBaseline({
-    polledSectionOrder,
-    bandLayout
-  });
-
-  for (const move of diff.sectionMoves) {
-    if (!move.toSection) {
-      continue;
-    }
-
-    const isMoveShapeOk = isShapeMatch || move.toSection || move.fromSection;
-    const isMoveConfirmed = confirmedSectionMoves.has(move.videoId) || isInitialLoad;
-    if (isMoveShapeOk && isMoveConfirmed) {
-      diff.removed.push(move.videoId);
-      diff.added.push(move.fresh);
-    }
-  }
-
-  for (const move of diff.bandMoves) {
-    if (isInitialLoad) {
-      diff.removed.push(move.videoId);
-      diff.added.push(move.fresh);
-    }
-  }
 
   for (const fresh of diff.metadataOnly) {
     const previous = previousSnapshot.get(fresh.videoId);
@@ -466,11 +370,7 @@ function classifyChanges({
     candidateRemovals: diff.candidateRemovals,
     videosToAdd: diff.added,
     videosToReposition: diff.finishedStreams,
-    videosToMoveToFront: diff.liveTransitions,
-    candidateSectionMoves: diff.sectionMoves.map(({ videoId, toSection }) => ({
-      videoId,
-      toSection
-    }))
+    videosToMoveToFront: diff.liveTransitions
   };
 }
 
@@ -600,73 +500,16 @@ function preserveStaleEntriesForUnremovedVideos({
   }
 }
 
-function reconcileShelfOrders(freshSnapshots: VideoSnapshot[]) {
-  const sectionGroups = new Map<string, string[]>();
-  for (const video of freshSnapshots) {
-    if (!video.sectionTitle) {
-      continue;
-    }
-
-    const ids = sectionGroups.get(video.sectionTitle) ?? [];
-    ids.push(video.videoId);
-    sectionGroups.set(video.sectionTitle, ids);
-  }
-
-  for (const [sectionTitle, apiVideoIds] of sectionGroups) {
-    const elShelf = findShelfForSection(sectionTitle);
-    if (!elShelf || !isPolymerElement(elShelf)) {
-      continue;
-    }
-
-    const shelfContents = deepArray<InnerTubeRichGridItem>(elShelf.data, "contents");
-    if (shelfContents.some(item => !!deepRecord(item, "richItemRenderer", "content", "shortsLockupViewModel"))) {
-      continue;
-    }
-
-    const domVideoIds = shelfContents
-      .map(item => videoIdFromData(deepRecord(item, "richItemRenderer")))
-      .filter((id): id is string => !!id);    if (domVideoIds.length !== apiVideoIds.length) {
-      continue;
-    }
-
-    const apiSet = new Set(apiVideoIds);
-    if (!domVideoIds.every(id => apiSet.has(id))) {
-      continue;
-    }
-
-    if (domVideoIds.join(",") === apiVideoIds.join(",")) {
-      continue;
-    }
-
-    const itemByVideoId = new Map<string, InnerTubeRichGridItem>();
-    for (const item of shelfContents) {
-      const id = videoIdFromData(deepRecord(item, "richItemRenderer"));
-      if (id) {
-        itemByVideoId.set(id, item);
-      }
-    }
-
-    const reorderedContents = apiVideoIds.map(id => itemByVideoId.get(id)).filter(Boolean);
-    elShelf.set("data.contents", reorderedContents);
-  }
-}
-
 export async function detectAndApplyChanges({
   previousSnapshot,
   freshSnapshots,
   bandLayout,
-  polledSectionOrder = [],
-  confirmedAbsentVideoIds = new Set(),
-  confirmedSectionMoves = new Set(),
-  isInitialLoad = false
+  confirmedAbsentVideoIds = new Set()
 }: {
   previousSnapshot: Map<string, VideoSnapshot>;
   freshSnapshots: VideoSnapshot[];
   bandLayout: BandLayout | null;
-  polledSectionOrder?: string[];
   confirmedAbsentVideoIds?: Set<string>;
-  confirmedSectionMoves?: Set<string>;
-  isInitialLoad?: boolean;
 }) {
   const freshMap = new Map<string, VideoSnapshot>();
   for (const video of freshSnapshots) {
@@ -686,11 +529,7 @@ export async function detectAndApplyChanges({
     currentVideoIds,
     currentVideoSections,
     currentVideoBandIndices,
-    bandLayout,
-    polledSectionOrder,
-    confirmedAbsentVideoIds,
-    confirmedSectionMoves,
-    isInitialLoad
+    confirmedAbsentVideoIds
   });
   const isLayoutChange = changes.videoIdsToRemove.length > 0 ||
     changes.videosToAdd.length > 0 ||
@@ -704,10 +543,6 @@ export async function detectAndApplyChanges({
   });
   cleanOrphanedGridItems();
 
-  if (changes.videosToAdd.length > 0) {
-    reconcileShelfOrders(freshSnapshots);
-  }
-
   preserveStaleEntriesForUnremovedVideos({
     videoIdsToRemove: changes.videoIdsToRemove,
     candidateRemovals: changes.candidateRemovals,
@@ -718,8 +553,7 @@ export async function detectAndApplyChanges({
   return {
     isLayoutChange,
     snapshot: freshMap,
-    candidateRemovals: changes.candidateRemovals,
-    candidateSectionMoves: changes.candidateSectionMoves
+    candidateRemovals: changes.candidateRemovals
   };
 }
 

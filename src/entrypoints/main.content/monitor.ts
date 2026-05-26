@@ -37,10 +37,6 @@ export function createSubscriptionMonitor() {
   let cancelBroadcastListener: (() => void) | null = null;
   let initialBandLayout: BandLayout | null = null;
   let pendingRemovals = new Map<string, number>();
-  let pendingSectionMoves = new Map<string, {
-    toSection: string;
-    count: number;
-  }>();
   let apiKnownVideoIds = new Set<string>();
 
   async function applyChanges({ payload, isInitialLoad = false }: {
@@ -63,25 +59,16 @@ export function createSubscriptionMonitor() {
           .filter(([, count]) => count >= ABSENCE_REMOVAL_THRESHOLD)
           .map(([id]) => id)
       );
-      const confirmedSectionMoves = new Set(
-        [...pendingSectionMoves.entries()]
-          .filter(([, { count }]) => count >= ABSENCE_REMOVAL_THRESHOLD)
-          .map(([id]) => id)
-      );
 
       const {
         isLayoutChange,
         snapshot,
-        candidateRemovals,
-        candidateSectionMoves
+        candidateRemovals
       } = await detectAndApplyChanges({
         previousSnapshot: lastSnapshot,
         freshSnapshots: payload.snapshots,
         bandLayout: initialBandLayout,
-        polledSectionOrder: payload.sectionOrder,
-        confirmedAbsentVideoIds,
-        confirmedSectionMoves,
-        isInitialLoad
+        confirmedAbsentVideoIds
       });
       lastSnapshot = snapshot;
 
@@ -99,20 +86,6 @@ export function createSubscriptionMonitor() {
         }
       }
       pendingRemovals = newPendingRemovals;
-
-      const newPendingMoves = new Map<string, {
-        toSection: string;
-        count: number;
-      }>();
-      for (const { videoId, toSection } of candidateSectionMoves) {
-        const existing = pendingSectionMoves.get(videoId);
-        const count = (existing?.toSection === toSection ? existing.count : 0) + 1;
-        newPendingMoves.set(videoId, {
-          toSection,
-          count
-        });
-      }
-      pendingSectionMoves = newPendingMoves;
 
       if (shouldNormalizeAfter) {
         const trimmedVideoIds = await normalizeCollapsedShelfRows();
@@ -326,7 +299,6 @@ export function createSubscriptionMonitor() {
     lastSnapshot.clear();
     initialBandLayout = null;
     pendingRemovals = new Map();
-    pendingSectionMoves = new Map();
     apiKnownVideoIds = new Set();
 
     if (Date.now() - pendingApiSnapshotsTime >= PENDING_SNAPSHOT_STALE_MS) {
