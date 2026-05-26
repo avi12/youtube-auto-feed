@@ -11,7 +11,7 @@ import type {
 } from "../types";
 import { isInViewport, withViewTransitionLock } from "./animations";
 import { scheduleLazyUpdate } from "./lazy-update";
-import { findItemElement } from "./query";
+import { findItemElements } from "./query";
 import { findRichItemIndex } from "./rich-item";
 
 const FETCH_CHUNK_SIZE = 8192;
@@ -778,7 +778,7 @@ function applyRichItemContentUpdate({
   );
 }
 
-function tryApplyToGrid({ videoId, rawRenderer, forcePreserveContentImage }: {
+function applyToGridModel({ videoId, rawRenderer, forcePreserveContentImage }: {
   videoId: string;
   rawRenderer: VideoSnapshot["rawRenderer"];
   forcePreserveContentImage: boolean;
@@ -786,7 +786,7 @@ function tryApplyToGrid({ videoId, rawRenderer, forcePreserveContentImage }: {
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
   const isGridUsable = !!elGrid && isPolymerElement(elGrid) && isRecord(elGrid.data);
   if (!isGridUsable) {
-    return false;
+    return;
   }
 
   const contents = deepArray<InnerTubeRichGridItem>(elGrid.data, "contents");
@@ -795,7 +795,7 @@ function tryApplyToGrid({ videoId, rawRenderer, forcePreserveContentImage }: {
     videoId
   });
   if (iItem < 0) {
-    return false;
+    return;
   }
 
   const existingContent = contents[iItem]?.richItemRenderer?.content;
@@ -808,23 +808,13 @@ function tryApplyToGrid({ videoId, rawRenderer, forcePreserveContentImage }: {
       forcePreserveContentImage
     });
   }
-
-  return true;
 }
 
-function syncGridModelItem({ videoId, rawRenderer, forcePreserveContentImage = false }: {
+function applyToRichShelfModels({ videoId, rawRenderer, forcePreserveContentImage }: {
   videoId: string;
   rawRenderer: VideoSnapshot["rawRenderer"];
-  forcePreserveContentImage?: boolean;
+  forcePreserveContentImage: boolean;
 }) {
-  if (tryApplyToGrid({
-    videoId,
-    rawRenderer,
-    forcePreserveContentImage
-  })) {
-    return;
-  }
-
   for (const elShelf of document.querySelectorAll<HTMLElement>("ytd-rich-shelf-renderer")) {
     const isRichShelfUsable = isPolymerElement(elShelf) && isRecord(elShelf.data);
     if (!isRichShelfUsable) {
@@ -850,10 +840,14 @@ function syncGridModelItem({ videoId, rawRenderer, forcePreserveContentImage = f
         forcePreserveContentImage
       });
     }
-
-    return;
   }
+}
 
+function applyToLegacyShelfModels({ videoId, rawRenderer, forcePreserveContentImage }: {
+  videoId: string;
+  rawRenderer: VideoSnapshot["rawRenderer"];
+  forcePreserveContentImage: boolean;
+}) {
   for (const elShelf of document.querySelectorAll<HTMLElement>("ytd-shelf-renderer")) {
     const isLegacyShelfUsable = isPolymerElement(elShelf) && isRecord(elShelf.data);
     if (!isLegacyShelfUsable) {
@@ -887,10 +881,33 @@ function syncGridModelItem({ videoId, rawRenderer, forcePreserveContentImage = f
             forcePreserveContentImage
           })
         );
-        return;
       }
     }
   }
+}
+
+// A video may appear in multiple places (e.g. Latest band + a "Most relevant" rich shelf).
+// Update every model position so the Polymer data binding refreshes both DOM copies.
+function syncGridModelItem({ videoId, rawRenderer, forcePreserveContentImage = false }: {
+  videoId: string;
+  rawRenderer: VideoSnapshot["rawRenderer"];
+  forcePreserveContentImage?: boolean;
+}) {
+  applyToGridModel({
+    videoId,
+    rawRenderer,
+    forcePreserveContentImage
+  });
+  applyToRichShelfModels({
+    videoId,
+    rawRenderer,
+    forcePreserveContentImage
+  });
+  applyToLegacyShelfModels({
+    videoId,
+    rawRenderer,
+    forcePreserveContentImage
+  });
 }
 
 interface TargetedUpdateParams {
@@ -1169,29 +1186,48 @@ export function updateVideoInDom({ videoId, freshSnapshot, previousSnapshot }: {
   freshSnapshot: Prettify<VideoSnapshot>;
   previousSnapshot?: Prettify<VideoSnapshot>;
 }) {
-  const elItem = findItemElement(videoId);
-  if (!elItem || !isPolymerElement(elItem)) {
+  // Each duplicate of the same video (e.g. Latest band + "Most relevant" shelf) needs its own DOM patch.
+  const elItems = findItemElements(videoId).filter(isPolymerElement);
+  if (elItems.length === 0) {
     return;
   }
 
-  if (isInViewport(elItem)) {
-    applyUpdate({
-      videoId,
-      elItem,
-      fresh: freshSnapshot,
-      previous: previousSnapshot
-    });
-  } else {
-    scheduleLazyUpdate({
-      videoId,
-      fresh: freshSnapshot,
-      previous: previousSnapshot
-    });
+  for (const elItem of elItems) {
+    if (isInViewport(elItem)) {
+      applyUpdate({
+        videoId,
+        elItem,
+        fresh: freshSnapshot,
+        previous: previousSnapshot
+      });
+    } else {
+      scheduleLazyUpdate({
+        videoId,
+        fresh: freshSnapshot,
+        previous: previousSnapshot,
+        elItemHint: elItem
+      });
+    }
   }
 }
 
+function appendToVideoElementMap({ map, videoId, elItem }: {
+  map: Map<string, HTMLElement[]>;
+  videoId: string;
+  elItem: HTMLElement;
+}) {
+  const existing = map.get(videoId);
+  if (existing) {
+    existing.push(elItem);
+    return;
+  }
+
+  map.set(videoId, [elItem]);
+}
+
 function buildVideoElementMap() {
-  const map = new Map<string, HTMLElement>();
+  const map = new Map<string, HTMLElement[]>();
+
   for (const elItem of document.querySelectorAll<HTMLElement>("ytd-rich-item-renderer")) {
     if (!isPolymerElement(elItem)) {
       continue;
@@ -1199,7 +1235,11 @@ function buildVideoElementMap() {
 
     const videoId = videoIdFromData(elItem.data);
     if (videoId) {
-      map.set(videoId, elItem);
+      appendToVideoElementMap({
+        map,
+        videoId,
+        elItem
+      });
     }
   }
   for (const elItem of document.querySelectorAll<HTMLElement>("ytd-grid-video-renderer")) {
@@ -1210,7 +1250,11 @@ function buildVideoElementMap() {
     const { data } = elItem;
     const videoId = isVideoRenderer(data) ? data.videoId : "";
     if (videoId) {
-      map.set(videoId, elItem);
+      appendToVideoElementMap({
+        map,
+        videoId,
+        elItem
+      });
     }
   }
   return map;
@@ -1222,26 +1266,32 @@ export function batchUpdateVideosInDom({ freshSnapshots, previousSnapshotMap }: 
 }) {
   const elementMap = buildVideoElementMap();
   for (const fresh of freshSnapshots) {
-    const elItem = elementMap.get(fresh.videoId);
-    if (!elItem || !isPolymerElement(elItem)) {
+    const elItems = elementMap.get(fresh.videoId) ?? [];
+    if (elItems.length === 0) {
       continue;
     }
 
     const previous = previousSnapshotMap?.get(fresh.videoId);
-    if (isInViewport(elItem)) {
-      applyUpdate({
-        videoId: fresh.videoId,
-        elItem,
-        fresh,
-        previous
-      });
-    } else {
-      scheduleLazyUpdate({
-        videoId: fresh.videoId,
-        fresh,
-        previous,
-        elItemHint: elItem
-      });
+    for (const elItem of elItems) {
+      if (!isPolymerElement(elItem)) {
+        continue;
+      }
+
+      if (isInViewport(elItem)) {
+        applyUpdate({
+          videoId: fresh.videoId,
+          elItem,
+          fresh,
+          previous
+        });
+      } else {
+        scheduleLazyUpdate({
+          videoId: fresh.videoId,
+          fresh,
+          previous,
+          elItemHint: elItem
+        });
+      }
     }
   }
 }

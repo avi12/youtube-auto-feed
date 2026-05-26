@@ -39,6 +39,34 @@ export function findItemElement(videoId: string) {
   return null;
 }
 
+// A video can render twice (Latest band + a rich shelf like "Most relevant"); callers that
+// mutate per-element DOM (metadata updates) need every copy.
+export function findItemElements(videoId: string) {
+  const elements: HTMLElement[] = [];
+  for (const elItem of document.querySelectorAll<HTMLElement>("ytd-rich-item-renderer")) {
+    if (!isPolymerElement(elItem)) {
+      continue;
+    }
+
+    if (videoIdFromData(elItem.data) === videoId) {
+      elements.push(elItem);
+    }
+  }
+
+  for (const elItem of document.querySelectorAll<HTMLElement>("ytd-grid-video-renderer")) {
+    if (!isPolymerElement(elItem)) {
+      continue;
+    }
+
+    const gridVideoData = elItem.data;
+    const isMatchingGridVideo = isVideoRenderer(gridVideoData) && gridVideoData.videoId === videoId;
+    if (isMatchingGridVideo) {
+      elements.push(elItem);
+    }
+  }
+  return elements;
+}
+
 export function findShelfForSection(sectionTitle: string) {
   for (const elShelf of document.querySelectorAll<HTMLElement>("ytd-rich-shelf-renderer")) {
     if (!isPolymerElement(elShelf)) {

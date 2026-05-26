@@ -1,7 +1,7 @@
 import { isPolymerElement, videoIdFromData } from "../helpers";
 import type { PolymerElement, Prettify, VideoSnapshot } from "../types";
 import { prefersReducedMotion, triggerAnimation } from "./animations";
-import { findItemElement } from "./query";
+import { findItemElements } from "./query";
 import { applyUpdate } from "./update";
 
 const IDLE_CALLBACK_TIMEOUT_MS = 500;
@@ -60,7 +60,10 @@ function ensureObserver() {
       }
 
       const pending = pendingUpdates.get(videoId);
+      // A duplicate (Latest + shelf) may have already consumed the pending update via its own observer;
+      // drop the now-stale observer for this element so we don't keep watching it.
       if (!pending) {
+        intersectionObserver?.unobserve(elItem);
         continue;
       }
 
@@ -95,9 +98,11 @@ export function scheduleLazyUpdate({ videoId, fresh, previous, elItemHint }: {
     fresh,
     previous: existing?.previous ?? previous
   });
-  const elItem = elItemHint ?? findItemElement(videoId);
-  if (elItem) {
-    ensureObserver().observe(elItem);
+  // Observe every duplicate of this video; whichever scrolls into view first will consume the pending update.
+  const elItems = elItemHint ? [elItemHint] : findItemElements(videoId);
+  const observer = ensureObserver();
+  for (const elItem of elItems) {
+    observer.observe(elItem);
   }
 }
 
