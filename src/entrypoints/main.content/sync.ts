@@ -268,7 +268,15 @@ function computeFeedDiff({
   }
 
   for (const fresh of freshSnapshots) {
+    const previous = previousSnapshot.get(fresh.videoId);
     if (!isLatestSnapshot(fresh)) {
+      if (previous && currentVideoIds.has(fresh.videoId) && hasMetadataChange({
+        previous,
+        fresh
+      })) {
+        metadataOnly.push(fresh);
+      }
+
       continue;
     }
 
@@ -277,7 +285,6 @@ function computeFeedDiff({
       continue;
     }
 
-    const previous = previousSnapshot.get(fresh.videoId);
     if (!previous) {
       continue;
     }
