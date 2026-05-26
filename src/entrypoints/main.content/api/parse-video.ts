@@ -1,4 +1,10 @@
-import type { InnerTubeVideoRenderer, LockupViewModel, ShortsLockupViewModel, VideoSnapshot } from "../types";
+import type {
+  InnerTubeVideoRenderer,
+  LockupViewModel,
+  Prettify,
+  ShortsLockupViewModel,
+  VideoSnapshot
+} from "../types";
 import { VideoStatus } from "../types";
 import { statusFromLockup, statusFromRenderer, viewCountFromRenderer } from "./guards";
 
@@ -7,7 +13,7 @@ interface ParseVideoParams {
   bandIndex: number;
 }
 
-function watchProgressFromLockup(lockup: LockupViewModel): number | null {
+function watchProgressFromLockup(lockup: Prettify<LockupViewModel>): number | null {
   for (const overlay of lockup.contentImage?.thumbnailViewModel?.overlays ?? []) {
     const progress = overlay.thumbnailBottomOverlayViewModel?.progressBar?.thumbnailOverlayProgressBarViewModel;
     if (typeof progress?.startPercent === "number") {
@@ -18,7 +24,7 @@ function watchProgressFromLockup(lockup: LockupViewModel): number | null {
 }
 
 export function parseRenderer({ renderer, sectionTitle, bandIndex }:
-  ParseVideoParams & { renderer: InnerTubeVideoRenderer }) {
+  Prettify<ParseVideoParams> & { renderer: Prettify<InnerTubeVideoRenderer> }) {
   const {
     videoId, title, thumbnail, publishedTimeText
   } = renderer;
@@ -43,7 +49,7 @@ export function parseRenderer({ renderer, sectionTitle, bandIndex }:
 }
 
 export function parseLockupViewModel({ lockup, sectionTitle, bandIndex }:
-  ParseVideoParams & { lockup: LockupViewModel }) {
+  Prettify<ParseVideoParams> & { lockup: Prettify<LockupViewModel> }) {
   const { contentId, contentImage, metadata } = lockup;
   if (contentId === "") {
     return null;
@@ -75,7 +81,7 @@ export function parseLockupViewModel({ lockup, sectionTitle, bandIndex }:
 }
 
 export function parseShortsLockupViewModel({ shortsLockup, sectionTitle, bandIndex }:
-  ParseVideoParams & { shortsLockup: ShortsLockupViewModel }) {
+  Prettify<ParseVideoParams> & { shortsLockup: Prettify<ShortsLockupViewModel> }) {
   const { onTap, overlayMetadata, thumbnail, accessibilityText = "" } = shortsLockup;
   const videoId = onTap?.innertubeCommand?.reelWatchEndpoint?.videoId ?? "";
   if (videoId === "") {

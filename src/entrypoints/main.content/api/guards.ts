@@ -9,6 +9,7 @@ import {
   LockupContentType,
   type LockupViewModel,
   OverlayStyle,
+  type Prettify,
   type ShortsLockupViewModel,
   VideoStatus
 } from "../types";
@@ -37,7 +38,7 @@ export function isShelfRenderer(value: unknown): value is InnerTubeShelfRenderer
   return isRecord(value) && isRecord(value.title) && isRecord(value.content);
 }
 
-export function viewCountFromRenderer(renderer: InnerTubeVideoRenderer) {
+export function viewCountFromRenderer(renderer: Prettify<InnerTubeVideoRenderer>) {
   const { viewCountText, shortViewCountText } = renderer;
   const { simpleText, runs } = viewCountText ?? {};
   return simpleText
@@ -46,7 +47,7 @@ export function viewCountFromRenderer(renderer: InnerTubeVideoRenderer) {
     ?? "";
 }
 
-export function statusFromRenderer(renderer: InnerTubeVideoRenderer) {
+export function statusFromRenderer(renderer: Prettify<InnerTubeVideoRenderer>) {
   const {
     badges, thumbnailOverlays, navigationEndpoint, upcomingEventData, publishedTimeText
   } = renderer;
@@ -78,7 +79,7 @@ export function statusFromRenderer(renderer: InnerTubeVideoRenderer) {
   return VideoStatus.Video;
 }
 
-export function statusFromLockup(lockup: LockupViewModel) {
+export function statusFromLockup(lockup: Prettify<LockupViewModel>) {
   const { contentType, contentImage } = lockup;
   if (contentType === LockupContentType.Shorts) {
     return VideoStatus.Short;

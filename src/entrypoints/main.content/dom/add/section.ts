@@ -1,5 +1,5 @@
 import { deepArray, isPolymerElement, isRecord } from "../../helpers";
-import type { InnerTubeRichGridItem, VideoSnapshot } from "../../types";
+import type { InnerTubeRichGridItem, Prettify, VideoSnapshot } from "../../types";
 import {
   assignItemViewTransitionNames,
   buildNewItemTransitionStyle,
@@ -16,11 +16,12 @@ import { findSectionInsertIndex } from "./grid";
 
 export async function addSectionToDom({ sectionTitle, videos, allFreshSnapshots }: {
   sectionTitle: string;
-  videos: VideoSnapshot[];
-  allFreshSnapshots: VideoSnapshot[];
+  videos: Prettify<VideoSnapshot>[];
+  allFreshSnapshots: Prettify<VideoSnapshot>[];
 }) {
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
-  if (!elGrid || !isPolymerElement(elGrid) || !isRecord(elGrid.data)) {
+  const isGridUsable = !!elGrid && isPolymerElement(elGrid) && isRecord(elGrid.data);
+  if (!isGridUsable) {
     return;
   }
 

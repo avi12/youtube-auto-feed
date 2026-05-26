@@ -9,7 +9,7 @@ import { readDomSnapshot } from "./dom/query";
 import { isOnSubscriptionsPage } from "./helpers";
 import { isDomContentReady } from "./readiness";
 import { detectAndApplyChanges, detectAndApplyMetadataChanges } from "./sync";
-import { type VideoSnapshot } from "./types";
+import { type Prettify, type VideoSnapshot } from "./types";
 
 interface FeedPayload {
   snapshots: VideoSnapshot[];
@@ -23,24 +23,24 @@ const PENDING_SNAPSHOT_STALE_MS = 5000;
 const ABSENCE_REMOVAL_THRESHOLD = 3;
 
 export function createSubscriptionMonitor() {
-  let lastSnapshot = new Map<string, VideoSnapshot>();
+  let lastSnapshot = new Map<string, Prettify<VideoSnapshot>>();
   let isDomReady = false;
   let isApplyingChanges = false;
   let contentObserver: MutationObserver | null = null;
   let orphanCleanupTimer: ReturnType<typeof setInterval> | null = null;
-  let pendingApiSnapshots: FeedPayload | null = null;
+  let pendingApiSnapshots: Prettify<FeedPayload> | null = null;
   let pendingApiSnapshotsTime = 0;
   let pollingDelayTimer: ReturnType<typeof setTimeout> | null = null;
   let pollingTimer: ReturnType<typeof setInterval> | null = null;
   let pageLoadTime = 0;
   let metadataPollingTimer: ReturnType<typeof setInterval> | null = null;
   let cancelBroadcastListener: (() => void) | null = null;
-  let initialBandLayout: BandLayout | null = null;
+  let initialBandLayout: Prettify<BandLayout> | null = null;
   let pendingRemovals = new Map<string, number>();
   let apiKnownVideoIds = new Set<string>();
 
   async function applyChanges({ payload, isInitialLoad = false }: {
-    payload: FeedPayload;
+    payload: Prettify<FeedPayload>;
     isInitialLoad?: boolean;
   }) {
     if (isApplyingChanges) {

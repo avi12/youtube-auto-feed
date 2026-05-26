@@ -1,19 +1,21 @@
-import { deepRecord, videoIdFromData } from "../helpers";
-import type { InnerTubeRichGridItem } from "../types";
+import { videoIdFromData } from "../helpers";
+import type { InnerTubeRichGridItem, Prettify } from "../types";
 
-export function videoIdFromRichItem(contentItem: InnerTubeRichGridItem | unknown) {
-  return videoIdFromData(deepRecord(contentItem, "richItemRenderer"));
+export function videoIdFromRichItem(
+  contentItem: Prettify<InnerTubeRichGridItem> | Record<string, unknown> | undefined
+) {
+  return videoIdFromData(contentItem?.richItemRenderer);
 }
 
 export function findRichItemIndex({ contents, videoId }: {
-  contents: InnerTubeRichGridItem[];
+  contents: Prettify<InnerTubeRichGridItem>[];
   videoId: string;
 }) {
   return contents.findIndex(item => videoIdFromRichItem(item) === videoId);
 }
 
 export function filterOutRichItems({ contents, excludeVideoIds }: {
-  contents: InnerTubeRichGridItem[];
+  contents: Prettify<InnerTubeRichGridItem>[];
   excludeVideoIds: Set<string>;
 }) {
   return contents.filter(item => {

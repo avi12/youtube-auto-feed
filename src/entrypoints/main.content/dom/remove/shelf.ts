@@ -1,6 +1,6 @@
 import { isRichShelfRenderer, isShelfRenderer } from "../../api/guards";
-import { deepArray, deepRecord, isPolymerElement, isRecord } from "../../helpers";
-import type { InnerTubeRichGridItem } from "../../types";
+import { deepArray, isPolymerElement, isRecord } from "../../helpers";
+import type { InnerTubeRichGridItem, Prettify } from "../../types";
 import {
   animateItemsOut,
   assignItemViewTransitionNames,
@@ -31,7 +31,7 @@ async function removeItemsFromShelf({
   applyFilteredContents
 }: {
   elShelf: HTMLElement;
-  group: ShelfGroup;
+  group: Prettify<ShelfGroup>;
   itemSelector: string;
   applyFilteredContents: () => void;
 }) {
@@ -86,12 +86,13 @@ async function removeItemsFromShelf({
   });
 }
 
-export async function removeRichShelfItems(items: ItemInfo[]) {
-  const groups = new Map<HTMLElement, ShelfGroup>();
+export async function removeRichShelfItems(items: Prettify<ItemInfo>[]) {
+  const groups = new Map<HTMLElement, Prettify<ShelfGroup>>();
   for (const {
     container, isOffScreen, videoId, elItem, elRichShelf
   } of items) {
-    if (container !== "richShelf" || !elRichShelf) {
+    const isWrongContainer = container !== "richShelf" || !elRichShelf;
+    if (isWrongContainer) {
       continue;
     }
 
@@ -117,7 +118,7 @@ export async function removeRichShelfItems(items: ItemInfo[]) {
 
 async function removeRichShelfGroup({ elRichShelf, group }: {
   elRichShelf: HTMLElement;
-  group: ShelfGroup;
+  group: Prettify<ShelfGroup>;
 }) {
   if (!isPolymerElement(elRichShelf)) {
     return;
@@ -267,13 +268,14 @@ function tryRemoveSectionViaGridData({ elGrid, shelfTitle }: {
   elGrid: HTMLElement | null;
   shelfTitle: string;
 }) {
-  if (!elGrid || !isPolymerElement(elGrid) || !isRecord(elGrid.data)) {
+  const isGridUsable = !!elGrid && isPolymerElement(elGrid) && isRecord(elGrid.data);
+  if (!isGridUsable) {
     return false;
   }
 
   const currentGridContents = deepArray<InnerTubeRichGridItem>(elGrid.data, "contents");
   const filteredGridContents = currentGridContents.filter(item => {
-    const sectionContent = deepRecord(item, "richSectionRenderer", "content");
+    const sectionContent = item?.richSectionRenderer?.content;
     if (!isRecord(sectionContent)) {
       return true;
     }
@@ -291,12 +293,13 @@ function tryRemoveSectionViaGridData({ elGrid, shelfTitle }: {
   return true;
 }
 
-export async function removeInnerShelfItems(items: ItemInfo[]) {
-  const groups = new Map<HTMLElement, ShelfGroup>();
+export async function removeInnerShelfItems(items: Prettify<ItemInfo>[]) {
+  const groups = new Map<HTMLElement, Prettify<ShelfGroup>>();
   for (const {
     container, isOffScreen, videoId, elItem, elInnerShelf
   } of items) {
-    if (container !== "innerShelf" || !elInnerShelf) {
+    const isWrongContainer = container !== "innerShelf" || !elInnerShelf;
+    if (isWrongContainer) {
       continue;
     }
 
@@ -322,7 +325,7 @@ export async function removeInnerShelfItems(items: ItemInfo[]) {
 
 async function removeInnerShelfGroup({ elInnerShelf, group }: {
   elInnerShelf: HTMLElement;
-  group: ShelfGroup;
+  group: Prettify<ShelfGroup>;
 }) {
   if (!isPolymerElement(elInnerShelf)) {
     return;

@@ -1,6 +1,6 @@
 import { isRichShelfRenderer, parseSecondsAgo } from "../../api/guards";
-import { deepArray, deepRecord, isPolymerElement, isRecord } from "../../helpers";
-import { type InnerTubeRichGridItem, type VideoSnapshot } from "../../types";
+import { deepArray, isPolymerElement, isRecord } from "../../helpers";
+import { type InnerTubeRichGridItem, type Prettify, type VideoSnapshot } from "../../types";
 import {
   assignItemViewTransitionNames,
   buildNewItemTransitionStyle,
@@ -23,9 +23,9 @@ import { videoIdFromRichItem } from "../rich-item";
 
 const RICHSHELF_COLUMNS = 3;
 
-function findFirstRichShelfIndex(contents: InnerTubeRichGridItem[]) {
+function findFirstRichShelfIndex(contents: Prettify<InnerTubeRichGridItem>[]) {
   for (let i = 0; i < contents.length; i++) {
-    if (deepRecord(contents[i], "richSectionRenderer", "content", "richShelfRenderer")) {
+    if (contents[i]?.richSectionRenderer?.content?.richShelfRenderer) {
       return i;
     }
   }
@@ -33,7 +33,7 @@ function findFirstRichShelfIndex(contents: InnerTubeRichGridItem[]) {
 }
 
 function findInlineZoneStart({ contents, boundary }: {
-  contents: InnerTubeRichGridItem[];
+  contents: Prettify<InnerTubeRichGridItem>[];
   boundary: number;
 }) {
   for (let i = 0; i < boundary; i++) {
@@ -41,19 +41,19 @@ function findInlineZoneStart({ contents, boundary }: {
       return i;
     }
 
-    if (deepRecord(contents[i], "richSectionRenderer", "content", "richShelfRenderer")) {
+    if (contents[i]?.richSectionRenderer?.content?.richShelfRenderer) {
       return i;
     }
   }
   return boundary;
 }
 
-function isContinuationItem(item: InnerTubeRichGridItem) {
+function isContinuationItem(item: Prettify<InnerTubeRichGridItem>) {
   return isRecord(item) && "continuationItemRenderer" in item;
 }
 
 function trimTrailingContinuations({ contents, floor }: {
-  contents: InnerTubeRichGridItem[];
+  contents: Prettify<InnerTubeRichGridItem>[];
   floor: number;
 }) {
   let end = contents.length;
@@ -63,9 +63,9 @@ function trimTrailingContinuations({ contents, floor }: {
   return end;
 }
 
-function resolveInlineZone(contents: InnerTubeRichGridItem[]): {
+function resolveInlineZone(contents: Prettify<InnerTubeRichGridItem>[]): {
   insertAt: number;
-  existingItems: InnerTubeRichGridItem[];
+  existingItems: Prettify<InnerTubeRichGridItem>[];
 } {
   const firstShelfIndex = findFirstRichShelfIndex(contents);
   const zoneStart = findInlineZoneStart({
@@ -95,7 +95,7 @@ function resolveInlineZone(contents: InnerTubeRichGridItem[]): {
   };
 }
 
-function existingItemSecondsAgo(item: InnerTubeRichGridItem) {
+function existingItemSecondsAgo(item: Prettify<InnerTubeRichGridItem>) {
   const vrText = item?.richItemRenderer?.content?.videoRenderer?.publishedTimeText?.simpleText ?? "";
   if (vrText) {
     return parseSecondsAgo(vrText);
@@ -110,9 +110,9 @@ function existingItemSecondsAgo(item: InnerTubeRichGridItem) {
 }
 
 function applyInlineCascade({ contents, newVideos, inlineBands }: {
-  contents: InnerTubeRichGridItem[];
-  newVideos: VideoSnapshot[];
-  inlineBands: CapturedBand[];
+  contents: Prettify<InnerTubeRichGridItem>[];
+  newVideos: Prettify<VideoSnapshot>[];
+  inlineBands: Prettify<CapturedBand>[];
 }) {
   if (inlineBands.length === 0) {
     return;
@@ -137,9 +137,9 @@ function applyInlineCascade({ contents, newVideos, inlineBands }: {
 }
 
 function applyRichShelfCascade({ contents, newItems, shelfBands }: {
-  contents: InnerTubeRichGridItem[];
-  newItems: InnerTubeRichGridItem[];
-  shelfBands: CapturedBand[];
+  contents: Prettify<InnerTubeRichGridItem>[];
+  newItems: Prettify<InnerTubeRichGridItem>[];
+  shelfBands: Prettify<CapturedBand>[];
 }) {
   const band = shelfBands[0];
   if (!band) {
@@ -152,10 +152,11 @@ function applyRichShelfCascade({ contents, newItems, shelfBands }: {
     return;
   }
 
-  const richSection = deepRecord(contents[iSection], "richSectionRenderer");
-  const richContent = deepRecord(richSection, "content");
-  const richShelfRaw = deepRecord(richContent, "richShelfRenderer");
-  if (!richSection || !richContent || !richShelfRaw || !isRichShelfRenderer(richShelfRaw)) {
+  const richSection = contents[iSection]?.richSectionRenderer;
+  const richContent = richSection?.content;
+  const richShelfRaw = richContent?.richShelfRenderer;
+  const isRichShelfStructure = !!richSection && !!richContent && !!richShelfRaw && isRichShelfRenderer(richShelfRaw);
+  if (!isRichShelfStructure) {
     return;
   }
 
@@ -186,11 +187,11 @@ function applyCascades({
   inlineVideos,
   inlineBands
 }: {
-  contents: InnerTubeRichGridItem[];
-  videosToAdd: VideoSnapshot[];
-  bandLayout: BandLayout;
-  inlineVideos: VideoSnapshot[];
-  inlineBands: CapturedBand[];
+  contents: Prettify<InnerTubeRichGridItem>[];
+  videosToAdd: Prettify<VideoSnapshot>[];
+  bandLayout: Prettify<BandLayout>;
+  inlineVideos: Prettify<VideoSnapshot>[];
+  inlineBands: Prettify<CapturedBand>[];
 }) {
   const hasInlineCascade = inlineVideos.length > 0 && inlineBands.length > 0;
   if (hasInlineCascade) {
@@ -223,15 +224,16 @@ export async function cascadeInsertVideos({
   videosToAdd,
   bandLayout
 }: {
-  videosToAdd: VideoSnapshot[];
-  bandLayout: BandLayout;
+  videosToAdd: Prettify<VideoSnapshot>[];
+  bandLayout: Prettify<BandLayout>;
 }) {
   if (videosToAdd.length === 0) {
     return;
   }
 
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
-  if (!elGrid || !isPolymerElement(elGrid) || !isRecord(elGrid.data)) {
+  const isGridUsable = !!elGrid && isPolymerElement(elGrid) && isRecord(elGrid.data);
+  if (!isGridUsable) {
     return;
   }
 

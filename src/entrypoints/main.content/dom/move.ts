@@ -1,11 +1,5 @@
-import {
-  deepArray,
-  deepRecord,
-  isPolymerElement,
-  isRecord,
-  videoIdFromData
-} from "../helpers";
-import type { InnerTubeRichGridItem, VideoSnapshot } from "../types";
+import { deepArray, isPolymerElement, isRecord, videoIdFromData } from "../helpers";
+import type { InnerTubeRichGridItem, Prettify, VideoSnapshot } from "../types";
 import {
   assignItemViewTransitionNames,
   buildShiftTransitionStyle,
@@ -23,16 +17,16 @@ import { filterOutRichItems, sortByFreshOrder, videoIdFromRichItem } from "./ric
 import { updateVideoInDom } from "./update";
 
 export async function moveVideosToFront({ videos, allFreshSnapshots }: {
-  videos: VideoSnapshot[];
-  allFreshSnapshots: VideoSnapshot[];
+  videos: Prettify<VideoSnapshot>[];
+  allFreshSnapshots: Prettify<VideoSnapshot>[];
 }) {
   if (videos.length === 0) {
     return;
   }
 
   const freshOrder = new Map(allFreshSnapshots.map((video, i) => [video.videoId, i]));
-  const shelfGroups = new Map<HTMLElement, VideoSnapshot[]>();
-  const gridVideos: VideoSnapshot[] = [];
+  const shelfGroups = new Map<HTMLElement, Prettify<VideoSnapshot>[]>();
+  const gridVideos: Prettify<VideoSnapshot>[] = [];
 
   for (const video of videos) {
     const elShelf = findShelfForSection(video.sectionTitle);
@@ -67,10 +61,11 @@ async function moveVideosToShelfFront({
   freshOrder
 }: {
   elShelf: HTMLElement;
-  videos: VideoSnapshot[];
+  videos: Prettify<VideoSnapshot>[];
   freshOrder: Map<string, number>;
 }) {
-  if (!isPolymerElement(elShelf) || !isRecord(elShelf.data)) {
+  const isShelfUsable = isPolymerElement(elShelf) && isRecord(elShelf.data);
+  if (!isShelfUsable) {
     await fallbackUpdate(videos);
     return;
   }
@@ -80,7 +75,7 @@ async function moveVideosToShelfFront({
     freshOrder
   });
   const movingVideoIds = new Set(sortedVideos.map(({ videoId }) => videoId));
-  const shelfContents = deepArray(elShelf.data, "contents");
+  const shelfContents = deepArray<InnerTubeRichGridItem>(elShelf.data, "contents");
   const isAlreadyAtFront = sortedVideos.every(
     (video, i) => videoIdFromRichItem(shelfContents[i]) === video.videoId
   );
@@ -136,11 +131,12 @@ async function moveVideosToShelfFront({
 }
 
 async function moveVideosToGridFront({ videos, freshOrder }: {
-  videos: VideoSnapshot[];
+  videos: Prettify<VideoSnapshot>[];
   freshOrder: Map<string, number>;
 }) {
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
-  if (!elGrid || !isPolymerElement(elGrid) || !isRecord(elGrid.data)) {
+  const isGridUsable = !!elGrid && isPolymerElement(elGrid) && isRecord(elGrid.data);
+  if (!isGridUsable) {
     await fallbackUpdate(videos);
     return;
   }
@@ -150,8 +146,8 @@ async function moveVideosToGridFront({ videos, freshOrder }: {
     freshOrder
   });
   const movingVideoIds = new Set(sortedVideos.map(({ videoId }) => videoId));
-  const gridContents = deepArray(elGrid.data, "contents");
-  const iTargetInsert = gridContents.findIndex(contentItem => !!deepRecord(contentItem, "richItemRenderer"));
+  const gridContents = deepArray<InnerTubeRichGridItem>(elGrid.data, "contents");
+  const iTargetInsert = gridContents.findIndex(contentItem => !!contentItem?.richItemRenderer);
   if (iTargetInsert < 0) {
     await fallbackUpdate(sortedVideos);
     return;
@@ -190,7 +186,7 @@ async function moveVideosToGridFront({ videos, freshOrder }: {
           contents: freshGridContents,
           excludeVideoIds: movingVideoIds
         });
-        const iEffectiveInsert = remainingContents.findIndex(contentItem => !!deepRecord(contentItem, "richItemRenderer"));
+        const iEffectiveInsert = remainingContents.findIndex(contentItem => !!contentItem?.richItemRenderer);
         const iInsertAt = iEffectiveInsert >= 0 ? iEffectiveInsert : remainingContents.length;
         const newItems = sortedVideos.map(({ rawRenderer }) => buildRichItem(rawRenderer));
         const newGridContents = [...remainingContents];
@@ -231,7 +227,7 @@ async function moveVideosToGridFront({ videos, freshOrder }: {
   });
 }
 
-function fallbackUpdate(videos: VideoSnapshot[]) {
+function fallbackUpdate(videos: Prettify<VideoSnapshot>[]) {
   for (const video of videos) {
     updateVideoInDom({
       videoId: video.videoId,

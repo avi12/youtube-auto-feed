@@ -2,6 +2,7 @@ import type {
   InnerTubeBrowseResponse,
   InnerTubeVideoRenderer,
   LockupViewModel,
+  Prettify,
   ShortsLockupViewModel,
   VideoSnapshot
 } from "../types";
@@ -20,7 +21,7 @@ interface CollectSnapshotParams extends AnyRendererParams {
   seenVideoIds: Set<string>;
 }
 
-function parseAnyRenderer({ sectionTitle, bandIndex, renderer, lockup, shortsLockup }: AnyRendererParams) {
+function parseAnyRenderer({ sectionTitle, bandIndex, renderer, lockup, shortsLockup }: Prettify<AnyRendererParams>) {
   if (renderer) {
     return parseRenderer({
       renderer,
@@ -56,7 +57,7 @@ function collectSnapshot({
   renderer,
   lockup,
   shortsLockup
-}: CollectSnapshotParams) {
+}: Prettify<CollectSnapshotParams>) {
   const snapshot = parseAnyRenderer({
     sectionTitle,
     bandIndex,
@@ -73,7 +74,7 @@ function collectSnapshot({
   snapshots.push(snapshot);
 }
 
-export function extractApiSectionOrder(data: InnerTubeBrowseResponse) {
+export function extractApiSectionOrder(data: Prettify<InnerTubeBrowseResponse>) {
   const order: string[] = [];
   const seen = new Set<string>();
   try {
@@ -97,13 +98,13 @@ export function extractApiSectionOrder(data: InnerTubeBrowseResponse) {
   return order;
 }
 
-export function parseApiResponse(data: InnerTubeBrowseResponse) {
-  const snapshots: VideoSnapshot[] = [];
+export function parseApiResponse(data: Prettify<InnerTubeBrowseResponse>) {
+  const snapshots: Prettify<VideoSnapshot>[] = [];
   const seenVideoIds = new Set<string>();
   try {
     const tabContent = data.contents.twoColumnBrowseResultsRenderer.tabs[0]?.tabRenderer.content;
 
-    function pushSnapshot({ sectionTitle, bandIndex, renderer, lockup, shortsLockup }: AnyRendererParams) {
+    function pushSnapshot({ sectionTitle, bandIndex, renderer, lockup, shortsLockup }: Prettify<AnyRendererParams>) {
       collectSnapshot({
         sectionTitle,
         bandIndex,

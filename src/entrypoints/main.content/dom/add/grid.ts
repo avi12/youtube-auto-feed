@@ -1,13 +1,18 @@
 import { isRichShelfRenderer, isShelfRenderer, isVideoRenderer } from "../../api/guards";
 import {
   deepArray,
-  deepRecord,
   isPolymerElement,
   isRecord,
   videoIdFromData,
   videoIdFromShelfListItem
 } from "../../helpers";
-import { type InnerTubeRichGridItem, type PolymerElement, type VideoSnapshot, VideoStatus } from "../../types";
+import {
+  type InnerTubeRichGridItem,
+  type PolymerElement,
+  type Prettify,
+  type VideoSnapshot,
+  VideoStatus
+} from "../../types";
 import {
   assignItemViewTransitionNames,
   buildNewItemTransitionStyle,
@@ -29,12 +34,13 @@ import { sortByFreshOrder, videoIdFromRichItem } from "../rich-item";
 import { addSectionToDom } from "./section";
 
 export async function addVideosToGridDom({ videosToAdd, allFreshSnapshots }: {
-  videosToAdd: VideoSnapshot[];
-  allFreshSnapshots: VideoSnapshot[];
+  videosToAdd: Prettify<VideoSnapshot>[];
+  allFreshSnapshots: Prettify<VideoSnapshot>[];
 }) {
   await preloadThumbnails(videosToAdd);
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
-  if (!elGrid || !isPolymerElement(elGrid)) {
+  const isGridUsable = !!elGrid && isPolymerElement(elGrid);
+  if (!isGridUsable) {
     await fallbackAddBySection({
       videosToAdd,
       allFreshSnapshots
@@ -117,7 +123,8 @@ export async function addVideosToGridDom({ videosToAdd, allFreshSnapshots }: {
 
 export function cleanOrphanedGridItems() {
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
-  if (!elGrid || !isPolymerElement(elGrid) || !isRecord(elGrid.data)) {
+  const isGridUsable = !!elGrid && isPolymerElement(elGrid) && isRecord(elGrid.data);
+  if (!isGridUsable) {
     return;
   }
 
@@ -191,9 +198,9 @@ function setupGridTransition({
   freshOrderMap
 }: {
   elGridContents: HTMLElement;
-  standaloneVideos: VideoSnapshot[];
+  standaloneVideos: Prettify<VideoSnapshot>[];
   freshOrderMap: Map<string, number>;
-}): GridTransitionContext {
+}): Prettify<GridTransitionContext> {
   clearAllItemViewTransitionNames();
 
   const elAllItems = [...elGridContents.querySelectorAll<HTMLElement>(":scope > ytd-rich-item-renderer")];
@@ -229,7 +236,7 @@ function setupGridTransition({
   };
 }
 
-function teardownGridTransition(context: GridTransitionContext) {
+function teardownGridTransition(context: Prettify<GridTransitionContext>) {
   const {
     elShiftStyle,
     elNewItemTransitionStyles,
@@ -251,8 +258,8 @@ function teardownGridTransition(context: GridTransitionContext) {
 }
 
 async function fallbackAddBySection({ videosToAdd, allFreshSnapshots }: {
-  videosToAdd: VideoSnapshot[];
-  allFreshSnapshots: VideoSnapshot[];
+  videosToAdd: Prettify<VideoSnapshot>[];
+  allFreshSnapshots: Prettify<VideoSnapshot>[];
 }) {
   const processedSectionTitles = new Set<string>();
   for (const { sectionTitle } of videosToAdd) {
@@ -276,9 +283,9 @@ function applyVideoInsertions({
   allSnapshotMap
 }: {
   elGrid: PolymerElement;
-  sortedVideos: VideoSnapshot[];
+  sortedVideos: Prettify<VideoSnapshot>[];
   freshOrderMap: Map<string, number>;
-  allSnapshotMap: Map<string, VideoSnapshot>;
+  allSnapshotMap: Map<string, Prettify<VideoSnapshot>>;
 }) {
   const newContents = [...deepArray<InnerTubeRichGridItem>(elGrid.data, "contents")];
   const { newSectionGroups, videosForNormalPath } = planInsertions({
@@ -295,7 +302,7 @@ function applyVideoInsertions({
     });
   }
 
-  const actuallyAddedVideos: VideoSnapshot[] = [];
+  const actuallyAddedVideos: Prettify<VideoSnapshot>[] = [];
   for (const video of videosForNormalPath) {
     insertVideoOrStandalone({
       newContents,
@@ -311,11 +318,11 @@ function applyVideoInsertions({
 }
 
 function planInsertions({ newContents, sortedVideos }: {
-  newContents: InnerTubeRichGridItem[];
-  sortedVideos: VideoSnapshot[];
+  newContents: Prettify<InnerTubeRichGridItem>[];
+  sortedVideos: Prettify<VideoSnapshot>[];
 }) {
-  const newSectionGroups = new Map<string, VideoSnapshot[]>();
-  const videosForNormalPath: VideoSnapshot[] = [];
+  const newSectionGroups = new Map<string, Prettify<VideoSnapshot>[]>();
+  const videosForNormalPath: Prettify<VideoSnapshot>[] = [];
   for (const video of sortedVideos) {
     const needsNewSection = video.sectionTitle && findExistingSectionIndex({
       contents: newContents,
@@ -342,11 +349,11 @@ function insertVideoOrStandalone({
   allSnapshotMap,
   actuallyAddedVideos
 }: {
-  newContents: InnerTubeRichGridItem[];
-  video: VideoSnapshot;
+  newContents: Prettify<InnerTubeRichGridItem>[];
+  video: Prettify<VideoSnapshot>;
   freshOrderMap: Map<string, number>;
-  allSnapshotMap: Map<string, VideoSnapshot>;
-  actuallyAddedVideos: VideoSnapshot[];
+  allSnapshotMap: Map<string, Prettify<VideoSnapshot>>;
+  actuallyAddedVideos: Prettify<VideoSnapshot>[];
 }) {
   const { videoId, sectionTitle, bandIndex, status, rawRenderer } = video;
   const iSection = findExistingSectionIndex({
@@ -397,7 +404,7 @@ function insertVideoOrStandalone({
 }
 
 function findExistingSectionIndex({ contents, sectionTitle }: {
-  contents: InnerTubeRichGridItem[];
+  contents: Prettify<InnerTubeRichGridItem>[];
   sectionTitle: string;
 }) {
   if (!sectionTitle) {
@@ -415,9 +422,9 @@ function insertNewSection({
   sectionVideos,
   freshOrderMap
 }: {
-  newContents: InnerTubeRichGridItem[];
+  newContents: Prettify<InnerTubeRichGridItem>[];
   sectionTitle: string;
-  sectionVideos: VideoSnapshot[];
+  sectionVideos: Prettify<VideoSnapshot>[];
   freshOrderMap: Map<string, number>;
 }) {
   const sectionMinimumFreshIndex = sectionVideos.reduce(
@@ -438,14 +445,15 @@ function insertNewSection({
 }
 
 function tryInsertIntoExistingRichShelf({ newContents, iSection, video }: {
-  newContents: InnerTubeRichGridItem[];
+  newContents: Prettify<InnerTubeRichGridItem>[];
   iSection: number;
-  video: VideoSnapshot;
+  video: Prettify<VideoSnapshot>;
 }) {
-  const section = deepRecord(newContents[iSection], "richSectionRenderer");
-  const content = deepRecord(section, "content");
-  const richShelfRaw = deepRecord(content, "richShelfRenderer");
-  if (!section || !content || !richShelfRaw || !isRichShelfRenderer(richShelfRaw)) {
+  const section = newContents[iSection]?.richSectionRenderer;
+  const content = section?.content;
+  const richShelfRaw = content?.richShelfRenderer;
+  const isRichShelfStructure = !!section && !!content && !!richShelfRaw && isRichShelfRenderer(richShelfRaw);
+  if (!isRichShelfStructure) {
     return false;
   }
 
@@ -470,14 +478,15 @@ function tryInsertIntoExistingRichShelf({ newContents, iSection, video }: {
 }
 
 function tryInsertIntoExistingInnerShelf({ newContents, iSection, video }: {
-  newContents: InnerTubeRichGridItem[];
+  newContents: Prettify<InnerTubeRichGridItem>[];
   iSection: number;
-  video: VideoSnapshot;
+  video: Prettify<VideoSnapshot>;
 }) {
-  const section = deepRecord(newContents[iSection], "richSectionRenderer");
-  const content = deepRecord(section, "content");
-  const innerShelfRaw = deepRecord(content, "shelfRenderer");
-  if (!section || !content || !innerShelfRaw || !isShelfRenderer(innerShelfRaw)) {
+  const section = newContents[iSection]?.richSectionRenderer;
+  const content = section?.content;
+  const innerShelfRaw = content?.shelfRenderer;
+  const isInnerShelfStructure = !!section && !!content && !!innerShelfRaw && isShelfRenderer(innerShelfRaw);
+  if (!isInnerShelfStructure) {
     return false;
   }
 
@@ -489,8 +498,8 @@ function tryInsertIntoExistingInnerShelf({ newContents, iSection, video }: {
   const innerShelf = innerShelfRaw;
   const innerContent = innerShelf.content;
 
-  const horizontalList = deepRecord(innerContent, "horizontalListRenderer");
-  const gridList = deepRecord(innerContent, "gridRenderer");
+  const horizontalList = innerContent?.horizontalListRenderer;
+  const gridList = innerContent?.gridRenderer;
   // Inner shelves emit either horizontalListRenderer or gridRenderer; preserve whichever YouTube used.
   const listKey = !horizontalList && gridList ? "gridRenderer" : "horizontalListRenderer";
   const existingList: Record<string, unknown> = horizontalList ?? gridList ?? {};
@@ -528,7 +537,7 @@ async function applyNewItemAnimations({
 }: {
   elGridContents: HTMLElement;
   elElementsToAnimate: HTMLElement[];
-  actuallyAddedVideos: VideoSnapshot[];
+  actuallyAddedVideos: Prettify<VideoSnapshot>[];
   animateIds: Set<string>;
 }) {
   for (const elItem of elElementsToAnimate) {
@@ -645,7 +654,7 @@ function pruneOrphanedDomItems({ elGridContents, standaloneModelIds }: {
 }
 
 export function findSectionInsertIndex({ contents, sectionMinimumFreshIndex, freshOrderMap }: {
-  contents: InnerTubeRichGridItem[];
+  contents: Prettify<InnerTubeRichGridItem>[];
   sectionMinimumFreshIndex: number;
   freshOrderMap: Map<string, number>;
 }) {
@@ -667,11 +676,12 @@ export function findSectionInsertIndex({ contents, sectionMinimumFreshIndex, fre
       continue;
     }
 
-    if (!isRecord(item) || !("richSectionRenderer" in item)) {
+    const isSectionItem = isRecord(item) && "richSectionRenderer" in item;
+    if (!isSectionItem) {
       continue;
     }
 
-    const existingSectionItems = deepArray(item, "richSectionRenderer", "content", "richShelfRenderer", "contents");
+    const existingSectionItems = deepArray<InnerTubeRichGridItem>(item, "richSectionRenderer", "content", "richShelfRenderer", "contents");
     const knownIndices = existingSectionItems
       .map(contentItem => {
         const videoId = videoIdFromRichItem(contentItem);
@@ -690,7 +700,7 @@ export function findSectionInsertIndex({ contents, sectionMinimumFreshIndex, fre
 
 function buildNewRichSection({ sectionTitle, videos }: {
   sectionTitle: string;
-  videos: VideoSnapshot[];
+  videos: Prettify<VideoSnapshot>[];
 }) {
   return {
     richSectionRenderer: {
@@ -706,7 +716,7 @@ function buildNewRichSection({ sectionTitle, videos }: {
   };
 }
 
-function findZoneBoundaries(contents: InnerTubeRichGridItem[]) {
+function findZoneBoundaries(contents: Prettify<InnerTubeRichGridItem>[]) {
   const continuationIndex = contents.findIndex(item => isRecord(item) && "continuationItemRenderer" in item);
   const end = continuationIndex >= 0 ? continuationIndex : contents.length;
   const sectionBoundaries: number[] = [];
@@ -716,7 +726,8 @@ function findZoneBoundaries(contents: InnerTubeRichGridItem[]) {
       ...deepArray(contents[i], "richSectionRenderer", "content", "shelfRenderer", "content", "horizontalListRenderer", "items"),
       ...deepArray(contents[i], "richSectionRenderer", "content", "shelfRenderer", "content", "gridRenderer", "items")
     ];
-    if (richShelfItems.length > 0 || shelfItems.length > 0) {
+    const hasShelfItems = richShelfItems.length > 0 || shelfItems.length > 0;
+    if (hasShelfItems) {
       sectionBoundaries.push(i);
     }
   }
@@ -734,12 +745,12 @@ function findZoneInsertIndex({
   videoStatus,
   allSnapshotMap
 }: {
-  contents: InnerTubeRichGridItem[];
+  contents: Prettify<InnerTubeRichGridItem>[];
   bandIndex: number;
   freshIndex: number;
   freshOrderMap: Map<string, number>;
   videoStatus: VideoStatus;
-  allSnapshotMap: Map<string, VideoSnapshot>;
+  allSnapshotMap: Map<string, Prettify<VideoSnapshot>>;
 }) {
   const { sectionBoundaries, end } = findZoneBoundaries(contents);
   const zoneStart = bandIndex === 0 ? 0 : (sectionBoundaries[bandIndex - 1] ?? end - 1) + 1;
@@ -761,16 +772,17 @@ function findGridInsertIndex({
   videoStatus,
   allSnapshotMap
 }: {
-  contents: InnerTubeRichGridItem[];
+  contents: Prettify<InnerTubeRichGridItem>[];
   freshIndex: number;
   freshOrderMap: Map<string, number>;
   videoStatus: VideoStatus;
-  allSnapshotMap: Map<string, VideoSnapshot>;
+  allSnapshotMap: Map<string, Prettify<VideoSnapshot>>;
 }) {
   let iInsert = 0;
   for (let i = 0; i < contents.length; i++) {
     const item = contents[i];
-    if (isRecord(item) && "continuationItemRenderer" in item) {
+    const isContinuationItem = isRecord(item) && "continuationItemRenderer" in item;
+    if (isContinuationItem) {
       break;
     }
 
@@ -790,11 +802,12 @@ function findGridInsertIndex({
       continue;
     }
 
-    if (!isRecord(item) || !("richSectionRenderer" in item)) {
+    const isSectionItem = isRecord(item) && "richSectionRenderer" in item;
+    if (!isSectionItem) {
       continue;
     }
 
-    const sectionItems = deepArray(item, "richSectionRenderer", "content", "richShelfRenderer", "contents");
+    const sectionItems = deepArray<InnerTubeRichGridItem>(item, "richSectionRenderer", "content", "richShelfRenderer", "contents");
     const knownIndices = sectionItems
       .map(contentItem => {
         const videoId = videoIdFromRichItem(contentItem);
@@ -840,7 +853,7 @@ function collectGridShiftTargets({
 }: {
   elGridContents: HTMLElement;
   elAllItems: HTMLElement[];
-  sortedVideos: VideoSnapshot[];
+  sortedVideos: Prettify<VideoSnapshot>[];
   freshOrderMap: Map<string, number>;
 }) {
   const minFreshIndex = freshOrderMap.get(sortedVideos[0]?.videoId ?? "") ?? 0;

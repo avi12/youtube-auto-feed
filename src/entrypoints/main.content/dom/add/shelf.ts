@@ -1,5 +1,11 @@
 import { deepArray, isPolymerElement, isRecord, videoIdFromData } from "../../helpers";
-import { type InnerTubeRichGridItem, type PolymerElement, type VideoSnapshot, VideoStatus } from "../../types";
+import {
+  type InnerTubeRichGridItem,
+  type PolymerElement,
+  type Prettify,
+  type VideoSnapshot,
+  VideoStatus
+} from "../../types";
 import {
   assignItemViewTransitionNames,
   buildNewItemTransitionStyle,
@@ -28,9 +34,9 @@ export async function addVideosToDom({
   allFreshSnapshots,
   snapshot
 }: {
-  freshSnapshots: VideoSnapshot[];
-  allFreshSnapshots: VideoSnapshot[];
-  snapshot: Map<string, VideoSnapshot>;
+  freshSnapshots: Prettify<VideoSnapshot>[];
+  allFreshSnapshots: Prettify<VideoSnapshot>[];
+  snapshot: Map<string, Prettify<VideoSnapshot>>;
 }) {
   await preloadThumbnails(freshSnapshots);
   const bySection = new Map<string, VideoSnapshot[]>();
@@ -54,9 +60,9 @@ async function addVideosToSection({
   allFreshSnapshots,
   snapshot
 }: {
-  videos: VideoSnapshot[];
-  allFreshSnapshots: VideoSnapshot[];
-  snapshot: Map<string, VideoSnapshot>;
+  videos: Prettify<VideoSnapshot>[];
+  allFreshSnapshots: Prettify<VideoSnapshot>[];
+  snapshot: Map<string, Prettify<VideoSnapshot>>;
 }) {
   const { sectionTitle } = videos[0];
   const sectionVideos = allFreshSnapshots.filter(video => video.sectionTitle === sectionTitle);
@@ -120,9 +126,9 @@ function buildInsertOperations({
   elShelf,
   snapshot
 }: {
-  videosToInsert: VideoSnapshot[];
+  videosToInsert: Prettify<VideoSnapshot>[];
   elShelf: PolymerElement;
-  snapshot: Map<string, VideoSnapshot>;
+  snapshot: Map<string, Prettify<VideoSnapshot>>;
 }) {
   const iLeadingLive = leadingLiveCount({
     elShelf,
@@ -164,8 +170,8 @@ async function runShelfInsertTransition({
 }: {
   elShelf: PolymerElement;
   elExistingItems: HTMLElement[];
-  insertOperations: InsertOperation[];
-  newShelfContents: InnerTubeRichGridItem[];
+  insertOperations: Prettify<InsertOperation>[];
+  newShelfContents: Prettify<InnerTubeRichGridItem>[];
   displayCap: number;
   isCollapsed: boolean;
 }) {
@@ -236,11 +242,11 @@ async function runShelfInsertTransition({
   });
 }
 
-async function waitForVideosToRender(videos: VideoSnapshot[]) {
+async function waitForVideosToRender(videos: Prettify<VideoSnapshot>[]) {
   await waitForFrames({ predicate: () => videos.every(video => findItemElement(video.videoId)) });
 }
 
-function collectNewItemElements(insertOperations: InsertOperation[]) {
+function collectNewItemElements(insertOperations: Prettify<InsertOperation>[]) {
   const insertedAscending = insertOperations.toReversed();
   const elNewItems: HTMLElement[] = [];
   for (const { video } of insertedAscending) {

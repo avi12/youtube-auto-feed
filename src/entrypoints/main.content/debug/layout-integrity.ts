@@ -1,14 +1,8 @@
 import { fetchInitialVideos } from "../api/fetch";
 import { isRichShelfRenderer, isShelfRenderer } from "../api/guards";
 import { videoIdFromRichItem } from "../dom/rich-item";
-import {
-  deepArray,
-  deepRecord,
-  isPolymerElement,
-  isRecord,
-  videoIdFromShelfListItem
-} from "../helpers";
-import type { VideoSnapshot } from "../types";
+import { deepArray, isPolymerElement, isRecord, videoIdFromShelfListItem } from "../helpers";
+import type { InnerTubeRichGridItem, Prettify, VideoSnapshot } from "../types";
 
 interface DomBand {
   type: "inline" | "richShelf" | "shelf";
@@ -48,13 +42,14 @@ interface BandCollections {
 
 function captureDomBands() {
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
-  if (!elGrid || !isPolymerElement(elGrid) || !isRecord(elGrid.data)) {
+  const isGridUsable = !!elGrid && isPolymerElement(elGrid) && isRecord(elGrid.data);
+  if (!isGridUsable) {
     return [];
   }
 
-  const contents = deepArray(elGrid.data, "contents");
-  const bands: DomBand[] = [];
-  let currentInlineBand: DomBand | null = null;
+  const contents = deepArray<InnerTubeRichGridItem>(elGrid.data, "contents");
+  const bands: Prettify<DomBand>[] = [];
+  let currentInlineBand: Prettify<DomBand> | null = null;
 
   for (let i = 0; i < contents.length; i++) {
     const item = contents[i];
@@ -78,10 +73,10 @@ function captureDomBands() {
 
     currentInlineBand = null;
 
-    const richShelfRenderer = deepRecord(item, "richSectionRenderer", "content", "richShelfRenderer");
+    const richShelfRenderer = item?.richSectionRenderer?.content?.richShelfRenderer;
     if (richShelfRenderer) {
       const title = isRichShelfRenderer(richShelfRenderer) ? richShelfRenderer.title?.runs?.[0]?.text ?? "" : "";
-      const shelfContents = deepArray(richShelfRenderer, "contents");
+      const shelfContents = deepArray<InnerTubeRichGridItem>(richShelfRenderer, "contents");
       const videoIds = shelfContents
         .map(shelfItem => videoIdFromRichItem(shelfItem))
         .filter((id): id is string => id !== null);
@@ -94,7 +89,7 @@ function captureDomBands() {
       continue;
     }
 
-    const shelfRenderer = deepRecord(item, "richSectionRenderer", "content", "shelfRenderer");
+    const shelfRenderer = item?.richSectionRenderer?.content?.shelfRenderer;
     const shelfTitle = isShelfRenderer(shelfRenderer) ? shelfRenderer.title?.runs?.[0]?.text ?? "" : "";
     const listItems = [
       ...deepArray(item, "richSectionRenderer", "content", "shelfRenderer", "content", "horizontalListRenderer", "items"),
@@ -117,10 +112,10 @@ function captureDomBands() {
 }
 
 function captureApiBands({ snapshots, sectionOrder }: {
-  snapshots: VideoSnapshot[];
+  snapshots: Prettify<VideoSnapshot>[];
   sectionOrder: string[];
 }) {
-  const bands: ApiBand[] = [];
+  const bands: Prettify<ApiBand>[] = [];
 
   const inlineVideoIds = snapshots
     .filter(snapshot => snapshot.sectionTitle === "")
@@ -155,9 +150,9 @@ function captureApiBands({ snapshots, sectionOrder }: {
   return bands;
 }
 
-function computeBandDiffs({ domBands, apiBands }: BandCollections) {
+function computeBandDiffs({ domBands, apiBands }: Prettify<BandCollections>) {
   const apiBandByTitle = new Map(apiBands.map(band => [band.title, band]));
-  const bandDiffs: BandDiff[] = [];
+  const bandDiffs: Prettify<BandDiff>[] = [];
   let isAllBandsPass = true;
 
   for (const domBand of domBands) {
@@ -197,7 +192,7 @@ function computeBandDiffs({ domBands, apiBands }: BandCollections) {
   };
 }
 
-function buildReport({ domBands, apiBands }: BandCollections) {
+function buildReport({ domBands, apiBands }: Prettify<BandCollections>) {
   const domBandTitles = domBands.map(band => band.title || "(inline)");
   const apiBandTitles = apiBands.map(band => band.title || "(inline)");
   const isBandOrderMatch = JSON.stringify(domBandTitles) === JSON.stringify(apiBandTitles);
@@ -217,11 +212,11 @@ function buildReport({ domBands, apiBands }: BandCollections) {
   };
 }
 
-function persistReport(report: LayoutIntegrityReport) {
+function persistReport(report: Prettify<LayoutIntegrityReport>) {
   try {
     const stored = sessionStorage.getItem("__ytsua_layout_checks");
     const parsed: unknown = stored ? JSON.parse(stored) : [];
-    const history: LayoutIntegrityReport[] = Array.isArray(parsed) ? parsed : [];
+    const history: Prettify<LayoutIntegrityReport>[] = Array.isArray(parsed) ? parsed : [];
     history.push(report);
 
     // Cap stored history so repeated checks don't fill sessionStorage
@@ -233,7 +228,7 @@ function persistReport(report: LayoutIntegrityReport) {
   } catch {}
 }
 
-function logReport(report: LayoutIntegrityReport) {
+function logReport(report: Prettify<LayoutIntegrityReport>) {
   const { isPass, timestamp, isBandOrderMatch, domBandTitles, apiBandTitles, bandDiffs } = report;
   const statusLabel = isPass ? "PASS" : "FAIL";
   console.group(`[YTSUA] Layout Integrity ${statusLabel} - ${timestamp}`);

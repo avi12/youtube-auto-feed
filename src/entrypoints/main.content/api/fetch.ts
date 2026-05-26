@@ -1,4 +1,4 @@
-import type { InnerTubeBrowseResponse } from "../types";
+import type { InnerTubeBrowseResponse, Prettify } from "../types";
 import { isInnerTubeBrowseResponse } from "./guards";
 import { extractApiSectionOrder, parseApiResponse } from "./parse";
 
@@ -9,7 +9,7 @@ function extractYtInitialData(html: string) {
   }
 
   try {
-    const parsed: InnerTubeBrowseResponse = JSON.parse(match[1]);
+    const parsed: Prettify<InnerTubeBrowseResponse> = JSON.parse(match[1]);
     return parsed;
   } catch {
     return null;

@@ -1,5 +1,5 @@
 import { isPolymerElement, videoIdFromData } from "../helpers";
-import type { PolymerElement, VideoSnapshot } from "../types";
+import type { PolymerElement, Prettify, VideoSnapshot } from "../types";
 import { prefersReducedMotion, triggerAnimation } from "./animations";
 import { findItemElement } from "./query";
 import { applyUpdate } from "./update";
@@ -9,8 +9,8 @@ const LAZY_UPDATE_ROOT_MARGIN_PX = 300;
 const LAZY_ENTRANCE_ROOT_MARGIN_PX = 50;
 
 const pendingUpdates = new Map<string, {
-  fresh: VideoSnapshot;
-  previous?: VideoSnapshot;
+  fresh: Prettify<VideoSnapshot>;
+  previous?: Prettify<VideoSnapshot>;
 }>();
 
 type ApplyEntry = {
@@ -19,7 +19,7 @@ type ApplyEntry = {
   fresh: VideoSnapshot;
   previous?: VideoSnapshot;
 };
-const pendingApplyBatch: ApplyEntry[] = [];
+const pendingApplyBatch: Prettify<ApplyEntry>[] = [];
 let isIdleCallbackScheduled = false;
 
 let intersectionObserver: IntersectionObserver | null = null;
@@ -44,7 +44,8 @@ function ensureObserver() {
 
   intersectionObserver = new IntersectionObserver(entries => {
     for (const { isIntersecting, target } of entries) {
-      if (!isIntersecting || !(target instanceof HTMLElement)) {
+      const shouldSkipObservation = !isIntersecting || !(target instanceof HTMLElement);
+      if (shouldSkipObservation) {
         continue;
       }
 
@@ -85,8 +86,8 @@ function ensureObserver() {
 
 export function scheduleLazyUpdate({ videoId, fresh, previous, elItemHint }: {
   videoId: string;
-  fresh: VideoSnapshot;
-  previous?: VideoSnapshot;
+  fresh: Prettify<VideoSnapshot>;
+  previous?: Prettify<VideoSnapshot>;
   elItemHint?: HTMLElement;
 }) {
   const existing = pendingUpdates.get(videoId);
@@ -110,7 +111,8 @@ function ensureEntranceObserver() {
 
   entranceObserver = new IntersectionObserver(entries => {
     for (const { isIntersecting, target } of entries) {
-      if (!isIntersecting || !(target instanceof HTMLElement)) {
+      const shouldSkipObservation = !isIntersecting || !(target instanceof HTMLElement);
+      if (shouldSkipObservation) {
         continue;
       }
 

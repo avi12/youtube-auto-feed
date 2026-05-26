@@ -1,3 +1,7 @@
+// -- IDE hover helper: force expansion of named types at use sites -----------
+
+export type Prettify<T> = { [K in keyof T]: T[K] } & {};
+
 // -- YouTube InnerTube API response types -------------------------------------
 
 export interface InnerTubeThumbnail {

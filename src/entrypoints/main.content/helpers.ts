@@ -36,11 +36,6 @@ export function deepArray<T = unknown>(object: unknown, ...path: string[]): T[] 
   return [];
 }
 
-export function deepRecord(object: unknown, ...path: string[]) {
-  const value = dig(object, ...path);
-  return isRecord(value) ? value : null;
-}
-
 export function videoIdFromData(data: unknown) {
   if (!isRecord(data)) {
     return null;

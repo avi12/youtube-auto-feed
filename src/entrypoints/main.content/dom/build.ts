@@ -1,7 +1,15 @@
 import { isLockupViewModel, isShortsLockupViewModel } from "../api/guards";
-import type { InnerTubeVideoRenderer, LockupViewModel, ShortsLockupViewModel, VideoSnapshot } from "../types";
+import type {
+  InnerTubeVideoRenderer,
+  LockupViewModel,
+  Prettify,
+  ShortsLockupViewModel,
+  VideoSnapshot
+} from "../types";
 
-function rawThumbnailUrl(rawRenderer: InnerTubeVideoRenderer | LockupViewModel | ShortsLockupViewModel) {
+function rawThumbnailUrl(
+  rawRenderer: Prettify<InnerTubeVideoRenderer> | Prettify<LockupViewModel> | Prettify<ShortsLockupViewModel>
+) {
   if (isLockupViewModel(rawRenderer)) {
     return rawRenderer.contentImage?.thumbnailViewModel?.image?.sources?.at(-1)?.url ?? "";
   }
@@ -27,11 +35,13 @@ function preloadThumbnail(url: string) {
   });
 }
 
-export function preloadThumbnails(videos: VideoSnapshot[]) {
+export function preloadThumbnails(videos: Prettify<VideoSnapshot>[]) {
   return Promise.all(videos.map(video => preloadThumbnail(rawThumbnailUrl(video.rawRenderer))));
 }
 
-function buildRichItemContent(rawRenderer: InnerTubeVideoRenderer | LockupViewModel | ShortsLockupViewModel) {
+function buildRichItemContent(
+  rawRenderer: Prettify<InnerTubeVideoRenderer> | Prettify<LockupViewModel> | Prettify<ShortsLockupViewModel>
+) {
   if (isLockupViewModel(rawRenderer)) {
     return { lockupViewModel: rawRenderer };
   }
@@ -43,7 +53,9 @@ function buildRichItemContent(rawRenderer: InnerTubeVideoRenderer | LockupViewMo
   return { videoRenderer: rawRenderer };
 }
 
-export function buildRichItem(rawRenderer: InnerTubeVideoRenderer | LockupViewModel | ShortsLockupViewModel) {
+export function buildRichItem(
+  rawRenderer: Prettify<InnerTubeVideoRenderer> | Prettify<LockupViewModel> | Prettify<ShortsLockupViewModel>
+) {
   return {
     richItemRenderer: {
       content: buildRichItemContent(rawRenderer),

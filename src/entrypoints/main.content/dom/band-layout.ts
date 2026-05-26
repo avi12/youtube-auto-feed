@@ -1,5 +1,5 @@
-import { deepArray, deepRecord, isPolymerElement, isRecord } from "../helpers";
-import type { InnerTubeRichGridItem } from "../types";
+import { deepArray, isPolymerElement, isRecord } from "../helpers";
+import type { InnerTubeRichGridItem, Prettify } from "../types";
 import { videoIdFromRichItem } from "./rich-item";
 
 export type BandKind = "inline" | "richShelf";
@@ -14,12 +14,12 @@ export interface BandLayout {
   sectionOrder: string[];
 }
 
-function readRichShelfTitle(item: InnerTubeRichGridItem) {
+function readRichShelfTitle(item: Prettify<InnerTubeRichGridItem>) {
   return item?.richSectionRenderer?.content?.richShelfRenderer?.title?.runs?.[0]?.text ?? "";
 }
 
-function readTitleOnlyShelfTitle(item: InnerTubeRichGridItem) {
-  if (deepRecord(item, "richSectionRenderer", "content", "richShelfRenderer")) {
+function readTitleOnlyShelfTitle(item: Prettify<InnerTubeRichGridItem>) {
+  if (item?.richSectionRenderer?.content?.richShelfRenderer) {
     return "";
   }
 
@@ -28,15 +28,16 @@ function readTitleOnlyShelfTitle(item: InnerTubeRichGridItem) {
 
 export function captureBandLayout() {
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
-  if (!elGrid || !isPolymerElement(elGrid) || !isRecord(elGrid.data)) {
+  const isGridUsable = !!elGrid && isPolymerElement(elGrid) && isRecord(elGrid.data);
+  if (!isGridUsable) {
     return null;
   }
 
   const contents = deepArray<InnerTubeRichGridItem>(elGrid.data, "contents");
-  const bands: CapturedBand[] = [];
+  const bands: Prettify<CapturedBand>[] = [];
   const sectionOrder: string[] = [];
   let currentInlineSection = "";
-  let currentInlineBand: CapturedBand | null = null;
+  let currentInlineBand: Prettify<CapturedBand> | null = null;
 
   for (const item of contents) {
     const inlineVideoId = videoIdFromRichItem(item);
@@ -84,7 +85,8 @@ export function captureBandLayout() {
 export async function normalizeCollapsedShelfRows() {
   const trimmedVideoIds = new Set<string>();
   for (const elShelf of document.querySelectorAll<HTMLElement>("ytd-rich-shelf-renderer")) {
-    if (!isPolymerElement(elShelf) || !isRecord(elShelf.data) || elShelf.data.isExpanded !== false) {
+    const isCollapsedShelf = isPolymerElement(elShelf) && isRecord(elShelf.data) && elShelf.data.isExpanded === false;
+    if (!isCollapsedShelf) {
       continue;
     }
 
@@ -108,7 +110,7 @@ export async function normalizeCollapsedShelfRows() {
 
     const overflowVideoIds = new Set(
       overflowItems.flatMap(elItem => {
-        if (!isPolymerElement(elItem)) {
+        if (!isPolymerElement(elItem) || !isRecord(elItem.data)) {
           return [];
         }
 

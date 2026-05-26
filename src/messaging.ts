@@ -22,7 +22,8 @@ function onMessage({ type, handler }: {
 }) {
   const channel = new BroadcastChannel(CHANNEL_NAME);
   channel.onmessage = ({ data }) => {
-    if (isYtsuaEnvelope(data) && data.type === type) {
+    const isMatchingEnvelope = isYtsuaEnvelope(data) && data.type === type;
+    if (isMatchingEnvelope) {
       handler();
     }
   };

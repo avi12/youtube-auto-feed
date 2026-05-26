@@ -9,13 +9,12 @@ import { repositionVideoInSection } from "./dom/reposition";
 import { batchUpdateVideosInDom, updateVideoInDom } from "./dom/update";
 import {
   deepArray,
-  deepRecord,
   isPolymerElement,
   isRecord,
   videoIdFromData,
   videoIdFromShelfListItem
 } from "./helpers";
-import { type InnerTubeRichGridItem, type VideoSnapshot, VideoStatus } from "./types";
+import { type InnerTubeRichGridItem, type Prettify, type VideoSnapshot, VideoStatus } from "./types";
 
 function readCurrentVideoSections() {
   const sections = new Map<string, string>();
@@ -26,7 +25,7 @@ function readCurrentVideoSections() {
   }
 
   for (const item of deepArray<InnerTubeRichGridItem>(elGrid.data, "contents")) {
-    const inlineVideoId = videoIdFromData(deepRecord(item, "richItemRenderer"));
+    const inlineVideoId = videoIdFromData(item?.richItemRenderer);
     if (inlineVideoId) {
       if (!sections.has(inlineVideoId)) {
         sections.set(inlineVideoId, "");
@@ -36,8 +35,8 @@ function readCurrentVideoSections() {
     }
 
     const richShelfTitle = item?.richSectionRenderer?.content?.richShelfRenderer?.title?.runs?.[0]?.text ?? "";
-    for (const shelfItem of deepArray(item, "richSectionRenderer", "content", "richShelfRenderer", "contents")) {
-      const videoId = videoIdFromData(deepRecord(shelfItem, "richItemRenderer"));
+    for (const shelfItem of deepArray<InnerTubeRichGridItem>(item, "richSectionRenderer", "content", "richShelfRenderer", "contents")) {
+      const videoId = videoIdFromData(shelfItem?.richItemRenderer);
       if (videoId && !sections.has(videoId)) {
         sections.set(videoId, richShelfTitle);
       }
@@ -67,8 +66,8 @@ function readCurrentVideoBandIndices() {
   }
 
   let currentBandIndex = 0;
-  for (const item of deepArray(elGrid.data, "contents")) {
-    const inlineVideoId = videoIdFromData(deepRecord(item, "richItemRenderer"));
+  for (const item of deepArray<InnerTubeRichGridItem>(elGrid.data, "contents")) {
+    const inlineVideoId = videoIdFromData(item?.richItemRenderer);
     if (inlineVideoId) {
       if (!bandIndices.has(inlineVideoId)) {
         bandIndices.set(inlineVideoId, currentBandIndex);
@@ -77,7 +76,7 @@ function readCurrentVideoBandIndices() {
       continue;
     }
 
-    if (deepRecord(item, "richSectionRenderer", "content", "richShelfRenderer")) {
+    if (item?.richSectionRenderer?.content?.richShelfRenderer) {
       currentBandIndex++;
     }
   }
@@ -114,15 +113,15 @@ function collectFromGridDataModel(videoIds: Set<string>) {
     return;
   }
 
-  for (const item of deepArray(elGrid.data, "contents")) {
-    const videoId = videoIdFromData(deepRecord(item, "richItemRenderer"));
+  for (const item of deepArray<InnerTubeRichGridItem>(elGrid.data, "contents")) {
+    const videoId = videoIdFromData(item?.richItemRenderer);
     if (videoId) {
       videoIds.add(videoId);
       continue;
     }
 
-    for (const shelfItem of deepArray(item, "richSectionRenderer", "content", "richShelfRenderer", "contents")) {
-      const shelfVideoId = videoIdFromData(deepRecord(shelfItem, "richItemRenderer"));
+    for (const shelfItem of deepArray<InnerTubeRichGridItem>(item, "richSectionRenderer", "content", "richShelfRenderer", "contents")) {
+      const shelfVideoId = videoIdFromData(shelfItem?.richItemRenderer);
       if (shelfVideoId) {
         videoIds.add(shelfVideoId);
       }
@@ -145,7 +144,7 @@ function collectFromShelfRenderers(videoIds: Set<string>) {
       continue;
     }
 
-    const shelfContent = deepRecord(elShelf.data, "content");
+    const shelfContent = isShelfRenderer(elShelf.data) ? elShelf.data.content : undefined;
     for (const listItem of [
       ...deepArray(shelfContent, "horizontalListRenderer", "items"),
       ...deepArray(shelfContent, "gridRenderer", "items")
@@ -164,8 +163,8 @@ function collectFromRichShelfRenderers(videoIds: Set<string>) {
       continue;
     }
 
-    for (const item of deepArray(elShelf.data, "contents")) {
-      const videoId = videoIdFromData(deepRecord(item, "richItemRenderer"));
+    for (const item of deepArray<InnerTubeRichGridItem>(elShelf.data, "contents")) {
+      const videoId = videoIdFromData(item?.richItemRenderer);
       if (videoId) {
         videoIds.add(videoId);
       }
@@ -201,20 +200,22 @@ interface DiffInputs {
 }
 
 // Latest band (sectionTitle === "", bandIndex 0) is the only zone the extension may add/remove videos in.
-function isLatestSnapshot(snapshot: VideoSnapshot) {
+function isLatestSnapshot(snapshot: Prettify<VideoSnapshot>) {
   return snapshot.sectionTitle === "" && snapshot.bandIndex === 0;
 }
 
 function classifyStatusTransition({ previous, fresh }: {
-  previous: VideoSnapshot;
-  fresh: VideoSnapshot;
+  previous: Prettify<VideoSnapshot>;
+  fresh: Prettify<VideoSnapshot>;
 }) {
-  if (previous.status === VideoStatus.Upcoming && fresh.status === VideoStatus.Live) {
+  const isUpcomingToLive = previous.status === VideoStatus.Upcoming && fresh.status === VideoStatus.Live;
+  if (isUpcomingToLive) {
     return "upcoming-to-live" as const;
   }
 
   const wasStreaming = previous.status === VideoStatus.Live || previous.status === VideoStatus.Upcoming;
-  if (wasStreaming && fresh.status === VideoStatus.Video) {
+  const isStreamFinished = wasStreaming && fresh.status === VideoStatus.Video;
+  if (isStreamFinished) {
     return "stream-finished" as const;
   }
 
@@ -229,13 +230,13 @@ function computeFeedDiff({
   currentVideoSections,
   currentVideoBandIndices,
   confirmedAbsentVideoIds
-}: DiffInputs): FeedDiff {
+}: Prettify<DiffInputs>): Prettify<FeedDiff> {
   const removed: string[] = [];
   const candidateRemovals: string[] = [];
-  const added: VideoSnapshot[] = [];
-  const liveTransitions: VideoSnapshot[] = [];
-  const finishedStreams: VideoSnapshot[] = [];
-  const metadataOnly: VideoSnapshot[] = [];
+  const added: Prettify<VideoSnapshot>[] = [];
+  const liveTransitions: Prettify<VideoSnapshot>[] = [];
+  const finishedStreams: Prettify<VideoSnapshot>[] = [];
+  const metadataOnly: Prettify<VideoSnapshot>[] = [];
 
   const apiInlineSecondsAgo = freshSnapshots
     .filter(video => !video.sectionTitle)
@@ -339,7 +340,7 @@ function classifyChanges({
   currentVideoSections,
   currentVideoBandIndices,
   confirmedAbsentVideoIds
-}: DiffInputs): ClassifiedChanges {
+}: Prettify<DiffInputs>): Prettify<ClassifiedChanges> {
   const { removed, candidateRemovals, added, liveTransitions, finishedStreams, metadataOnly } = computeFeedDiff({
     previousSnapshot,
     freshSnapshots,
@@ -382,8 +383,8 @@ function classifyChanges({
 }
 
 function hasMetadataChange({ previous, fresh }: {
-  previous: VideoSnapshot;
-  fresh: VideoSnapshot;
+  previous: Prettify<VideoSnapshot>;
+  fresh: Prettify<VideoSnapshot>;
 }) {
   return previous.title !== fresh.title ||
     previous.thumbnailUrl !== fresh.thumbnailUrl ||
@@ -400,10 +401,10 @@ async function executeChanges({
   freshMap,
   bandLayout
 }: {
-  changes: ClassifiedChanges;
-  freshSnapshots: VideoSnapshot[];
-  freshMap: Map<string, VideoSnapshot>;
-  bandLayout: BandLayout | null;
+  changes: Prettify<ClassifiedChanges>;
+  freshSnapshots: Prettify<VideoSnapshot>[];
+  freshMap: Map<string, Prettify<VideoSnapshot>>;
+  bandLayout: Prettify<BandLayout> | null;
 }) {
   const { videoIdsToRemove, videosToAdd, videosToReposition, videosToMoveToFront } = changes;
   const timeOrderedSnapshots = freshSnapshots.toSorted(
@@ -500,8 +501,8 @@ function preserveStaleEntriesForUnremovedVideos({
 }: {
   videoIdsToRemove: string[];
   candidateRemovals: string[];
-  previousSnapshot: Map<string, VideoSnapshot>;
-  freshMap: Map<string, VideoSnapshot>;
+  previousSnapshot: Map<string, Prettify<VideoSnapshot>>;
+  freshMap: Map<string, Prettify<VideoSnapshot>>;
 }) {
   const postChangeVideoIds = readCurrentVideoIds();
   for (const videoId of [...videoIdsToRemove, ...candidateRemovals]) {
@@ -518,12 +519,12 @@ export async function detectAndApplyChanges({
   bandLayout,
   confirmedAbsentVideoIds = new Set()
 }: {
-  previousSnapshot: Map<string, VideoSnapshot>;
-  freshSnapshots: VideoSnapshot[];
-  bandLayout: BandLayout | null;
+  previousSnapshot: Map<string, Prettify<VideoSnapshot>>;
+  freshSnapshots: Prettify<VideoSnapshot>[];
+  bandLayout: Prettify<BandLayout> | null;
   confirmedAbsentVideoIds?: Set<string>;
 }) {
-  const freshMap = new Map<string, VideoSnapshot>();
+  const freshMap = new Map<string, Prettify<VideoSnapshot>>();
   for (const video of freshSnapshots) {
     const existing = freshMap.get(video.videoId);
     // Latest-band entries take precedence so the snapshot reflects the mutable zone, not shelf duplicates.
@@ -577,11 +578,11 @@ export function detectAndApplyMetadataChanges({
   previousSnapshot,
   freshSnapshots
 }: {
-  previousSnapshot: Map<string, VideoSnapshot>;
-  freshSnapshots: VideoSnapshot[];
+  previousSnapshot: Map<string, Prettify<VideoSnapshot>>;
+  freshSnapshots: Prettify<VideoSnapshot>[];
 }) {
   const updatedSnapshot = new Map(previousSnapshot);
-  const changedVideos: VideoSnapshot[] = [];
+  const changedVideos: Prettify<VideoSnapshot>[] = [];
 
   for (const fresh of freshSnapshots) {
     const previous = previousSnapshot.get(fresh.videoId);

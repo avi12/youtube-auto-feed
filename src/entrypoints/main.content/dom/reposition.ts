@@ -1,6 +1,6 @@
 import { parseSecondsAgo } from "../api/guards";
-import { deepArray, deepRecord, isPolymerElement, isRecord } from "../helpers";
-import { type InnerTubeRichGridItem, type VideoSnapshot, VideoStatus } from "../types";
+import { deepArray, isPolymerElement, isRecord } from "../helpers";
+import { type InnerTubeRichGridItem, type Prettify, type VideoSnapshot, VideoStatus } from "../types";
 import {
   assignItemViewTransitionNames,
   buildShiftTransitionStyle,
@@ -21,7 +21,7 @@ interface RepositionParams {
   allSnapshots: Map<string, VideoSnapshot>;
 }
 
-export async function repositionVideoInSection({ freshSnapshot, allSnapshots }: RepositionParams) {
+export async function repositionVideoInSection({ freshSnapshot, allSnapshots }: Prettify<RepositionParams>) {
   // Latest band has no sectionTitle and lives at grid root; named shelves own their own contents array
   if (!freshSnapshot.sectionTitle) {
     await repositionVideoInGrid({
@@ -37,7 +37,7 @@ export async function repositionVideoInSection({ freshSnapshot, allSnapshots }: 
   });
 }
 
-async function repositionVideoInShelf({ freshSnapshot, allSnapshots }: RepositionParams) {
+async function repositionVideoInShelf({ freshSnapshot, allSnapshots }: Prettify<RepositionParams>) {
   const { videoId, sectionTitle, rawRenderer } = freshSnapshot;
   const elShelf = findShelfForSection(sectionTitle);
   const isShelfUsable = elShelf !== null && isPolymerElement(elShelf);
@@ -117,7 +117,7 @@ async function repositionVideoInShelf({ freshSnapshot, allSnapshots }: Repositio
   });
 }
 
-async function repositionVideoInGrid({ freshSnapshot, allSnapshots }: RepositionParams) {
+async function repositionVideoInGrid({ freshSnapshot, allSnapshots }: Prettify<RepositionParams>) {
   const { videoId, rawRenderer } = freshSnapshot;
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
   const isGridUsable = elGrid !== null && isPolymerElement(elGrid) && isRecord(elGrid.data);
@@ -211,10 +211,10 @@ async function repositionVideoInGrid({ freshSnapshot, allSnapshots }: Reposition
 }
 
 // The Latest band runs from grid start (or first inline video) up to the first named rich shelf
-function resolveLatestBandZone(contents: InnerTubeRichGridItem[]) {
+function resolveLatestBandZone(contents: Prettify<InnerTubeRichGridItem>[]) {
   let zoneEnd = contents.length;
   for (let i = 0; i < contents.length; i++) {
-    if (deepRecord(contents[i], "richSectionRenderer", "content", "richShelfRenderer")) {
+    if (contents[i]?.richSectionRenderer?.content?.richShelfRenderer) {
       zoneEnd = i;
       break;
     }
@@ -224,7 +224,7 @@ function resolveLatestBandZone(contents: InnerTubeRichGridItem[]) {
   while (zoneStart < zoneEnd) {
     const item = contents[zoneStart];
     const isBandBoundary = videoIdFromRichItem(item) !== null
-      || deepRecord(item, "richSectionRenderer", "content", "richShelfRenderer") !== null;
+      || !!item?.richSectionRenderer?.content?.richShelfRenderer;
     if (isBandBoundary) {
       break;
     }
@@ -243,9 +243,9 @@ function resolveInsertIndex({
   freshSnapshot,
   allSnapshots
 }: {
-  contentsWithoutVideo: InnerTubeRichGridItem[];
-  freshSnapshot: VideoSnapshot;
-  allSnapshots: Map<string, VideoSnapshot>;
+  contentsWithoutVideo: Prettify<InnerTubeRichGridItem>[];
+  freshSnapshot: Prettify<VideoSnapshot>;
+  allSnapshots: Map<string, Prettify<VideoSnapshot>>;
 }) {
   const { publishedTimeText, status } = freshSnapshot;
   const targetSecondsAgo = parseSecondsAgo(publishedTimeText);
@@ -259,7 +259,8 @@ function resolveInsertIndex({
     }
 
     const itemSnapshot = allSnapshots.get(itemVideoId);
-    if (!itemSnapshot || itemSnapshot.status === VideoStatus.Live) {
+    const shouldSkipForOrdering = !itemSnapshot || itemSnapshot.status === VideoStatus.Live;
+    if (shouldSkipForOrdering) {
       continue;
     }
 

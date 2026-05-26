@@ -1,5 +1,5 @@
 import { deepArray, isPolymerElement, isRecord } from "../../helpers";
-import type { InnerTubeRichGridItem, PolymerElement } from "../../types";
+import type { InnerTubeRichGridItem, PolymerElement, Prettify } from "../../types";
 import {
   animateItemsOut,
   assignItemViewTransitionNames,
@@ -17,7 +17,7 @@ import { filterOutRichItems } from "../rich-item";
 import type { ItemInfo } from "./index";
 
 export async function removeGridItems({ items, allRequestedVideoIds }: {
-  items: ItemInfo[];
+  items: Prettify<ItemInfo>[];
   allRequestedVideoIds: string[];
 }) {
   const gridItems = items.filter(({ container }) => container === "grid");
@@ -34,7 +34,8 @@ export async function removeGridItems({ items, allRequestedVideoIds }: {
     return;
   }
 
-  if (!elGrid || !isPolymerElement(elGrid) || !isRecord(elGrid.data)) {
+  const isGridUsable = !!elGrid && isPolymerElement(elGrid) && isRecord(elGrid.data);
+  if (!isGridUsable) {
     for (const { elItem } of gridItems) {
       elItem.remove();
     }
@@ -71,7 +72,8 @@ function cleanupOrphanIdsInGridData({
   allRequestedVideoIds: string[];
   foundVideoIds: Set<string>;
 }) {
-  if (!elGrid || !isPolymerElement(elGrid) || !isRecord(elGrid.data)) {
+  const isGridUsable = !!elGrid && isPolymerElement(elGrid) && isRecord(elGrid.data);
+  if (!isGridUsable) {
     return;
   }
 

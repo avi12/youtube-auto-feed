@@ -1,5 +1,6 @@
 import { isVideoRenderer } from "../../api/guards";
 import { isPolymerElement, videoIdFromData } from "../../helpers";
+import type { Prettify } from "../../types";
 import { removeGridItems } from "./grid";
 import { removeInnerShelfItems, removeRichShelfItems } from "./shelf";
 
@@ -44,7 +45,7 @@ function collectItems({ videoIdSet, shelfProtectedIds }: {
   videoIdSet: Set<string>;
   shelfProtectedIds: Set<string>;
 }) {
-  const items: ItemInfo[] = [];
+  const items: Prettify<ItemInfo>[] = [];
 
   for (const elItem of document.querySelectorAll<HTMLElement>("ytd-rich-item-renderer")) {
     if (!isPolymerElement(elItem)) {

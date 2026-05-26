@@ -6,8 +6,8 @@ import {
   isVideoRenderer
 } from "../api/guards";
 import { parseLockupViewModel, parseRenderer, parseShortsLockupViewModel } from "../api/parse-video";
-import { deepRecord, isPolymerElement, videoIdFromData } from "../helpers";
-import { type VideoSnapshot, VideoStatus } from "../types";
+import { isPolymerElement, isRecord, videoIdFromData } from "../helpers";
+import { type Prettify, type VideoSnapshot, VideoStatus } from "../types";
 
 interface SectionContext {
   sectionTitle: string;
@@ -55,7 +55,7 @@ export function findShelfForSection(sectionTitle: string) {
   return null;
 }
 
-function parseRichItemRenderer({ rawRenderer, sectionTitle, bandIndex }: SectionContext & {
+function parseRichItemRenderer({ rawRenderer, sectionTitle, bandIndex }: Prettify<SectionContext> & {
   rawRenderer: Record<string, unknown> | null;
 }) {
   if (isVideoRenderer(rawRenderer)) {
@@ -86,28 +86,35 @@ function parseRichItemRenderer({ rawRenderer, sectionTitle, bandIndex }: Section
 }
 
 export function readDomSnapshot() {
-  const snapshot = new Map<string, VideoSnapshot>();
+  const snapshot = new Map<string, Prettify<VideoSnapshot>>();
 
-  function addRichItemToSnapshot({ elItem, sectionTitle, bandIndex }: SectionContext & {
+  function addRichItemToSnapshot({ elItem, sectionTitle, bandIndex }: Prettify<SectionContext> & {
     elItem: Element;
   }) {
     if (!isPolymerElement(elItem)) {
       return;
     }
 
+    const itemData = elItem.data;
+    const content = isRecord(itemData) && isRecord(itemData.content) ? itemData.content : null;
+    const richGridInner = isRecord(content?.richGridMediaRenderer) && isRecord(content.richGridMediaRenderer.content)
+      ? content.richGridMediaRenderer.content
+      : null;
     // Renderer shape varies; try each known wrapper in priority order
-    const rawRenderer =
-      deepRecord(elItem.data, "content", "videoRenderer") ??
-      deepRecord(elItem.data, "content", "gridVideoRenderer") ??
-      deepRecord(elItem.data, "content", "richGridMediaRenderer", "content", "videoRenderer") ??
-      deepRecord(elItem.data, "content", "lockupViewModel") ??
-      deepRecord(elItem.data, "content", "shortsLockupViewModel");
+    const rawRendererCandidate =
+      content?.videoRenderer ??
+      content?.gridVideoRenderer ??
+      richGridInner?.videoRenderer ??
+      content?.lockupViewModel ??
+      content?.shortsLockupViewModel;
+    const rawRenderer = isRecord(rawRendererCandidate) ? rawRendererCandidate : null;
     const videoSnapshot = parseRichItemRenderer({
       rawRenderer,
       sectionTitle,
       bandIndex
     });
-    if (!videoSnapshot || snapshot.has(videoSnapshot.videoId)) {
+    const isAlreadyCaptured = !videoSnapshot || snapshot.has(videoSnapshot.videoId);
+    if (isAlreadyCaptured) {
       return;
     }
 
@@ -152,7 +159,8 @@ export function readDomSnapshot() {
         sectionTitle,
         bandIndex: 0
       });
-      if (!videoSnapshot || snapshot.has(videoSnapshot.videoId)) {
+      const isAlreadyCaptured = !videoSnapshot || snapshot.has(videoSnapshot.videoId);
+      if (isAlreadyCaptured) {
         continue;
       }
 
@@ -214,7 +222,7 @@ export function readDomSnapshot() {
 
 export function leadingLiveCount({ elShelf, snapshot }: {
   elShelf: Element;
-  snapshot: Map<string, VideoSnapshot>;
+  snapshot: Map<string, Prettify<VideoSnapshot>>;
 }) {
   let count = 0;
   for (const elItem of elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer")) {
