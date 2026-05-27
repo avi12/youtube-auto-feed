@@ -315,7 +315,7 @@ export interface VideoSnapshot {
   watchProgressPercent: number | null;
   sectionTitle: string;
   bandIndex: number;
-  rawRenderer: InnerTubeVideoRenderer | LockupViewModel | ShortsLockupViewModel;
+  rawRenderer: Prettify<InnerTubeVideoRenderer> | Prettify<LockupViewModel> | Prettify<ShortsLockupViewModel>;
 }
 
 export interface PolymerElement<TData = unknown> extends HTMLElement {

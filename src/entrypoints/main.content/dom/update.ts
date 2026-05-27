@@ -7,6 +7,7 @@ import type {
   LockupViewModel,
   PolymerElement,
   Prettify,
+  ShortsLockupViewModel,
   VideoSnapshot
 } from "../types";
 import { isInViewport, withViewTransitionLock } from "./animations";
@@ -620,8 +621,8 @@ function mergeLockupViewModel({ existing, incoming, forcePreserveContentImage = 
 }
 
 function applyPolymerUpdate({ elItem, rawRenderer }: {
-  elItem: PolymerElement;
-  rawRenderer: VideoSnapshot["rawRenderer"];
+  elItem: Prettify<PolymerElement>;
+  rawRenderer: Prettify<InnerTubeVideoRenderer> | Prettify<LockupViewModel> | Prettify<ShortsLockupViewModel>;
 }) {
   const itemData = elItem.data;
   if (!isRecord(itemData)) {
@@ -699,7 +700,7 @@ function buildMergedVideoRenderer({
   forcePreserveContentImage
 }: {
   existing: Prettify<InnerTubeVideoRenderer> | Record<string, unknown> | null;
-  incoming: VideoSnapshot["rawRenderer"];
+  incoming: Prettify<InnerTubeVideoRenderer> | Prettify<LockupViewModel> | Prettify<ShortsLockupViewModel>;
   forcePreserveContentImage: boolean;
 }) {
   const isMergeSkipped = !forcePreserveContentImage || existing === null || !isVideoRenderer(incoming);
@@ -729,7 +730,7 @@ function applyRichItemContentUpdate({
   elElement: PolymerElement;
   basePath: string;
   existingContent: Prettify<InnerTubeRichItemContent> | Record<string, unknown>;
-  rawRenderer: VideoSnapshot["rawRenderer"];
+  rawRenderer: Prettify<InnerTubeVideoRenderer> | Prettify<LockupViewModel> | Prettify<ShortsLockupViewModel>;
   forcePreserveContentImage: boolean;
 }) {
   if (isRecord(existingContent.richGridMediaRenderer)) {
@@ -780,7 +781,7 @@ function applyRichItemContentUpdate({
 
 function applyToGridModel({ videoId, rawRenderer, forcePreserveContentImage }: {
   videoId: string;
-  rawRenderer: VideoSnapshot["rawRenderer"];
+  rawRenderer: Prettify<InnerTubeVideoRenderer> | Prettify<LockupViewModel> | Prettify<ShortsLockupViewModel>;
   forcePreserveContentImage: boolean;
 }) {
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
@@ -812,7 +813,7 @@ function applyToGridModel({ videoId, rawRenderer, forcePreserveContentImage }: {
 
 function applyToRichShelfModels({ videoId, rawRenderer, forcePreserveContentImage }: {
   videoId: string;
-  rawRenderer: VideoSnapshot["rawRenderer"];
+  rawRenderer: Prettify<InnerTubeVideoRenderer> | Prettify<LockupViewModel> | Prettify<ShortsLockupViewModel>;
   forcePreserveContentImage: boolean;
 }) {
   for (const elShelf of document.querySelectorAll<HTMLElement>("ytd-rich-shelf-renderer")) {
@@ -845,7 +846,7 @@ function applyToRichShelfModels({ videoId, rawRenderer, forcePreserveContentImag
 
 function applyToLegacyShelfModels({ videoId, rawRenderer, forcePreserveContentImage }: {
   videoId: string;
-  rawRenderer: VideoSnapshot["rawRenderer"];
+  rawRenderer: Prettify<InnerTubeVideoRenderer> | Prettify<LockupViewModel> | Prettify<ShortsLockupViewModel>;
   forcePreserveContentImage: boolean;
 }) {
   for (const elShelf of document.querySelectorAll<HTMLElement>("ytd-shelf-renderer")) {
@@ -890,7 +891,7 @@ function applyToLegacyShelfModels({ videoId, rawRenderer, forcePreserveContentIm
 // Update every model position so the Polymer data binding refreshes both DOM copies.
 function syncGridModelItem({ videoId, rawRenderer, forcePreserveContentImage = false }: {
   videoId: string;
-  rawRenderer: VideoSnapshot["rawRenderer"];
+  rawRenderer: Prettify<InnerTubeVideoRenderer> | Prettify<LockupViewModel> | Prettify<ShortsLockupViewModel>;
   forcePreserveContentImage?: boolean;
 }) {
   applyToGridModel({
