@@ -1,4 +1,4 @@
-import { ytsuaChannel } from "../messaging";
+import { ytsuaChannel } from "../shared/messaging";
 
 export default defineContentScript({
   matches: ["https://www.youtube.com/*"],

@@ -1,0 +1,161 @@
+import type { InnerTubeRichGridItem } from "../types/innertube";
+import type { PolymerElement } from "../types/polymer";
+import { isPolymerElement } from "../utils/polymer";
+import { deepArray, isRecord } from "../utils/records";
+import { videoIdFromData } from "../utils/video-id";
+import { videoIdFromRichItem } from "./rich-item";
+
+// Polymer occasionally leaves stale DOM nodes around (e.g. a `<ytd-rich-item-renderer>` whose
+// videoId is no longer in `data.contents`), and the data model itself occasionally develops
+// duplicate entries. This module reconciles both: it prunes orphan DOM items, dedupes the model,
+// and trims `<ytd-rich-section-renderer>` headers whose section no longer exists in the data.
+
+export function cleanOrphanedGridItems() {
+  const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
+  const isGridUsable = !!elGrid && isPolymerElement(elGrid) && isRecord(elGrid.data);
+  if (!isGridUsable) {
+    return;
+  }
+
+  const elGridContents = elGrid.querySelector<HTMLElement>("#contents");
+  if (!elGridContents) {
+    return;
+  }
+
+  const { standaloneModelIds, standaloneModelDuplicates } = collectGridModelIds(elGrid);
+  if (standaloneModelDuplicates.size > 0) {
+    filterMisplacedAndDuplicates({
+      elGrid,
+      misplacedIds: new Set(),
+      standaloneModelDuplicates
+    });
+  }
+
+  pruneOrphanedDomItems({
+    elGridContents,
+    standaloneModelIds
+  });
+  pruneOrphanedDomSections({
+    elGrid,
+    elGridContents
+  });
+}
+
+function pruneOrphanedDomSections({ elGrid, elGridContents }: {
+  elGrid: PolymerElement;
+  elGridContents: HTMLElement;
+}) {
+  if (!isRecord(elGrid.data)) {
+    return;
+  }
+
+  const titleCounts = new Map<string, number>();
+  for (const item of deepArray<InnerTubeRichGridItem>(elGrid.data, "contents")) {
+    const richShelfTitle = item?.richSectionRenderer?.content?.richShelfRenderer?.title?.runs?.[0]?.text ?? "";
+    const innerShelfTitle = item?.richSectionRenderer?.content?.shelfRenderer?.title?.runs?.[0]?.text ?? "";
+    const title = richShelfTitle || innerShelfTitle;
+    if (title) {
+      titleCounts.set(title, (titleCounts.get(title) ?? 0) + 1);
+    }
+  }
+
+  for (const elSection of [...elGridContents.querySelectorAll<HTMLElement>(":scope > ytd-rich-section-renderer")]) {
+    const title = elSection.querySelector("#title")?.textContent?.trim() ?? "";
+    const remaining = titleCounts.get(title) ?? 0;
+    if (remaining > 0) {
+      titleCounts.set(title, remaining - 1);
+      continue;
+    }
+
+    elSection.remove();
+  }
+}
+
+function collectGridModelIds(elGrid: PolymerElement) {
+  if (!isRecord(elGrid.data)) {
+    return {
+      standaloneModelIds: new Set<string>(),
+      standaloneModelDuplicates: new Set<string>(),
+      sectionIds: new Set<string>()
+    };
+  }
+
+  const standaloneModelIds = new Set<string>();
+  const standaloneModelDuplicates = new Set<string>();
+
+  for (const item of deepArray<InnerTubeRichGridItem>(elGrid.data, "contents")) {
+    const topId = videoIdFromRichItem(item);
+    if (!topId) {
+      continue;
+    }
+
+    if (standaloneModelIds.has(topId)) {
+      standaloneModelDuplicates.add(topId);
+    } else {
+      standaloneModelIds.add(topId);
+    }
+  }
+
+  return {
+    standaloneModelIds,
+    standaloneModelDuplicates
+  };
+}
+
+function filterMisplacedAndDuplicates({
+  elGrid,
+  misplacedIds,
+  standaloneModelDuplicates
+}: {
+  elGrid: PolymerElement;
+  misplacedIds: Set<string>;
+  standaloneModelDuplicates: Set<string>;
+}) {
+  if (!isRecord(elGrid.data)) {
+    return;
+  }
+
+  const seenDuplicates = new Set<string>();
+  const filteredContents = deepArray<InnerTubeRichGridItem>(elGrid.data, "contents").filter(item => {
+    const videoId = videoIdFromRichItem(item);
+    if (!videoId) {
+      return true;
+    }
+
+    if (misplacedIds.has(videoId)) {
+      return false;
+    }
+
+    if (standaloneModelDuplicates.has(videoId)) {
+      if (seenDuplicates.has(videoId)) {
+        return false;
+      }
+
+      seenDuplicates.add(videoId);
+    }
+
+    return true;
+  });
+  elGrid.set("data.contents", filteredContents);
+}
+
+function pruneOrphanedDomItems({ elGridContents, standaloneModelIds }: {
+  elGridContents: HTMLElement;
+  standaloneModelIds: Set<string>;
+}) {
+  const seenDomIds = new Set<string>();
+  for (const elChild of [...elGridContents.querySelectorAll<HTMLElement>(":scope > ytd-rich-item-renderer, :scope > ytd-rich-section-renderer")]) {
+    if (elChild.tagName !== "YTD-RICH-ITEM-RENDERER" || !isPolymerElement(elChild)) {
+      continue;
+    }
+
+    const videoId = videoIdFromData(elChild.data);
+    const isInModel = !!videoId && standaloneModelIds.has(videoId);
+    const isDuplicate = !!videoId && seenDomIds.has(videoId);
+    if (!isInModel || isDuplicate) {
+      elChild.remove();
+    } else if (videoId) {
+      seenDomIds.add(videoId);
+    }
+  }
+}
