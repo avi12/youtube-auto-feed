@@ -57,7 +57,8 @@ export function createSubscriptionMonitor() {
     try {
       const result = await detectAndApplyChanges({
         freshSnapshots: payload.snapshots,
-        apiContents: payload.apiContents
+        apiContents: payload.apiContents,
+        previousSnapshot: lastSnapshot
       });
       lastSnapshot = result.snapshot;
 
