@@ -4,7 +4,8 @@ import { isPolymerElement } from "../utils/polymer";
 import { deepArray, isRecord } from "../utils/records";
 import { videoIdFromData } from "../utils/video-id";
 import { isInViewport, prefersReducedMotion, triggerAnimation, waitForFrames } from "./animations";
-import { videoIdFromRichItem } from "./rich-item";
+import { preloadThumbnail } from "./build";
+import { thumbnailUrlFromRichItem, videoIdFromRichItem } from "./rich-item";
 
 // Reconciles Edge's Latest band inline videos with the API's emission. The new data.contents is
 // rebuilt each poll, but every richSectionRenderer (shelf wrapper) and continuationItemRenderer is
@@ -23,13 +24,14 @@ import { videoIdFromRichItem } from "./rich-item";
 const CASCADE_DURATION_MS = 400;
 const CASCADE_EASING = "cubic-bezier(0.05, 0.7, 0.1, 1)";
 const POSITION_EPSILON_PX = 0.5;
+const THUMBNAIL_PRELOAD_TIMEOUT_MS = 1000;
 const GRID_ITEM_SELECTOR = "ytd-rich-grid-renderer > #contents > ytd-rich-item-renderer";
 
 function isInlineItem(item: Prettify<InnerTubeRichGridItem>) {
   return !!videoIdFromRichItem(item);
 }
 
-export function mirrorFromApi({ apiContents }: {
+export async function mirrorFromApi({ apiContents }: {
   apiContents: Prettify<InnerTubeRichGridItem>[];
 }) {
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
@@ -63,6 +65,14 @@ export function mirrorFromApi({ apiContents }: {
     }
   }
 
+  // Preload new items' thumbnails before the data swap so the entrance animation doesn't flash a
+  // blank tile while the network fetch completes. Bounded by a timeout so a slow/dead image host
+  // can't stall the insertion indefinitely.
+  await preloadNewThumbnails({
+    desiredInlineSequence,
+    newlyInsertedIds
+  });
+
   const firstRects = capturePreMutationRects(newlyInsertedIds);
 
   elGrid.set("data.contents", newContents);
@@ -71,6 +81,34 @@ export function mirrorFromApi({ apiContents }: {
     firstRects,
     newlyInsertedIds
   });
+}
+
+function preloadNewThumbnails({ desiredInlineSequence, newlyInsertedIds }: {
+  desiredInlineSequence: Prettify<InnerTubeRichGridItem>[];
+  newlyInsertedIds: Set<string>;
+}) {
+  if (newlyInsertedIds.size === 0) {
+    return Promise.resolve();
+  }
+
+  const urls: string[] = [];
+  for (const item of desiredInlineSequence) {
+    const videoId = videoIdFromRichItem(item);
+    if (videoId && newlyInsertedIds.has(videoId)) {
+      const url = thumbnailUrlFromRichItem(item);
+      if (url) {
+        urls.push(url);
+      }
+    }
+  }
+
+  if (urls.length === 0) {
+    return Promise.resolve();
+  }
+
+  const allLoaded = Promise.all(urls.map(preloadThumbnail));
+  const deadline = new Promise<void>(resolve => setTimeout(resolve, THUMBNAIL_PRELOAD_TIMEOUT_MS));
+  return Promise.race([allLoaded, deadline]);
 }
 
 function capturePreMutationRects(newlyInsertedIds: Set<string>) {

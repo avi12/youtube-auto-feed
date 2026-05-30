@@ -12,6 +12,18 @@ export function videoIdFromRichItem(
   return videoIdFromData(contentItem?.richItemRenderer);
 }
 
+export function thumbnailUrlFromRichItem(item: Prettify<InnerTubeRichGridItem>) {
+  const content = item.richItemRenderer?.content;
+  if (!content) {
+    return "";
+  }
+
+  return content.videoRenderer?.thumbnail?.thumbnails?.at(-1)?.url
+    ?? content.lockupViewModel?.contentImage?.thumbnailViewModel?.image?.sources?.at(-1)?.url
+    ?? content.shortsLockupViewModel?.thumbnail?.sources?.at(-1)?.url
+    ?? "";
+}
+
 export function findRichItemIndex({ contents, videoId }: {
   contents: Prettify<InnerTubeRichGridItem>[];
   videoId: string;

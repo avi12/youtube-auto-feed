@@ -20,7 +20,7 @@ function rawThumbnailUrl(
   return rawRenderer.thumbnail.thumbnails.at(-1)?.url ?? "";
 }
 
-function preloadThumbnail(url: string) {
+export function preloadThumbnail(url: string) {
   return new Promise<void>(resolve => {
     if (!url) {
       resolve();

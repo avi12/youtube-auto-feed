@@ -55,7 +55,7 @@ export function createSubscriptionMonitor() {
     isApplyingChanges = true;
     const shouldNormalizeAfter = isInitialLoad;
     try {
-      const result = detectAndApplyChanges({
+      const result = await detectAndApplyChanges({
         freshSnapshots: payload.snapshots,
         apiContents: payload.apiContents
       });

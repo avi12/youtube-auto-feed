@@ -6,7 +6,7 @@ import type { VideoSnapshot } from "../types/video";
 
 export { detectAndApplyMetadataChanges } from "./metadata-diff";
 
-export function detectAndApplyChanges({
+export async function detectAndApplyChanges({
   freshSnapshots,
   apiContents
 }: {
@@ -22,7 +22,7 @@ export function detectAndApplyChanges({
     }
   }
 
-  mirrorFromApi({ apiContents });
+  await mirrorFromApi({ apiContents });
   cleanOrphanedGridItems();
 
   return {
