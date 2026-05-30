@@ -2,6 +2,8 @@ import type { InnerTubeRichGridItem } from "../types/innertube";
 import type { Prettify } from "../types/prettify";
 import { isPolymerElement } from "../utils/polymer";
 import { deepArray, isRecord } from "../utils/records";
+import { videoIdFromData } from "../utils/video-id";
+import { triggerAnimation, waitForFrames } from "./animations";
 import { videoIdFromRichItem } from "./rich-item";
 
 // Reconciles Edge's Latest band inline videos with the API's emission. The new data.contents is
@@ -9,8 +11,11 @@ import { videoIdFromRichItem } from "./rich-item";
 // passed through by reference from the previous contents - never reconstructed. That way Polymer's
 // dom-repeat sees identical object identity for the shelves and won't re-render or alter their
 // inner contents. Only inline video slots (root-level richItemRenderers) are mutated, and only to
-// match the API's order/membership. Latest videos that age out of the API are preserved at the
+// match the API's order/membership. Newly-inserted inline videos get a staggered slide-in
+// animation via the .ytsua-new class. Latest videos that age out of the API are preserved at the
 // tail; YouTube paginates the top-100 chronological window rather than signalling deletion.
+
+const GRID_ITEM_SELECTOR = "ytd-rich-grid-renderer > #contents > ytd-rich-item-renderer";
 
 function isInlineItem(item: Prettify<InnerTubeRichGridItem>) {
   return !!videoIdFromRichItem(item);
@@ -29,6 +34,7 @@ export function mirrorFromApi({ apiContents }: {
     return;
   }
 
+  const previousInlineIds = collectInlineVideoIds(currentContents);
   const desiredInlineSequence = buildDesiredInlineSequence({
     apiContents,
     currentContents
@@ -42,6 +48,26 @@ export function mirrorFromApi({ apiContents }: {
   }
 
   elGrid.set("data.contents", newContents);
+
+  const newlyInsertedIds = new Set<string>();
+  for (const item of desiredInlineSequence) {
+    const videoId = videoIdFromRichItem(item);
+    if (videoId && !previousInlineIds.has(videoId)) {
+      newlyInsertedIds.add(videoId);
+    }
+  }
+  void animateNewInlineItems(newlyInsertedIds);
+}
+
+function collectInlineVideoIds(contents: Prettify<InnerTubeRichGridItem>[]) {
+  const ids = new Set<string>();
+  for (const item of contents) {
+    const videoId = videoIdFromRichItem(item);
+    if (videoId) {
+      ids.add(videoId);
+    }
+  }
+  return ids;
 }
 
 function buildDesiredInlineSequence({ apiContents, currentContents }: {
@@ -118,4 +144,44 @@ function composeNewContents({ currentContents, desiredInlineSequence }: {
 
 function isReferenceEqualArray(left: readonly unknown[], right: readonly unknown[]) {
   return left.length === right.length && left.every((item, i) => item === right[i]);
+}
+
+async function animateNewInlineItems(newVideoIds: Set<string>) {
+  if (newVideoIds.size === 0) {
+    return;
+  }
+
+  await waitForFrames({
+    predicate: () => findNewlyInsertedElements(newVideoIds).length === newVideoIds.size
+  });
+
+  const elNewItems = findNewlyInsertedElements(newVideoIds);
+  const total = elNewItems.length;
+  for (let i = 0; i < elNewItems.length; i++) {
+    const elItem = elNewItems[i];
+    elItem.style.setProperty("--ytsua-new-index", String(i));
+    elItem.style.setProperty("--ytsua-new-count", String(total));
+    triggerAnimation({
+      elTarget: elItem,
+      animationClass: "ytsua-new"
+    });
+  }
+}
+
+function findNewlyInsertedElements(newVideoIds: Set<string>) {
+  const result: HTMLElement[] = [];
+  const seen = new Set<string>();
+  for (const elItem of document.querySelectorAll<HTMLElement>(GRID_ITEM_SELECTOR)) {
+    if (!isPolymerElement(elItem)) {
+      continue;
+    }
+
+    const videoId = videoIdFromData(elItem.data);
+    const isFirstMatch = !!videoId && newVideoIds.has(videoId) && !seen.has(videoId);
+    if (isFirstMatch) {
+      seen.add(videoId);
+      result.push(elItem);
+    }
+  }
+  return result;
 }
