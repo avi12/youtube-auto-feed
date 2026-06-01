@@ -49,7 +49,7 @@ export function triggerAnimation({ elTarget, animationClass }: {
   }
 
   elTarget.classList.remove(...animationClasses);
-  void requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
     elTarget.classList.add(animationClass);
     elTarget.addEventListener(
       "animationend",
