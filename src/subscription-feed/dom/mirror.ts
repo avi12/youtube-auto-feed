@@ -1,11 +1,13 @@
 import type { InnerTubeRichGridItem } from "../types/innertube";
+import type { PolymerElement } from "../types/polymer";
 import type { Prettify } from "../types/prettify";
 import { isPolymerElement } from "../utils/polymer";
 import { deepArray, isRecord } from "../utils/records";
 import { videoIdFromData } from "../utils/video-id";
 import { isInViewport, prefersReducedMotion, triggerAnimation, waitForFrames } from "./animations";
 import { preloadThumbnail } from "./build";
-import { thumbnailUrlFromRichItem, videoIdFromRichItem } from "./rich-item";
+import { thumbnailUrlFromContent, thumbnailUrlFromRichItem, videoIdFromRichItem } from "./rich-item";
+import { findThumbnailImgInItem } from "./update/thumbnail";
 
 // Reconciles Edge's Latest band inline videos with the API's emission. The new data.contents is
 // rebuilt each poll, but every richSectionRenderer (shelf wrapper) and continuationItemRenderer is
@@ -58,20 +60,19 @@ export async function mirrorFromApi({ apiContents }: {
   }
 
   const newlyInsertedIds = new Set<string>();
+  const newThumbnailUrls = new Map<string, string>();
   for (const item of desiredInlineSequence) {
     const videoId = videoIdFromRichItem(item);
     if (videoId && !previousInlineIds.has(videoId)) {
       newlyInsertedIds.add(videoId);
+      const url = thumbnailUrlFromRichItem(item);
+      if (url) {
+        newThumbnailUrls.set(videoId, url);
+      }
     }
   }
 
-  // Preload new items' thumbnails before the data swap so the entrance animation doesn't flash a
-  // blank tile while the network fetch completes. Bounded by a timeout so a slow/dead image host
-  // can't stall the insertion indefinitely.
-  await preloadNewThumbnails({
-    desiredInlineSequence,
-    newlyInsertedIds
-  });
+  await preloadNewThumbnails(newThumbnailUrls);
 
   const firstRects = capturePreMutationRects(newlyInsertedIds);
 
@@ -83,25 +84,8 @@ export async function mirrorFromApi({ apiContents }: {
   });
 }
 
-function preloadNewThumbnails({ desiredInlineSequence, newlyInsertedIds }: {
-  desiredInlineSequence: Prettify<InnerTubeRichGridItem>[];
-  newlyInsertedIds: Set<string>;
-}) {
-  if (newlyInsertedIds.size === 0) {
-    return Promise.resolve();
-  }
-
-  const urls: string[] = [];
-  for (const item of desiredInlineSequence) {
-    const videoId = videoIdFromRichItem(item);
-    if (videoId && newlyInsertedIds.has(videoId)) {
-      const url = thumbnailUrlFromRichItem(item);
-      if (url) {
-        urls.push(url);
-      }
-    }
-  }
-
+function preloadNewThumbnails(newThumbnailUrls: Map<string, string>) {
+  const urls = [...newThumbnailUrls.values()];
   if (urls.length === 0) {
     return Promise.resolve();
   }
@@ -135,11 +119,28 @@ async function runCascadeAndEntrance({ firstRects, newlyInsertedIds }: {
     predicate: () => findNewlyInsertedElements(newlyInsertedIds).length === newlyInsertedIds.size
   });
 
+  refreshInlineThumbnails();
+
   if (!prefersReducedMotion()) {
     cascadeDisplacedItems(firstRects);
   }
 
   animateEntranceItems(newlyInsertedIds);
+}
+
+function refreshInlineThumbnails() {
+  type RichItemElement = PolymerElement<NonNullable<InnerTubeRichGridItem["richItemRenderer"]>>;
+  for (const elItem of document.querySelectorAll<RichItemElement>(GRID_ITEM_SELECTOR)) {
+    const url = thumbnailUrlFromContent(elItem.data.content);
+    if (!url) {
+      continue;
+    }
+
+    const elImg = findThumbnailImgInItem(elItem);
+    if (elImg && elImg.src !== url) {
+      elImg.src = url;
+    }
+  }
 }
 
 function cascadeDisplacedItems(firstRects: Map<string, DOMRect>) {
@@ -177,22 +178,25 @@ function cascadeDisplacedItems(firstRects: Map<string, DOMRect>) {
   }
 
   // INVERT: apply the inverse translation synchronously so the item visually stays in its old
-  // position even though its grid slot has already moved.
+  // position even though its grid slot has already moved. Disable pointer events while displaced
+  // so a tile visually covering the new insertion slot doesn't block clicks on it.
   for (const { elItem, deltaX, deltaY } of moves) {
     elItem.style.transition = "none";
-    elItem.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+    elItem.style.translate = `${deltaX}px ${deltaY}px`;
+    elItem.style.pointerEvents = "none";
   }
 
-  // PLAY: in the next frame, clear the transform with a transition so the item slides to its new
+  // PLAY: in the next frame, clear the translate with a transition so the item slides to its new
   // grid slot. A tile in the last column whose new slot is first column of next row gets a natural
   // diagonal slide because deltaX and deltaY are both non-zero.
   requestAnimationFrame(() => {
     for (const { elItem } of moves) {
-      elItem.style.transition = `transform ${CASCADE_DURATION_MS}ms ${CASCADE_EASING}`;
-      elItem.style.transform = "";
+      elItem.style.transition = `translate ${CASCADE_DURATION_MS}ms ${CASCADE_EASING}`;
+      elItem.style.translate = "";
       elItem.addEventListener("transitionend", () => {
         elItem.style.transition = "";
-        elItem.style.transform = "";
+        elItem.style.translate = "";
+        elItem.style.pointerEvents = "";
       }, { once: true });
     }
   });

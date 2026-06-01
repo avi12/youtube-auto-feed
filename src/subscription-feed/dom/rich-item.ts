@@ -1,6 +1,7 @@
-import type { InnerTubeRichGridItem } from "../types/innertube";
+import type { InnerTubeRichGridItem, InnerTubeRichItemContent } from "../types/innertube";
 import type { Prettify } from "../types/prettify";
 import { videoIdFromData } from "../utils/video-id";
+import { isLockupViewModel, isShortsLockupViewModel, isVideoRenderer } from "../youtube-api/guards";
 
 // Small helpers for working with InnerTube richItemRenderer envelopes (the wrapper YouTube uses
 // for every grid/shelf item in the feed). They're shared between the diff layer and the DOM
@@ -12,16 +13,30 @@ export function videoIdFromRichItem(
   return videoIdFromData(contentItem?.richItemRenderer);
 }
 
+export function thumbnailUrlFromContent(content: Prettify<InnerTubeRichItemContent>) {
+  const { videoRenderer, lockupViewModel, shortsLockupViewModel } = content;
+  if (isVideoRenderer(videoRenderer)) {
+    return videoRenderer.thumbnail.thumbnails.at(-1)?.url ?? "";
+  }
+
+  if (isLockupViewModel(lockupViewModel)) {
+    return lockupViewModel.contentImage?.thumbnailViewModel?.image?.sources?.at(-1)?.url ?? "";
+  }
+
+  if (isShortsLockupViewModel(shortsLockupViewModel)) {
+    return shortsLockupViewModel.thumbnail?.sources?.at(-1)?.url ?? "";
+  }
+
+  return "";
+}
+
 export function thumbnailUrlFromRichItem(item: Prettify<InnerTubeRichGridItem>) {
   const content = item.richItemRenderer?.content;
   if (!content) {
     return "";
   }
 
-  return content.videoRenderer?.thumbnail?.thumbnails?.at(-1)?.url
-    ?? content.lockupViewModel?.contentImage?.thumbnailViewModel?.image?.sources?.at(-1)?.url
-    ?? content.shortsLockupViewModel?.thumbnail?.sources?.at(-1)?.url
-    ?? "";
+  return thumbnailUrlFromContent(content);
 }
 
 export function findRichItemIndex({ contents, videoId }: {
