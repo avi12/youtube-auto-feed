@@ -23,23 +23,23 @@
 }
 
 .ytsua-new {
+  transform-origin: center;
   animation:
     ytsua-slide-in 400ms cubic-bezier(0.05, 0.7, 0.1, 1)
     calc(var(--ytsua-new-index, 0) * min(160ms / max(var(--ytsua-new-count, 1) - 1, 1), 40ms))
     both;
-  transform-origin: center;
 }
 
 .ytsua-removing {
-  animation: ytsua-slide-out 400ms cubic-bezier(0.3, 0, 0.8, 0.15) both;
   pointer-events: none;
   transform-origin: center;
+  animation: ytsua-slide-out 400ms cubic-bezier(0.3, 0, 0.8, 0.15) both;
 }
 
 @keyframes ytsua-pulse {
-  0% { opacity: 1; }
-  50% { opacity: 0.6; }
-  100% { opacity: 1; }
+  0%{ opacity: 1; }
+  50%{ opacity: 0.6; }
+  100%{ opacity: 1; }
 }
 
 .ytsua-updated {
@@ -70,17 +70,20 @@
 ::view-transition-new(*) {
   animation-duration: 380ms;
   animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
 }
 
 ::view-transition-old(root),
 ::view-transition-new(root) {
-  animation: none;
   mix-blend-mode: normal;
+  animation: none;
 }
 
-::view-transition-group(*) {
+::view-transition-group(*),
+::view-transition-image-pair(*) {
   animation-duration: 380ms;
   animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
 }
 
 .yt-content-metadata-view-model__metadata-row {
