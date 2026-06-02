@@ -244,17 +244,30 @@ function buildDesiredInlineSequence({ apiContents, currentContents }: {
   apiContents: Prettify<InnerTubeRichGridItem>[];
   currentContents: Prettify<InnerTubeRichGridItem>[];
 }) {
-  // Reuse existing Edge inline objects when their videoId still appears in the API. This preserves
-  // Polymer's element identity for unchanged videos so it can patch in place rather than re-render.
-  const reuseByVideoId = new Map<string, Prettify<InnerTubeRichGridItem>>();
+  // Two competing constraints. (1) Polymer's path-effect rebind transiently shares sub-objects
+  // across rows when a video shifts position, leaving stale fields wedged in currentContents
+  // (e.g. shifted tile carrying the previous occupant's thumbnail URL). (2) Handing Polymer a
+  // fresh reference at a slot it already had triggers a full rebind on that row, which YouTube
+  // renders as a metadata flicker every poll. The split below resolves both: rows whose video
+  // is unchanged at the same inline index keep their existing reference (no rebind, no flicker),
+  // while rows that shift or are new get a structuredClone so each shifted row owns an isolated
+  // tree the path-effect machinery can't reach through.
+  const currentInlineItems: Prettify<InnerTubeRichGridItem>[] = [];
   for (const item of currentContents) {
+    if (videoIdFromRichItem(item)) {
+      currentInlineItems.push(item);
+    }
+  }
+  const currentByVideoId = new Map<string, Prettify<InnerTubeRichGridItem>>();
+  for (const item of currentInlineItems) {
     const videoId = videoIdFromRichItem(item);
-    if (videoId) {
-      reuseByVideoId.set(videoId, item);
+    if (videoId && !currentByVideoId.has(videoId)) {
+      currentByVideoId.set(videoId, item);
     }
   }
 
-  const sequence: Prettify<InnerTubeRichGridItem>[] = [];
+  const orderedVideoIds: string[] = [];
+  const sourceByVideoId = new Map<string, Prettify<InnerTubeRichGridItem>>();
   const placed = new Set<string>();
   for (const apiItem of apiContents) {
     const videoId = videoIdFromRichItem(apiItem);
@@ -263,18 +276,39 @@ function buildDesiredInlineSequence({ apiContents, currentContents }: {
     }
 
     placed.add(videoId);
-    sequence.push(reuseByVideoId.get(videoId) ?? apiItem);
+    orderedVideoIds.push(videoId);
+    sourceByVideoId.set(videoId, apiItem);
   }
 
-  // Edge inline videos that have aged out of the API stay in the feed. YouTube only drops a video
-  // because it's beyond the top-100 chronological window, not because the channel deleted it -
-  // removing it would erase a video the user can still legitimately watch. Append them after the
-  // API videos so newer uploads (which arrive at the top of the API list) push them down.
-  for (const item of currentContents) {
+  // Aged-out videos (in the grid but no longer in the API window) splice in at the inline index
+  // they currently occupy so a video that flickers in and out of the API window stays put rather
+  // than bouncing between its API position and the end of the feed.
+  for (let iInline = 0; iInline < currentInlineItems.length; iInline++) {
+    const item = currentInlineItems[iInline];
     const videoId = videoIdFromRichItem(item);
-    if (videoId && !placed.has(videoId)) {
-      placed.add(videoId);
-      sequence.push(item);
+    if (!videoId || placed.has(videoId)) {
+      continue;
+    }
+
+    placed.add(videoId);
+    const insertAt = Math.min(iInline, orderedVideoIds.length);
+    orderedVideoIds.splice(insertAt, 0, videoId);
+    sourceByVideoId.set(videoId, item);
+  }
+
+  const sequence: Prettify<InnerTubeRichGridItem>[] = [];
+  for (let i = 0; i < orderedVideoIds.length; i++) {
+    const videoId = orderedVideoIds[i];
+    const currentAtSameIndex = currentInlineItems[i];
+    const isUnchangedAtSamePosition = !!currentAtSameIndex && videoIdFromRichItem(currentAtSameIndex) === videoId;
+    if (isUnchangedAtSamePosition) {
+      sequence.push(currentAtSameIndex);
+      continue;
+    }
+
+    const source = sourceByVideoId.get(videoId);
+    if (source) {
+      sequence.push(structuredClone(source));
     }
   }
 
