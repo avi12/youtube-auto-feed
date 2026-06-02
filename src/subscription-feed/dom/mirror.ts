@@ -177,29 +177,29 @@ function cascadeDisplacedItems(firstRects: Map<string, DOMRect>) {
     }
   }
 
-  // INVERT: apply the inverse translation synchronously so the item visually stays in its old
-  // position even though its grid slot has already moved. Disable pointer events while displaced
-  // so a tile visually covering the new insertion slot doesn't block clicks on it.
+  // FLIP via Web Animations: animate from the inverted offset back to the resting position so the
+  // tile visually slides into its new grid slot. Pointer events are disabled for the duration so a
+  // displaced tile that visually covers the new insertion slot doesn't intercept clicks meant for
+  // it. Using onfinish + oncancel guarantees the pointer-events restore runs even if a subsequent
+  // mutation cancels the animation, which transitionend would silently swallow.
   for (const { elItem, deltaX, deltaY } of moves) {
-    elItem.style.transition = "none";
-    elItem.style.translate = `${deltaX}px ${deltaY}px`;
     elItem.style.pointerEvents = "none";
-  }
-
-  // PLAY: in the next frame, clear the translate with a transition so the item slides to its new
-  // grid slot. A tile in the last column whose new slot is first column of next row gets a natural
-  // diagonal slide because deltaX and deltaY are both non-zero.
-  requestAnimationFrame(() => {
-    for (const { elItem } of moves) {
-      elItem.style.transition = `translate ${CASCADE_DURATION_MS}ms ${CASCADE_EASING}`;
-      elItem.style.translate = "";
-      elItem.addEventListener("transitionend", () => {
-        elItem.style.transition = "";
-        elItem.style.translate = "";
-        elItem.style.pointerEvents = "";
-      }, { once: true });
+    const anim = elItem.animate(
+      [
+        { translate: `${deltaX}px ${deltaY}px` },
+        { translate: "none" }
+      ],
+      {
+        duration: CASCADE_DURATION_MS,
+        easing: CASCADE_EASING
+      }
+    );
+    function restorePointerEvents() {
+      elItem.style.pointerEvents = "";
     }
-  });
+    anim.onfinish = restorePointerEvents;
+    anim.oncancel = restorePointerEvents;
+  }
 }
 
 function animateEntranceItems(newVideoIds: Set<string>) {
