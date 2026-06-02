@@ -27,6 +27,7 @@ const CASCADE_DURATION_MS = 400;
 const CASCADE_EASING = "cubic-bezier(0.05, 0.7, 0.1, 1)";
 const POSITION_EPSILON_PX = 0.5;
 const THUMBNAIL_PRELOAD_TIMEOUT_MS = 1000;
+const THUMBNAIL_REFRESH_FRAMES = 16;
 const GRID_ITEM_SELECTOR = "ytd-rich-grid-renderer > #contents > ytd-rich-item-renderer";
 
 function isInlineItem(item: Prettify<InnerTubeRichGridItem>) {
@@ -126,6 +127,14 @@ async function runCascadeAndEntrance({ firstRects, newlyInsertedIds }: {
   }
 
   animateEntranceItems(newlyInsertedIds);
+
+  // YouTube's image binding clears <img src> on Polymer rebind and re-populates asynchronously
+  // over the next several frames - sooner for in-viewport tiles, later for off-screen ones. We
+  // keep re-asserting from .data.content so any late YouTube write doesn't leave a stale src.
+  for (let i = 0; i < THUMBNAIL_REFRESH_FRAMES; i++) {
+    await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+    refreshInlineThumbnails();
+  }
 }
 
 function refreshInlineThumbnails() {
