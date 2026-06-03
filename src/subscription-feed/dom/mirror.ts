@@ -51,22 +51,22 @@ export async function mirrorFromApi({ apiContents }: {
   }
 
   const previousInlineIds = collectInlineVideoIds(currentContents);
-  const desiredInlineSequence = buildDesiredInlineSequence({
-    apiContents,
-    currentContents
-  });
   const newContents = composeNewContents({
     apiContents,
-    currentContents,
-    desiredInlineSequence
+    currentContents
   });
   if (isReferenceEqualArray(currentContents, newContents)) {
     return;
   }
 
+  // Newly-inserted videos are derived from newContents (what's actually written), not from a
+  // parallel sequence. Otherwise the entrance animation, thumbnail preload, and rebind-await all
+  // operate on a different set of IDs than the data write - tiles can land in the DOM without a
+  // bound thumbnail or fully-attached event handlers, leaving them un-interactable until the
+  // user hovers and forces Polymer to flush.
   const newlyInsertedIds = new Set<string>();
   const newThumbnailUrls = new Map<string, string>();
-  for (const item of desiredInlineSequence) {
+  for (const item of newContents) {
     const videoId = videoIdFromRichItem(item);
     if (videoId && !previousInlineIds.has(videoId)) {
       newlyInsertedIds.add(videoId);
@@ -313,85 +313,9 @@ function collectInlineVideoIds(contents: Prettify<InnerTubeRichGridItem>[]) {
   return ids;
 }
 
-function buildDesiredInlineSequence({ apiContents, currentContents }: {
-  apiContents: Prettify<InnerTubeRichGridItem>[];
-  currentContents: Prettify<InnerTubeRichGridItem>[];
-}) {
-  // Two competing constraints. (1) Polymer's path-effect rebind transiently shares sub-objects
-  // across rows when a video shifts position, leaving stale fields wedged in currentContents
-  // (e.g. shifted tile carrying the previous occupant's thumbnail URL). (2) Handing Polymer a
-  // fresh reference at a slot it already had triggers a full rebind on that row, which YouTube
-  // renders as a metadata flicker every poll. The split below resolves both: rows whose video
-  // is unchanged at the same inline index keep their existing reference (no rebind, no flicker),
-  // while rows that shift or are new get a structuredClone so each shifted row owns an isolated
-  // tree the path-effect machinery can't reach through.
-  const currentInlineItems: Prettify<InnerTubeRichGridItem>[] = [];
-  for (const item of currentContents) {
-    if (videoIdFromRichItem(item)) {
-      currentInlineItems.push(item);
-    }
-  }
-  const currentByVideoId = new Map<string, Prettify<InnerTubeRichGridItem>>();
-  for (const item of currentInlineItems) {
-    const videoId = videoIdFromRichItem(item);
-    if (videoId && !currentByVideoId.has(videoId)) {
-      currentByVideoId.set(videoId, item);
-    }
-  }
-
-  const orderedVideoIds: string[] = [];
-  const sourceByVideoId = new Map<string, Prettify<InnerTubeRichGridItem>>();
-  const placed = new Set<string>();
-  for (const apiItem of apiContents) {
-    const videoId = videoIdFromRichItem(apiItem);
-    if (!videoId || placed.has(videoId)) {
-      continue;
-    }
-
-    placed.add(videoId);
-    orderedVideoIds.push(videoId);
-    sourceByVideoId.set(videoId, apiItem);
-  }
-
-  // Aged-out videos (in the grid but no longer in the API window) splice in at the inline index
-  // they currently occupy so a video that flickers in and out of the API window stays put rather
-  // than bouncing between its API position and the end of the feed.
-  for (let iInline = 0; iInline < currentInlineItems.length; iInline++) {
-    const item = currentInlineItems[iInline];
-    const videoId = videoIdFromRichItem(item);
-    if (!videoId || placed.has(videoId)) {
-      continue;
-    }
-
-    placed.add(videoId);
-    const insertAt = Math.min(iInline, orderedVideoIds.length);
-    orderedVideoIds.splice(insertAt, 0, videoId);
-    sourceByVideoId.set(videoId, item);
-  }
-
-  const sequence: Prettify<InnerTubeRichGridItem>[] = [];
-  for (let i = 0; i < orderedVideoIds.length; i++) {
-    const videoId = orderedVideoIds[i];
-    const currentAtSameIndex = currentInlineItems[i];
-    const isUnchangedAtSamePosition = !!currentAtSameIndex && videoIdFromRichItem(currentAtSameIndex) === videoId;
-    if (isUnchangedAtSamePosition) {
-      sequence.push(currentAtSameIndex);
-      continue;
-    }
-
-    const source = sourceByVideoId.get(videoId);
-    if (source) {
-      sequence.push(structuredClone(source));
-    }
-  }
-
-  return sequence;
-}
-
 function composeNewContents({ apiContents, currentContents }: {
   apiContents: Prettify<InnerTubeRichGridItem>[];
   currentContents: Prettify<InnerTubeRichGridItem>[];
-  desiredInlineSequence: Prettify<InnerTubeRichGridItem>[];
 }) {
   // Mirror the API's Latest band 1:1 - the videos that appear before any rich shelf in the API
   // are emitted in API order at the top of the grid, with the same number of slots. Everything
