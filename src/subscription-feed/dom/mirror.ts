@@ -4,7 +4,7 @@ import type { Prettify } from "../types/prettify";
 import { isPolymerElement } from "../utils/polymer";
 import { deepArray, isRecord } from "../utils/records";
 import { videoIdFromData } from "../utils/video-id";
-import { isInViewport, prefersReducedMotion, triggerAnimation, waitForFrames } from "./animations";
+import { isInViewport, prefersReducedMotion, triggerAnimation } from "./animations";
 import { preloadThumbnail } from "./build";
 import { thumbnailUrlFromContent, thumbnailUrlFromRichItem, videoIdFromRichItem } from "./rich-item";
 import { findThumbnailImgInItem } from "./update/thumbnail";
@@ -28,11 +28,10 @@ const CASCADE_EASING = "cubic-bezier(0.05, 0.7, 0.1, 1)";
 const POSITION_EPSILON_PX = 0.5;
 const THUMBNAIL_PRELOAD_TIMEOUT_MS = 1000;
 const THUMBNAIL_REFRESH_FRAMES = 16;
+const REBIND_MICROTASK_POLL_MAX = 20;
+const REBIND_FRAME_POLL_MAX = 10;
 const GRID_ITEM_SELECTOR = "ytd-rich-grid-renderer > #contents > ytd-rich-item-renderer";
-
-function isInlineItem(item: Prettify<InnerTubeRichGridItem>) {
-  return !!videoIdFromRichItem(item);
-}
+const GRID_SECTION_SELECTOR = "ytd-rich-grid-renderer > #contents > ytd-rich-section-renderer";
 
 export async function mirrorFromApi({ apiContents }: {
   apiContents: Prettify<InnerTubeRichGridItem>[];
@@ -53,6 +52,7 @@ export async function mirrorFromApi({ apiContents }: {
     currentContents
   });
   const newContents = composeNewContents({
+    apiContents,
     currentContents,
     desiredInlineSequence
   });
@@ -96,8 +96,13 @@ function preloadNewThumbnails(newThumbnailUrls: Map<string, string>) {
   return Promise.race([allLoaded, deadline]);
 }
 
-function capturePreMutationRects(newlyInsertedIds: Set<string>) {
-  const rects = new Map<string, DOMRect>();
+interface PreMutationRects {
+  inline: Map<string, DOMRect>;
+  sections: Map<unknown, DOMRect>;
+}
+
+function capturePreMutationRects(newlyInsertedIds: Set<string>): PreMutationRects {
+  const inline = new Map<string, DOMRect>();
   for (const elItem of document.querySelectorAll<HTMLElement>(GRID_ITEM_SELECTOR)) {
     if (!isPolymerElement(elItem)) {
       continue;
@@ -106,19 +111,65 @@ function capturePreMutationRects(newlyInsertedIds: Set<string>) {
     const videoId = videoIdFromData(elItem.data);
     const isSurvivingItem = !!videoId && !newlyInsertedIds.has(videoId);
     if (isSurvivingItem) {
-      rects.set(videoId, elItem.getBoundingClientRect());
+      inline.set(videoId, elItem.getBoundingClientRect());
     }
   }
-  return rects;
+
+  // Section markers are passed through by reference (composeNewContents reuses the same
+  // richSectionRenderer object), so the data object itself is a stable identity across the
+  // mutation. Capture by that reference so the new section element (Polymer rebinds dom-repeat
+  // children when the array shifts) can be matched back to its pre-mutation position.
+  const sections = new Map<unknown, DOMRect>();
+  for (const elSection of document.querySelectorAll<HTMLElement>(GRID_SECTION_SELECTOR)) {
+    if (!isPolymerElement(elSection)) {
+      continue;
+    }
+
+    sections.set(elSection.data, elSection.getBoundingClientRect());
+  }
+
+  return {
+    inline,
+    sections
+  };
 }
 
 async function runCascadeAndEntrance({ firstRects, newlyInsertedIds }: {
-  firstRects: Map<string, DOMRect>;
+  firstRects: PreMutationRects;
   newlyInsertedIds: Set<string>;
 }) {
-  await waitForFrames({
-    predicate: () => findNewlyInsertedElements(newlyInsertedIds).length === newlyInsertedIds.size
-  });
+  // Polymer debounces dom-repeat rendering through microtasks. The outer dom-repeat rebind, the
+  // dom-if template swaps at indices whose item type changed (richItem <-> richSection at a slot
+  // when an inline item shifts past a shelf), and the inner shelf templates each tick on their
+  // own microtask cycle. We poll until: (1) every newly inserted videoId has a rich-item-renderer
+  // and (2) every captured section's data ref is live on a rich-section-renderer. Without (2),
+  // the loop exits the moment V_NEW lands and the cascade reads a DOM where a displaced shelf
+  // hasn't been re-stamped at its new slot yet - missing it from the FLIP and producing the
+  // visible bounce.
+  function isRebindComplete() {
+    if (findNewlyInsertedElements(newlyInsertedIds).length !== newlyInsertedIds.size) {
+      return false;
+    }
+
+    const liveSectionRefs = new Set<unknown>();
+    for (const elSection of document.querySelectorAll<HTMLElement>(GRID_SECTION_SELECTOR)) {
+      if (isPolymerElement(elSection)) {
+        liveSectionRefs.add(elSection.data);
+      }
+    }
+    for (const sectionRef of firstRects.sections.keys()) {
+      if (!liveSectionRefs.has(sectionRef)) {
+        return false;
+      }
+    }
+    return true;
+  }
+  for (let i = 0; i < REBIND_MICROTASK_POLL_MAX && !isRebindComplete(); i++) {
+    await Promise.resolve();
+  }
+  for (let i = 0; i < REBIND_FRAME_POLL_MAX && !isRebindComplete(); i++) {
+    await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+  }
 
   refreshInlineThumbnails();
 
@@ -152,25 +203,16 @@ function refreshInlineThumbnails() {
   }
 }
 
-function cascadeDisplacedItems(firstRects: Map<string, DOMRect>) {
+function cascadeDisplacedItems(firstRects: PreMutationRects) {
   const moves: {
     elItem: HTMLElement;
     deltaX: number;
     deltaY: number;
   }[] = [];
-  for (const elItem of document.querySelectorAll<HTMLElement>(GRID_ITEM_SELECTOR)) {
-    if (!isPolymerElement(elItem)) {
-      continue;
-    }
 
-    const videoId = videoIdFromData(elItem.data);
-    const firstRect = videoId ? firstRects.get(videoId) : null;
-    if (!firstRect) {
-      continue;
-    }
-
+  function recordMoveIfDisplaced(elItem: HTMLElement, firstRect: DOMRect) {
     if (!isInViewport(elItem)) {
-      continue;
+      return;
     }
 
     const lastRect = elItem.getBoundingClientRect();
@@ -184,6 +226,33 @@ function cascadeDisplacedItems(firstRects: Map<string, DOMRect>) {
         deltaY
       });
     }
+  }
+
+  for (const elItem of document.querySelectorAll<HTMLElement>(GRID_ITEM_SELECTOR)) {
+    if (!isPolymerElement(elItem)) {
+      continue;
+    }
+
+    const videoId = videoIdFromData(elItem.data);
+    const firstRect = videoId ? firstRects.inline.get(videoId) : null;
+    if (!firstRect) {
+      continue;
+    }
+
+    recordMoveIfDisplaced(elItem, firstRect);
+  }
+
+  for (const elSection of document.querySelectorAll<HTMLElement>(GRID_SECTION_SELECTOR)) {
+    if (!isPolymerElement(elSection)) {
+      continue;
+    }
+
+    const firstRect = firstRects.sections.get(elSection.data);
+    if (!firstRect) {
+      continue;
+    }
+
+    recordMoveIfDisplaced(elSection, firstRect);
   }
 
   // FLIP via Web Animations: animate from the inverted offset back to the resting position so the
@@ -315,35 +384,65 @@ function buildDesiredInlineSequence({ apiContents, currentContents }: {
   return sequence;
 }
 
-function composeNewContents({ currentContents, desiredInlineSequence }: {
+function composeNewContents({ apiContents, currentContents }: {
+  apiContents: Prettify<InnerTubeRichGridItem>[];
   currentContents: Prettify<InnerTubeRichGridItem>[];
   desiredInlineSequence: Prettify<InnerTubeRichGridItem>[];
 }) {
-  const newContents: Prettify<InnerTubeRichGridItem>[] = [];
-  let inlineCursor = 0;
-
-  for (const item of currentContents) {
-    if (isInlineItem(item)) {
-      if (inlineCursor < desiredInlineSequence.length) {
-        newContents.push(desiredInlineSequence[inlineCursor]);
-        inlineCursor++;
-      }
-
-      continue;
+  // Mirror the API's Latest band 1:1 - the videos that appear before any rich shelf in the API
+  // are emitted in API order at the top of the grid, with the same number of slots. Everything
+  // past current's first rich shelf (the rich shelves themselves, the videos that sit between
+  // them, the continuation) is passed through from current unchanged, so the page's section
+  // order is preserved regardless of how the API itself segments the feed on a given poll.
+  // Adds, removes, and reorders inside the Latest band fall out of this naturally; anything that
+  // would touch the rest of the grid is intentionally ignored.
+  const apiLatestVideos: Prettify<InnerTubeRichGridItem>[] = [];
+  for (const apiItem of apiContents) {
+    if (apiItem.richSectionRenderer?.content?.richShelfRenderer) {
+      break;
     }
 
-    // Shelf wrapper or continuation - passed through by reference, never reconstructed.
-    newContents.push(item);
+    if (videoIdFromRichItem(apiItem)) {
+      apiLatestVideos.push(apiItem);
+    }
   }
 
-  if (inlineCursor < desiredInlineSequence.length) {
-    const continuationIdx = newContents.findIndex(item => !!item.continuationItemRenderer);
-    const insertAt = continuationIdx === -1 ? newContents.length : continuationIdx;
-    const overflow = desiredInlineSequence.slice(inlineCursor);
-    newContents.splice(insertAt, 0, ...overflow);
+  const hasLeadingLegacyShelf = !!currentContents[0]?.richSectionRenderer
+    && !currentContents[0]?.richSectionRenderer?.content?.richShelfRenderer;
+  const latestStartIdx = hasLeadingLegacyShelf ? 1 : 0;
+  let latestEndIdx = currentContents.length;
+  for (let i = latestStartIdx; i < currentContents.length; i++) {
+    const item = currentContents[i];
+    const isBandEnd = !!item.richSectionRenderer?.content?.richShelfRenderer
+      || !!item.continuationItemRenderer;
+    if (isBandEnd) {
+      latestEndIdx = i;
+      break;
+    }
   }
 
-  return newContents;
+  // Reuse current refs for videos that are already in the Latest band so Polymer doesn't tear
+  // down and rebuild tiles whose data didn't change - only structuredClone genuinely new uploads.
+  const currentLatestById = new Map<string, Prettify<InnerTubeRichGridItem>>();
+  for (let i = latestStartIdx; i < latestEndIdx; i++) {
+    const item = currentContents[i];
+    const videoId = videoIdFromRichItem(item);
+    if (videoId && !currentLatestById.has(videoId)) {
+      currentLatestById.set(videoId, item);
+    }
+  }
+
+  const newLatest = apiLatestVideos.map(apiItem => {
+    const videoId = videoIdFromRichItem(apiItem);
+    const reused = videoId ? currentLatestById.get(videoId) : undefined;
+    return reused ?? structuredClone(apiItem);
+  });
+
+  return [
+    ...currentContents.slice(0, latestStartIdx),
+    ...newLatest,
+    ...currentContents.slice(latestEndIdx)
+  ];
 }
 
 function isReferenceEqualArray(left: readonly unknown[], right: readonly unknown[]) {
