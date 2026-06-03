@@ -431,6 +431,7 @@ function composeNewContents({ apiContents, currentContents }: {
     videoId: string;
     item: Prettify<InnerTubeRichGridItem>;
   }[] = [];
+  const previousLatestIds = new Set<string>();
   for (let i = latestStartIdx; i < latestEndIdx; i++) {
     const item = currentContents[i];
     const videoId = videoIdFromRichItem(item);
@@ -439,8 +440,48 @@ function composeNewContents({ apiContents, currentContents }: {
         videoId,
         item
       });
+      previousLatestIds.add(videoId);
     }
   }
+  // Recover DOM tiles that are still rendered but no longer in data.contents. YouTube's own SPA
+  // can mutate the data store between renders and our first mirror cycle, leaving Polymer tiles
+  // wedded to a previous state that orphan-cleanup would otherwise remove. Splicing the orphaned
+  // tiles back into previousLatestItems at their DOM positions keeps the band's monotone-grow
+  // contract honest against external trims.
+  const elGridContents = document.querySelector("ytd-rich-grid-renderer > #contents");
+  if (elGridContents) {
+    let domIdx = 0;
+    for (const elChild of elGridContents.children) {
+      if (elChild.tagName === "YTD-RICH-SECTION-RENDERER") {
+        if (elChild.querySelector("ytd-rich-shelf-renderer")) {
+          break;
+        }
+
+        continue;
+      }
+
+      if (elChild.tagName === "YTD-CONTINUATION-ITEM-RENDERER") {
+        break;
+      }
+
+      if (!isRichItemElement(elChild)) {
+        continue;
+      }
+
+      const videoId = videoIdFromData(elChild.data);
+      if (videoId && !previousLatestIds.has(videoId)) {
+        const insertAt = Math.min(domIdx, previousLatestItems.length);
+        previousLatestItems.splice(insertAt, 0, {
+          videoId,
+          item: { richItemRenderer: structuredClone(elChild.data) }
+        });
+        previousLatestIds.add(videoId);
+      }
+
+      domIdx++;
+    }
+  }
+
   const currentLatestById = new Map<string, Prettify<InnerTubeRichGridItem>>();
   for (const { videoId, item } of previousLatestItems) {
     if (!currentLatestById.has(videoId)) {
@@ -498,6 +539,12 @@ function composeNewContents({ apiContents, currentContents }: {
 
 function isReferenceEqualArray(left: readonly unknown[], right: readonly unknown[]) {
   return left.length === right.length && left.every((item, i) => item === right[i]);
+}
+
+function isRichItemElement(
+  element: Element
+): element is PolymerElement<NonNullable<InnerTubeRichGridItem["richItemRenderer"]>> {
+  return element.tagName === "YTD-RICH-ITEM-RENDERER" && isPolymerElement(element);
 }
 
 function findNewlyInsertedElements(newVideoIds: Set<string>) {
