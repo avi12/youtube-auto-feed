@@ -33,6 +33,10 @@ const REBIND_FRAME_POLL_MAX = 10;
 const GRID_ITEM_SELECTOR = "ytd-rich-grid-renderer > #contents > ytd-rich-item-renderer";
 const GRID_SECTION_SELECTOR = "ytd-rich-grid-renderer > #contents > ytd-rich-section-renderer";
 
+// High-water mark of the API's Latest-band size across the session. Caps how far stickiness can
+// grow the local band so it never exceeds a size YouTube has actually emitted.
+let latestBandObservedCap = 0;
+
 export async function mirrorFromApi({ apiContents }: {
   apiContents: Prettify<InnerTubeRichGridItem>[];
 }) {
@@ -423,12 +427,32 @@ function composeNewContents({ apiContents, currentContents }: {
 
   // Reuse current refs for videos that are already in the Latest band so Polymer doesn't tear
   // down and rebuild tiles whose data didn't change - only structuredClone genuinely new uploads.
-  const currentLatestById = new Map<string, Prettify<InnerTubeRichGridItem>>();
+  const previousLatestItems: {
+    videoId: string;
+    item: Prettify<InnerTubeRichGridItem>;
+  }[] = [];
   for (let i = latestStartIdx; i < latestEndIdx; i++) {
     const item = currentContents[i];
     const videoId = videoIdFromRichItem(item);
-    if (videoId && !currentLatestById.has(videoId)) {
+    if (videoId) {
+      previousLatestItems.push({
+        videoId,
+        item
+      });
+    }
+  }
+  const currentLatestById = new Map<string, Prettify<InnerTubeRichGridItem>>();
+  for (const { videoId, item } of previousLatestItems) {
+    if (!currentLatestById.has(videoId)) {
       currentLatestById.set(videoId, item);
+    }
+  }
+
+  const apiLatestVideoIds = new Set<string>();
+  for (const apiItem of apiLatestVideos) {
+    const videoId = videoIdFromRichItem(apiItem);
+    if (videoId) {
+      apiLatestVideoIds.add(videoId);
     }
   }
 
@@ -437,6 +461,28 @@ function composeNewContents({ apiContents, currentContents }: {
     const reused = videoId ? currentLatestById.get(videoId) : undefined;
     return reused ?? structuredClone(apiItem);
   });
+
+  // Monotone-grow sticky: any previous-Latest video the API has dropped this poll is reinserted at
+  // its previous index, with no time limit. YouTube's API has a stable head and a noisy tail of
+  // 3-5 videos that flicker in and out unpredictably, so any threshold-based eviction shifts the
+  // bands below by a row whenever the band size crosses a 3-video boundary. The session-long
+  // stickiness eliminates that churn; the cap comes from the API's own session high-water mark
+  // so the band never exceeds a size YouTube has actually emitted.
+  latestBandObservedCap = Math.max(latestBandObservedCap, apiLatestVideos.length);
+
+  for (let i = 0; i < previousLatestItems.length; i++) {
+    const { videoId, item } = previousLatestItems[i];
+    if (apiLatestVideoIds.has(videoId)) {
+      continue;
+    }
+
+    const insertAt = Math.min(i, newLatest.length);
+    newLatest.splice(insertAt, 0, item);
+  }
+
+  if (newLatest.length > latestBandObservedCap) {
+    newLatest.length = latestBandObservedCap;
+  }
 
   return [
     ...currentContents.slice(0, latestStartIdx),
