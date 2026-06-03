@@ -466,9 +466,14 @@ function composeNewContents({ apiContents, currentContents }: {
   // its previous index, with no time limit. YouTube's API has a stable head and a noisy tail of
   // 3-5 videos that flicker in and out unpredictably, so any threshold-based eviction shifts the
   // bands below by a row whenever the band size crosses a 3-video boundary. The session-long
-  // stickiness eliminates that churn; the cap comes from the API's own session high-water mark
-  // so the band never exceeds a size YouTube has actually emitted.
-  latestBandObservedCap = Math.max(latestBandObservedCap, apiLatestVideos.length);
+  // stickiness eliminates that churn; the cap is the high-water of both the API's Latest count
+  // and the locally-rendered band size, so neither the API nor the page's own initial render
+  // (which can have more videos than the first /browse poll returns) gets clipped.
+  latestBandObservedCap = Math.max(
+    latestBandObservedCap,
+    apiLatestVideos.length,
+    previousLatestItems.length
+  );
 
   for (let i = 0; i < previousLatestItems.length; i++) {
     const { videoId, item } = previousLatestItems[i];
