@@ -31,5 +31,5 @@ export type Prettify<T> = T extends SkipPrettify
             : T extends WeakSet<infer Element extends WeakKey>
               ? WeakSet<Element>
               : T extends object
-                ? { [Key in keyof T]: Prettify<T[Key]> }
+                ? { [Key in keyof T]: Prettify<T[Key]> } & {}
                 : T;
