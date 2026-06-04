@@ -29,10 +29,12 @@ function hasSameThumbnail({ existing, incoming }: Prettify<LockupPair>) {
   return getThumbnailUrlKey(existing.contentImage) === getThumbnailUrlKey(incoming.contentImage);
 }
 
-export function mergeContentImagePreservingThumbnail({ existing, incoming }: {
+type MergeContentImagePreservingThumbnailParams = Prettify<{
   existing: LockupViewModel["contentImage"];
   incoming: LockupViewModel["contentImage"];
-}): LockupViewModel["contentImage"] {
+}>;
+
+export function mergeContentImagePreservingThumbnail({ existing, incoming }: MergeContentImagePreservingThumbnailParams): LockupViewModel["contentImage"] {
   if (!existing) {
     return incoming;
   }
@@ -61,9 +63,15 @@ export function mergeContentImagePreservingThumbnail({ existing, incoming }: {
   };
 }
 
-function mutateLockupViewModelInPlace({ existing, incoming, preserveContentImage }: Prettify<LockupPair> & {
+type MutateLockupViewModelInPlaceParams = Prettify<LockupPair & {
   preserveContentImage: boolean;
-}) {
+}>;
+
+function mutateLockupViewModelInPlace({
+  existing,
+  incoming,
+  preserveContentImage
+}: MutateLockupViewModelInPlaceParams) {
   const existingAvatarImage = getAvatarImage(existing);
   const incomingAvatarImage = getAvatarImage(incoming);
   const preservedContentImage = existing.contentImage;
@@ -93,12 +101,14 @@ function mutateLockupViewModelInPlace({ existing, incoming, preserveContentImage
   };
 }
 
-export function mutateLockupMetadata({ videoId, elItem, incoming, preserveContentImage }: {
+type MutateLockupMetadataParams = Prettify<{
   videoId: string;
   elItem: PolymerElement;
   incoming: Prettify<LockupViewModel>;
   preserveContentImage: boolean;
-}) {
+}>;
+
+export function mutateLockupMetadata({ videoId, elItem, incoming, preserveContentImage }: MutateLockupMetadataParams) {
   const seenLockups = new Set<LockupViewModel>();
   function mutateOne(candidate: unknown) {
     const isReusableLockup = isLockupViewModel(candidate) && !seenLockups.has(candidate);
@@ -179,9 +189,15 @@ function buildPreservedAvatarMetadata({ existing, incoming }: Prettify<LockupPai
   };
 }
 
-export function mergeLockupViewModel({ existing, incoming, forcePreserveContentImage = false }: Prettify<LockupPair> & {
+type MergeLockupViewModelParams = Prettify<LockupPair & {
   forcePreserveContentImage?: boolean;
-}) {
+}>;
+
+export function mergeLockupViewModel({
+  existing,
+  incoming,
+  forcePreserveContentImage = false
+}: MergeLockupViewModelParams) {
   const shouldPreserveThumbnail = forcePreserveContentImage || hasSameThumbnail({
     existing,
     incoming

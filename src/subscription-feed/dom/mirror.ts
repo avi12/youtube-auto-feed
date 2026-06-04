@@ -37,9 +37,11 @@ const GRID_SECTION_SELECTOR = "ytd-rich-grid-renderer > #contents > ytd-rich-sec
 // grow the local band so it never exceeds a size YouTube has actually emitted.
 let latestBandObservedCap = 0;
 
-export async function mirrorFromApi({ apiContents }: {
+type MirrorFromApiParams = Prettify<{
   apiContents: Prettify<InnerTubeRichGridItem>[];
-}) {
+}>;
+
+export async function mirrorFromApi({ apiContents }: MirrorFromApiParams) {
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
   if (!elGrid || !isPolymerElement(elGrid) || !isRecord(elGrid.data)) {
     return;
@@ -138,10 +140,12 @@ function capturePreMutationRects(newlyInsertedIds: Set<string>): PreMutationRect
   };
 }
 
-async function runCascadeAndEntrance({ firstRects, newlyInsertedIds }: {
+type RunCascadeAndEntranceParams = Prettify<{
   firstRects: PreMutationRects;
   newlyInsertedIds: Set<string>;
-}) {
+}>;
+
+async function runCascadeAndEntrance({ firstRects, newlyInsertedIds }: RunCascadeAndEntranceParams) {
   // Polymer debounces dom-repeat rendering through microtasks. The outer dom-repeat rebind, the
   // dom-if template swaps at indices whose item type changed (richItem <-> richSection at a slot
   // when an inline item shifts past a shelf), and the inner shelf templates each tick on their
@@ -313,10 +317,12 @@ function collectInlineVideoIds(contents: Prettify<InnerTubeRichGridItem>[]) {
   return ids;
 }
 
-function composeNewContents({ apiContents, currentContents }: {
+type ComposeNewContentsParams = Prettify<{
   apiContents: Prettify<InnerTubeRichGridItem>[];
   currentContents: Prettify<InnerTubeRichGridItem>[];
-}) {
+}>;
+
+function composeNewContents({ apiContents, currentContents }: ComposeNewContentsParams) {
   // Mirror the API's Latest band 1:1 - the videos that appear before any rich shelf in the API
   // are emitted in API order at the top of the grid, with the same number of slots. Everything
   // past current's first rich shelf (the rich shelves themselves, the videos that sit between

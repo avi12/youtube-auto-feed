@@ -21,8 +21,9 @@ function watchProgressFromLockup(lockup: Prettify<LockupViewModel>): number | nu
   return null;
 }
 
-export function parseRenderer({ renderer, sectionTitle, bandIndex }:
-  Prettify<ParseVideoParams> & { renderer: Prettify<InnerTubeVideoRenderer> }) {
+type ParseRendererParams = Prettify<ParseVideoParams & { renderer: Prettify<InnerTubeVideoRenderer> }>;
+
+export function parseRenderer({ renderer, sectionTitle, bandIndex }: ParseRendererParams) {
   const {
     videoId, title, thumbnail, publishedTimeText
   } = renderer;
@@ -46,8 +47,9 @@ export function parseRenderer({ renderer, sectionTitle, bandIndex }:
   } satisfies VideoSnapshot;
 }
 
-export function parseLockupViewModel({ lockup, sectionTitle, bandIndex }:
-  Prettify<ParseVideoParams> & { lockup: Prettify<LockupViewModel> }) {
+type ParseLockupViewModelParams = Prettify<ParseVideoParams & { lockup: Prettify<LockupViewModel> }>;
+
+export function parseLockupViewModel({ lockup, sectionTitle, bandIndex }: ParseLockupViewModelParams) {
   const { contentId, contentImage, metadata } = lockup;
   if (contentId === "") {
     return null;
@@ -78,8 +80,11 @@ export function parseLockupViewModel({ lockup, sectionTitle, bandIndex }:
   } satisfies VideoSnapshot;
 }
 
-export function parseShortsLockupViewModel({ shortsLockup, sectionTitle, bandIndex }:
-  Prettify<ParseVideoParams> & { shortsLockup: Prettify<ShortsLockupViewModel> }) {
+type ParseShortsLockupViewModelParams = Prettify<ParseVideoParams & { shortsLockup: Prettify<ShortsLockupViewModel> }>;
+
+export function parseShortsLockupViewModel(
+  { shortsLockup, sectionTitle, bandIndex }: ParseShortsLockupViewModelParams
+) {
   const { onTap, overlayMetadata, thumbnail, accessibilityText = "" } = shortsLockup;
   const videoId = onTap?.innertubeCommand?.reelWatchEndpoint?.videoId ?? "";
   if (videoId === "") {

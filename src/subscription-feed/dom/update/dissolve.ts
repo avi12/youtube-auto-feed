@@ -12,10 +12,12 @@ interface NamedElement {
   previousName: string;
 }
 
-export async function applyWithDissolve({ elements, apply }: {
+type ApplyWithDissolveParams = Prettify<{
   elements: HTMLElement[];
   apply: () => void;
-}) {
+}>;
+
+export async function applyWithDissolve({ elements, apply }: ApplyWithDissolveParams) {
   const isViewTransitionAvailable = elements.length > 0 && "startViewTransition" in document;
   if (!isViewTransitionAvailable) {
     apply();
@@ -52,10 +54,12 @@ export async function applyWithDissolve({ elements, apply }: {
 
 // Tiny utilities used by text-fields. Pulled out so they're easy to find when reading.
 
-export function setNodeTextIfChanged({ elNode, newText }: {
+type SetNodeTextIfChangedParams = Prettify<{
   elNode: Element | null;
   newText: string;
-}) {
+}>;
+
+export function setNodeTextIfChanged({ elNode, newText }: SetNodeTextIfChangedParams) {
   const isUpdateNeeded = elNode !== null && elNode.textContent !== newText;
   if (!isUpdateNeeded) {
     return;
@@ -64,11 +68,13 @@ export function setNodeTextIfChanged({ elNode, newText }: {
   elNode.textContent = newText;
 }
 
-export function setAttributeIfChanged({ elNode, name, value }: {
+type SetAttributeIfChangedParams = Prettify<{
   elNode: Element | null;
   name: string;
   value: string;
-}) {
+}>;
+
+export function setAttributeIfChanged({ elNode, name, value }: SetAttributeIfChangedParams) {
   const isUpdateNeeded = elNode !== null && value !== "" && elNode.getAttribute(name) !== value;
   if (!isUpdateNeeded) {
     return;

@@ -24,6 +24,11 @@ interface FeedPayload {
   apiContents: InnerTubeRichGridItem[];
 }
 
+type ApplyChangesParams = Prettify<{
+  payload: Prettify<FeedPayload>;
+  isInitialLoad?: boolean;
+}>;
+
 const INITIAL_POLL_DELAY_MS = 10 * 1000;
 const POLL_INTERVAL_MS = 5 * 1000;
 const METADATA_POLL_INTERVAL_MS = 10 * 1000;
@@ -44,10 +49,7 @@ export function createSubscriptionMonitor() {
   let cancelBroadcastListener: (() => void) | null = null;
   let initialBandLayout: Prettify<BandLayout> | null = null;
 
-  async function applyChanges({ payload, isInitialLoad = false }: {
-    payload: Prettify<FeedPayload>;
-    isInitialLoad?: boolean;
-  }) {
+  async function applyChanges({ payload, isInitialLoad = false }: ApplyChangesParams) {
     if (isApplyingChanges) {
       return false;
     }

@@ -1,3 +1,5 @@
+import type { Prettify } from "../subscription-feed/types/prettify";
+
 const CHANNEL_NAME = "ytsua";
 
 type YtsuaMessage = "subscription-change";
@@ -16,10 +18,11 @@ function sendMessage(type: YtsuaMessage) {
   channel.close();
 }
 
-function onMessage({ type, handler }: {
+type OnMessageParams = Prettify<{
   type: YtsuaMessage;
   handler: () => void;
-}) {
+}>;
+function onMessage({ type, handler }: OnMessageParams) {
   const channel = new BroadcastChannel(CHANNEL_NAME);
   channel.onmessage = ({ data }) => {
     const isMatchingEnvelope = isYtsuaEnvelope(data) && data.type === type;

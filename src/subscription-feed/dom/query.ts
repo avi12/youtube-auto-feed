@@ -90,9 +90,11 @@ export function findShelfForSection(sectionTitle: string) {
   return null;
 }
 
-function parseRichItemRenderer({ rawRenderer, sectionTitle, bandIndex }: Prettify<SectionContext> & {
+type ParseRichItemRendererParams = Prettify<SectionContext & {
   rawRenderer: Record<string, unknown> | null;
-}) {
+}>;
+
+function parseRichItemRenderer({ rawRenderer, sectionTitle, bandIndex }: ParseRichItemRendererParams) {
   if (isVideoRenderer(rawRenderer)) {
     return parseRenderer({
       renderer: rawRenderer,
@@ -123,9 +125,11 @@ function parseRichItemRenderer({ rawRenderer, sectionTitle, bandIndex }: Prettif
 export function readDomSnapshot() {
   const snapshot = new Map<string, Prettify<VideoSnapshot>>();
 
-  function addRichItemToSnapshot({ elItem, sectionTitle, bandIndex }: Prettify<SectionContext> & {
+  type AddRichItemToSnapshotParams = Prettify<SectionContext & {
     elItem: Element;
-  }) {
+  }>;
+
+  function addRichItemToSnapshot({ elItem, sectionTitle, bandIndex }: AddRichItemToSnapshotParams) {
     if (!isPolymerElement(elItem)) {
       return;
     }
@@ -255,10 +259,12 @@ export function readDomSnapshot() {
   return snapshot;
 }
 
-export function leadingLiveCount({ elShelf, snapshot }: {
+type LeadingLiveCountParams = Prettify<{
   elShelf: Element;
   snapshot: Map<string, Prettify<VideoSnapshot>>;
-}) {
+}>;
+
+export function leadingLiveCount({ elShelf, snapshot }: LeadingLiveCountParams) {
   let count = 0;
   for (const elItem of elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer")) {
     if (!isPolymerElement(elItem)) {

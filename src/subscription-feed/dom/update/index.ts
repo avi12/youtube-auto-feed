@@ -13,11 +13,13 @@ import { applyUpdate } from "./apply-targeted";
 
 export { applyUpdate } from "./apply-targeted";
 
-export function updateVideoInDom({ videoId, freshSnapshot, previousSnapshot }: {
+type UpdateVideoInDomParams = Prettify<{
   videoId: string;
   freshSnapshot: Prettify<VideoSnapshot>;
   previousSnapshot?: Prettify<VideoSnapshot>;
-}) {
+}>;
+
+export function updateVideoInDom({ videoId, freshSnapshot, previousSnapshot }: UpdateVideoInDomParams) {
   // Each duplicate of the same video (e.g. Latest band + "Most relevant" shelf) needs its own DOM patch.
   const elItems = findItemElements(videoId).filter(isPolymerElement);
   if (elItems.length === 0) {
@@ -43,11 +45,13 @@ export function updateVideoInDom({ videoId, freshSnapshot, previousSnapshot }: {
   }
 }
 
-function appendToVideoElementMap({ map, videoId, elItem }: {
+type AppendToVideoElementMapParams = Prettify<{
   map: Map<string, HTMLElement[]>;
   videoId: string;
   elItem: HTMLElement;
-}) {
+}>;
+
+function appendToVideoElementMap({ map, videoId, elItem }: AppendToVideoElementMapParams) {
   const existing = map.get(videoId);
   if (existing) {
     existing.push(elItem);
@@ -93,10 +97,12 @@ function buildVideoElementMap() {
 }
 
 // batch variant used by the metadata-only poll: one DOM walk for many videos.
-export function batchUpdateVideosInDom({ freshSnapshots, previousSnapshotMap }: {
+type BatchUpdateVideosInDomParams = Prettify<{
   freshSnapshots: Prettify<VideoSnapshot>[];
   previousSnapshotMap?: Map<string, Prettify<VideoSnapshot>>;
-}) {
+}>;
+
+export function batchUpdateVideosInDom({ freshSnapshots, previousSnapshotMap }: BatchUpdateVideosInDomParams) {
   const elementMap = buildVideoElementMap();
   for (const fresh of freshSnapshots) {
     const elItems = elementMap.get(fresh.videoId) ?? [];

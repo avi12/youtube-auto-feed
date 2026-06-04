@@ -1,3 +1,4 @@
+import type { Prettify } from "../types/prettify";
 import { isPolymerElement } from "../utils/polymer";
 import { videoIdFromData } from "../utils/video-id";
 
@@ -40,10 +41,12 @@ export async function withViewTransitionLock<T>(work: () => Promise<T> | T): Pro
 const animationClasses = ["ytsua-new", "ytsua-updated"] as const;
 type AnimationClass = typeof animationClasses[number];
 
-export function triggerAnimation({ elTarget, animationClass }: {
+type TriggerAnimationParams = Prettify<{
   elTarget: HTMLElement;
   animationClass: AnimationClass;
-}) {
+}>;
+
+export function triggerAnimation({ elTarget, animationClass }: TriggerAnimationParams) {
   if (prefersReducedMotion()) {
     return;
   }
@@ -117,19 +120,23 @@ export function calculateStaggerDelayMs(itemCount: number) {
   return itemCount > 1 ? Math.min(STAGGER_MAX_DELAY_RANGE_MS / (itemCount - 1), STAGGER_MAX_DELAY_CAP_MS) : 0;
 }
 
-export async function waitForFrames({ predicate, maxFrames = WAIT_FOR_FRAMES_MAX }: {
+type WaitForFramesParams = Prettify<{
   predicate: () => boolean;
   maxFrames?: number;
-}) {
+}>;
+
+export async function waitForFrames({ predicate, maxFrames = WAIT_FOR_FRAMES_MAX }: WaitForFramesParams) {
   for (let i = 0; i < maxFrames && !predicate(); i++) {
     await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
   }
 }
 
-export function reassignTransitionNames({ elItems, animateIds }: {
+type ReassignTransitionNamesParams = Prettify<{
   elItems: Iterable<HTMLElement>;
   animateIds: Set<string>;
-}) {
+}>;
+
+export function reassignTransitionNames({ elItems, animateIds }: ReassignTransitionNamesParams) {
   const reassignedIds = new Set<string>();
   for (const elItem of elItems) {
     if (!isPolymerElement(elItem)) {
@@ -192,15 +199,17 @@ export function buildNewItemTransitionStyle(elItems: HTMLElement[]) {
   return elStyle;
 }
 
+type BuildShiftTransitionStyleParams = Prettify<{
+  elItems: Iterable<HTMLElement>;
+  excludeNames?: Set<string>;
+  delayPerItemMs?: number;
+}>;
+
 export function buildShiftTransitionStyle({
   elItems,
   excludeNames = new Set<string>(),
   delayPerItemMs = 0
-}: {
-  elItems: Iterable<HTMLElement>;
-  excludeNames?: Set<string>;
-  delayPerItemMs?: number;
-}) {
+}: BuildShiftTransitionStyleParams) {
   let iItem = 0;
   let css = "";
   for (const elItem of elItems) {

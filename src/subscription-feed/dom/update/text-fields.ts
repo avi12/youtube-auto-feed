@@ -48,11 +48,13 @@ export function collectLockupTextElements(elLockup: HTMLElement): Prettify<Locku
   };
 }
 
-function buildAriaLabelUpdate({ elTitleLink, existingTitle, newTitle }: {
+type BuildAriaLabelUpdateParams = Prettify<{
   elTitleLink: HTMLAnchorElement | null;
   existingTitle: string;
   newTitle: string;
-}) {
+}>;
+
+function buildAriaLabelUpdate({ elTitleLink, existingTitle, newTitle }: BuildAriaLabelUpdateParams) {
   const isTitleUpdatable = !!elTitleLink && !!newTitle && !!existingTitle && existingTitle !== newTitle;
   if (!isTitleUpdatable) {
     return null;

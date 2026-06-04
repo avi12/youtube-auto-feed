@@ -7,15 +7,17 @@ import { detectAndApplyMetadataChanges } from "./metadata-diff";
 
 export { detectAndApplyMetadataChanges } from "./metadata-diff";
 
+type DetectAndApplyChangesParams = Prettify<{
+  freshSnapshots: Prettify<VideoSnapshot>[];
+  apiContents: Prettify<InnerTubeRichGridItem>[];
+  previousSnapshot: Map<string, Prettify<VideoSnapshot>>;
+}>;
+
 export async function detectAndApplyChanges({
   freshSnapshots,
   apiContents,
   previousSnapshot
-}: {
-  freshSnapshots: Prettify<VideoSnapshot>[];
-  apiContents: Prettify<InnerTubeRichGridItem>[];
-  previousSnapshot: Map<string, Prettify<VideoSnapshot>>;
-}) {
+}: DetectAndApplyChangesParams) {
   const freshMap = new Map<string, Prettify<VideoSnapshot>>();
   for (const video of freshSnapshots) {
     const existing = freshMap.get(video.videoId);

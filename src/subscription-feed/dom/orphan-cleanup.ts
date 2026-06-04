@@ -1,5 +1,6 @@
 import type { InnerTubeRichGridItem } from "../types/innertube";
 import type { PolymerElement } from "../types/polymer";
+import type { Prettify } from "../types/prettify";
 import { isPolymerElement } from "../utils/polymer";
 import { deepArray, isRecord } from "../utils/records";
 import { videoIdFromData } from "../utils/video-id";
@@ -41,10 +42,12 @@ export function cleanOrphanedGridItems() {
   });
 }
 
-function pruneOrphanedDomSections({ elGrid, elGridContents }: {
+type PruneOrphanedDomSectionsParams = Prettify<{
   elGrid: PolymerElement;
   elGridContents: HTMLElement;
-}) {
+}>;
+
+function pruneOrphanedDomSections({ elGrid, elGridContents }: PruneOrphanedDomSectionsParams) {
   if (!isRecord(elGrid.data)) {
     return;
   }
@@ -102,15 +105,17 @@ function collectGridModelIds(elGrid: PolymerElement) {
   };
 }
 
+type FilterMisplacedAndDuplicatesParams = Prettify<{
+  elGrid: PolymerElement;
+  misplacedIds: Set<string>;
+  standaloneModelDuplicates: Set<string>;
+}>;
+
 function filterMisplacedAndDuplicates({
   elGrid,
   misplacedIds,
   standaloneModelDuplicates
-}: {
-  elGrid: PolymerElement;
-  misplacedIds: Set<string>;
-  standaloneModelDuplicates: Set<string>;
-}) {
+}: FilterMisplacedAndDuplicatesParams) {
   if (!isRecord(elGrid.data)) {
     return;
   }
@@ -139,10 +144,12 @@ function filterMisplacedAndDuplicates({
   elGrid.set("data.contents", filteredContents);
 }
 
-function pruneOrphanedDomItems({ elGridContents, standaloneModelIds }: {
+type PruneOrphanedDomItemsParams = Prettify<{
   elGridContents: HTMLElement;
   standaloneModelIds: Set<string>;
-}) {
+}>;
+
+function pruneOrphanedDomItems({ elGridContents, standaloneModelIds }: PruneOrphanedDomItemsParams) {
   const seenDomIds = new Set<string>();
   for (const elChild of [...elGridContents.querySelectorAll<HTMLElement>(":scope > ytd-rich-item-renderer, :scope > ytd-rich-section-renderer")]) {
     if (elChild.tagName !== "YTD-RICH-ITEM-RENDERER" || !isPolymerElement(elChild)) {

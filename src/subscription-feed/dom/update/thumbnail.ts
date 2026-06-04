@@ -1,3 +1,5 @@
+import type { Prettify } from "../../types/prettify";
+
 // Thumbnail handling: finding the <img> element across both shadow-DOM lockups and the legacy
 // markup, comparing bytes (not just URLs - YouTube sometimes rotates the query string without
 // changing the image), and preparing the dissolve crossfade. Also handles the watch-progress
@@ -17,10 +19,12 @@ export function findThumbnailImg(elLockup: HTMLElement) {
   return root.querySelector<HTMLImageElement>("yt-thumbnail-view-model img");
 }
 
-export function applyProgressBarUpdate({ elLockup, percent }: {
+type ApplyProgressBarUpdateParams = Prettify<{
   elLockup: HTMLElement;
   percent: number | null;
-}) {
+}>;
+
+export function applyProgressBarUpdate({ elLockup, percent }: ApplyProgressBarUpdateParams) {
   if (percent === null) {
     return false;
   }
@@ -76,10 +80,12 @@ async function fetchImageBase64(url: string) {
   return btoa(binary);
 }
 
-async function areThumbnailsDifferent({ currentSrc, newSrc }: {
+type AreThumbnailsDifferentParams = Prettify<{
   currentSrc: string;
   newSrc: string;
-}) {
+}>;
+
+async function areThumbnailsDifferent({ currentSrc, newSrc }: AreThumbnailsDifferentParams) {
   if (currentSrc.split("?")[0] === newSrc.split("?")[0]) {
     return false;
   }
@@ -112,11 +118,13 @@ function preloadImage(url: string) {
 // Decides whether to dissolve to the new thumbnail. Skips dissolve if the user is hovering
 // the item (so we don't disrupt the hover preview), or if the new bytes are identical to
 // the current ones (URL changed but the picture didn't).
-export async function prepareThumbnailDissolve({ elItem, elImg, newUrl }: {
+type PrepareThumbnailDissolveParams = Prettify<{
   elItem: HTMLElement;
   elImg: HTMLImageElement;
   newUrl: string;
-}) {
+}>;
+
+export async function prepareThumbnailDissolve({ elItem, elImg, newUrl }: PrepareThumbnailDissolveParams) {
   if (elItem.matches(":hover")) {
     return {
       willDissolve: false,

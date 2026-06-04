@@ -6,10 +6,12 @@ import type { VideoSnapshot } from "../types/video";
 // mirror. Only updates title / view count / published time / status / progress bar etc., without
 // touching layout. Used to catch metadata changes between the 5s structural polls.
 
-function hasMetadataChange({ previous, fresh }: {
+type HasMetadataChangeParams = Prettify<{
   previous: Prettify<VideoSnapshot>;
   fresh: Prettify<VideoSnapshot>;
-}) {
+}>;
+
+function hasMetadataChange({ previous, fresh }: HasMetadataChangeParams) {
   return previous.title !== fresh.title
     || previous.thumbnailUrl !== fresh.thumbnailUrl
     || previous.status !== fresh.status
@@ -19,13 +21,15 @@ function hasMetadataChange({ previous, fresh }: {
     || previous.watchProgressPercent !== fresh.watchProgressPercent;
 }
 
+type DetectAndApplyMetadataChangesParams = Prettify<{
+  previousSnapshot: Map<string, Prettify<VideoSnapshot>>;
+  freshSnapshots: Prettify<VideoSnapshot>[];
+}>;
+
 export function detectAndApplyMetadataChanges({
   previousSnapshot,
   freshSnapshots
-}: {
-  previousSnapshot: Map<string, Prettify<VideoSnapshot>>;
-  freshSnapshots: Prettify<VideoSnapshot>[];
-}) {
+}: DetectAndApplyMetadataChangesParams) {
   const updatedSnapshot = new Map(previousSnapshot);
   const changedVideos: Prettify<VideoSnapshot>[] = [];
 

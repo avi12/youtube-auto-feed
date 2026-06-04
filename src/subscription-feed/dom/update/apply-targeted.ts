@@ -34,7 +34,14 @@ interface TargetedUpdateParams {
   fresh: VideoSnapshot;
 }
 
-export async function applyTargetedGenericUpdate({ videoId, elItem, previous, fresh }: Prettify<TargetedUpdateParams>) {
+type ApplyTargetedGenericUpdateParams = Prettify<TargetedUpdateParams>;
+
+export async function applyTargetedGenericUpdate({
+  videoId,
+  elItem,
+  previous,
+  fresh
+}: ApplyTargetedGenericUpdateParams) {
   const { rawRenderer, thumbnailUrl } = fresh;
   const isShorts = !!elItem.querySelector("ytm-shorts-lockup-view-model-v2, ytm-shorts-lockup-view-model");
   const textElements = isShorts
@@ -115,15 +122,17 @@ export async function applyTargetedGenericUpdate({ videoId, elItem, previous, fr
   });
 }
 
+type ApplyTargetedLockupUpdateParams = Prettify<TargetedUpdateParams & {
+  elLockup: HTMLElement;
+}>;
+
 export async function applyTargetedLockupUpdate({
   videoId,
   elItem,
   elLockup,
   previous,
   fresh
-}: Prettify<TargetedUpdateParams> & {
-  elLockup: HTMLElement;
-}) {
+}: ApplyTargetedLockupUpdateParams) {
   const refs = collectLockupTextElements(elLockup);
   const textElements = changingLockupTextElements({
     refs,
@@ -242,12 +251,14 @@ export async function applyTargetedLockupUpdate({
 // (status flips, channel-live flips, or anything else that can't be patched in place) or to
 // take the targeted lockup/generic path. Status changes always rebuild because targeted patches
 // only know how to update metadata, not change the renderer kind.
-export function applyUpdate({ videoId, elItem, fresh, previous }: {
+type ApplyUpdateParams = Prettify<{
   videoId: string;
   elItem: PolymerElement;
   fresh: Prettify<VideoSnapshot>;
   previous?: Prettify<VideoSnapshot>;
-}) {
+}>;
+
+export function applyUpdate({ videoId, elItem, fresh, previous }: ApplyUpdateParams) {
   const { rawRenderer } = fresh;
   const isChannelLiveChanged = !!previous && previous.isChannelLive !== fresh.isChannelLive;
   const needsFullRebuild = !previous || previous.status !== fresh.status || isChannelLiveChanged;

@@ -119,10 +119,11 @@ function captureDomBands() {
   return bands;
 }
 
-function captureApiBands({ snapshots, sectionOrder }: {
+type CaptureApiBandsParams = Prettify<{
   snapshots: Prettify<VideoSnapshot>[];
   sectionOrder: string[];
-}) {
+}>;
+function captureApiBands({ snapshots, sectionOrder }: CaptureApiBandsParams) {
   const bands: Prettify<ApiBand>[] = [];
 
   const inlineVideoIds = snapshots

@@ -94,12 +94,14 @@ function ensureObserver() {
   return intersectionObserver;
 }
 
-export function scheduleLazyUpdate({ videoId, fresh, previous, elItemHint }: {
+type ScheduleLazyUpdateParams = Prettify<{
   videoId: string;
   fresh: Prettify<VideoSnapshot>;
   previous?: Prettify<VideoSnapshot>;
   elItemHint?: HTMLElement;
-}) {
+}>;
+
+export function scheduleLazyUpdate({ videoId, fresh, previous, elItemHint }: ScheduleLazyUpdateParams) {
   const existing = pendingUpdates.get(videoId);
   pendingUpdates.set(videoId, {
     fresh,
