@@ -406,13 +406,6 @@ function composeNewContents({ apiContents, currentContents }: {
     }
   }
 
-  const currentLatestById = new Map<string, Prettify<InnerTubeRichGridItem>>();
-  for (const { videoId, item } of previousLatestItems) {
-    if (!currentLatestById.has(videoId)) {
-      currentLatestById.set(videoId, item);
-    }
-  }
-
   const apiLatestVideoIds = new Set<string>();
   for (const apiItem of apiLatestVideos) {
     const videoId = videoIdFromRichItem(apiItem);
@@ -421,10 +414,18 @@ function composeNewContents({ apiContents, currentContents }: {
     }
   }
 
-  const newLatest = apiLatestVideos.map(apiItem => {
+  // Reuse a previous ref only when the same video is at the same index. Reusing across positions
+  // lets Polymer's path-effect transiently share sub-objects between the moving rows, leaving a
+  // shifted tile carrying the previous occupant's thumbnail. Cloning on a shift forces an isolated
+  // tree per row so the path-effect machinery can't reach across.
+  const newLatest = apiLatestVideos.map((apiItem, apiIdx) => {
     const videoId = videoIdFromRichItem(apiItem);
-    const reused = videoId ? currentLatestById.get(videoId) : undefined;
-    return reused ?? structuredClone(apiItem);
+    const prevAtIdx = previousLatestItems[apiIdx];
+    if (videoId && prevAtIdx && prevAtIdx.videoId === videoId) {
+      return prevAtIdx.item;
+    }
+
+    return structuredClone(apiItem);
   });
 
   // Monotone-grow sticky: any previous-Latest video the API has dropped this poll is reinserted at
@@ -447,7 +448,8 @@ function composeNewContents({ apiContents, currentContents }: {
     }
 
     const insertAt = Math.min(i, newLatest.length);
-    newLatest.splice(insertAt, 0, item);
+    const itemToInsert = insertAt === i ? item : structuredClone(item);
+    newLatest.splice(insertAt, 0, itemToInsert);
   }
 
   if (newLatest.length > latestBandObservedCap) {
