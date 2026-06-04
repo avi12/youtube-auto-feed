@@ -53,8 +53,8 @@ function buildAriaLabelUpdate({ elTitleLink, existingTitle, newTitle }: {
   existingTitle: string;
   newTitle: string;
 }) {
-  const isNoOp = !elTitleLink || !newTitle || !existingTitle || existingTitle === newTitle;
-  if (isNoOp) {
+  const isTitleUpdatable = !!elTitleLink && !!newTitle && !!existingTitle && existingTitle !== newTitle;
+  if (!isTitleUpdatable) {
     return null;
   }
 

@@ -64,8 +64,8 @@ function collectSnapshot({
     lockup,
     shortsLockup
   });
-  const isDuplicateOrEmpty = !snapshot || seenVideoIds.has(snapshot.videoId);
-  if (isDuplicateOrEmpty) {
+  const isFreshSnapshot = !!snapshot && !seenVideoIds.has(snapshot.videoId);
+  if (!isFreshSnapshot) {
     return;
   }
 

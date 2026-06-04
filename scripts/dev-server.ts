@@ -51,12 +51,12 @@ function isChromiumSpec(spec: BrowserSpec): spec is BrowserSpec & { vendor: Chro
   return isChromiumVendor(spec.vendor);
 }
 
-function isNoExtensionFlag(value: unknown) {
+function isExtensionEnabledFlag(value: unknown) {
   if (typeof value !== "object" || value === null || !("no-extension" in value)) {
-    return false;
+    return true;
   }
 
-  return Boolean(value["no-extension"]);
+  return !value["no-extension"];
 }
 
 const argv = await yargs(hideBin(process.argv))
@@ -77,7 +77,7 @@ for (const vendor of ALL_VENDORS) {
 
   browserSpecs.push({
     vendor,
-    withExtension: !isNoExtensionFlag(value)
+    withExtension: isExtensionEnabledFlag(value)
   });
 }
 

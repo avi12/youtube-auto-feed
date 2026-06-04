@@ -78,8 +78,8 @@ export async function applyTargetedGenericUpdate({ videoId, elItem, previous, fr
       newUrl: thumbnailUrl
     })
     : null;
-  const isNothingToAnimate = textElements.length === 0 && !thumbWork?.willDissolve;
-  if (isNothingToAnimate) {
+  const isAnimatable = textElements.length > 0 || !!thumbWork?.willDissolve;
+  if (!isAnimatable) {
     // Thumbnail bytes are identical though URL changed; sync the model but keep DOM <img> alone.
     if (elImg && isThumbnailChanging) {
       syncGridModelItem({
@@ -136,8 +136,8 @@ export async function applyTargetedLockupUpdate({
   const thumbUrlDiffers = previous.thumbnailUrl !== thumbnailUrl;
   const elImg = thumbUrlDiffers ? findThumbnailImg(elLockup) : null;
   // Thumbnail changed but the live <img> couldn't be located, so rebuild the whole renderer.
-  const isThumbnailUnreachable = thumbUrlDiffers && !elImg;
-  if (isThumbnailUnreachable) {
+  const isThumbnailReachable = !thumbUrlDiffers || !!elImg;
+  if (!isThumbnailReachable) {
     applyPolymerUpdate({
       elItem,
       rawRenderer: freshRawRenderer
@@ -157,8 +157,8 @@ export async function applyTargetedLockupUpdate({
     })
     : null;
   const isWatchProgressChanged = previous.watchProgressPercent !== watchProgressPercent;
-  const isNothingToAnimate = textElements.length === 0 && !thumbWork?.willDissolve;
-  if (isNothingToAnimate) {
+  const isAnimatable = textElements.length > 0 || !!thumbWork?.willDissolve;
+  if (!isAnimatable) {
     if (freshLockup) {
       mutateLockupMetadata({
         videoId,

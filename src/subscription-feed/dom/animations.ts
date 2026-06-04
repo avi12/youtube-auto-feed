@@ -137,8 +137,8 @@ export function reassignTransitionNames({ elItems, animateIds }: {
     }
 
     const videoId = videoIdFromData(elItem.data);
-    const isAnimatableAndUnseen = !!videoId && animateIds.has(videoId) && !reassignedIds.has(videoId);
-    if (isAnimatableAndUnseen) {
+    const isAnimatableAndPending = !!videoId && animateIds.has(videoId) && !reassignedIds.has(videoId);
+    if (isAnimatableAndPending) {
       reassignedIds.add(videoId);
       elItem.style.viewTransitionName = `ytsua-item-${videoId}`;
     }

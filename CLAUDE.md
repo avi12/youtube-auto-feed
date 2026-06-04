@@ -60,8 +60,8 @@ Contract: **section markers stay exactly where YouTube placed them; the extensio
 
 ## Variable prefixes
 - Element: `el` prefix (e.g. `elButton`)
-- Index: `i` prefix (e.g. `iItem`), or bare `i` when iterating in a for loop/higher-order function
-- Boolean: `is` prefix (e.g. `isLoading`)
+- Index: `i` prefix (e.g. `iItem`), or bare `i` when iterating in a for loop/higher-order function. Exception: indices that come from the YouTube API keep the API's field name.
+- Boolean: `is` prefix (e.g. `isLoading`), phrased positively. Use `isEnabled` + `!isEnabled`, never `isDisabled`, `isNotX`, `isMissing`, etc.
 
 # Types
 - 100% type safety: no `any`, avoid `unknown` unless absolutely necessary

@@ -1,5 +1,4 @@
 import type { InnerTubeVideoRenderer, LockupViewModel, ShortsLockupViewModel } from "./innertube";
-import type { Prettify } from "./prettify";
 
 // VideoSnapshot is the extension's internal representation of a feed video. It's normalized across
 // all of YouTube's renderer shapes (videoRenderer / lockupViewModel / shortsLockupViewModel) so
@@ -26,5 +25,5 @@ export interface VideoSnapshot {
   sectionTitle: string;
   // Positional band the video appeared in. 0 = Latest. Used to detect cross-band moves.
   bandIndex: number;
-  rawRenderer: Prettify<InnerTubeVideoRenderer> | Prettify<LockupViewModel> | Prettify<ShortsLockupViewModel>;
+  rawRenderer: InnerTubeVideoRenderer | LockupViewModel | ShortsLockupViewModel;
 }

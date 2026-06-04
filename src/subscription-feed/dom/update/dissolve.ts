@@ -16,8 +16,8 @@ export async function applyWithDissolve({ elements, apply }: {
   elements: HTMLElement[];
   apply: () => void;
 }) {
-  const isViewTransitionUnavailable = elements.length === 0 || !("startViewTransition" in document);
-  if (isViewTransitionUnavailable) {
+  const isViewTransitionAvailable = elements.length > 0 && "startViewTransition" in document;
+  if (!isViewTransitionAvailable) {
     apply();
     return;
   }

@@ -295,8 +295,8 @@ export function createSubscriptionMonitor() {
     initialBandLayout = null;
 
     // Discard a pending response if the SPA navigation took long enough that it likely belongs to a prior page state.
-    const isPendingPayloadStale = Date.now() - pendingApiSnapshotsTime >= PENDING_SNAPSHOT_STALE_MS;
-    if (isPendingPayloadStale) {
+    const isPendingPayloadFresh = Date.now() - pendingApiSnapshotsTime < PENDING_SNAPSHOT_STALE_MS;
+    if (!isPendingPayloadFresh) {
       pendingApiSnapshots = null;
     }
 

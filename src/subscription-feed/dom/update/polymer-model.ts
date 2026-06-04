@@ -101,8 +101,8 @@ function buildMergedVideoRenderer({
   incoming: Prettify<InnerTubeVideoRenderer> | Prettify<LockupViewModel> | Prettify<ShortsLockupViewModel>;
   forcePreserveContentImage: boolean;
 }) {
-  const isMergeSkipped = !forcePreserveContentImage || existing === null || !isVideoRenderer(incoming);
-  if (isMergeSkipped) {
+  const isMergeable = forcePreserveContentImage && existing !== null && isVideoRenderer(incoming);
+  if (!isMergeable) {
     return incoming;
   }
 
