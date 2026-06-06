@@ -104,7 +104,7 @@ export async function applyTargetedGenericUpdate({
     elements.push(elImg);
   }
 
-  await applyWithDissolve({
+  applyWithDissolve({
     elements,
     apply() {
       applyText();
@@ -204,7 +204,7 @@ export async function applyTargetedLockupUpdate({
   }
 
   let isProgressBarDirty = false;
-  await applyWithDissolve({
+  applyWithDissolve({
     elements,
     apply() {
       applyLockupTextChanges({

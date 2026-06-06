@@ -1,55 +1,26 @@
 import type { Prettify } from "../../types/prettify";
-import { withViewTransitionLock } from "../animations";
+import { triggerAnimation } from "../animations";
 
-// "Dissolve" = a brief crossfade view transition wrapped around any DOM mutation. Used so a
-// metadata edit (title/view count/thumbnail) animates in instead of snapping. Each call gets a
-// unique transition id so transition names don't collide between concurrent dissolves.
-
-let transitionCounter = 0;
-
-interface NamedElement {
-  elTarget: HTMLElement;
-  previousName: string;
-}
+// "Dissolve" = apply a metadata edit (title/view count/thumbnail) in place and animate it with a
+// short element-scoped pulse so it eases in instead of snapping. This deliberately avoids a
+// document-level view transition: that captures the whole document and leaves every tile
+// un-hittable (elementFromPoint falls through to <html>) for the transition's duration, and these
+// per-tile edits fire constantly as tiles scroll into view - the serialized transitions chain into
+// seconds where the grid cannot be hovered or clicked. A per-element animation keeps the page live.
 
 type ApplyWithDissolveParams = Prettify<{
   elements: HTMLElement[];
   apply: () => void;
 }>;
 
-export async function applyWithDissolve({ elements, apply }: ApplyWithDissolveParams) {
-  const isViewTransitionAvailable = elements.length > 0 && "startViewTransition" in document;
-  if (!isViewTransitionAvailable) {
-    apply();
-    return;
-  }
-
-  await withViewTransitionLock(async () => {
-    transitionCounter++;
-    const transitionId = transitionCounter;
-    const named: Prettify<NamedElement>[] = elements.map((elTarget, iElement) => {
-      const previousName = elTarget.style.viewTransitionName;
-      elTarget.style.viewTransitionName = `ytsua-${transitionId}-${iElement}`;
-      return {
-        elTarget,
-        previousName
-      };
+export function applyWithDissolve({ elements, apply }: ApplyWithDissolveParams) {
+  apply();
+  for (const elTarget of elements) {
+    triggerAnimation({
+      elTarget,
+      animationClass: "ytsua-updated"
     });
-
-    function restoreNames() {
-      for (const { elTarget, previousName } of named) {
-        if (elTarget.style.viewTransitionName.startsWith(`ytsua-${transitionId}-`)) {
-          elTarget.style.viewTransitionName = previousName;
-        }
-      }
-    }
-
-    try {
-      await document.startViewTransition(apply).finished;
-    } finally {
-      restoreNames();
-    }
-  });
+  }
 }
 
 // Tiny utilities used by text-fields. Pulled out so they're easy to find when reading.
