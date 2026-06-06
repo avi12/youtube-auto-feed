@@ -1,11 +1,10 @@
 import type { Prettify } from "../../types/prettify";
 
 // Thumbnail handling: finding the <img> element across both shadow-DOM lockups and the legacy
-// markup, comparing bytes (not just URLs - YouTube sometimes rotates the query string without
-// changing the image), and preparing the dissolve crossfade. Also handles the watch-progress
-// bar fill since it lives inside the same shadow tree.
-
-const FETCH_CHUNK_SIZE = 8192;
+// markup, deciding whether the picture actually changed, and preparing the dissolve crossfade.
+// YouTube's preferred source URL is byte-stable per picture (the sqp/rs query rotates only when the
+// image itself changes), so a full-URL compare is an exact identity - no need to fetch and diff the
+// bytes. Also handles the watch-progress bar fill since it lives inside the same shadow tree.
 
 export function findThumbnailImg(elLockup: HTMLElement) {
   const root: ShadowRoot | HTMLElement = elLockup.shadowRoot ?? elLockup;
@@ -72,50 +71,6 @@ export function findThumbnailImgInItem(elItem: HTMLElement) {
   return null;
 }
 
-async function fetchImageBase64(url: string) {
-  // Fetch the full URL: the sqp/rs query selects the actual crop/variant, so stripping it would
-  // compare the base image and miss a same-path thumbnail change.
-  const response = await fetch(url);
-  if (!response.ok) {
-    return null;
-  }
-
-  const buffer = await response.arrayBuffer();
-  const bytes = new Uint8Array(buffer);
-  const chunkSize = FETCH_CHUNK_SIZE;
-  let binary = "";
-  for (let i = 0; i < bytes.byteLength; i += chunkSize) {
-    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
-  }
-  return btoa(binary);
-}
-
-type AreThumbnailsDifferentParams = Prettify<{
-  currentSrc: string;
-  newSrc: string;
-}>;
-
-async function areThumbnailsDifferent({ currentSrc, newSrc }: AreThumbnailsDifferentParams) {
-  if (currentSrc === newSrc) {
-    return false;
-  }
-
-  try {
-    const [currentBase64, newBase64] = await Promise.all([
-      fetchImageBase64(currentSrc),
-      fetchImageBase64(newSrc)
-    ]);
-    const lacksBase64 = currentBase64 === null || newBase64 === null;
-    if (lacksBase64) {
-      return true;
-    }
-
-    return currentBase64 !== newBase64;
-  } catch {
-    return true;
-  }
-}
-
 function preloadImage(url: string) {
   return new Promise<void>(resolve => {
     const preload = new Image();
@@ -126,8 +81,8 @@ function preloadImage(url: string) {
 }
 
 // Decides whether to dissolve to the new thumbnail. Skips dissolve if the user is hovering
-// the item (so we don't disrupt the hover preview), or if the new bytes are identical to
-// the current ones (URL changed but the picture didn't).
+// the item (so we don't disrupt the hover preview), or if the painted URL already matches the
+// new one (same picture).
 type PrepareThumbnailDissolveParams = Prettify<{
   elItem: HTMLElement;
   elImg: HTMLImageElement;
@@ -142,11 +97,7 @@ export async function prepareThumbnailDissolve({ elItem, elImg, newUrl }: Prepar
     };
   }
 
-  const isDifferent = await areThumbnailsDifferent({
-    currentSrc: elImg.src,
-    newSrc: newUrl
-  });
-  if (!isDifferent) {
+  if (elImg.src === newUrl) {
     return {
       willDissolve: false,
       newUrl

@@ -107,8 +107,9 @@ async function repaintInsertedThumbnails(newlyInsertedIds: Set<string>) {
   }
 
   // Re-assert each tile's thumbnail from its bound video until the grid is stable (or we hit the
-  // cap). Comparing by video id - not full URL - means we only overwrite when the painted image is
-  // a different video, so YouTube rotating the query string on the same thumbnail isn't fought.
+  // cap). The model's preferred source URL is exactly what YouTube paints and stays byte-stable per
+  // picture (sqp/rs only rotate when the image itself changes), so a full-URL compare repaints both
+  // a rebound tile (different video) and a same-id thumbnail the creator swapped, without churning.
   let stableFrames = 0;
   for (let i = 0; i < THUMBNAIL_REASSERT_FRAMES_MAX && stableFrames < THUMBNAIL_STABLE_FRAMES; i++) {
     const correctedCount = repaintInlineThumbnails();
@@ -126,27 +127,18 @@ function repaintInlineThumbnails() {
   let correctedCount = 0;
   for (const elItem of document.querySelectorAll<RichItemElement>(GRID_ITEM_SELECTOR)) {
     const url = thumbnailUrlFromContent(elItem.data.content);
-    const boundVideoId = videoIdFromThumbnailUrl(url);
-    if (!url || !boundVideoId) {
+    if (!url) {
       continue;
     }
 
     for (const elImg of thumbnailImgsInItem(elItem)) {
-      if (videoIdFromThumbnailUrl(elImg.src) !== boundVideoId) {
+      if (elImg.src !== url) {
         elImg.src = url;
         correctedCount++;
       }
     }
   }
   return correctedCount;
-}
-
-function videoIdFromThumbnailUrl(url: string) {
-  if (!url) {
-    return "";
-  }
-
-  return url.split("?")[0].match(/\/vi\/([^/]+)\//)?.[1] ?? "";
 }
 
 // Every thumbnail <img> in a tile, across the lockup shadow root and each thumbnail container's own
