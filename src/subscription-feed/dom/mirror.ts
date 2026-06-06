@@ -4,6 +4,20 @@ import type { Prettify } from "../types/prettify";
 import { isPolymerElement } from "../utils/polymer";
 import { deepArray, isRecord } from "../utils/records";
 import { videoIdFromData } from "../utils/video-id";
+import {
+  assignItemViewTransitionNames,
+  buildNewItemTransitionStyle,
+  buildShiftTransitionStyle,
+  calculateStaggerDelayMs,
+  clearAllItemViewTransitionNames,
+  clearItemViewTransitionNames,
+  extractAnimateIds,
+  isInViewport,
+  prefersReducedMotion,
+  reassignTransitionNames,
+  waitForFrames,
+  withViewTransitionLock
+} from "./animations";
 import { preloadThumbnail } from "./build";
 import { thumbnailUrlFromContent, thumbnailUrlFromRichItem, videoIdFromRichItem } from "./rich-item";
 
@@ -80,9 +94,93 @@ export async function mirrorFromApi({ apiContents }: MirrorFromApiParams) {
 
   await preloadNewThumbnails(newThumbnailUrls);
 
-  elGrid.set("data.contents", newContents);
+  await setContentsAnimated({
+    elGrid,
+    newContents,
+    newlyInsertedIds
+  });
 
   void repaintInsertedThumbnails(newlyInsertedIds);
+}
+
+type SetContentsAnimatedParams = Prettify<{
+  elGrid: HTMLElement;
+  newContents: Prettify<InnerTubeRichGridItem>[];
+  newlyInsertedIds: Set<string>;
+}>;
+
+// Writes the new contents inside a view transition so the inline (Latest-band) tiles slide to their
+// new positions instead of abruptly rebinding. The grid's dom-repeat is index-based: after the write
+// each reused node holds a different video, so the names assigned by video id before the write are
+// reassigned by the video each node now holds - the browser then matches each video id old -> new
+// and animates the move, keeping the thumbnail painted throughout. New videos slide in.
+async function setContentsAnimated({ elGrid, newContents, newlyInsertedIds }: SetContentsAnimatedParams) {
+  if (!isPolymerElement(elGrid)) {
+    return;
+  }
+
+  const isAnimatable = "startViewTransition" in document && !prefersReducedMotion();
+  if (!isAnimatable) {
+    elGrid.set("data.contents", newContents);
+    return;
+  }
+
+  clearAllItemViewTransitionNames();
+  const elShiftItems = [...document.querySelectorAll<HTMLElement>(GRID_ITEM_SELECTOR)].filter(isInViewport);
+  assignItemViewTransitionNames(elShiftItems);
+  const animateIds = extractAnimateIds(elShiftItems);
+  const elShiftStyle = buildShiftTransitionStyle({
+    elItems: elShiftItems,
+    delayPerItemMs: calculateStaggerDelayMs(elShiftItems.length)
+  });
+  document.head.append(elShiftStyle);
+  const elNewItemStyles: HTMLStyleElement[] = [];
+
+  const expectedInlineIds = newContents.map(videoIdFromRichItem).filter(Boolean).join();
+  function isRebindFlushed() {
+    const domInlineIds = [...document.querySelectorAll<HTMLElement>(GRID_ITEM_SELECTOR)]
+      .map(elItem => (isPolymerElement(elItem) ? videoIdFromData(elItem.data) : ""))
+      .filter(Boolean)
+      .join();
+    return domInlineIds === expectedInlineIds;
+  }
+
+  await withViewTransitionLock(async () => {
+    try {
+      await document.startViewTransition(async () => {
+        elGrid.set("data.contents", newContents);
+        await waitForFrames({ predicate: isRebindFlushed });
+        const elAfter = document.querySelectorAll<HTMLElement>(GRID_ITEM_SELECTOR);
+        reassignTransitionNames({
+          elItems: elAfter,
+          animateIds
+        });
+        const elNewItems: HTMLElement[] = [];
+        for (const elItem of elAfter) {
+          const videoId = isPolymerElement(elItem) ? videoIdFromData(elItem.data) : "";
+          if (videoId && newlyInsertedIds.has(videoId) && isInViewport(elItem)) {
+            elItem.style.viewTransitionName = `ytsua-item-${videoId}`;
+            elNewItems.push(elItem);
+          }
+        }
+
+        if (elNewItems.length > 0) {
+          const elStyle = buildNewItemTransitionStyle(elNewItems);
+          document.head.append(elStyle);
+          elNewItemStyles.push(elStyle);
+        }
+
+        repaintInlineThumbnails();
+      }).finished;
+    } finally {
+      elShiftStyle.remove();
+      for (const elStyle of elNewItemStyles) {
+        elStyle.remove();
+      }
+      clearItemViewTransitionNames(elShiftItems);
+      clearAllItemViewTransitionNames();
+    }
+  });
 }
 
 function preloadNewThumbnails(newThumbnailUrls: Map<string, string>) {
