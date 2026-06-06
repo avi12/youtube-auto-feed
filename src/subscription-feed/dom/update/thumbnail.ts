@@ -9,6 +9,14 @@ const FETCH_CHUNK_SIZE = 8192;
 
 export function findThumbnailImg(elLockup: HTMLElement) {
   const root: ShadowRoot | HTMLElement = elLockup.shadowRoot ?? elLockup;
+  // The visible lockup thumbnail is the <img> inside yt-thumbnail-view-model. Prefer it over any
+  // bare yt-image (the channel avatar, or an empty/lazy thumbnail slot left mid-rebind): writing
+  // src to a non-visible yt-image leaves the painted tile showing the previous occupant's image.
+  const elThumbnailViewModelImg = root.querySelector<HTMLImageElement>("yt-thumbnail-view-model img");
+  if (elThumbnailViewModelImg) {
+    return elThumbnailViewModelImg;
+  }
+
   for (const elYtImage of root.querySelectorAll<HTMLElement>("yt-image")) {
     const elImg = elYtImage.shadowRoot?.querySelector<HTMLImageElement>("img")
       ?? elYtImage.querySelector<HTMLImageElement>("img");
@@ -16,7 +24,7 @@ export function findThumbnailImg(elLockup: HTMLElement) {
       return elImg;
     }
   }
-  return root.querySelector<HTMLImageElement>("yt-thumbnail-view-model img");
+  return null;
 }
 
 type ApplyProgressBarUpdateParams = Prettify<{
@@ -65,7 +73,9 @@ export function findThumbnailImgInItem(elItem: HTMLElement) {
 }
 
 async function fetchImageBase64(url: string) {
-  const response = await fetch(url.split("?")[0]);
+  // Fetch the full URL: the sqp/rs query selects the actual crop/variant, so stripping it would
+  // compare the base image and miss a same-path thumbnail change.
+  const response = await fetch(url);
   if (!response.ok) {
     return null;
   }
@@ -86,7 +96,7 @@ type AreThumbnailsDifferentParams = Prettify<{
 }>;
 
 async function areThumbnailsDifferent({ currentSrc, newSrc }: AreThumbnailsDifferentParams) {
-  if (currentSrc.split("?")[0] === newSrc.split("?")[0]) {
+  if (currentSrc === newSrc) {
     return false;
   }
 
