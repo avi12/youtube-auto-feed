@@ -12,8 +12,11 @@ import { findRichItemIndex } from "../rich-item";
 // Lockup metadata lives in multiple places (the element's `data`, the grid's data.contents,
 // every rich shelf's contents) so `mutateLockupMetadata` walks all of them.
 
+// Identity of the thumbnail image: the full URL including the sqp/rs query. The query - not the
+// path - is what changes when a creator swaps the thumbnail (the /vi/{id}/ path stays the same), so
+// a path-only key would treat the new image as identical and keep grafting the stale one.
 function getThumbnailUrlKey(contentImage: LockupViewModel["contentImage"]) {
-  return contentImage?.thumbnailViewModel?.image?.sources?.[0]?.url?.split("?")[0];
+  return contentImage?.thumbnailViewModel?.image?.sources?.[0]?.url;
 }
 
 function getAvatarImage(viewModel: Prettify<LockupViewModel>) {
@@ -53,7 +56,14 @@ export function mergeContentImagePreservingThumbnail({ existing, incoming }: Mer
     return incoming;
   }
 
-  // Keep the already-loaded image bytes to avoid a network re-fetch when the URL key is unchanged.
+  // Only graft the already-loaded bytes when it is the same picture (same URL key, ignoring query
+  // params). If the keys differ the existing image belongs to a different video/thumbnail, and
+  // keeping it would pair the incoming video's id with the previous occupant's thumbnail and
+  // overlays - the off-by-one "wrong thumbnail" corruption. In that case take the incoming image.
+  if (getThumbnailUrlKey(existing) !== getThumbnailUrlKey(incoming)) {
+    return incoming;
+  }
+
   return {
     ...incoming,
     thumbnailViewModel: {
