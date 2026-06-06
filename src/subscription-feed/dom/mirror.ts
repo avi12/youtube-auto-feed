@@ -407,11 +407,13 @@ type MergeBandParams = Prettify<{
 
 // Walk both bands against their longest common subsequence. Between two shared anchors: drop-but-
 // retained videos (gone from the API, still within the sticky window) keep their slot, then API-side
-// videos (new or reordered) fill in. Every emitted item is a fresh structuredClone, never a live
-// model object: handing Polymer a previously-instrumented object lets its path-effect machinery
-// link the slot to that object's old position and bleed a neighbor's contentImage into it (videoId
-// from one video, thumbnail/overlays from another). Cloning from the API item also self-repairs any
-// item the grid had already corrupted, since the API payload is always internally consistent.
+// videos (new or reordered) fill in. Each video already present in the band keeps its LIVE current
+// item reference; only genuinely new videos use the API item. Preserving identity lets Polymer's
+// index-based dom-repeat reuse the existing node for any video whose index is unchanged - so its
+// thumbnail is never reloaded and the band doesn't flash. reflowBandIntoRuns then clones exactly the
+// items whose final index differs from their original, which is what prevents the path-effect bleed
+// (a moved object linking its slot to a neighbor's contentImage); items that never change slot stay
+// untouched and so can't bleed.
 function mergeBand({
   currentBand,
   apiBand,
@@ -420,16 +422,21 @@ function mergeBand({
   apiItemById,
   retainedDroppedIds
 }: MergeBandParams) {
+  const currentItemById = new Map(currentBand.map(entry => [entry.videoId, entry.item]));
   const target: Prettify<InnerTubeRichGridItem>[] = [];
   let currentIndex = 0;
   let apiIndex = 0;
+
+  function itemFor(videoId: string) {
+    return currentItemById.get(videoId) ?? apiItemById.get(videoId);
+  }
 
   function drainCurrentUntil(anchor: string | null) {
     while (currentIndex < currentBand.length && currentBand[currentIndex].videoId !== anchor) {
       const { videoId, item } = currentBand[currentIndex];
       const isDroppedAndRetained = !apiBandIds.has(videoId) && retainedDroppedIds.has(videoId);
       if (isDroppedAndRetained) {
-        target.push(structuredClone(item));
+        target.push(item);
       }
 
       currentIndex++;
@@ -438,7 +445,8 @@ function mergeBand({
 
   function drainApiUntil(anchor: string | null) {
     while (apiIndex < apiBand.length && apiBand[apiIndex].videoId !== anchor) {
-      target.push(structuredClone(apiBand[apiIndex].item));
+      const { videoId, item } = apiBand[apiIndex];
+      target.push(itemFor(videoId) ?? item);
       apiIndex++;
     }
   }
@@ -446,9 +454,9 @@ function mergeBand({
   for (const anchor of lcs) {
     drainCurrentUntil(anchor);
     drainApiUntil(anchor);
-    const anchorItem = apiItemById.get(anchor);
+    const anchorItem = itemFor(anchor);
     if (anchorItem) {
-      target.push(structuredClone(anchorItem));
+      target.push(anchorItem);
     }
 
     currentIndex++;
