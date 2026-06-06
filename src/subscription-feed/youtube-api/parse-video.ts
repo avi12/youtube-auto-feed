@@ -35,7 +35,7 @@ export function parseRenderer({ renderer, sectionTitle, bandIndex }: ParseRender
   return {
     videoId,
     title: runs?.[0]?.text ?? simpleText ?? "",
-    thumbnailUrl: thumbnail.thumbnails.at(-1)?.url.split("?")[0] ?? "",
+    thumbnailUrl: thumbnail.thumbnails.at(-1)?.url ?? "",
     status: statusFromRenderer(renderer),
     viewCountText: viewCountFromRenderer(renderer),
     publishedTimeText: publishedTimeText?.simpleText ?? "",
@@ -58,7 +58,11 @@ export function parseLockupViewModel({ lockup, sectionTitle, bandIndex }: ParseL
   const metaViewModel = metadata?.lockupMetadataViewModel;
   const title = metaViewModel?.title?.content ?? "";
   const sources = contentImage?.thumbnailViewModel?.image?.sources;
-  const thumbnailUrl = sources?.at(-1)?.url.split("?")[0] ?? "";
+  // Keep the full URL (query included): a creator changing the thumbnail keeps the same /vi/{id}/
+  // path and only rotates the sqp/rs query, so a path-only key would miss the change and the diff
+  // would never refresh the now-stale thumbnail. sqp/rs are stable across polls for an unchanged
+  // image, so the full URL doesn't churn.
+  const thumbnailUrl = sources?.at(-1)?.url ?? "";
   const metaRows = metaViewModel?.metadata?.contentMetadataViewModel?.metadataRows;
   const metaParts = metaRows?.[1]?.metadataParts;
   const viewCountText = metaParts?.[0]?.text?.content ?? "";
@@ -93,7 +97,7 @@ export function parseShortsLockupViewModel(
 
   const { primaryText, secondaryText } = overlayMetadata ?? {};
   const title = primaryText?.content ?? accessibilityText;
-  const thumbnailUrl = thumbnail?.sources?.at(-1)?.url.split("?")[0] ?? "";
+  const thumbnailUrl = thumbnail?.sources?.at(-1)?.url ?? "";
   const viewCountText = secondaryText?.content ?? "";
   return {
     videoId,
