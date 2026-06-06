@@ -1,7 +1,7 @@
 import type { InnerTubeRichGridItem } from "../types/innertube";
 import type { PolymerElement } from "../types/polymer";
 import type { Prettify } from "../types/prettify";
-import { isPolymerElement } from "../utils/polymer";
+import { flushPolymerRender, isPolymerElement } from "../utils/polymer";
 import { deepArray, isRecord } from "../utils/records";
 import { videoIdFromData } from "../utils/video-id";
 import {
@@ -15,7 +15,6 @@ import {
   isInViewport,
   prefersReducedMotion,
   reassignTransitionNames,
-  waitForFrames,
   withViewTransitionLock
 } from "./animations";
 import { preloadThumbnail } from "./build";
@@ -136,20 +135,16 @@ async function setContentsAnimated({ elGrid, newContents, newlyInsertedIds }: Se
   document.head.append(elShiftStyle);
   const elNewItemStyles: HTMLStyleElement[] = [];
 
-  const expectedInlineIds = newContents.map(videoIdFromRichItem).filter(Boolean).join();
-  function isRebindFlushed() {
-    const domInlineIds = [...document.querySelectorAll<HTMLElement>(GRID_ITEM_SELECTOR)]
-      .map(elItem => (isPolymerElement(elItem) ? videoIdFromData(elItem.data) : ""))
-      .filter(Boolean)
-      .join();
-    return domInlineIds === expectedInlineIds;
-  }
-
   await withViewTransitionLock(async () => {
     try {
-      await document.startViewTransition(async () => {
+      await document.startViewTransition(() => {
         elGrid.set("data.contents", newContents);
-        await waitForFrames({ predicate: isRebindFlushed });
+        // Flush synchronously rather than awaiting a frame: requestAnimationFrame does not advance
+        // inside a view-transition update callback, so awaiting one here stalls the callback until
+        // the browser's ~4s transition timeout, freezing the grid (no tile is interactable) the
+        // whole time. A synchronous flush applies the dom-repeat rebind in this tick so the new
+        // node-to-video binding is ready for reassignTransitionNames immediately.
+        flushPolymerRender();
         const elAfter = document.querySelectorAll<HTMLElement>(GRID_ITEM_SELECTOR);
         reassignTransitionNames({
           elItems: elAfter,
