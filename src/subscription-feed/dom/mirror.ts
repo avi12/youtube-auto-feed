@@ -4,21 +4,7 @@ import type { Prettify } from "../types/prettify";
 import { flushPolymerRender, isPolymerElement } from "../utils/polymer";
 import { deepArray, isRecord } from "../utils/records";
 import { videoIdFromData } from "../utils/video-id";
-import {
-  animateItemsOut,
-  assignItemViewTransitionNames,
-  buildNewItemTransitionStyle,
-  buildShiftTransitionStyle,
-  calculateStaggerDelayMs,
-  clearAllItemViewTransitionNames,
-  clearItemViewTransitionNames,
-  clearRemovingClass,
-  extractAnimateIds,
-  isInViewport,
-  prefersReducedMotion,
-  reassignTransitionNames,
-  withViewTransitionLock
-} from "./animations";
+import { animateItemsOut, isInViewport, prefersReducedMotion, triggerAnimation } from "./animations";
 import { preloadThumbnail } from "./build";
 import { thumbnailUrlFromContent, thumbnailUrlFromRichItem, videoIdFromRichItem } from "./rich-item";
 
@@ -49,6 +35,12 @@ const GRID_ITEM_SELECTOR = "ytd-rich-grid-renderer > #contents > ytd-rich-item-r
 // polls, so the API's noisy pagination tail (videos that flicker out and back at the page boundary)
 // doesn't churn the grid. Genuine removals outlast the threshold and are diffed out.
 const STICKY_DELETE_POLLS = 4;
+const SURVIVOR_SHIFT_MS = 380;
+const REMOVAL_SETTLE_FRAMES_MAX = 12;
+const REMOVAL_STABLE_FRAMES = 2;
+// Tiles just below the fold slide up into view when something above them is removed; record and
+// animate them too. Covers a few rows of the largest tiles so multi-item shifts still animate.
+const REFLOW_MARGIN_BELOW_PX = 1200;
 const absenceCountByVideoId = new Map<string, number>();
 
 type MirrorFromApiParams = Prettify<{
@@ -95,119 +87,203 @@ export async function mirrorFromApi({ apiContents }: MirrorFromApiParams) {
 
   await preloadNewThumbnails(newThumbnailUrls);
 
-  await animateRemovedTiles(newContents);
+  // One reflow path for every change. A view transition can't drive it: the grid detaches/rebinds
+  // nodes via requestAnimationFrame, which is stalled for the whole transition, so a removal's
+  // survivors never move until it ends. Instead fade any dropped tiles out, write, then FLIP every
+  // survivor from its old slot to its new one - released together so they glide simultaneously
+  // (Google-Meet style) rather than cascading. Reduced motion gets an instant write.
+  if (prefersReducedMotion()) {
+    elGrid.set("data.contents", newContents);
+  } else {
+    const elRemovedTiles = findRemovedViewportTiles(newContents);
+    if (elRemovedTiles.length > 0) {
+      await animateItemsOut(elRemovedTiles);
+    }
 
-  await setContentsAnimated({
-    elGrid,
-    newContents,
-    newlyInsertedIds
-  });
+    await setContentsWithFlip({
+      elGrid,
+      newContents,
+      newlyInsertedIds
+    });
+  }
 
   void repaintInsertedThumbnails(newlyInsertedIds);
 }
 
-// Slide dropped tiles out before the data write. The grid detaches a removed node a frame after the
-// write (and reuses the dropped video's own node for its neighbour), so a view transition can't
-// capture the removal - it has to be animated on the live tile up front. The write then shifts the
-// survivors up; setContentsAnimated clears the removing class inside its transition so any node the
-// dropped one's slot rebinds to is visible again.
-async function animateRemovedTiles(newContents: Prettify<InnerTubeRichGridItem>[]) {
-  if (prefersReducedMotion()) {
-    return;
-  }
-
+function findRemovedViewportTiles(newContents: Prettify<InnerTubeRichGridItem>[]) {
   const newInlineIds = new Set(newContents.map(videoIdFromRichItem).filter(Boolean));
-  const elRemovedTiles = [...document.querySelectorAll<HTMLElement>(GRID_ITEM_SELECTOR)]
+  return [...document.querySelectorAll<HTMLElement>(GRID_ITEM_SELECTOR)]
     .filter(isInViewport)
     .filter(elItem => {
       const videoId = isPolymerElement(elItem) ? videoIdFromData(elItem.data) : "";
       return !!videoId && !newInlineIds.has(videoId);
     });
-  if (elRemovedTiles.length === 0) {
-    return;
-  }
-
-  await animateItemsOut(elRemovedTiles);
 }
 
-type SetContentsAnimatedParams = Prettify<{
-  elGrid: HTMLElement;
-  newContents: Prettify<InnerTubeRichGridItem>[];
+function inlineDomVideoIds() {
+  return [...document.querySelectorAll<HTMLElement>(GRID_ITEM_SELECTOR)]
+    .map(elItem => (isPolymerElement(elItem) ? videoIdFromData(elItem.data) : ""))
+    .filter(Boolean)
+    .join();
+}
+
+// The reflow zone is the viewport plus a margin below it, so tiles that slide up into view from
+// just under the fold are recorded and animated, not just the ones already on screen.
+function isInReflowZone(elItem: HTMLElement) {
+  const { bottom, top } = elItem.getBoundingClientRect();
+  return bottom > 0 && top < innerHeight + REFLOW_MARGIN_BELOW_PX;
+}
+
+function recordReflowZoneRects() {
+  const rects = new Map<string, DOMRect>();
+  for (const elItem of document.querySelectorAll<HTMLElement>(GRID_ITEM_SELECTOR)) {
+    if (!isInReflowZone(elItem) || !isPolymerElement(elItem)) {
+      continue;
+    }
+
+    const videoId = videoIdFromData(elItem.data);
+    if (videoId) {
+      rects.set(videoId, elItem.getBoundingClientRect());
+    }
+  }
+  return rects;
+}
+
+function clearItemShiftOffsets() {
+  for (const elItem of document.querySelectorAll<HTMLElement>(GRID_ITEM_SELECTOR)) {
+    if (elItem.style.translate || elItem.style.transition) {
+      elItem.style.translate = "";
+      elItem.style.transition = "";
+    }
+  }
+}
+
+type PinSurvivorsParams = Prettify<{
+  oldRects: Map<string, DOMRect>;
   newlyInsertedIds: Set<string>;
 }>;
 
-// Writes the new contents inside a view transition so the inline (Latest-band) tiles slide to their
-// new positions instead of abruptly rebinding. The grid's dom-repeat is index-based: after the write
-// each reused node holds a different video, so the names assigned by video id before the write are
-// reassigned by the video each node now holds - the browser then matches each video id old -> new
-// and animates the move, keeping the thumbnail painted throughout. New videos slide in.
-async function setContentsAnimated({ elGrid, newContents, newlyInsertedIds }: SetContentsAnimatedParams) {
+// Hold each survivor at the screen position it had before the write by offsetting it with the
+// `translate` property. Re-run every frame while the grid settles: the mirror clones shifted items
+// so Polymer re-stamps their nodes asynchronously, and re-pinning catches whatever node currently
+// holds each video. The offset is measured from the untranslated rect, so it stays correct as the
+// grid reflows underneath.
+function pinSurvivorsToOldRects({ oldRects, newlyInsertedIds }: PinSurvivorsParams) {
+  for (const elItem of document.querySelectorAll<HTMLElement>(GRID_ITEM_SELECTOR)) {
+    if (!isInReflowZone(elItem) || !isPolymerElement(elItem)) {
+      continue;
+    }
+
+    const videoId = videoIdFromData(elItem.data);
+    const isPinnable = !!videoId && !newlyInsertedIds.has(videoId) && oldRects.has(videoId);
+    if (!isPinnable) {
+      continue;
+    }
+
+    const oldRect = oldRects.get(videoId);
+    if (!oldRect) {
+      continue;
+    }
+
+    elItem.style.transition = "none";
+    elItem.style.translate = "";
+    const newRect = elItem.getBoundingClientRect();
+    const deltaX = oldRect.left - newRect.left;
+    const deltaY = oldRect.top - newRect.top;
+    if (Math.abs(deltaX) >= 1 || Math.abs(deltaY) >= 1) {
+      elItem.style.translate = `${deltaX}px ${deltaY}px`;
+    }
+  }
+}
+
+// Animate every pinned survivor from its held (old) position to its real one.
+function releaseSurvivors() {
+  for (const elItem of document.querySelectorAll<HTMLElement>(GRID_ITEM_SELECTOR)) {
+    if (!elItem.style.translate) {
+      continue;
+    }
+
+    elItem.style.transition = `translate ${SURVIVOR_SHIFT_MS}ms cubic-bezier(0.4, 0, 0.2, 1)`;
+    elItem.style.translate = "";
+    elItem.addEventListener("transitionend", () => {
+      elItem.style.transition = "";
+      elItem.style.translate = "";
+    }, { once: true });
+  }
+}
+
+function animateNewEntrances(newlyInsertedIds: Set<string>) {
+  if (newlyInsertedIds.size === 0) {
+    return;
+  }
+
+  for (const elItem of document.querySelectorAll<HTMLElement>(GRID_ITEM_SELECTOR)) {
+    if (!isInViewport(elItem) || !isPolymerElement(elItem)) {
+      continue;
+    }
+
+    const videoId = videoIdFromData(elItem.data);
+    if (videoId && newlyInsertedIds.has(videoId)) {
+      triggerAnimation({
+        elTarget: elItem,
+        animationClass: "ytsua-new"
+      });
+    }
+  }
+}
+
+// Reflow path for inserts, removals and reorders. Dropped tiles have already faded out. Snapshot
+// survivor positions, write, then hold every survivor at its old position each frame until the
+// grid's deferred rebind/re-stamp settles, revealing any reused node along the way; finally release
+// them so they glide into place together. New tiles get the entrance animation.
+async function setContentsWithFlip({ elGrid, newContents, newlyInsertedIds }: SetContentsParams) {
   if (!isPolymerElement(elGrid)) {
     return;
   }
 
-  const isAnimatable = "startViewTransition" in document && !prefersReducedMotion();
-  if (!isAnimatable) {
-    elGrid.set("data.contents", newContents);
-    return;
+  clearItemShiftOffsets();
+  const oldRects = recordReflowZoneRects();
+  const newInlineIds = new Set(newContents.map(videoIdFromRichItem).filter((id): id is string => !!id));
+  elGrid.set("data.contents", newContents);
+  flushPolymerRender();
+
+  const expectedInlineIds = [...newInlineIds].join();
+  let stableFrames = 0;
+  for (let i = 0; i < REMOVAL_SETTLE_FRAMES_MAX && stableFrames < REMOVAL_STABLE_FRAMES; i++) {
+    // Reveal and re-pin inside the frame, after the grid has applied its deferred shrink/rebind for
+    // this frame but before it paints, so the survivors are never painted at their snapped-up
+    // positions (which would flicker before the slide begins). Reveal only nodes that now hold a
+    // surviving video - a node still showing a dropped video stays faded so it can't flash back.
+    await new Promise<void>(resolve => requestAnimationFrame(() => {
+      revealReboundSurvivors(newInlineIds);
+      pinSurvivorsToOldRects({
+        oldRects,
+        newlyInsertedIds
+      });
+      resolve();
+    }));
+    stableFrames = inlineDomVideoIds() === expectedInlineIds ? stableFrames + 1 : 0;
   }
 
-  clearAllItemViewTransitionNames();
-  const elShiftItems = [...document.querySelectorAll<HTMLElement>(GRID_ITEM_SELECTOR)].filter(isInViewport);
-  assignItemViewTransitionNames(elShiftItems);
-  const animateIds = extractAnimateIds(elShiftItems);
-  const elShiftStyle = buildShiftTransitionStyle({
-    elItems: elShiftItems,
-    delayPerItemMs: calculateStaggerDelayMs(elShiftItems.length)
-  });
-  document.head.append(elShiftStyle);
-  const elNewItemStyles: HTMLStyleElement[] = [];
-
-  await withViewTransitionLock(async () => {
-    try {
-      await document.startViewTransition(() => {
-        elGrid.set("data.contents", newContents);
-        // Flush synchronously rather than awaiting a frame: requestAnimationFrame does not advance
-        // inside a view-transition update callback, so awaiting one here stalls the callback until
-        // the browser's ~4s transition timeout, freezing the grid (no tile is interactable) the
-        // whole time. A synchronous flush applies the dom-repeat rebind in this tick so the new
-        // node-to-video binding is ready for reassignTransitionNames immediately.
-        flushPolymerRender();
-        const elAfter = document.querySelectorAll<HTMLElement>(GRID_ITEM_SELECTOR);
-        // A dropped tile faded out (opacity 0) before the write; its node now holds a survivor, so
-        // clear the removing class to make that survivor visible in the post-write snapshot.
-        clearRemovingClass(elAfter);
-        reassignTransitionNames({
-          elItems: elAfter,
-          animateIds
-        });
-        const elNewItems: HTMLElement[] = [];
-        for (const elItem of elAfter) {
-          const videoId = isPolymerElement(elItem) ? videoIdFromData(elItem.data) : "";
-          if (videoId && newlyInsertedIds.has(videoId) && isInViewport(elItem)) {
-            elItem.style.viewTransitionName = `ytsua-item-${videoId}`;
-            elNewItems.push(elItem);
-          }
-        }
-
-        if (elNewItems.length > 0) {
-          const elStyle = buildNewItemTransitionStyle(elNewItems);
-          document.head.append(elStyle);
-          elNewItemStyles.push(elStyle);
-        }
-
-        repaintInlineThumbnails();
-      }).finished;
-    } finally {
-      elShiftStyle.remove();
-      for (const elStyle of elNewItemStyles) {
-        elStyle.remove();
-      }
-      clearItemViewTransitionNames(elShiftItems);
-      clearAllItemViewTransitionNames();
-    }
-  });
+  releaseSurvivors();
+  animateNewEntrances(newlyInsertedIds);
+  repaintInlineThumbnails();
 }
+
+function revealReboundSurvivors(newInlineIds: Set<string>) {
+  for (const elItem of document.querySelectorAll<HTMLElement>(GRID_ITEM_SELECTOR)) {
+    const videoId = isPolymerElement(elItem) ? videoIdFromData(elItem.data) : "";
+    if (videoId && newInlineIds.has(videoId)) {
+      elItem.classList.remove("ytsua-removing");
+    }
+  }
+}
+
+type SetContentsParams = Prettify<{
+  elGrid: HTMLElement;
+  newContents: Prettify<InnerTubeRichGridItem>[];
+  newlyInsertedIds: Set<string>;
+}>;
 
 function preloadNewThumbnails(newThumbnailUrls: Map<string, string>) {
   const urls = [...newThumbnailUrls.values()];
