@@ -21,6 +21,31 @@ function hasMetadataChange({ previous, fresh }: HasMetadataChangeParams) {
     || previous.watchProgressPercent !== fresh.watchProgressPercent;
 }
 
+type StickyWatchProgressParams = Prettify<{
+  fresh: Prettify<VideoSnapshot>;
+  previous: Prettify<VideoSnapshot> | undefined;
+}>;
+
+// YouTube's subscription feed responses are inconsistent about the watch-progress overlay: the same
+// already-watched video carries its progress bar in some polls and omits it in others (backend
+// eventual consistency). Treating that disappearance as a real change rebuilds the tile, reloading
+// its thumbnail and avatar - a visible flicker every time the overlay flickers in and out. So once a
+// video has a watch-progress value, a later response that drops it carries the last value forward
+// instead of falling back to null. A genuine value change (or first appearance) still flows through.
+export function withStickyWatchProgress({ fresh, previous }: StickyWatchProgressParams) {
+  const shouldCarryForward = fresh.watchProgressPercent === null
+    && previous !== undefined
+    && previous.watchProgressPercent !== null;
+  if (!shouldCarryForward) {
+    return fresh;
+  }
+
+  return {
+    ...fresh,
+    watchProgressPercent: previous.watchProgressPercent
+  };
+}
+
 type DetectAndApplyMetadataChangesParams = Prettify<{
   previousSnapshot: Map<string, Prettify<VideoSnapshot>>;
   freshSnapshots: Prettify<VideoSnapshot>[];
@@ -33,12 +58,16 @@ export function detectAndApplyMetadataChanges({
   const updatedSnapshot = new Map(previousSnapshot);
   const changedVideos: Prettify<VideoSnapshot>[] = [];
 
-  for (const fresh of freshSnapshots) {
-    const previous = previousSnapshot.get(fresh.videoId);
+  for (const rawFresh of freshSnapshots) {
+    const previous = previousSnapshot.get(rawFresh.videoId);
     if (!previous) {
       continue;
     }
 
+    const fresh = withStickyWatchProgress({
+      fresh: rawFresh,
+      previous
+    });
     if (hasMetadataChange({
       previous,
       fresh

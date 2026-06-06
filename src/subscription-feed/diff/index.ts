@@ -3,7 +3,7 @@ import { cleanOrphanedGridItems } from "../dom/orphan-cleanup";
 import type { InnerTubeRichGridItem } from "../types/innertube";
 import type { Prettify } from "../types/prettify";
 import type { VideoSnapshot } from "../types/video";
-import { detectAndApplyMetadataChanges } from "./metadata-diff";
+import { detectAndApplyMetadataChanges, withStickyWatchProgress } from "./metadata-diff";
 
 export { detectAndApplyMetadataChanges } from "./metadata-diff";
 
@@ -23,7 +23,12 @@ export async function detectAndApplyChanges({
     const existing = freshMap.get(video.videoId);
     const shouldPreferLatestBandEntry = !existing || !existing.sectionTitle;
     if (shouldPreferLatestBandEntry) {
-      freshMap.set(video.videoId, video);
+      freshMap.set(
+        video.videoId, withStickyWatchProgress({
+          fresh: video,
+          previous: previousSnapshot.get(video.videoId)
+        })
+      );
     }
   }
 
