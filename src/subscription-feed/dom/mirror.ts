@@ -5,12 +5,14 @@ import { flushPolymerRender, isPolymerElement } from "../utils/polymer";
 import { deepArray, isRecord } from "../utils/records";
 import { videoIdFromData } from "../utils/video-id";
 import {
+  animateItemsOut,
   assignItemViewTransitionNames,
   buildNewItemTransitionStyle,
   buildShiftTransitionStyle,
   calculateStaggerDelayMs,
   clearAllItemViewTransitionNames,
   clearItemViewTransitionNames,
+  clearRemovingClass,
   extractAnimateIds,
   isInViewport,
   prefersReducedMotion,
@@ -93,6 +95,8 @@ export async function mirrorFromApi({ apiContents }: MirrorFromApiParams) {
 
   await preloadNewThumbnails(newThumbnailUrls);
 
+  await animateRemovedTiles(newContents);
+
   await setContentsAnimated({
     elGrid,
     newContents,
@@ -100,6 +104,30 @@ export async function mirrorFromApi({ apiContents }: MirrorFromApiParams) {
   });
 
   void repaintInsertedThumbnails(newlyInsertedIds);
+}
+
+// Slide dropped tiles out before the data write. The grid detaches a removed node a frame after the
+// write (and reuses the dropped video's own node for its neighbour), so a view transition can't
+// capture the removal - it has to be animated on the live tile up front. The write then shifts the
+// survivors up; setContentsAnimated clears the removing class inside its transition so any node the
+// dropped one's slot rebinds to is visible again.
+async function animateRemovedTiles(newContents: Prettify<InnerTubeRichGridItem>[]) {
+  if (prefersReducedMotion()) {
+    return;
+  }
+
+  const newInlineIds = new Set(newContents.map(videoIdFromRichItem).filter(Boolean));
+  const elRemovedTiles = [...document.querySelectorAll<HTMLElement>(GRID_ITEM_SELECTOR)]
+    .filter(isInViewport)
+    .filter(elItem => {
+      const videoId = isPolymerElement(elItem) ? videoIdFromData(elItem.data) : "";
+      return !!videoId && !newInlineIds.has(videoId);
+    });
+  if (elRemovedTiles.length === 0) {
+    return;
+  }
+
+  await animateItemsOut(elRemovedTiles);
 }
 
 type SetContentsAnimatedParams = Prettify<{
@@ -146,6 +174,9 @@ async function setContentsAnimated({ elGrid, newContents, newlyInsertedIds }: Se
         // node-to-video binding is ready for reassignTransitionNames immediately.
         flushPolymerRender();
         const elAfter = document.querySelectorAll<HTMLElement>(GRID_ITEM_SELECTOR);
+        // A dropped tile faded out (opacity 0) before the write; its node now holds a survivor, so
+        // clear the removing class to make that survivor visible in the post-write snapshot.
+        clearRemovingClass(elAfter);
         reassignTransitionNames({
           elItems: elAfter,
           animateIds

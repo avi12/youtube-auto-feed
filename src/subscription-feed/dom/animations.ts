@@ -160,6 +160,12 @@ export function clearAllItemViewTransitionNames() {
   }
 }
 
+export function clearRemovingClass(elItems: Iterable<HTMLElement>) {
+  for (const elItem of elItems) {
+    elItem.classList.remove("ytsua-removing");
+  }
+}
+
 export async function animateItemsOut(elItems: HTMLElement[]) {
   if (elItems.length === 0) {
     return;
