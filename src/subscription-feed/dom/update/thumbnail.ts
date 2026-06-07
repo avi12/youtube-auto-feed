@@ -1,10 +1,11 @@
 import type { Prettify } from "../../types/prettify";
+import { prefersReducedMotion } from "../animations";
 
 // Thumbnail handling: finding the <img> element across both shadow-DOM lockups and the legacy
 // markup, deciding whether the picture actually changed, and preparing the dissolve crossfade.
-// YouTube's preferred source URL is byte-stable per picture (the sqp/rs query rotates only when the
-// image itself changes), so a full-URL compare is an exact identity - no need to fetch and diff the
-// bytes. Also handles the watch-progress bar fill since it lives inside the same shadow tree.
+// The sqp/rs query params in YouTube's thumbnail URLs rotate on CDN re-sign independently of the
+// actual image bytes - only the path portion is stable per picture. Also handles the watch-progress
+// bar fill since it lives inside the same shadow tree.
 
 export function findThumbnailImg(elLockup: HTMLElement) {
   const root: ShadowRoot | HTMLElement = elLockup.shadowRoot ?? elLockup;
@@ -97,7 +98,7 @@ export async function prepareThumbnailDissolve({ elItem, elImg, newUrl }: Prepar
     };
   }
 
-  if (elImg.src === newUrl) {
+  if (elImg.src.split("?")[0] === newUrl.split("?")[0]) {
     return {
       willDissolve: false,
       newUrl
@@ -117,4 +118,23 @@ export async function prepareThumbnailDissolve({ elItem, elImg, newUrl }: Prepar
     willDissolve: true,
     newUrl
   };
+}
+
+const THUMBNAIL_VT_NAME_PREFIX = "ytsua-thumb-";
+
+// Cross-dissolves to a new thumbnail via a named View Transition. The browser captures the old
+// and new painted frames of the <img> and blends them - this works across shadow-root boundaries
+// because VT operates on composited output, not on the CSS class mechanism.
+export async function dissolveThumbnail(elImg: HTMLImageElement, newUrl: string, videoId: string) {
+  if (prefersReducedMotion() || !document.startViewTransition) {
+    elImg.src = newUrl;
+    return;
+  }
+
+  elImg.style.viewTransitionName = `${THUMBNAIL_VT_NAME_PREFIX}${videoId}`;
+  const transition = document.startViewTransition(() => {
+    elImg.src = newUrl;
+  });
+  await transition.finished;
+  elImg.style.viewTransitionName = "";
 }

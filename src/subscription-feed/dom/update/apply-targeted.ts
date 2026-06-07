@@ -17,6 +17,7 @@ import {
 } from "./text-fields";
 import {
   applyProgressBarUpdate,
+  dissolveThumbnail,
   findThumbnailImg,
   findThumbnailImgInItem,
   prepareThumbnailDissolve
@@ -99,20 +100,10 @@ export async function applyTargetedGenericUpdate({
     return;
   }
 
-  const elements = [...textElements];
-  if (thumbWork?.willDissolve && elImg) {
-    elements.push(elImg);
-  }
-
   applyWithDissolve({
-    elements,
+    elements: [...textElements],
     apply() {
       applyText();
-
-      if (thumbWork?.willDissolve && elImg) {
-        elImg.src = thumbWork.newUrl;
-      }
-
       syncGridModelItem({
         videoId,
         rawRenderer,
@@ -120,6 +111,10 @@ export async function applyTargetedGenericUpdate({
       });
     }
   });
+
+  if (thumbWork?.willDissolve && elImg) {
+    void dissolveThumbnail(elImg, thumbWork.newUrl, videoId);
+  }
 }
 
 type ApplyTargetedLockupUpdateParams = Prettify<TargetedUpdateParams & {
@@ -198,23 +193,14 @@ export async function applyTargetedLockupUpdate({
     return;
   }
 
-  const elements = [...textElements];
-  if (thumbWork?.willDissolve && elImg) {
-    elements.push(elImg);
-  }
-
   let isProgressBarDirty = false;
   applyWithDissolve({
-    elements,
+    elements: [...textElements],
     apply() {
       applyLockupTextChanges({
         refs,
         fresh
       });
-
-      if (thumbWork?.willDissolve && elImg) {
-        elImg.src = thumbWork.newUrl;
-      }
 
       if (freshLockup) {
         mutateLockupMetadata({
@@ -244,6 +230,10 @@ export async function applyTargetedLockupUpdate({
       rawRenderer: freshRawRenderer,
       forcePreserveContentImage: !thumbWork?.willDissolve
     });
+  }
+
+  if (thumbWork?.willDissolve && elImg) {
+    void dissolveThumbnail(elImg, thumbWork.newUrl, videoId);
   }
 }
 
