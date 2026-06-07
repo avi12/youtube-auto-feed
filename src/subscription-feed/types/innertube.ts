@@ -103,6 +103,17 @@ export interface LockupViewModel {
       };
       image?: {
         decoratedAvatarViewModel?: {
+          avatar?: {
+            avatarViewModel?: {
+              image?: {
+                sources?: Array<{
+                  url: string;
+                  width?: number;
+                  height?: number;
+                }>;
+              };
+            };
+          };
           liveData?: { liveBadgeText?: string };
         };
       };

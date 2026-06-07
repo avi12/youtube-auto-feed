@@ -13,6 +13,16 @@ export function videoIdFromRichItem(
   return videoIdFromData(contentItem?.richItemRenderer);
 }
 
+export function avatarUrlFromContent(content: Prettify<InnerTubeRichItemContent>) {
+  const { lockupViewModel } = content;
+  if (!isLockupViewModel(lockupViewModel)) {
+    return "";
+  }
+
+  return lockupViewModel.metadata?.lockupMetadataViewModel?.image
+    ?.decoratedAvatarViewModel?.avatar?.avatarViewModel?.image?.sources?.at(-1)?.url ?? "";
+}
+
 export function thumbnailUrlFromContent(content: Prettify<InnerTubeRichItemContent>) {
   const { videoRenderer, lockupViewModel, shortsLockupViewModel } = content;
   if (isVideoRenderer(videoRenderer)) {

@@ -4,9 +4,14 @@ import type { Prettify } from "../types/prettify";
 import { flushPolymerRender, isPolymerElement } from "../utils/polymer";
 import { deepArray, isRecord } from "../utils/records";
 import { videoIdFromData } from "../utils/video-id";
-import { animateItemsOut, isInViewport, prefersReducedMotion, triggerAnimation } from "./animations";
+import { animateItemsOut, isInViewport, prefersReducedMotion } from "./animations";
 import { preloadThumbnail } from "./build";
-import { thumbnailUrlFromContent, thumbnailUrlFromRichItem, videoIdFromRichItem } from "./rich-item";
+import {
+  avatarUrlFromContent,
+  thumbnailUrlFromContent,
+  thumbnailUrlFromRichItem,
+  videoIdFromRichItem
+} from "./rich-item";
 
 // Reconciles Edge's Latest band inline videos with the API's emission. The new data.contents is
 // rebuilt each poll, but every richSectionRenderer (shelf wrapper) and continuationItemRenderer is
@@ -149,15 +154,6 @@ function recordReflowZoneRects() {
   return rects;
 }
 
-function clearItemShiftOffsets() {
-  for (const elItem of document.querySelectorAll<HTMLElement>(GRID_ITEM_SELECTOR)) {
-    if (elItem.style.translate || elItem.style.transition) {
-      elItem.style.translate = "";
-      elItem.style.transition = "";
-    }
-  }
-}
-
 type PinSurvivorsParams = Prettify<{
   oldRects: Map<string, DOMRect>;
   newlyInsertedIds: Set<string>;
@@ -200,6 +196,7 @@ function pinSurvivorsToOldRects({ oldRects, newlyInsertedIds }: PinSurvivorsPara
 function releaseSurvivors() {
   for (const elItem of document.querySelectorAll<HTMLElement>(GRID_ITEM_SELECTOR)) {
     if (!elItem.style.translate) {
+      elItem.style.transition = "";
       continue;
     }
 
@@ -218,16 +215,37 @@ function animateNewEntrances(newlyInsertedIds: Set<string>) {
   }
 
   for (const elItem of document.querySelectorAll<HTMLElement>(GRID_ITEM_SELECTOR)) {
+    if (!isPolymerElement(elItem)) {
+      continue;
+    }
+
+    const videoId = videoIdFromData(elItem.data);
+    if (!videoId || !newlyInsertedIds.has(videoId)) {
+      continue;
+    }
+
+    elItem.style.opacity = "";
+
+    if (isInViewport(elItem)) {
+      elItem.classList.add("ytsua-new");
+      elItem.addEventListener("animationend", () => elItem.classList.remove("ytsua-new"), { once: true });
+    }
+  }
+}
+
+function hideNewInsertedTiles(newlyInsertedIds: Set<string>) {
+  if (newlyInsertedIds.size === 0) {
+    return;
+  }
+
+  for (const elItem of document.querySelectorAll<HTMLElement>(GRID_ITEM_SELECTOR)) {
     if (!isInViewport(elItem) || !isPolymerElement(elItem)) {
       continue;
     }
 
     const videoId = videoIdFromData(elItem.data);
     if (videoId && newlyInsertedIds.has(videoId)) {
-      triggerAnimation({
-        elTarget: elItem,
-        animationClass: "ytsua-new"
-      });
+      elItem.style.opacity = "0";
     }
   }
 }
@@ -241,33 +259,51 @@ async function setContentsWithFlip({ elGrid, newContents, newlyInsertedIds }: Se
     return;
   }
 
-  clearItemShiftOffsets();
-  const oldRects = recordReflowZoneRects();
   const newInlineIds = new Set(newContents.map(videoIdFromRichItem).filter((id): id is string => !!id));
-  elGrid.set("data.contents", newContents);
-  flushPolymerRender();
-
   const expectedInlineIds = [...newInlineIds].join();
-  let stableFrames = 0;
-  for (let i = 0; i < REMOVAL_SETTLE_FRAMES_MAX && stableFrames < REMOVAL_STABLE_FRAMES; i++) {
-    // Reveal and re-pin inside the frame, after the grid has applied its deferred shrink/rebind for
-    // this frame but before it paints, so the survivors are never painted at their snapped-up
-    // positions (which would flicker before the slide begins). Reveal only nodes that now hold a
-    // surviving video - a node still showing a dropped video stays faded so it can't flash back.
-    await new Promise<void>(resolve => requestAnimationFrame(() => {
+
+  // Write and first pin inside a single rAF so the DOM mutation and the survivor pins are
+  // guaranteed to land before the same frame's layout+paint. Polymer.flush() does not
+  // synchronously reposition dom-repeat nodes, so a synchronous pin outside a rAF computes
+  // delta=0 and leaves survivors un-pinned for the paint that follows animationend (which
+  // fires after the rAF phase).
+  const oldRects = await new Promise<Map<string, DOMRect>>(resolve =>
+    requestAnimationFrame(() => {
+      const rects = recordReflowZoneRects();
+      elGrid.set("data.contents", newContents);
+      flushPolymerRender();
       revealReboundSurvivors(newInlineIds);
+      hideNewInsertedTiles(newlyInsertedIds);
+      // Correct thumbnails before pinSurvivorsToOldRects so that if the browser
+      // delivers a compositor frame mid-loop (during getBoundingClientRect calls),
+      // it shows corrected thumbnails rather than the blank state Polymer left behind.
+      repaintInlineThumbnails();
       pinSurvivorsToOldRects({
-        oldRects,
+        oldRects: rects,
         newlyInsertedIds
       });
+      resolve(rects);
+    }));
+
+  const pinParams = {
+    oldRects,
+    newlyInsertedIds
+  };
+  let stableFrames = inlineDomVideoIds() === expectedInlineIds ? 1 : 0;
+  for (let i = 0; i < REMOVAL_SETTLE_FRAMES_MAX - 1 && stableFrames < REMOVAL_STABLE_FRAMES; i++) {
+    await new Promise<void>(resolve => requestAnimationFrame(() => {
+      revealReboundSurvivors(newInlineIds);
+      hideNewInsertedTiles(newlyInsertedIds);
+      repaintInlineThumbnails();
+      pinSurvivorsToOldRects(pinParams);
       resolve();
     }));
     stableFrames = inlineDomVideoIds() === expectedInlineIds ? stableFrames + 1 : 0;
   }
 
   releaseSurvivors();
-  animateNewEntrances(newlyInsertedIds);
   repaintInlineThumbnails();
+  animateNewEntrances(newlyInsertedIds);
 }
 
 function revealReboundSurvivors(newInlineIds: Set<string>) {
@@ -326,14 +362,24 @@ function repaintInlineThumbnails() {
   type RichItemElement = PolymerElement<NonNullable<InnerTubeRichGridItem["richItemRenderer"]>>;
   let correctedCount = 0;
   for (const elItem of document.querySelectorAll<RichItemElement>(GRID_ITEM_SELECTOR)) {
-    const url = thumbnailUrlFromContent(elItem.data.content);
-    if (!url) {
-      continue;
+    const { content } = elItem.data;
+
+    const thumbUrl = thumbnailUrlFromContent(content);
+    if (thumbUrl) {
+      const thumbPath = thumbUrl.split("?")[0];
+      for (const elImg of thumbnailImgsInItem(elItem)) {
+        if (elImg.src.split("?")[0] !== thumbPath) {
+          elImg.src = thumbUrl;
+          correctedCount++;
+        }
+      }
     }
 
-    for (const elImg of thumbnailImgsInItem(elItem)) {
-      if (elImg.src !== url) {
-        elImg.src = url;
+    const avatarUrl = avatarUrlFromContent(content);
+    if (avatarUrl) {
+      const elAvatarImg = avatarImgInItem(elItem);
+      if (elAvatarImg && elAvatarImg.src.split("?")[0] !== avatarUrl.split("?")[0]) {
+        elAvatarImg.src = avatarUrl;
         correctedCount++;
       }
     }
@@ -341,10 +387,16 @@ function repaintInlineThumbnails() {
   return correctedCount;
 }
 
+function avatarImgInItem(elItem: HTMLElement) {
+  const elLockup = elItem.querySelector("yt-lockup-view-model");
+  const root: HTMLElement | ShadowRoot = elLockup?.shadowRoot ?? elLockup ?? elItem;
+  return root.querySelector<HTMLImageElement>("yt-decorated-avatar-view-model img");
+}
+
 // Every thumbnail <img> in a tile, across the lockup shadow root and each thumbnail container's own
 // shadow tree. Scoped to the thumbnail containers (yt-thumbnail-view-model for lockups, ytd-thumbnail
 // for legacy renderers) so the channel avatar - which lives outside them - is never repainted with a
-// video thumbnail. Returning every match makes the repaint robust to whichever element YouTube
+// video thumbnail URL. Returning every match makes the repaint robust to whichever element YouTube
 // actually paints in a given layout, instead of guessing a single one.
 function thumbnailImgsInItem(elItem: HTMLElement) {
   const elImgs: HTMLImageElement[] = [];
