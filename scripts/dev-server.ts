@@ -24,12 +24,10 @@ import {
 } from "node:fs";
 import { homedir, platform } from "node:os";
 import { resolve, join, dirname } from "node:path";
-import { format } from "node:util";
+import { format, parseArgs } from "node:util";
 import webExtRun from "web-ext-run";
 import { consoleStream as webExtConsoleStream } from "web-ext-run/util/logger";
 import { build } from "wxt";
-import yargs from "yargs";
-import { hideBin } from "yargs/helpers";
 
 // ── Browser specs ───────────────────────────────────────────────────────────
 
@@ -51,33 +49,57 @@ function isChromiumSpec(spec: BrowserSpec): spec is BrowserSpec & { vendor: Chro
   return isChromiumVendor(spec.vendor);
 }
 
-function isExtensionEnabledFlag(value: unknown) {
-  if (typeof value !== "object" || value === null || !("no-extension" in value)) {
-    return true;
+const USAGE = "Usage: dev-server.ts [--edge|--chrome|--firefox][.no-extension]...";
+
+const { values: flags } = parseArgs({
+  args: process.argv.slice(2),
+  options: {
+    edge: {
+      type: "boolean",
+      default: false
+    },
+    "edge.no-extension": {
+      type: "boolean",
+      default: false
+    },
+    chrome: {
+      type: "boolean",
+      default: false
+    },
+    "chrome.no-extension": {
+      type: "boolean",
+      default: false
+    },
+    firefox: {
+      type: "boolean",
+      default: false
+    },
+    "firefox.no-extension": {
+      type: "boolean",
+      default: false
+    },
+    help: {
+      type: "boolean",
+      short: "h",
+      default: false
+    }
   }
-
-  return !value["no-extension"];
+});
+if (flags.help) {
+  console.log(USAGE);
+  process.exit(0);
 }
-
-const argv = await yargs(hideBin(process.argv))
-  .usage("Usage: $0 [--edge|--chrome|--firefox][.no-extension]...")
-  .option("edge", { description: "Launch Edge; suffix .no-extension to skip sideloading" })
-  .option("chrome", { description: "Launch Chrome; suffix .no-extension to skip sideloading" })
-  .option("firefox", { description: "Launch Firefox; suffix .no-extension to skip sideloading" })
-  .parserConfiguration({ "camel-case-expansion": false })
-  .help()
-  .parse();
 
 const browserSpecs: BrowserSpec[] = [];
 for (const vendor of ALL_VENDORS) {
-  const value = argv[vendor];
-  if (value === undefined) {
+  const isPresent = flags[vendor] || flags[`${vendor}.no-extension`];
+  if (!isPresent) {
     continue;
   }
 
   browserSpecs.push({
     vendor,
-    withExtension: isExtensionEnabledFlag(value)
+    withExtension: !flags[`${vendor}.no-extension`]
   });
 }
 
