@@ -7,53 +7,62 @@ import { defineConfig } from "wxt";
 
 const DRIVE_CREDENTIALS_FILE = "youtube-auto-feed-drive-upload.json";
 
-// Opera isn't published to the Opera Add-ons store; its build is distributed through this Drive folder.
+// Opera isn't published to the Opera Add-ons store; its source zip is archived in this Drive folder.
 const OPERA_DRIVE_FOLDER_ID = "1X0baGCRRcc6svI96PQ9BXtOwdKLeRtYZ";
 
-const INSTALL_README_FIREFOX = `# YouTube Auto Feed - Firefox
+// A store's source zip is reviewed by humans who must reproduce the build, so it ships build (not
+// install) instructions. The only per-browser difference is the build target.
+const BUILD_INSTRUCTIONS_FIREFOX = `# Build instructions
 
-Install from Firefox Add-ons (AMO):
-https://addons.mozilla.org/firefox/addon/youtube-auto-feed/
+YouTube Auto Feed is built with the WXT framework (https://wxt.dev).
 
-A build is also mirrored on Google Drive.
+## Requirements
+- Node.js 20 or newer
+- pnpm (the exact version is pinned in package.json "packageManager"; run \`corepack enable\` to use it)
 
-To load a build manually (temporary install):
-1. Open about:debugging#/runtime/this-firefox
-2. Click "Load Temporary Add-on..."
-3. Select the extension's manifest.json
+## Steps
+1. Extract this source archive
+2. Install dependencies: \`pnpm install\`
+3. Build the Firefox extension: \`pnpm build:firefox\`
+
+The unpacked build is written to .output/firefox-mv3/; \`pnpm zip:firefox\` produces the uploadable zip.
 `;
 
-const INSTALL_README_OPERA = `# YouTube Auto Feed - Opera
+const BUILD_INSTRUCTIONS_OPERA = `# Build instructions
 
-Download the latest Opera build from Google Drive:
-https://drive.google.com/drive/folders/1X0baGCRRcc6svI96PQ9BXtOwdKLeRtYZ?usp=drive_link
+YouTube Auto Feed is built with the WXT framework (https://wxt.dev).
 
-To install in Opera:
-1. Unzip the downloaded archive
-2. Open opera://extensions
-3. Enable "Developer mode" (top-right)
-4. Click "Load unpacked" and select the unzipped folder
+## Requirements
+- Node.js 20 or newer
+- pnpm (the exact version is pinned in package.json "packageManager"; run \`corepack enable\` to use it)
+
+## Steps
+1. Extract this source archive
+2. Install dependencies: \`pnpm install\`
+3. Build the Opera extension: \`pnpm exec wxt build -b opera\`
+
+The unpacked build is written to .output/opera-mv3/.
 `;
 
 const driveConfig: { parents?: string[] } = existsSync(DRIVE_CREDENTIALS_FILE)
   ? JSON.parse(readFileSync(DRIVE_CREDENTIALS_FILE, "utf-8"))
   : {};
 
-function installReadmeFor(browser: string) {
+function buildInstructionsFor(browser: string) {
   if (browser === "firefox") {
-    return INSTALL_README_FIREFOX;
+    return BUILD_INSTRUCTIONS_FIREFOX;
   }
 
   if (browser === "opera") {
-    return INSTALL_README_OPERA;
+    return BUILD_INSTRUCTIONS_OPERA;
   }
 
   return null;
 }
 
-async function injectInstallReadme(zipPath: string, content: string) {
+async function injectBuildInstructions(zipPath: string, content: string) {
   const entries = unzipSync(await readFile(zipPath));
-  entries["INSTALL.md"] = strToU8(content);
+  entries["BUILD.md"] = strToU8(content);
   await writeFile(zipPath, zipSync(entries));
 }
 
@@ -78,11 +87,11 @@ export default defineConfig({
     async "zip:sources:done"(wxt, sourcesZipPath) {
       const { browser } = wxt.config;
 
-      // Firefox and Opera builds are sideloaded/distributed outside the Chrome Web Store, so bundle a
-      // browser-specific install guide into their source zips.
-      const installReadme = installReadmeFor(browser);
-      if (installReadme) {
-        await injectInstallReadme(sourcesZipPath, installReadme);
+      // Firefox and Opera require a reviewable source submission; bundle build instructions so the
+      // store reviewer can reproduce the build from this zip.
+      const buildInstructions = buildInstructionsFor(browser);
+      if (buildInstructions) {
+        await injectBuildInstructions(sourcesZipPath, buildInstructions);
       }
 
       if (!existsSync(DRIVE_CREDENTIALS_FILE)) {
