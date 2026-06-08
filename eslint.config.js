@@ -1,6 +1,7 @@
 import expandNestedObjectExpression from "./eslint-rules/expand-nested-object-expression.js";
 import expandNestedTypeLiteral from "./eslint-rules/expand-nested-type-literal.js";
 import expandSvelteBlock from "./eslint-rules/expand-svelte-block.js";
+import inlineSingleUseMethod from "./eslint-rules/inline-single-use-method.js";
 import multilineArgParenNewline from "./eslint-rules/multiline-arg-paren-newline.js";
 import noPaddedTag from "./eslint-rules/no-padded-tag.js";
 import eslint from "@eslint/js";
@@ -175,6 +176,7 @@ const tsStyleRules = {
   "@stylistic/function-paren-newline": ["error", "consistent"],
   "local/expand-nested-object-expression": "error",
   "local/expand-nested-type-literal": "error",
+  "local/inline-single-use-method": "error",
   "local/multiline-arg-paren-newline": "error",
   "local/no-padded-tag": "error",
   "no-restricted-syntax": [
@@ -215,6 +217,7 @@ const sharedPlugins = {
       "expand-nested-object-expression": expandNestedObjectExpression,
       "expand-nested-type-literal": expandNestedTypeLiteral,
       "expand-svelte-block": expandSvelteBlock,
+      "inline-single-use-method": inlineSingleUseMethod,
       "multiline-arg-paren-newline": multilineArgParenNewline,
       "no-padded-tag": noPaddedTag
     }
