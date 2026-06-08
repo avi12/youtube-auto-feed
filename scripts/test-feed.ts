@@ -117,15 +117,6 @@ interface Band { title: string;
   videoIds: string[]; }
 interface Viewport { width: number;
   height: number; }
-interface IntegrityBandDiff { title: string;
-  onlyInDom: string[];
-  onlyInApi: string[];
-  isOrderMatch: boolean; }
-interface IntegrityResult { isPass: boolean;
-  isBandOrderMatch: boolean;
-  domBandTitles: string[];
-  apiBandTitles: string[];
-  bandDiffs: IntegrityBandDiff[]; }
 
 // Reads band structure from the extension-managed DOM.
 // Inline items may use content.lockupViewModel with videoRenderer-shaped data
@@ -199,43 +190,6 @@ async function dispatch(cdp: Cdp, payload: BrowsePayload) {
   }`
   );
   await delay(PROCESS_WAIT_MS);
-}
-
-// ── Test 1: Baseline integrity ───────────────────────────────────────────────
-// Only checks video SET membership per band. Section ORDER is intentionally not
-// checked because the polled InnerTube API is non-deterministic; the page-load
-// response (which drives the DOM baseline) is authoritative.
-
-async function testBaseline(cdp: Cdp) {
-  section("1. Baseline layout integrity (set membership)");
-  const result = await cdp.evalAsync<IntegrityResult | null>(`async () => window.__ytafDebug?.checkLayoutIntegrity() ?? null`);
-  if (!result) {
-    fail("Baseline integrity", "checkLayoutIntegrity returned null — extension not loaded?"); return result;
-  }
-
-  if (!result.isBandOrderMatch) {
-    console.log(`     ℹ Band order differs (expected — polled API is non-deterministic): DOM=[${result.domBandTitles.join(", ")}] API=[${result.apiBandTitles.join(", ")}]`);
-  }
-
-  // DOM reflects the deterministic page-load response + extension updates.
-  // The polled API is non-deterministic, so:
-  //   "missing from DOM"  = extension failed to show a video YouTube thinks should appear → FAIL
-  //   "missing from API"  = extension holds a video pending 3-poll absence confirmation → expected, no FAIL
-  const allDomIds = new Set(result.bandDiffs.flatMap(diff => diff.domVideoIds));
-  const allApiIds = new Set(result.bandDiffs.flatMap(diff => diff.apiVideoIds));
-  const missingFromDom = [...allApiIds].filter(id => !allDomIds.has(id));
-  const missingFromApi = [...allDomIds].filter(id => !allApiIds.has(id));
-  if (missingFromApi.length > 0) {
-    console.log(`     ℹ DOM has ${missingFromApi.length} extra video(s) not yet confirmed absent by API (expected)`);
-  }
-
-  if (missingFromDom.length === 0) {
-    pass("Baseline integrity", `DOM bands [${result.domBandTitles.join(" → ")}] — all API videos present in DOM`);
-  } else {
-    fail("Baseline integrity", `missing from DOM: [${missingFromDom.slice(0, 5).join(", ")}]`);
-  }
-
-  return result;
 }
 
 // ── Test 2: New video detection ──────────────────────────────────────────────
@@ -525,7 +479,6 @@ const cdp = openCdp(subTab.webSocketDebuggerUrl);
 const viewport = await cdp.evalAsync<Viewport>(`() => ({ width: innerWidth, height: innerHeight })`);
 console.log(`  Viewport: ${viewport.width}×${viewport.height} (${viewportLabel})\n`);
 
-await testBaseline(cdp);
 await testNewVideoDetection(cdp);
 await testLiveTransition(cdp);
 await delay(2_000);

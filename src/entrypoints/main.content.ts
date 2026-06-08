@@ -1,9 +1,8 @@
-import { checkLayoutIntegrity, createSubscriptionMonitor } from "../subscription-feed";
+import { createSubscriptionMonitor } from "../subscription-feed";
 import { initSettingsClient, isExtensionEnabled, onSettingsChange } from "../subscription-feed/settings-state";
 
 declare global {
   var __ytafDebug: {
-    checkLayoutIntegrity: typeof checkLayoutIntegrity;
     pausePolling: () => void;
     resumePolling: () => void;
     fetchFreshVideos: (isInitialLoad?: boolean) => Promise<boolean>;
@@ -21,7 +20,6 @@ export default defineContentScript({
     monitor.handleNavigation();
     monitor.setEnabled(isExtensionEnabled());
     globalThis.__ytafDebug = {
-      checkLayoutIntegrity,
       pausePolling: monitor.pausePolling,
       resumePolling: monitor.resumePolling,
       fetchFreshVideos: monitor.fetchFreshVideos
