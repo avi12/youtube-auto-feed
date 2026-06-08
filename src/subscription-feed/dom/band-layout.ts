@@ -8,7 +8,10 @@ import { videoIdFromRichItem } from "./rich-item";
 // = its own band, title-only legacy shelves start a new inline section. captureBandLayout()
 // snapshots this structure so insertions can be routed to the correct zone.
 
-export type BandKind = "inline" | "richShelf";
+export enum BandKind {
+  Inline = "inline",
+  RichShelf = "richShelf"
+}
 
 export interface CapturedBand {
   sectionTitle: string;
@@ -51,7 +54,7 @@ export function captureBandLayout() {
       if (!currentInlineBand) {
         currentInlineBand = {
           sectionTitle: currentInlineSection,
-          kind: "inline"
+          kind: BandKind.Inline
         };
         bands.push(currentInlineBand);
       }
@@ -65,7 +68,7 @@ export function captureBandLayout() {
     if (richShelfTitle) {
       bands.push({
         sectionTitle: richShelfTitle,
-        kind: "richShelf"
+        kind: BandKind.RichShelf
       });
       sectionOrder.push(richShelfTitle);
       continue;
