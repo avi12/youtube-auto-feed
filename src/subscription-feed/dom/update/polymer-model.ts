@@ -10,7 +10,13 @@ import type { PolymerElement } from "../../types/polymer";
 import type { Prettify } from "../../types/prettify";
 import { isPolymerElement } from "../../utils/polymer";
 import { deepArray } from "../../utils/records";
-import { isLockupViewModel, isShelfRenderer, isShortsLockupViewModel, isVideoRenderer } from "../../youtube-api/guards";
+import {
+  isLockupViewModel,
+  isShelfRenderer,
+  isShortsLockupViewModel,
+  isVideoRenderer,
+  videoRendererSchema
+} from "../../youtube-api/guards";
 import { findRichItemIndex } from "../rich-item";
 import { mergeLockupViewModel } from "./lockup-model";
 
@@ -20,14 +26,14 @@ import { mergeLockupViewModel } from "./lockup-model";
 
 const objectSchema = z.looseObject({});
 
-const itemDataSchema = z.looseObject({ content: z.unknown() });
+const itemDataSchema = z.looseObject({ content: z.looseObject({}).optional().catch(undefined) });
 
 const richItemContentSchema = z.looseObject({
-  lockupViewModel: z.unknown(),
-  shortsLockupViewModel: z.unknown(),
-  videoRenderer: z.unknown(),
-  gridVideoRenderer: z.unknown(),
-  richGridMediaRenderer: z.unknown()
+  lockupViewModel: z.looseObject({ contentId: z.string().optional() }).optional().catch(undefined),
+  shortsLockupViewModel: z.looseObject({}).optional().catch(undefined),
+  videoRenderer: videoRendererSchema.optional().catch(undefined),
+  gridVideoRenderer: videoRendererSchema.optional().catch(undefined),
+  richGridMediaRenderer: z.looseObject({}).optional().catch(undefined)
 });
 
 const rendererThumbnailSchema = z.looseObject({ thumbnails: z.array(z.unknown()) });

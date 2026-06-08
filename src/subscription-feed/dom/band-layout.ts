@@ -8,7 +8,7 @@ import { videoIdFromRichItem } from "./rich-item";
 const polymerDataSchema = z.looseObject({});
 
 const shelfDataSchema = z.looseObject({
-  isExpanded: z.unknown()
+  isExpanded: z.boolean().optional()
 });
 
 // Bands are positional groupings: contiguous root-level videos = one inline band, each rich shelf

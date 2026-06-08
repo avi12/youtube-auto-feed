@@ -8,7 +8,8 @@ import {
   isRichShelfRenderer,
   isShelfRenderer,
   isShortsLockupViewModel,
-  isVideoRenderer
+  isVideoRenderer,
+  videoRendererSchema
 } from "../youtube-api/guards";
 import { parseLockupViewModel, parseRenderer, parseShortsLockupViewModel } from "../youtube-api/parse-video";
 
@@ -16,19 +17,19 @@ import { parseLockupViewModel, parseRenderer, parseShortsLockupViewModel } from 
 // finding items by video ID and shelves by section name.
 
 const itemDataSchema = z.looseObject({
-  content: z.unknown()
+  content: z.looseObject({}).optional().catch(undefined)
 });
 
 const richGridMediaRendererSchema = z.looseObject({
-  content: z.unknown()
+  content: z.looseObject({}).optional().catch(undefined)
 });
 
 const contentWithRichGridSchema = z.looseObject({
-  richGridMediaRenderer: z.unknown(),
-  videoRenderer: z.unknown(),
-  gridVideoRenderer: z.unknown(),
-  lockupViewModel: z.unknown(),
-  shortsLockupViewModel: z.unknown()
+  richGridMediaRenderer: z.looseObject({}).optional().catch(undefined),
+  videoRenderer: videoRendererSchema.optional().catch(undefined),
+  gridVideoRenderer: videoRendererSchema.optional().catch(undefined),
+  lockupViewModel: z.looseObject({ contentId: z.string().optional() }).optional().catch(undefined),
+  shortsLockupViewModel: z.looseObject({}).optional().catch(undefined)
 });
 
 const looseObjectSchema = z.looseObject({});

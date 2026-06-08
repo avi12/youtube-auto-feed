@@ -308,11 +308,11 @@ async function applyTargetedLockupUpdate({
 }
 
 const itemDataSchema = z.looseObject({
-  content: z.unknown()
+  content: z.looseObject({}).optional().catch(undefined)
 });
 
 const contentSchema = z.looseObject({
-  lockupViewModel: z.unknown()
+  lockupViewModel: z.looseObject({ contentId: z.string().optional() }).optional().catch(undefined)
 });
 
 // Dispatch point. Full Polymer rebuild for status/channel-live flips or missing data; targeted

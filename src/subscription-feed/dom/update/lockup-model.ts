@@ -140,11 +140,11 @@ function mutateLockupInContainer({ containerData, videoId, mutateOne }: MutateLo
 }
 
 const itemDataSchema = z.looseObject({
-  content: z.unknown()
+  content: z.looseObject({}).optional().catch(undefined)
 });
 
 const contentSchema = z.looseObject({
-  lockupViewModel: z.unknown()
+  lockupViewModel: z.looseObject({ contentId: z.string().optional() }).optional().catch(undefined)
 });
 
 const polymerDataSchema = z.looseObject({});

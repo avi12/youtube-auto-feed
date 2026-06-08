@@ -17,7 +17,7 @@ import { VideoStatus } from "../types/video";
 // Type guards for InnerTube renderer shapes. Schemas assert only the discriminating fields;
 // `looseObject` lets the rest of the (large, variable) renderer pass through untouched.
 
-const videoRendererSchema = z.looseObject({ videoId: z.string() });
+export const videoRendererSchema = z.looseObject({ videoId: z.string() });
 const lockupViewModelSchema = z.looseObject({ contentId: z.string() });
 const shortsLockupViewModelSchema = z.looseObject({ onTap: z.looseObject({}) });
 const browseResponseSchema = z.looseObject({ contents: z.looseObject({}) });

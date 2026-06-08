@@ -1,35 +1,40 @@
 import { z } from "../../shared/zod";
-import { isLockupViewModel, isShortsLockupViewModel, isVideoRenderer } from "../youtube-api/guards";
+import {
+  isLockupViewModel,
+  isShortsLockupViewModel,
+  isVideoRenderer,
+  videoRendererSchema
+} from "../youtube-api/guards";
 
 const nonEmptyStringSchema = z.string().min(1);
 
 const dataSchema = z.looseObject({
-  content: z.unknown()
+  content: z.looseObject({}).optional().catch(undefined)
 });
 
 const contentSchema = z.looseObject({
-  videoRenderer: z.unknown(),
-  gridVideoRenderer: z.unknown(),
-  richGridMediaRenderer: z.unknown(),
-  lockupViewModel: z.unknown(),
-  shortsLockupViewModel: z.unknown()
+  videoRenderer: videoRendererSchema.optional().catch(undefined),
+  gridVideoRenderer: videoRendererSchema.optional().catch(undefined),
+  richGridMediaRenderer: z.looseObject({}).optional().catch(undefined),
+  lockupViewModel: z.looseObject({ contentId: z.string().optional() }).optional().catch(undefined),
+  shortsLockupViewModel: z.looseObject({}).optional().catch(undefined)
 });
 
 const richGridMediaRendererSchema = z.looseObject({
-  content: z.unknown()
+  content: z.looseObject({}).optional().catch(undefined)
 });
 
 const richGridInnerSchema = z.looseObject({
-  videoRenderer: z.unknown()
+  videoRenderer: videoRendererSchema.optional().catch(undefined)
 });
 
 const lockupViewModelSchema = z.looseObject({
-  videoId: z.unknown()
+  videoId: z.string().optional()
 });
 
 const listItemSchema = z.looseObject({
-  videoRenderer: z.unknown(),
-  gridVideoRenderer: z.unknown()
+  videoRenderer: videoRendererSchema.optional().catch(undefined),
+  gridVideoRenderer: videoRendererSchema.optional().catch(undefined)
 });
 
 // Extracts a videoId from a Polymer element's `data` regardless of renderer shape
