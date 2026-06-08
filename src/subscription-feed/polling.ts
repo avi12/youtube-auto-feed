@@ -1,4 +1,4 @@
-import { ytsuaChannel } from "../shared/messaging";
+import { ytafChannel } from "../shared/messaging";
 import { detectAndApplyChanges, detectAndApplyMetadataChanges } from "./diff";
 import { type BandLayout, captureBandLayout, normalizeCollapsedShelfRows } from "./dom/band-layout";
 import { resetLazyUpdates } from "./dom/lazy-update";
@@ -16,7 +16,7 @@ import { extractApiContents, extractApiSectionOrder, parseApiResponse } from "./
 // Owns the polling lifecycle: the 5s full-feed poll, the 10s metadata-only poll, the orphan
 // cleanup tick, and the navigation/visibility hooks that pause polling when the tab is hidden
 // or the user has navigated away from /feed/subscriptions. The fetch-interceptor entrypoint
-// feeds InnerTube responses through here via the "ytsua-browse-response" CustomEvent.
+// feeds InnerTube responses through here via the "ytaf-browse-response" CustomEvent.
 
 interface FeedPayload {
   snapshots: VideoSnapshot[];
@@ -37,6 +37,7 @@ const PENDING_SNAPSHOT_STALE_MS = 5000;
 export function createSubscriptionMonitor() {
   let lastSnapshot = new Map<string, Prettify<VideoSnapshot>>();
   let isDomReady = false;
+  let isEnabled = true;
   let isApplyingChanges = false;
   let contentObserver: MutationObserver | null = null;
   let orphanCleanupTimer: ReturnType<typeof setInterval> | null = null;
@@ -113,14 +114,14 @@ export function createSubscriptionMonitor() {
     pendingApiSnapshots = payload;
     pendingApiSnapshotsTime = Date.now();
 
-    const canApplyImmediately = isDomReady && !document.hidden;
+    const canApplyImmediately = isDomReady && !document.hidden && isEnabled;
     if (canApplyImmediately) {
-      void applyChanges({ payload });
+      applyChanges({ payload }).catch(() => {});
     }
   }
 
   async function fetchFreshVideos(isInitialLoad = false) {
-    const isPollEligible = isOnSubscriptionsPage() && isDomReady;
+    const isPollEligible = isOnSubscriptionsPage() && isDomReady && isEnabled;
     if (!isPollEligible) {
       return false;
     }
@@ -144,6 +145,7 @@ export function createSubscriptionMonitor() {
   async function fetchAndApplyMetadataUpdates() {
     const isMetadataPollSkippable = !isOnSubscriptionsPage()
       || !isDomReady
+      || !isEnabled
       || isApplyingChanges
       || document.hidden;
     if (isMetadataPollSkippable) {
@@ -171,7 +173,7 @@ export function createSubscriptionMonitor() {
   }
 
   function handleSubscriptionChange() {
-    void fetchFreshVideos();
+    fetchFreshVideos().catch(() => {});
   }
 
   function clearPolling() {
@@ -190,9 +192,9 @@ export function createSubscriptionMonitor() {
     clearPolling();
     pollingDelayTimer = setTimeout(() => {
       pollingDelayTimer = null;
-      void fetchFreshVideos();
+      fetchFreshVideos().catch(() => {});
       pollingTimer = setInterval(() => {
-        void fetchFreshVideos();
+        fetchFreshVideos().catch(() => {});
       }, POLL_INTERVAL_MS);
     }, INITIAL_POLL_DELAY_MS);
   }
@@ -203,7 +205,7 @@ export function createSubscriptionMonitor() {
       return;
     }
 
-    if (document.hidden) {
+    if (document.hidden || !isEnabled) {
       clearPolling();
       return;
     }
@@ -215,23 +217,23 @@ export function createSubscriptionMonitor() {
     }
 
     clearPolling();
-    void fetchFreshVideos().finally(() => restartPolling());
+    fetchFreshVideos().finally(() => restartPolling()).catch(() => {});
   }
 
   function startMonitoring() {
-    addEventListener("ytsua-browse-response", handleBrowseResponse);
-    addEventListener("ytsua-subscription-change", handleSubscriptionChange);
+    addEventListener("ytaf-browse-response", handleBrowseResponse);
+    addEventListener("ytaf-subscription-change", handleSubscriptionChange);
     document.addEventListener("visibilitychange", handlePageFocus);
-    cancelBroadcastListener = ytsuaChannel.onMessage({
+    cancelBroadcastListener = ytafChannel.onMessage({
       type: "subscription-change",
       handler: handleSubscriptionChange
     });
     restartPolling();
     metadataPollingTimer = setInterval(() => {
-      void fetchAndApplyMetadataUpdates();
+      fetchAndApplyMetadataUpdates().catch(() => {});
     }, METADATA_POLL_INTERVAL_MS);
     orphanCleanupTimer = setInterval(() => {
-      const canCleanNow = isDomReady && !isApplyingChanges;
+      const canCleanNow = isDomReady && !isApplyingChanges && isEnabled;
       if (canCleanNow) {
         requestIdleCallback(() => cleanOrphanedGridItems());
       }
@@ -240,8 +242,8 @@ export function createSubscriptionMonitor() {
 
   function stopMonitoring() {
     resetLazyUpdates();
-    removeEventListener("ytsua-browse-response", handleBrowseResponse);
-    removeEventListener("ytsua-subscription-change", handleSubscriptionChange);
+    removeEventListener("ytaf-browse-response", handleBrowseResponse);
+    removeEventListener("ytaf-subscription-change", handleSubscriptionChange);
     document.removeEventListener("visibilitychange", handlePageFocus);
     cancelBroadcastListener?.();
     cancelBroadcastListener = null;
@@ -303,7 +305,7 @@ export function createSubscriptionMonitor() {
     }
 
     if (isDomContentReady()) {
-      void applyDomBaseline();
+      applyDomBaseline().catch(() => {});
       return;
     }
 
@@ -311,7 +313,7 @@ export function createSubscriptionMonitor() {
       if (isDomContentReady()) {
         contentObserver?.disconnect();
         contentObserver = null;
-        void applyDomBaseline();
+        applyDomBaseline().catch(() => {});
       }
     });
     contentObserver.observe(document.body, {
@@ -340,10 +342,34 @@ export function createSubscriptionMonitor() {
     }
   }
 
+  // Disabling pauses every apply path exactly like a hidden tab; enabling resumes and runs an
+  // immediate fetch + sync, as if the tab just regained focus.
+  function setEnabled(enabled: boolean) {
+    if (enabled === isEnabled) {
+      return;
+    }
+
+    isEnabled = enabled;
+
+    const isFeedActive = isOnSubscriptionsPage() && isDomReady;
+    if (!isFeedActive) {
+      return;
+    }
+
+    if (!isEnabled) {
+      clearPolling();
+      return;
+    }
+
+    clearPolling();
+    fetchFreshVideos().finally(() => restartPolling()).catch(() => {});
+  }
+
   return {
     handleNavigation,
     pausePolling,
     resumePolling,
-    fetchFreshVideos
+    fetchFreshVideos,
+    setEnabled
   };
 }

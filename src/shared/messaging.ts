@@ -1,31 +1,31 @@
 import type { Prettify } from "../subscription-feed/types/prettify";
 
-const CHANNEL_NAME = "ytsua";
+const CHANNEL_NAME = "ytaf";
 
-type YtsuaMessage = "subscription-change";
+type YtafMessage = "subscription-change";
 
-interface YtsuaEnvelope {
-  type: YtsuaMessage;
+interface YtafEnvelope {
+  type: YtafMessage;
 }
 
-function isYtsuaEnvelope(value: unknown): value is YtsuaEnvelope {
+function isYtafEnvelope(value: unknown): value is YtafEnvelope {
   return typeof value === "object" && value !== null && "type" in value && typeof value.type === "string";
 }
 
-function sendMessage(type: YtsuaMessage) {
+function sendMessage(type: YtafMessage) {
   const channel = new BroadcastChannel(CHANNEL_NAME);
   channel.postMessage({ type });
   channel.close();
 }
 
 type OnMessageParams = Prettify<{
-  type: YtsuaMessage;
+  type: YtafMessage;
   handler: () => void;
 }>;
 function onMessage({ type, handler }: OnMessageParams) {
   const channel = new BroadcastChannel(CHANNEL_NAME);
   channel.onmessage = ({ data }) => {
-    const isMatchingEnvelope = isYtsuaEnvelope(data) && data.type === type;
+    const isMatchingEnvelope = isYtafEnvelope(data) && data.type === type;
     if (isMatchingEnvelope) {
       handler();
     }
@@ -33,7 +33,7 @@ function onMessage({ type, handler }: OnMessageParams) {
   return () => channel.close();
 }
 
-export const ytsuaChannel = {
+export const ytafChannel = {
   sendMessage,
   onMessage
 };

@@ -1,7 +1,8 @@
 import { checkLayoutIntegrity, createSubscriptionMonitor } from "../subscription-feed";
+import { initSettingsClient, isExtensionEnabled, onSettingsChange } from "../subscription-feed/settings-state";
 
 declare global {
-  var __ytsuaDebug: {
+  var __ytafDebug: {
     checkLayoutIntegrity: typeof checkLayoutIntegrity;
     pausePolling: () => void;
     resumePolling: () => void;
@@ -14,9 +15,12 @@ export default defineContentScript({
   world: "MAIN",
   main() {
     const monitor = createSubscriptionMonitor();
+    onSettingsChange(() => monitor.setEnabled(isExtensionEnabled()));
+    initSettingsClient();
     document.addEventListener("yt-navigate-finish", monitor.handleNavigation);
     monitor.handleNavigation();
-    globalThis.__ytsuaDebug = {
+    monitor.setEnabled(isExtensionEnabled());
+    globalThis.__ytafDebug = {
       checkLayoutIntegrity,
       pausePolling: monitor.pausePolling,
       resumePolling: monitor.resumePolling,
