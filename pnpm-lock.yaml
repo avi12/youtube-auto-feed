@@ -11,6 +11,9 @@ importers:
       '@webext-core/messaging':
         specifier: ^3.0.2
         version: 3.0.2
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@eslint/js':
         specifier: ^10.0.1
