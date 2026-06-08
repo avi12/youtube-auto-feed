@@ -4,7 +4,7 @@ import { isPolymerElement } from "./utils/polymer";
 const polymerDataSchema = z.looseObject({});
 
 const polymerDataWithContentsSchema = z.looseObject({
-  contents: z.array(z.unknown())
+  contents: z.array(z.looseObject({}))
 });
 
 // Polymer hydrates `data` asynchronously. Any one of these signals confirms the feed is safe to

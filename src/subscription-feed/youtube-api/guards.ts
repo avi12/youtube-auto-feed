@@ -23,7 +23,7 @@ const shortsLockupViewModelSchema = z.looseObject({ onTap: z.looseObject({}) });
 const browseResponseSchema = z.looseObject({ contents: z.looseObject({}) });
 const richShelfRendererSchema = z.looseObject({
   title: z.looseObject({}),
-  contents: z.array(z.unknown())
+  contents: z.array(z.looseObject({}))
 });
 const shelfRendererSchema = z.looseObject({
   title: z.looseObject({}),

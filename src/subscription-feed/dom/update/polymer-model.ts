@@ -36,7 +36,7 @@ const richItemContentSchema = z.looseObject({
   richGridMediaRenderer: z.looseObject({}).optional().catch(undefined)
 });
 
-const rendererThumbnailSchema = z.looseObject({ thumbnails: z.array(z.unknown()) });
+const rendererThumbnailSchema = z.looseObject({ thumbnails: z.array(z.looseObject({})) });
 
 type ApplyPolymerUpdateParams = Prettify<{
   elItem: Prettify<PolymerElement>;
