@@ -1,4 +1,4 @@
-import { defaultSettings, type FeedSettings } from "../shared/settings";
+import { defaultSettings, type FeedSettings, feedSettingsSchema } from "../shared/settings";
 import { settingsMessenger } from "../shared/settings-messaging";
 
 // MAIN-world live mirror of the user settings. The DOM modules read the getters synchronously while
@@ -29,16 +29,20 @@ export function onSettingsChange(listener: SettingsListener) {
   settingsListeners.add(listener);
 }
 
+function applyIncomingSettings(data: unknown) {
+  const parsed = feedSettingsSchema.safeParse(data);
+  if (parsed.success) {
+    updateSettings(parsed.data);
+  }
+}
+
 async function requestInitialSettings() {
   try {
-    const settings = await settingsMessenger.sendMessage("getSettings");
-    if (settings) {
-      updateSettings(settings);
-    }
+    applyIncomingSettings(await settingsMessenger.sendMessage("getSettings"));
   } catch {}
 }
 
 export function initSettingsClient() {
-  settingsMessenger.onMessage("settingsChanged", ({ data }) => updateSettings(data));
+  settingsMessenger.onMessage("settingsChanged", ({ data }) => applyIncomingSettings(data));
   requestInitialSettings().catch(() => {});
 }

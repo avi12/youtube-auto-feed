@@ -1,3 +1,4 @@
+import { z } from "../../../shared/zod";
 import type {
   InnerTubeRichGridItem,
   InnerTubeRichItemContent,
@@ -90,8 +91,10 @@ export function applyPolymerUpdate({ elItem, rawRenderer }: ApplyPolymerUpdatePa
   }
 }
 
+const rendererThumbnailSchema = z.looseObject({ thumbnails: z.array(z.unknown()) });
+
 function isRendererThumbnail(value: unknown): value is InnerTubeVideoRenderer["thumbnail"] {
-  return isRecord(value) && Array.isArray(value.thumbnails);
+  return rendererThumbnailSchema.safeParse(value).success;
 }
 
 type BuildMergedVideoRendererParams = Prettify<{

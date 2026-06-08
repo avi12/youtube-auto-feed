@@ -1,5 +1,8 @@
+import { z } from "../../shared/zod";
 import { isLockupViewModel, isShortsLockupViewModel, isVideoRenderer } from "../youtube-api/guards";
 import { isRecord } from "./records";
+
+const nonEmptyStringSchema = z.string().min(1);
 
 // Pulls a videoId out of whatever renderer shape a Polymer element's `data` happens to be:
 // videoRenderer, gridVideoRenderer, richGridMediaRenderer, lockupViewModel, or shortsLockupViewModel.
@@ -68,6 +71,6 @@ export function videoIdFromShelfListItem(listItem: unknown) {
 }
 
 function stringOrNull(value: unknown) {
-  const isNonEmptyString = typeof value === "string" && value.length > 0;
-  return isNonEmptyString ? value : null;
+  const parsed = nonEmptyStringSchema.safeParse(value);
+  return parsed.success ? parsed.data : null;
 }

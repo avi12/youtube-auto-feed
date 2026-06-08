@@ -5,6 +5,7 @@ import {
   IS_EXTENSION_ENABLED_KEY
 } from "../shared/settings";
 import { settingsMessenger } from "../shared/settings-messaging";
+import { loadStoredSettings } from "../shared/settings-storage";
 import { storage } from "#imports";
 
 // ISOLATED-world bridge: the only context here that can read browser.storage. It loads the stored
@@ -25,14 +26,7 @@ export default defineContentScript({
 
     settingsMessenger.onMessage("getSettings", () => currentSettings);
 
-    const [isExtensionEnabled, isAnimationsEnabled] = await Promise.all([
-      storage.getItem(IS_EXTENSION_ENABLED_KEY, { fallback: defaults.isExtensionEnabled }),
-      storage.getItem(IS_ANIMATIONS_ENABLED_KEY, { fallback: defaults.isAnimationsEnabled })
-    ]);
-    currentSettings = {
-      isExtensionEnabled,
-      isAnimationsEnabled
-    };
+    currentSettings = await loadStoredSettings();
 
     storage.watch<typeof defaults.isExtensionEnabled>(IS_EXTENSION_ENABLED_KEY, value => {
       currentSettings = {

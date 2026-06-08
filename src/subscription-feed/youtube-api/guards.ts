@@ -1,3 +1,4 @@
+import { z } from "../../shared/zod";
 import {
   BadgeStyle,
   type InnerTubeBrowseResponse,
@@ -12,33 +13,47 @@ import {
 } from "../types/innertube";
 import type { Prettify } from "../types/prettify";
 import { VideoStatus } from "../types/video";
-import { isRecord } from "../utils/records";
 
 // Type guards for the different InnerTube renderer shapes a feed item might be.
 // These distinguish a video renderer from a Shorts lockup from a "regular" lockup, etc.
+// The schemas only assert the discriminating fields; `looseObject` lets the rest of the
+// (huge, variable) renderer pass through untouched, matching the deep-accessor contract.
+
+const videoRendererSchema = z.looseObject({ videoId: z.string() });
+const lockupViewModelSchema = z.looseObject({ contentId: z.string() });
+const shortsLockupViewModelSchema = z.looseObject({ onTap: z.looseObject({}) });
+const browseResponseSchema = z.looseObject({ contents: z.looseObject({}) });
+const richShelfRendererSchema = z.looseObject({
+  title: z.looseObject({}),
+  contents: z.array(z.unknown())
+});
+const shelfRendererSchema = z.looseObject({
+  title: z.looseObject({}),
+  content: z.looseObject({})
+});
 
 export function isVideoRenderer(value: unknown): value is InnerTubeVideoRenderer {
-  return isRecord(value) && typeof value.videoId === "string";
+  return videoRendererSchema.safeParse(value).success;
 }
 
 export function isLockupViewModel(value: unknown): value is LockupViewModel {
-  return isRecord(value) && typeof value.contentId === "string";
+  return lockupViewModelSchema.safeParse(value).success;
 }
 
 export function isShortsLockupViewModel(value: unknown): value is ShortsLockupViewModel {
-  return isRecord(value) && isRecord(value.onTap);
+  return shortsLockupViewModelSchema.safeParse(value).success;
 }
 
 export function isInnerTubeBrowseResponse(value: unknown): value is InnerTubeBrowseResponse {
-  return isRecord(value) && isRecord(value.contents);
+  return browseResponseSchema.safeParse(value).success;
 }
 
 export function isRichShelfRenderer(value: unknown): value is InnerTubeRichShelfRenderer {
-  return isRecord(value) && isRecord(value.title) && Array.isArray(value.contents);
+  return richShelfRendererSchema.safeParse(value).success;
 }
 
 export function isShelfRenderer(value: unknown): value is InnerTubeShelfRenderer {
-  return isRecord(value) && isRecord(value.title) && isRecord(value.content);
+  return shelfRendererSchema.safeParse(value).success;
 }
 
 // Some videoRenderer payloads put the view count in `viewCountText`, others in `runs`, others
