@@ -3,7 +3,7 @@ A browser extension that keeps the YouTube subscriptions feed (`/feed/subscripti
 
 # Architecture
 - Two MAIN-world content scripts on `youtube.com/*`:
-  - `src/entrypoints/fetch-interceptor.content.ts` (runAt `document_start`) - mirrors YouTube's own InnerTube `/browse` response for `FEsubscriptions` to a `ytsua-browse-response` custom event.
+  - `src/entrypoints/fetch-interceptor.content.ts` (runAt `document_start`) - mirrors YouTube's own InnerTube `/browse` response for `FEsubscriptions` to a `ytaf-browse-response` custom event.
   - `src/entrypoints/main.content/` - everything else. `monitor.ts` owns the polling lifecycle, `api/` parses InnerTube into `VideoSnapshot[]`, `sync.ts` diffs previous vs fresh snapshots into add/remove/reposition/move-to-front/section-move/band-move/metadata-only buckets, `dom/` does Polymer-aware mutations.
 - Polling cadence: 5s full feed, 10s metadata-only. Polling pauses while the tab is hidden.
 

@@ -195,7 +195,7 @@ function buildBrowsePayload(contents: BrowseContentItem[]) {
 async function dispatch(cdp: Cdp, payload: BrowsePayload) {
   await cdp.evalAsync<void>(
     `() => {
-    dispatchEvent(new CustomEvent("ytsua-browse-response", { detail: ${JSON.stringify(payload)} }));
+    dispatchEvent(new CustomEvent("ytaf-browse-response", { detail: ${JSON.stringify(payload)} }));
   }`
   );
   await delay(PROCESS_WAIT_MS);
@@ -208,7 +208,7 @@ async function dispatch(cdp: Cdp, payload: BrowsePayload) {
 
 async function testBaseline(cdp: Cdp) {
   section("1. Baseline layout integrity (set membership)");
-  const result = await cdp.evalAsync<IntegrityResult | null>(`async () => window.__ytsuaDebug?.checkLayoutIntegrity() ?? null`);
+  const result = await cdp.evalAsync<IntegrityResult | null>(`async () => window.__ytafDebug?.checkLayoutIntegrity() ?? null`);
   if (!result) {
     fail("Baseline integrity", "checkLayoutIntegrity returned null — extension not loaded?"); return result;
   }
@@ -343,7 +343,7 @@ async function testLiveTransition(cdp: Cdp) {
 
   // Pause polling so a real API response can't reset the guinea pig's status
   // between the upcoming and live dispatches.
-  await cdp.evalAsync<void>(`() => window.__ytsuaDebug?.pausePolling?.()`);
+  await cdp.evalAsync<void>(`() => window.__ytafDebug?.pausePolling?.()`);
 
   // ── Step A: dispatch "upcoming" status for guinea pig ──────────────────────
   await dispatch(cdp, buildBrowsePayload(buildInlineContents("upcoming")));
@@ -393,7 +393,7 @@ async function testLiveTransition(cdp: Cdp) {
     fail("Channel live badge in Polymer model", `${guineaPigId} missing LIVE badge in DOM data`);
   }
 
-  await cdp.evalAsync<void>(`() => window.__ytsuaDebug?.resumePolling?.()`);
+  await cdp.evalAsync<void>(`() => window.__ytafDebug?.resumePolling?.()`);
 }
 
 // ── Test 4: Layout reordering ────────────────────────────────────────────────
@@ -448,7 +448,7 @@ function buildInlineItem(videoId: string) {
 
 async function testLayoutReordering(cdp: Cdp) {
   section("4. Layout reordering (all permutations of existing sections)");
-  await cdp.evalAsync<void>(`() => window.__ytsuaDebug?.pausePolling?.()`);
+  await cdp.evalAsync<void>(`() => window.__ytafDebug?.pausePolling?.()`);
   const bands = await cdp.evalAsync<Band[]>(PARSE_BANDS);
 
   const namedBands = bands.filter(band => band.title !== "");
@@ -505,7 +505,7 @@ async function testLayoutReordering(cdp: Cdp) {
 
   // Restore original section order
   await dispatch(cdp, buildBrowsePayload(buildPayloadContents(namedBands)));
-  await cdp.evalAsync<void>(`() => window.__ytsuaDebug?.resumePolling?.()`);
+  await cdp.evalAsync<void>(`() => window.__ytafDebug?.resumePolling?.()`);
 }
 
 // ── Main ─────────────────────────────────────────────────────────────────────

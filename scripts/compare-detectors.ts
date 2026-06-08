@@ -76,7 +76,7 @@ async function evaluate<T>(webSocketUrl: string, expression: string) {
 
 const SNAPSHOT_EXPRESSION = `(() => {
   const elGrid = document.querySelector("ytd-rich-grid-renderer");
-  if (!elGrid) return { url: location.href, bands: [], contentsLength: 0, hasExtension: !!globalThis.__ytsuaDebug };
+  if (!elGrid) return { url: location.href, bands: [], contentsLength: 0, hasExtension: !!globalThis.__ytafDebug };
   const contents = elGrid.data?.contents ?? [];
 
   const videoIdFromData = data => (data?.videoId ?? "")
@@ -123,7 +123,7 @@ const SNAPSHOT_EXPRESSION = `(() => {
     }
   }
 
-  return { url: location.href, bands, contentsLength: contents.length, hasExtension: !!globalThis.__ytsuaDebug };
+  return { url: location.href, bands, contentsLength: contents.length, hasExtension: !!globalThis.__ytafDebug };
 })()`;
 
 async function snapshot(port: number, label: string) {
