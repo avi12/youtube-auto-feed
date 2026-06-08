@@ -11,9 +11,6 @@ importers:
       '@webext-core/messaging':
         specifier: ^3.0.2
         version: 3.0.2
-      headroom-ai:
-        specifier: ^0.22.4
-        version: 0.22.4
       svelte:
         specifier: 5.55.7
         version: 5.55.7(@typescript-eslint/types@8.60.1)
@@ -2161,24 +2158,6 @@ packages:
   hasown@2.0.3:
     resolution: {integrity: sha512-ej4AhfhfL2Q2zpMmLo7U1Uv9+PyhIZpgQLGT1F9miIGmiCJIoCgSmczFdrc97mWT4kVY72KA+WnnhJ5pghSvSg==}
     engines: {node: '>= 0.4'}
-
-  headroom-ai@0.22.4:
-    resolution: {integrity: sha512-9a0rgB/jsWe8gs/ggyUwe6E8DYwKAuBvlUml2ApwlUjb5EfJ611X6X+WG0SiXw3nO6sdyV1/+Ah5uw9P7ecnjw==}
-    engines: {node: '>=18.0.0'}
-    peerDependencies:
-      '@ai-sdk/provider': '>=1.0.0'
-      '@anthropic-ai/sdk': '>=0.30.0'
-      ai: '>=6.0.0'
-      openai: '>=4.0.0'
-    peerDependenciesMeta:
-      '@ai-sdk/provider':
-        optional: true
-      '@anthropic-ai/sdk':
-        optional: true
-      ai:
-        optional: true
-      openai:
-        optional: true
 
   hookable@6.1.1:
     resolution: {integrity: sha512-U9LYDy1CwhMCnprUfeAZWZGByVbhd54hwepegYTK7Pi5NvqEj63ifz5z+xukznehT7i6NIZRu89Ay1AZmRsLEQ==}
@@ -5951,8 +5930,6 @@ snapshots:
   hasown@2.0.3:
     dependencies:
       function-bind: 1.1.2
-
-  headroom-ai@0.22.4: {}
 
   hookable@6.1.1: {}
 
