@@ -18,7 +18,7 @@ export function applyWithDissolve({ elements, apply }: ApplyWithDissolveParams) 
   for (const elTarget of elements) {
     triggerAnimation({
       elTarget,
-      animationClass: "ytsua-updated"
+      animationClass: "ytaf-updated"
     });
   }
 }

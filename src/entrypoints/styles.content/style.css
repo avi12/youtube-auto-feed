@@ -1,63 +1,63 @@
-@keyframes ytsua-slide-in {
+@keyframes ytaf-slide-in {
   from {
-    opacity: 0;
+    opacity: 0%;
     translate: -40px 0;
   }
 
   to {
-    opacity: 1;
+    opacity: 100%;
     translate: none;
   }
 }
 
-@keyframes ytsua-slide-out {
+@keyframes ytaf-slide-out {
   from {
-    opacity: 1;
+    opacity: 100%;
     translate: none;
   }
 
   to {
-    opacity: 0;
+    opacity: 0%;
     translate: -40px 0;
   }
 }
 
-.ytsua-new {
+.ytaf-new {
   animation:
-    ytsua-slide-in 400ms cubic-bezier(0.05, 0.7, 0.1, 1)
-    calc(var(--ytsua-new-index, 0) * min(160ms / max(var(--ytsua-new-count, 1) - 1, 1), 40ms))
+    ytaf-slide-in 400ms cubic-bezier(0.05, 0.7, 0.1, 1)
+    calc(var(--ytaf-new-index, 0) * min(160ms / max(var(--ytaf-new-count, 1) - 1, 1), 40ms))
     both;
 }
 
-.ytsua-removing {
+.ytaf-removing {
   pointer-events: none;
-  animation: ytsua-slide-out 400ms cubic-bezier(0.3, 0, 0.8, 0.15) both;
+  animation: ytaf-slide-out 400ms cubic-bezier(0.3, 0, 0.8, 0.15) both;
 }
 
-@keyframes ytsua-pulse {
-  0%{ opacity: 1; }
-  50%{ opacity: 0.6; }
-  100%{ opacity: 1; }
+@keyframes ytaf-pulse {
+  0%{ opacity: 100%; }
+  50%{ opacity: 60%; }
+  100%{ opacity: 100%; }
 }
 
-.ytsua-updated {
-  animation: ytsua-pulse 400ms cubic-bezier(0.4, 0, 0.2, 1);
+.ytaf-updated {
+  animation: ytaf-pulse 400ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-@keyframes ytsua-shelf-overflow-exit {
+@keyframes ytaf-shelf-overflow-exit {
   from {
-    opacity: 1;
+    opacity: 100%;
     translate: none;
   }
 
   to {
-    opacity: 0;
-    translate: var(--ytsua-overflow-translate, -80% 40%);
+    opacity: 0%;
+    translate: var(--ytaf-overflow-translate, -80% 40%);
   }
 }
 
-.ytsua-section-removing {
-  opacity: 0;
+.ytaf-section-removing {
+  opacity: 0%;
   transition:
     opacity 350ms ease,
     translate 350ms ease;
@@ -66,9 +66,9 @@
 
 ::view-transition-old(*),
 ::view-transition-new(*) {
+  pointer-events: none;
   animation-duration: 380ms;
   animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  pointer-events: none;
 }
 
 ::view-transition-old(root),
@@ -79,12 +79,11 @@
 
 ::view-transition-group(*),
 ::view-transition-image-pair(*) {
+  pointer-events: none;
   animation-duration: 380ms;
   animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  pointer-events: none;
 }
 
 .yt-content-metadata-view-model__metadata-row {
   font-variant-numeric: tabular-nums;
 }
-

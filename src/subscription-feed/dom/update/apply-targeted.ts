@@ -113,7 +113,7 @@ export async function applyTargetedGenericUpdate({
   });
 
   if (thumbWork?.willDissolve && elImg) {
-    void dissolveThumbnail(elImg, thumbWork.newUrl, videoId);
+    dissolveThumbnail(elImg, thumbWork.newUrl).catch(() => {});
   }
 }
 
@@ -233,7 +233,7 @@ export async function applyTargetedLockupUpdate({
   }
 
   if (thumbWork?.willDissolve && elImg) {
-    void dissolveThumbnail(elImg, thumbWork.newUrl, videoId);
+    dissolveThumbnail(elImg, thumbWork.newUrl).catch(() => {});
   }
 }
 
@@ -284,20 +284,20 @@ export function applyUpdate({ videoId, elItem, fresh, previous }: ApplyUpdatePar
   const hasLockupContent = isRecord(content) && isRecord(content.lockupViewModel);
   const elLockup = hasLockupContent ? elItem.querySelector<HTMLElement>("yt-lockup-view-model") : null;
   if (elLockup) {
-    void applyTargetedLockupUpdate({
+    applyTargetedLockupUpdate({
       videoId,
       elItem,
       elLockup,
       previous,
       fresh
-    });
+    }).catch(() => {});
     return;
   }
 
-  void applyTargetedGenericUpdate({
+  applyTargetedGenericUpdate({
     videoId,
     elItem,
     previous,
     fresh
-  });
+  }).catch(() => {});
 }

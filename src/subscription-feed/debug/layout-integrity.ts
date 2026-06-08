@@ -9,7 +9,7 @@ import { fetchInitialVideos } from "../youtube-api/fetch";
 import { isRichShelfRenderer, isShelfRenderer } from "../youtube-api/guards";
 
 // Diagnostic that compares the DOM's band structure against a fresh API fetch and logs any
-// drift to the console. Exposed as `window.__ytsuaDebug.checkLayoutIntegrity()`; not used by
+// drift to the console. Exposed as `window.__ytafDebug.checkLayoutIntegrity()`; not used by
 // the extension at runtime - it's a developer tool for verifying nothing has gone out of sync.
 
 interface DomBand {
@@ -223,7 +223,7 @@ function buildReport({ domBands, apiBands }: Prettify<BandCollections>) {
 
 function persistReport(report: Prettify<LayoutIntegrityReport>) {
   try {
-    const stored = sessionStorage.getItem("__ytsua_layout_checks");
+    const stored = sessionStorage.getItem("__ytaf_layout_checks");
     const parsed: unknown = stored ? JSON.parse(stored) : [];
     const history: Prettify<LayoutIntegrityReport>[] = Array.isArray(parsed) ? parsed : [];
     history.push(report);
@@ -233,14 +233,14 @@ function persistReport(report: Prettify<LayoutIntegrityReport>) {
       history.splice(0, history.length - 10);
     }
 
-    sessionStorage.setItem("__ytsua_layout_checks", JSON.stringify(history));
+    sessionStorage.setItem("__ytaf_layout_checks", JSON.stringify(history));
   } catch {}
 }
 
 function logReport(report: Prettify<LayoutIntegrityReport>) {
   const { isPass, timestamp, isBandOrderMatch, domBandTitles, apiBandTitles, bandDiffs } = report;
   const statusLabel = isPass ? "PASS" : "FAIL";
-  console.group(`[YTSUA] Layout Integrity ${statusLabel} - ${timestamp}`);
+  console.group(`[YTAF] Layout Integrity ${statusLabel} - ${timestamp}`);
 
   if (!isBandOrderMatch) {
     console.warn("Band order MISMATCH");
@@ -285,7 +285,7 @@ export async function checkLayoutIntegrity() {
   const domBands = captureDomBands();
   const apiResult = await fetchInitialVideos();
   if (!apiResult) {
-    console.error("[YTSUA] Layout integrity check: API fetch failed");
+    console.error("[YTAF] Layout integrity check: API fetch failed");
     return null;
   }
 

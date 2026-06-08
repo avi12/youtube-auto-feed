@@ -62,7 +62,7 @@ function pruneOrphanedDomSections({ elGrid, elGridContents }: PruneOrphanedDomSe
     }
   }
 
-  for (const elSection of [...elGridContents.querySelectorAll<HTMLElement>(":scope > ytd-rich-section-renderer")]) {
+  for (const elSection of elGridContents.querySelectorAll<HTMLElement>(":scope > ytd-rich-section-renderer")) {
     const title = elSection.querySelector("#title")?.textContent?.trim() ?? "";
     const remaining = titleCounts.get(title) ?? 0;
     if (remaining > 0) {
@@ -151,7 +151,7 @@ type PruneOrphanedDomItemsParams = Prettify<{
 
 function pruneOrphanedDomItems({ elGridContents, standaloneModelIds }: PruneOrphanedDomItemsParams) {
   const seenDomIds = new Set<string>();
-  for (const elChild of [...elGridContents.querySelectorAll<HTMLElement>(":scope > ytd-rich-item-renderer, :scope > ytd-rich-section-renderer")]) {
+  for (const elChild of elGridContents.querySelectorAll<HTMLElement>(":scope > ytd-rich-item-renderer, :scope > ytd-rich-section-renderer")) {
     if (elChild.tagName !== "YTD-RICH-ITEM-RENDERER" || !isPolymerElement(elChild)) {
       continue;
     }

@@ -1,3 +1,4 @@
+import { isAnimationsEnabled } from "../settings-state";
 import type { Prettify } from "../types/prettify";
 import { isPolymerElement } from "../utils/polymer";
 import { videoIdFromData } from "../utils/video-id";
@@ -13,10 +14,6 @@ const STAGGER_MAX_DELAY_CAP_MS = 20;
 const NEW_ITEM_MAX_DELAY_RANGE_MS = 160;
 const NEW_ITEM_MAX_DELAY_CAP_MS = 40;
 const WAIT_FOR_FRAMES_MAX = 10;
-
-export function prefersReducedMotion() {
-  return matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
 
 // Only one view transition can run at a time per document; serialize callers through this lock.
 let viewTransitionLock: Promise<void> = Promise.resolve();
@@ -38,7 +35,7 @@ export async function withViewTransitionLock<T>(work: () => Promise<T> | T): Pro
   }
 }
 
-const animationClasses = ["ytsua-new", "ytsua-updated"] as const;
+const animationClasses = ["ytaf-new", "ytaf-updated"] as const;
 type AnimationClass = typeof animationClasses[number];
 
 type TriggerAnimationParams = Prettify<{
@@ -47,7 +44,7 @@ type TriggerAnimationParams = Prettify<{
 }>;
 
 export function triggerAnimation({ elTarget, animationClass }: TriggerAnimationParams) {
-  if (prefersReducedMotion()) {
+  if (!isAnimationsEnabled()) {
     return;
   }
 
@@ -90,7 +87,7 @@ export function assignItemViewTransitionNames(elItems: Iterable<HTMLElement>) {
     const isFirstOccurrence = !!videoId && !assignedIds.has(videoId);
     if (isFirstOccurrence) {
       assignedIds.add(videoId);
-      elItem.style.viewTransitionName = `ytsua-item-${videoId}`;
+      elItem.style.viewTransitionName = `ytaf-item-${videoId}`;
     }
   }
 }
@@ -147,7 +144,7 @@ export function reassignTransitionNames({ elItems, animateIds }: ReassignTransit
     const isAnimatableAndPending = !!videoId && animateIds.has(videoId) && !reassignedIds.has(videoId);
     if (isAnimatableAndPending) {
       reassignedIds.add(videoId);
-      elItem.style.viewTransitionName = `ytsua-item-${videoId}`;
+      elItem.style.viewTransitionName = `ytaf-item-${videoId}`;
     }
   }
 }
@@ -162,7 +159,7 @@ export function clearAllItemViewTransitionNames() {
 
 export function clearRemovingClass(elItems: Iterable<HTMLElement>) {
   for (const elItem of elItems) {
-    elItem.classList.remove("ytsua-removing");
+    elItem.classList.remove("ytaf-removing");
   }
 }
 
@@ -180,7 +177,7 @@ export async function animateItemsOut(elItems: HTMLElement[]) {
     }, { once: true });
     requestAnimationFrame(() => {
       for (const elItem of elItems) {
-        elItem.classList.add("ytsua-removing");
+        elItem.classList.add("ytaf-removing");
       }
     });
   });
@@ -198,7 +195,7 @@ export function buildNewItemTransitionStyle(elItems: HTMLElement[]) {
 
     const delayMs = Math.round(i * delayPerItemMs);
     css += `::view-transition-group(${viewTransitionName}){animation-duration:0s}\n`;
-    css += `::view-transition-new(${viewTransitionName}){animation:ytsua-slide-in ${ANIMATION_DURATION_MS}ms cubic-bezier(0.2,0,0,1) ${delayMs}ms both}\n`;
+    css += `::view-transition-new(${viewTransitionName}){animation:ytaf-slide-in ${ANIMATION_DURATION_MS}ms cubic-bezier(0.2,0,0,1) ${delayMs}ms both}\n`;
   }
   const elStyle = document.createElement("style");
   elStyle.textContent = css;

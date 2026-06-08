@@ -1,9 +1,10 @@
+import { isAnimationsEnabled } from "../settings-state";
 import type { PolymerElement } from "../types/polymer";
 import type { Prettify } from "../types/prettify";
 import type { VideoSnapshot } from "../types/video";
 import { isPolymerElement } from "../utils/polymer";
 import { videoIdFromData } from "../utils/video-id";
-import { prefersReducedMotion, triggerAnimation } from "./animations";
+import { triggerAnimation } from "./animations";
 import { findItemElements } from "./query";
 import { applyUpdate } from "./update";
 
@@ -138,7 +139,7 @@ function ensureEntranceObserver() {
       entranceObserver?.unobserve(elItem);
       triggerAnimation({
         elTarget: elItem,
-        animationClass: "ytsua-new"
+        animationClass: "ytaf-new"
       });
     }
 
@@ -151,7 +152,7 @@ function ensureEntranceObserver() {
 }
 
 export function scheduleLazyEntrance(elItems: HTMLElement[]) {
-  const shouldSkipAnimation = elItems.length === 0 || prefersReducedMotion();
+  const shouldSkipAnimation = elItems.length === 0 || !isAnimationsEnabled();
   if (shouldSkipAnimation) {
     return;
   }

@@ -13,6 +13,18 @@ export function videoIdFromRichItem(
   return videoIdFromData(contentItem?.richItemRenderer);
 }
 
+// A collaborative video is associated with more than one channel - YouTube renders its byline avatar
+// as a stack of channel pictures (avatarStackViewModel) rather than a single decoratedAvatarViewModel.
+export function isCollaborativeRichItem(item: Prettify<InnerTubeRichGridItem>) {
+  const lockupViewModel = item.richItemRenderer?.content?.lockupViewModel;
+  if (!isLockupViewModel(lockupViewModel)) {
+    return false;
+  }
+
+  const avatars = lockupViewModel.metadata?.lockupMetadataViewModel?.image?.avatarStackViewModel?.avatars;
+  return (avatars?.length ?? 0) > 1;
+}
+
 export function avatarUrlFromContent(content: Prettify<InnerTubeRichItemContent>) {
   const { lockupViewModel } = content;
   if (!isLockupViewModel(lockupViewModel)) {

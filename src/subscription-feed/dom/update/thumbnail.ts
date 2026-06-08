@@ -1,5 +1,5 @@
+import { isAnimationsEnabled } from "../../settings-state";
 import type { Prettify } from "../../types/prettify";
-import { prefersReducedMotion } from "../animations";
 
 // Thumbnail handling: finding the <img> element across both shadow-DOM lockups and the legacy
 // markup, deciding whether the picture actually changed, and preparing the dissolve crossfade.
@@ -120,21 +120,41 @@ export async function prepareThumbnailDissolve({ elItem, elImg, newUrl }: Prepar
   };
 }
 
-const THUMBNAIL_VT_NAME_PREFIX = "ytsua-thumb-";
+const THUMBNAIL_DISSOLVE_MS = 250;
 
-// Cross-dissolves to a new thumbnail via a named View Transition. The browser captures the old
-// and new painted frames of the <img> and blends them - this works across shadow-root boundaries
-// because VT operates on composited output, not on the CSS class mechanism.
-export async function dissolveThumbnail(elImg: HTMLImageElement, newUrl: string, videoId: string) {
-  if (prefersReducedMotion() || !document.startViewTransition) {
+// Cross-fades the <img> from its current picture to the new one. The old picture is held as a CSS
+// background while the new picture loads hidden as the foreground (opacity 0); once it has decoded the
+// foreground fades in over the old background. A view transition would be cleaner but does not animate
+// on Firefox here - its new snapshot captures the <img> before it has repainted the new src, so the
+// blend collapses to a hard swap. This live-DOM cross-fade animates on every browser and never flashes.
+export async function dissolveThumbnail(elImg: HTMLImageElement, newUrl: string) {
+  if (!isAnimationsEnabled()) {
     elImg.src = newUrl;
     return;
   }
 
-  elImg.style.viewTransitionName = `${THUMBNAIL_VT_NAME_PREFIX}${videoId}`;
-  const transition = document.startViewTransition(() => {
-    elImg.src = newUrl;
+  const oldUrl = elImg.currentSrc || elImg.src;
+  const { style } = elImg;
+  style.backgroundImage = `url("${oldUrl}")`;
+  style.backgroundSize = "cover";
+  style.backgroundPosition = "center";
+  style.transition = "none";
+  style.opacity = "0";
+  elImg.src = newUrl;
+  // Flush the opacity:0 start state so the fade-in transitions from it rather than being batched away.
+  elImg.getBoundingClientRect();
+  await elImg.decode().catch(() => undefined);
+
+  style.transition = `opacity ${THUMBNAIL_DISSOLVE_MS}ms ease`;
+  style.opacity = "1";
+  await new Promise<void>(resolve => {
+    elImg.addEventListener("transitionend", () => resolve(), { once: true });
+    setTimeout(resolve, THUMBNAIL_DISSOLVE_MS + 100);
   });
-  await transition.finished;
-  elImg.style.viewTransitionName = "";
+
+  style.backgroundImage = "";
+  style.backgroundSize = "";
+  style.backgroundPosition = "";
+  style.transition = "";
+  style.opacity = "";
 }

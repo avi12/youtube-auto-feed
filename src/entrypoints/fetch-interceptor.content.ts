@@ -1,4 +1,4 @@
-import { ytsuaChannel } from "../shared/messaging";
+import { ytafChannel } from "../shared/messaging";
 
 export default defineContentScript({
   matches: ["https://www.youtube.com/*"],
@@ -12,13 +12,13 @@ export default defineContentScript({
       if (url.includes("/youtubei/v1/browse")) {
         const { body: rawBody, headers } = init ?? {};
         const body = typeof rawBody === "string" ? rawBody : "";
-        // The X-YTSUA header is the marker for fetches we issue ourselves, so we don't re-broadcast our own responses.
-        const isOurRequest = typeof headers === "object" && headers !== null && "X-YTSUA" in headers;
+        // The X-YTAF header is the marker for fetches we issue ourselves, so we don't re-broadcast our own responses.
+        const isOurRequest = typeof headers === "object" && headers !== null && "X-YTAF" in headers;
         const isSubscriptionsBrowse = body.includes("FEsubscriptions") && !isOurRequest;
         if (isSubscriptionsBrowse) {
           const response = await originalFetch(input, init);
           response.clone().json()
-            .then(data => dispatchEvent(new CustomEvent("ytsua-browse-response", { detail: data })))
+            .then(data => dispatchEvent(new CustomEvent("ytaf-browse-response", { detail: data })))
             .catch(() => {});
           return response;
         }
@@ -27,8 +27,8 @@ export default defineContentScript({
       if (url.includes("/youtubei/v1/subscription/")) {
         const response = await originalFetch(input, init);
         if (response.ok) {
-          dispatchEvent(new CustomEvent("ytsua-subscription-change"));
-          ytsuaChannel.sendMessage("subscription-change");
+          dispatchEvent(new CustomEvent("ytaf-subscription-change"));
+          ytafChannel.sendMessage("subscription-change");
         }
 
         return response;

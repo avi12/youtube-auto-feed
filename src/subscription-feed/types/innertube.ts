@@ -116,6 +116,11 @@ export interface LockupViewModel {
           };
           liveData?: { liveBadgeText?: string };
         };
+        // Collaborative (multi-channel) videos render a stacked avatar here instead of a single
+        // decoratedAvatarViewModel; `avatars` holds one entry per associated channel.
+        avatarStackViewModel?: {
+          avatars?: unknown[];
+        };
       };
     };
   };
