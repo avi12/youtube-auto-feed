@@ -1,5 +1,6 @@
 import expandNestedObjectExpression from "./eslint-rules/expand-nested-object-expression.js";
 import expandNestedTypeLiteral from "./eslint-rules/expand-nested-type-literal.js";
+import expandSvelteBlock from "./eslint-rules/expand-svelte-block.js";
 import multilineArgParenNewline from "./eslint-rules/multiline-arg-paren-newline.js";
 import noPaddedTag from "./eslint-rules/no-padded-tag.js";
 import eslint from "@eslint/js";
@@ -7,46 +8,42 @@ import stylistic from "@stylistic/eslint-plugin";
 import importPlugin from "eslint-plugin-import";
 import importNewlines from "eslint-plugin-import-newlines";
 import perfectionist from "eslint-plugin-perfectionist";
+import svelteEslint from "eslint-plugin-svelte";
 import { globalIgnores } from "eslint/config";
 import globals from "globals";
+import svelteParser from "svelte-eslint-parser";
 import tsEslint from "typescript-eslint";
 
 const tsStyleRules = {
-  "import/first": "error",
   "import/order": "off",
-  "prefer-const": "error",
-  "perfectionist/sort-imports": ["error", {
-    type: "alphabetical",
-    order: "asc",
-    newlinesBetween: "ignore",
-    sortSideEffects: true,
-    groups: [["side-effect", "builtin", "external", "internal", "parent", "sibling", "index", "unknown"]]
-  }],
+  "perfectionist/sort-imports": [
+    "error",
+    {
+      type: "alphabetical",
+      order: "asc",
+      newlinesBetween: "ignore",
+      sortSideEffects: true,
+      groups: [["side-effect", "builtin", "external", "internal", "parent", "sibling", "index", "unknown"]]
+    }
+  ],
   "@stylistic/quotes": ["error", "double", { allowTemplateLiterals: "always" }],
   "@stylistic/quote-props": ["error", "as-needed"],
   "@stylistic/semi": ["error"],
-  "@typescript-eslint/no-unused-vars": ["error", {
-    varsIgnorePattern: "^_",
-    argsIgnorePattern: "^_",
-    caughtErrorsIgnorePattern: "^_"
-  }],
-  "@typescript-eslint/no-explicit-any": "error",
-  "@typescript-eslint/ban-ts-comment": "error",
-  "@typescript-eslint/consistent-type-assertions": ["error", { assertionStyle: "never" }],
-  "@typescript-eslint/naming-convention": ["error", {
-    selector: "interface",
-    format: ["PascalCase"],
-    custom: {
-      regex: "^I[A-Z]",
-      match: false
+  "@typescript-eslint/naming-convention": [
+    "error",
+    {
+      selector: "interface",
+      format: ["PascalCase"],
+      custom: {
+        regex: "^I[A-Z]",
+        match: false
+      }
     }
-  }],
-  curly: ["error", "all"],
-  "no-empty": ["error", { allowEmptyCatch: true }],
+  ],
   "@stylistic/indent": ["error", 2],
   "@stylistic/arrow-parens": ["error", "as-needed"],
   "@stylistic/object-curly-spacing": ["error", "always"],
-  "@stylistic/brace-style": ["error", "1tbs"],
+  "@stylistic/brace-style": "error",
   "@stylistic/comma-dangle": ["error", "never"],
   "@stylistic/no-trailing-spaces": "error",
   "@stylistic/eol-last": ["error", "always"],
@@ -68,11 +65,14 @@ const tsStyleRules = {
     after: true
   }],
   "@stylistic/space-before-blocks": "error",
-  "@stylistic/space-before-function-paren": ["error", {
-    named: "never",
-    asyncArrow: "always",
-    catch: "always"
-  }],
+  "@stylistic/space-before-function-paren": [
+    "error",
+    {
+      named: "never",
+      asyncArrow: "always",
+      catch: "always"
+    }
+  ],
   "@stylistic/space-infix-ops": "error",
   "@stylistic/space-in-parens": ["error", "never"],
   "@stylistic/array-bracket-spacing": ["error", "never"],
@@ -85,25 +85,31 @@ const tsStyleRules = {
   }],
   "@stylistic/no-extra-semi": "error",
   "@stylistic/type-annotation-spacing": "error",
-  "@stylistic/member-delimiter-style": ["error", {
-    multiline: {
-      delimiter: "semi",
-      requireLast: true
-    },
-    singleline: {
-      delimiter: "semi",
-      requireLast: false
+  "@stylistic/member-delimiter-style": [
+    "error",
+    {
+      multiline: {
+        delimiter: "semi",
+        requireLast: true
+      },
+      singleline: {
+        delimiter: "semi",
+        requireLast: false
+      }
     }
-  }],
+  ],
   "@stylistic/no-mixed-spaces-and-tabs": "error",
   "@stylistic/no-tabs": "error",
-  "@stylistic/max-len": ["error", {
-    code: 120,
-    ignoreUrls: true,
-    ignoreStrings: true,
-    ignoreTemplateLiterals: true,
-    ignoreRegExpLiterals: true
-  }],
+  "@stylistic/max-len": [
+    "error",
+    {
+      code: 120,
+      ignoreUrls: true,
+      ignoreStrings: true,
+      ignoreTemplateLiterals: true,
+      ignoreRegExpLiterals: true
+    }
+  ],
   "@stylistic/padded-blocks": ["error", "never"],
   "@stylistic/rest-spread-spacing": ["error", "never"],
   "@stylistic/spaced-comment": ["error", "always"],
@@ -112,50 +118,26 @@ const tsStyleRules = {
     "max-len": 120,
     forceSingleLine: true
   }],
-  "@stylistic/object-curly-newline": ["error", {
-    ObjectExpression: {
-      consistent: true,
-      multiline: true
-    },
-    ObjectPattern: {
-      consistent: true,
-      multiline: true
-    },
-    ExportDeclaration: {
-      consistent: true,
-      multiline: true
-    }
-  }],
-  "@stylistic/object-property-newline": ["error", { allowAllPropertiesOnSameLine: false }],
-  "id-length": ["error", {
-    min: 3,
-    exceptions: ["_", "e", "i", "yt", "id"],
-    properties: "never"
-  }],
-  "func-style": ["error", "declaration", { allowArrowFunctions: false }],
-  "no-restricted-syntax": ["error",
+  "@stylistic/object-curly-newline": [
+    "error",
     {
-      selector: "VariableDeclarator > ArrowFunctionExpression",
-      message: "Do not assign arrow functions to variables. Use a named function declaration instead."
-    },
-    {
-      selector: "ForOfStatement > CallExpression[callee.object.name='Object'][callee.property.name='keys']",
-      message: "Use a for-in loop instead of for-of Object.keys()."
-    },
-    {
-      selector: "MemberExpression[object.name='Reflect']",
-      message: "Do not use Reflect. Use direct property access instead."
-    },
-    {
-      selector: "CallExpression[callee.property.name='forEach']",
-      message: "Use for...of instead of .forEach()"
-    },
-    {
-      selector: "CallExpression[callee.property.name='appendChild']",
-      message: "Use .append() instead of .appendChild()"
+      ObjectExpression: {
+        consistent: true,
+        multiline: true
+      },
+      ObjectPattern: {
+        consistent: true,
+        multiline: true
+      },
+      ExportDeclaration: {
+        consistent: true,
+        multiline: true
+      }
     }
   ],
-  "@stylistic/padding-line-between-statements": ["error",
+  "@stylistic/object-property-newline": ["error", { allowAllPropertiesOnSameLine: false }],
+  "@stylistic/padding-line-between-statements": [
+    "error",
     {
       blankLine: "always",
       prev: "import",
@@ -182,21 +164,45 @@ const tsStyleRules = {
       next: "*"
     }
   ],
-  "no-control-regex": "off",
-  "object-shorthand": ["error", "always", { avoidExplicitReturnArrows: true }],
-  "perfectionist/sort-objects": ["error", {
-    type: "unsorted",
-    newlinesBetween: 0
-  }],
-  "arrow-body-style": ["error", "as-needed"],
+  "perfectionist/sort-objects": [
+    "error",
+    {
+      type: "unsorted",
+      newlinesBetween: 0
+    }
+  ],
   "@stylistic/function-call-argument-newline": ["error", "consistent"],
   "@stylistic/function-paren-newline": ["error", "consistent"],
   "local/expand-nested-object-expression": "error",
   "local/expand-nested-type-literal": "error",
   "local/multiline-arg-paren-newline": "error",
   "local/no-padded-tag": "error",
-  "no-nested-ternary": "error",
-  "@typescript-eslint/no-floating-promises": "error"
+  "no-restricted-syntax": [
+    "error",
+    {
+      selector: "VariableDeclarator > ArrowFunctionExpression",
+      message: "Do not assign arrow functions to variables. Use a named function declaration instead."
+    },
+    {
+      selector: "ForOfStatement > CallExpression[callee.object.name='Object'][callee.property.name='keys']",
+      message: "Use a for-in loop instead of for-of Object.keys()."
+    },
+    {
+      selector: "MemberExpression[object.name='Reflect']",
+      message: "Do not use Reflect. Use direct property access instead."
+    },
+    {
+      selector: "CallExpression[callee.property.name='forEach']",
+      message: "Use for...of instead of .forEach()"
+    },
+    {
+      selector: "CallExpression[callee.property.name='appendChild']",
+      message: "Use .append() instead of .appendChild()"
+    }
+  ],
+  "@typescript-eslint/no-unused-vars": ["error", { ignoreRestSiblings: true }],
+  "no-empty": ["error", { allowEmptyCatch: true }],
+  "no-void": "error"
 };
 
 const sharedPlugins = {
@@ -208,56 +214,65 @@ const sharedPlugins = {
     rules: {
       "expand-nested-object-expression": expandNestedObjectExpression,
       "expand-nested-type-literal": expandNestedTypeLiteral,
+      "expand-svelte-block": expandSvelteBlock,
       "multiline-arg-paren-newline": multilineArgParenNewline,
       "no-padded-tag": noPaddedTag
     }
   }
 };
 
+const sharedGlobals = {
+  ...globals.browser,
+  ...globals.node,
+  browser: "readonly",
+  chrome: "readonly"
+};
+
 export default [
-  globalIgnores([".wxt/**", ".output/**", "User Data/**", "Opera Profile/**", "user-profiles/**", "node_modules/**"]),
   eslint.configs.recommended,
   ...tsEslint.configs.recommended,
+  ...svelteEslint.configs["flat/recommended"],
+  globalIgnores([".wxt/**", ".output/**", "node_modules/**", "user-profiles/**", "tmp/**", "screenshots/**", "User Data/**", "Opera Profile/**", "scripts/**"]),
   {
-    files: ["src/**/*.ts"],
+    files: ["**/*.{ts,js,mjs}"],
     languageOptions: {
       parser: tsEslint.parser,
-      parserOptions: {
-        projectService: { allowDefaultProject: ["eslint-rules/*.js"] }
-      },
-      globals: {
-        ...globals.browser,
-        chrome: "readonly",
-        browser: "readonly"
-      }
+      globals: sharedGlobals
     },
     plugins: sharedPlugins,
     rules: tsStyleRules
   },
   {
-    files: ["**/*.{ts,js}"],
-    ignores: ["src/**", "eslint.config.js"],
+    files: ["**/*.svelte"],
     languageOptions: {
-      parser: tsEslint.parser,
+      parser: svelteParser,
       parserOptions: {
-        projectService: { allowDefaultProject: ["eslint-rules/*.js", "dev.ts", "scripts/*.ts"] }
+        parser: tsEslint.parser,
+        extraFileExtensions: [".svelte"]
       },
-      globals: { ...globals.node }
-    },
-    plugins: sharedPlugins,
-    rules: tsStyleRules
-  },
-  {
-    files: ["eslint.config.js"],
-    languageOptions: {
-      parser: tsEslint.parser,
-      globals: { ...globals.node }
+      globals: sharedGlobals
     },
     plugins: sharedPlugins,
     rules: {
       ...tsStyleRules,
-      "@typescript-eslint/no-floating-promises": "off",
-      "@typescript-eslint/consistent-type-assertions": "off"
+      "no-void": "off",
+      "svelte/no-at-html-tags": "off",
+      "svelte/indent": ["error", { indent: 2 }],
+      "svelte/sort-attributes": "error",
+      "svelte/shorthand-directive": "error",
+      "svelte/first-attribute-linebreak": ["error"],
+      "svelte/shorthand-attribute": ["error", { prefer: "always" }],
+      "@typescript-eslint/explicit-function-return-type": ["error", {
+        allowExpressions: true,
+        allowHigherOrderFunctions: true
+      }],
+      "local/expand-svelte-block": "error"
+    }
+  },
+  {
+    files: ["**/*.svelte.ts"],
+    rules: {
+      "no-void": "off"
     }
   }
 ];

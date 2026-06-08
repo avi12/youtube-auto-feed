@@ -23,7 +23,7 @@ import {
   writeFileSync
 } from "node:fs";
 import { homedir, platform } from "node:os";
-import { resolve, join, dirname } from "node:path";
+import { resolve, join, dirname, isAbsolute } from "node:path";
 import { format, parseArgs } from "node:util";
 import webExtRun from "web-ext-run";
 import { consoleStream as webExtConsoleStream } from "web-ext-run/util/logger";
@@ -247,14 +247,26 @@ function findDefaultFirefoxProfilePath() {
   }
 
   const ini = readFileSync(profilesIniPath, "utf-8");
-  const sections = ini.split(/(?=^\[Profile\d)/m);
-  const defaultSection = sections.find(section => /^Default=1$/m.test(section));
+  const sections = ini.split(/(?=^\[)/m);
+
+  // Modern Firefox launches the profile named in the [Install...] section's
+  // Default= path, not the legacy [Profile] Default=1 flag - which commonly
+  // points at a stale, empty profile that was never actually used.
+  const installSection = sections.find(section => /^\[Install/m.test(section));
+  const installDefault = installSection?.match(/^Default=(.+)$/m)?.[1].trim();
+  if (installDefault) {
+    return isAbsolute(installDefault) ? installDefault : join(firefoxDataPath, installDefault);
+  }
+
+  const defaultSection = sections.find(
+    section => /^\[Profile\d/m.test(section) && /^Default=1$/m.test(section)
+  );
   const pathMatch = defaultSection?.match(/^Path=(.+)$/m);
-  const isRelative = /^IsRelative=1$/m.test(defaultSection ?? "");
   if (!pathMatch) {
     return null;
   }
 
+  const isRelative = /^IsRelative=1$/m.test(defaultSection ?? "");
   const profilePath = pathMatch[1].trim();
   return isRelative ? join(firefoxDataPath, profilePath) : profilePath;
 }
@@ -530,7 +542,6 @@ async function launchChromium(spec: BrowserSpec & { vendor: ChromiumVendor }): P
   setupChromiumProfile(profileDir, spec.vendor);
 
   const sharedArgs = [
-    `--lang=${LANG}`,
     `--remote-debugging-port=${cdpPort}`,
     "--disable-blink-features=AutomationControlled"
   ];

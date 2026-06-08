@@ -1,0 +1,71 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": [
+    "typescript",
+    "unicorn",
+    "oxc",
+    "import"
+  ],
+  "categories": {
+    "correctness": "error"
+  },
+  "env": {
+    "browser": true,
+    "node": true,
+    "builtin": true
+  },
+  "globals": {
+    "browser": "readonly",
+    "chrome": "readonly"
+  },
+  "rules": {
+    "no-void": ["error", { "allowAsStatement": true }],
+    "prefer-const": "error",
+    "no-nested-ternary": "error",
+    "curly": ["error", "all"],
+    "object-shorthand": ["error", "always", { "avoidExplicitReturnArrows": true }],
+    "id-length": ["error", {
+      "min": 3,
+      "exceptions": ["z", "_", "i", "fs", "id", "os", "e", "db", "mi", "ui", "HL", "GL", "js", "q", "to", "dd", "mm", "x", "y", "d", "T", "a", "fd", "n", "K", "V", "on", "gw", "hl", "gl", "FS", "yt"],
+      "properties": "never"
+    }],
+    "func-style": ["error", "declaration", { "allowArrowFunctions": false }],
+    "arrow-body-style": ["error", "as-needed"],
+    "no-control-regex": "off",
+    "typescript/no-explicit-any": "error",
+    "typescript/no-floating-promises": "error",
+    "typescript/unbound-method": "off",
+    "typescript/await-thenable": "off",
+    "typescript/no-base-to-string": "off",
+    "typescript/restrict-template-expressions": "off",
+    "typescript/no-useless-default-assignment": "off",
+    "typescript/no-unused-vars": ["error", {
+      "varsIgnorePattern": "^_",
+      "argsIgnorePattern": "^_",
+      "caughtErrorsIgnorePattern": "^_",
+      "ignoreRestSiblings": true
+    }],
+    "typescript/consistent-type-assertions": ["error", { "assertionStyle": "never" }],
+    "import/first": "error"
+  },
+  "overrides": [
+    {
+      "files": ["**/*.svelte"],
+      "rules": {
+        "typescript/no-explicit-any": "off",
+        "prefer-const": "off"
+      }
+    }
+  ],
+  "ignorePatterns": [
+    "node_modules/**",
+    ".output/**",
+    ".wxt/**",
+    "user-profiles/**",
+    "tmp/**",
+    "screenshots/**",
+    "User Data/**",
+    "Opera Profile/**",
+    "scripts/**"
+  ]
+}

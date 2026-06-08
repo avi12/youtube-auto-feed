@@ -18,6 +18,9 @@ stats-*.json
 .wxt
 user-profiles/
 
+# Credentials for Google Drive source upload
+youtube-auto-feed-drive-upload.json
+
 # Claude Code
 .claude/
 .mcp.json

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://raw.githubusercontent.com/getfallow/fallow/main/schema/fallowrc.json",
+  "ignoreDependencies": [
+    "@googleapis/drive",
+    "@sveltejs/vite-plugin-svelte",
+    "@stylistic/stylelint-plugin",
+    "@wxt-dev/module-svelte",
+    "eslint-plugin-svelte",
+    "oxlint",
+    "oxlint-tsgolint",
+    "postcss-html",
+    "stylelint-config-ccb",
+    "svelte-eslint-parser"
+  ]
+}
