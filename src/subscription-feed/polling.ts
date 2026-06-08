@@ -1,3 +1,4 @@
+import { feedMessenger } from "../shared/feed-messaging";
 import { ytafChannel } from "../shared/messaging";
 import { detectAndApplyChanges, detectAndApplyMetadataChanges } from "./diff";
 import { type BandLayout, captureBandLayout, normalizeCollapsedShelfRows } from "./dom/band-layout";
@@ -16,7 +17,7 @@ import { extractApiContents, extractApiSectionOrder, parseApiResponse } from "./
 // Owns the polling lifecycle: the 5s full-feed poll, the 10s metadata-only poll, the orphan
 // cleanup tick, and the navigation/visibility hooks that pause polling when the tab is hidden
 // or the user has navigated away from /feed/subscriptions. The fetch-interceptor entrypoint
-// feeds InnerTube responses through here via the "ytaf-browse-response" CustomEvent.
+// feeds InnerTube responses through here via the feedMessenger "browseResponse" message.
 
 interface FeedPayload {
   snapshots: VideoSnapshot[];
@@ -89,23 +90,22 @@ export function createSubscriptionMonitor() {
     }
   }
 
-  function handleBrowseResponse(e: Event) {
-    const isApplicableBrowseEvent = isOnSubscriptionsPage() && e instanceof CustomEvent;
-    if (!isApplicableBrowseEvent) {
+  function handleBrowseResponse(response: unknown) {
+    if (!isOnSubscriptionsPage()) {
       return;
     }
 
-    if (!isInnerTubeBrowseResponse(e.detail)) {
+    if (!isInnerTubeBrowseResponse(response)) {
       return;
     }
 
-    const snapshots = parseApiResponse(e.detail);
+    const snapshots = parseApiResponse(response);
     if (snapshots.length === 0) {
       return;
     }
 
-    const sectionOrder = extractApiSectionOrder(e.detail);
-    const apiContents = extractApiContents(e.detail);
+    const sectionOrder = extractApiSectionOrder(response);
+    const apiContents = extractApiContents(response);
     const payload = {
       snapshots,
       sectionOrder,
@@ -221,8 +221,6 @@ export function createSubscriptionMonitor() {
   }
 
   function startMonitoring() {
-    addEventListener("ytaf-browse-response", handleBrowseResponse);
-    addEventListener("ytaf-subscription-change", handleSubscriptionChange);
     document.addEventListener("visibilitychange", handlePageFocus);
     cancelBroadcastListener = ytafChannel.onMessage({
       type: "subscription-change",
@@ -242,8 +240,6 @@ export function createSubscriptionMonitor() {
 
   function stopMonitoring() {
     resetLazyUpdates();
-    removeEventListener("ytaf-browse-response", handleBrowseResponse);
-    removeEventListener("ytaf-subscription-change", handleSubscriptionChange);
     document.removeEventListener("visibilitychange", handlePageFocus);
     cancelBroadcastListener?.();
     cancelBroadcastListener = null;
@@ -364,6 +360,13 @@ export function createSubscriptionMonitor() {
     clearPolling();
     fetchFreshVideos().finally(() => restartPolling()).catch(() => {});
   }
+
+  // The interceptor can emit a browse response before any given navigation's startMonitoring runs,
+  // so these listeners live for the monitor's whole lifetime (the handlers self-gate on page/DOM
+  // state). An always-registered listener also guarantees the messenger send resolves rather than
+  // leaking a pending request.
+  feedMessenger.onMessage("browseResponse", ({ data }) => handleBrowseResponse(data));
+  feedMessenger.onMessage("subscriptionChange", handleSubscriptionChange);
 
   return {
     handleNavigation,

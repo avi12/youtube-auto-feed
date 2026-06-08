@@ -185,9 +185,7 @@ function buildBrowsePayload(contents: BrowseContentItem[]) {
 
 async function dispatch(cdp: Cdp, payload: BrowsePayload) {
   await cdp.evalAsync<void>(
-    `() => {
-    dispatchEvent(new CustomEvent("ytaf-browse-response", { detail: ${JSON.stringify(payload)} }));
-  }`
+    `() => window.__ytafFeedMessenger?.sendMessage("browseResponse", ${JSON.stringify(payload)})`
   );
   await delay(PROCESS_WAIT_MS);
 }
