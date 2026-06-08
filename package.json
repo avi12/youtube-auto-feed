@@ -33,6 +33,7 @@
     "eslint-plugin-perfectionist": "^5.9.0",
     "eslint-plugin-svelte": "3.19.0",
     "globals": "^17.6.0",
+    "jszip": "^3.10.1",
     "oxlint": "1.68.0",
     "oxlint-tsgolint": "0.23.0",
     "postcss": "^8.5.15",

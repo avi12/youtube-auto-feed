@@ -54,6 +54,9 @@ importers:
       globals:
         specifier: ^17.6.0
         version: 17.6.0
+      jszip:
+        specifier: ^3.10.1
+        version: 3.10.1
       oxlint:
         specifier: 1.68.0
         version: 1.68.0(oxlint-tsgolint@0.23.0)
