@@ -1,35 +1,11 @@
 import { z } from "../../shared/zod";
-import {
-  isLockupViewModel,
-  isShortsLockupViewModel,
-  isVideoRenderer,
-  videoRendererSchema
-} from "../youtube-api/guards";
+import { isVideoRenderer } from "../youtube-api/guards";
+import { richItemContentSchema, videoRendererSchema } from "../youtube-api/schemas";
 
 const nonEmptyStringSchema = z.string().min(1);
 
 const dataSchema = z.looseObject({
-  content: z.looseObject({}).optional().catch(undefined)
-});
-
-const contentSchema = z.looseObject({
-  videoRenderer: videoRendererSchema.optional().catch(undefined),
-  gridVideoRenderer: videoRendererSchema.optional().catch(undefined),
-  richGridMediaRenderer: z.looseObject({}).optional().catch(undefined),
-  lockupViewModel: z.looseObject({ contentId: z.string().optional() }).optional().catch(undefined),
-  shortsLockupViewModel: z.looseObject({}).optional().catch(undefined)
-});
-
-const richGridMediaRendererSchema = z.looseObject({
-  content: z.looseObject({}).optional().catch(undefined)
-});
-
-const richGridInnerSchema = z.looseObject({
-  videoRenderer: videoRendererSchema.optional().catch(undefined)
-});
-
-const lockupViewModelSchema = z.looseObject({
-  videoId: z.string().optional()
+  content: richItemContentSchema.optional().catch(undefined)
 });
 
 const listItemSchema = z.looseObject({
@@ -41,58 +17,39 @@ const listItemSchema = z.looseObject({
 // (videoRenderer, gridVideoRenderer, richGridMediaRenderer, lockupViewModel, shortsLockupViewModel).
 // Returns null for unrecognised shapes (continuation items, section headers).
 export function videoIdFromData(data: unknown) {
-  const dataParsed = dataSchema.safeParse(data);
-  if (!dataParsed.success) {
-    return null;
-  }
-
   if (isVideoRenderer(data)) {
     return data.videoId || null;
   }
 
-  const { content } = dataParsed.data;
-  const contentParsed = contentSchema.safeParse(content);
-  if (!contentParsed.success) {
+  const dataParsed = dataSchema.safeParse(data);
+  const content = dataParsed.success ? dataParsed.data.content : undefined;
+  if (!content) {
     return null;
   }
 
-  const {
-    videoRenderer,
-    gridVideoRenderer,
-    richGridMediaRenderer,
-    lockupViewModel,
-    shortsLockupViewModel
-  } = contentParsed.data;
-  if (isVideoRenderer(videoRenderer)) {
-    return videoRenderer.videoId || null;
+  if (content.videoRenderer) {
+    return content.videoRenderer.videoId || null;
   }
 
-  if (isVideoRenderer(gridVideoRenderer)) {
-    return gridVideoRenderer.videoId || null;
+  if (content.gridVideoRenderer) {
+    return content.gridVideoRenderer.videoId || null;
   }
 
-  const rgmrParsed = richGridMediaRendererSchema.safeParse(richGridMediaRenderer);
-  const richGridInner = rgmrParsed.success ? rgmrParsed.data.content : null;
-  const richGridInnerParsed = richGridInnerSchema.safeParse(richGridInner);
-  if (richGridInnerParsed.success && isVideoRenderer(richGridInnerParsed.data.videoRenderer)) {
-    return richGridInnerParsed.data.videoRenderer.videoId || null;
+  const innerVideoRenderer = content.richGridMediaRenderer?.content?.videoRenderer;
+  if (innerVideoRenderer) {
+    return innerVideoRenderer.videoId || null;
   }
 
   // Some lockup payloads use `videoId` instead of `contentId`.
-  if (isLockupViewModel(lockupViewModel) && lockupViewModel.contentId) {
-    return lockupViewModel.contentId;
+  if (content.lockupViewModel?.contentId) {
+    return content.lockupViewModel.contentId;
   }
 
-  const lockupViewModelParsed = lockupViewModelSchema.safeParse(lockupViewModel);
-  if (lockupViewModelParsed.success) {
-    return stringOrNull(lockupViewModelParsed.data.videoId);
+  if (content.lockupViewModel) {
+    return stringOrNull(content.lockupViewModel.videoId);
   }
 
-  if (isShortsLockupViewModel(shortsLockupViewModel)) {
-    return shortsLockupViewModel.onTap?.innertubeCommand?.reelWatchEndpoint?.videoId || null;
-  }
-
-  return null;
+  return content.shortsLockupViewModel?.onTap?.innertubeCommand?.reelWatchEndpoint?.videoId || null;
 }
 
 // For legacy shelf list items (horizontalListRenderer / gridRenderer) where the renderer is at
@@ -103,13 +60,12 @@ export function videoIdFromShelfListItem(listItem: unknown) {
     return "";
   }
 
-  const { videoRenderer, gridVideoRenderer } = parsed.data;
-  if (isVideoRenderer(videoRenderer)) {
-    return videoRenderer.videoId;
+  if (parsed.data.videoRenderer) {
+    return parsed.data.videoRenderer.videoId;
   }
 
-  if (isVideoRenderer(gridVideoRenderer)) {
-    return gridVideoRenderer.videoId;
+  if (parsed.data.gridVideoRenderer) {
+    return parsed.data.gridVideoRenderer.videoId;
   }
 
   return "";

@@ -1,4 +1,3 @@
-import { z } from "../../shared/zod";
 import type { Prettify } from "../types/prettify";
 import { type VideoSnapshot, VideoStatus } from "../types/video";
 import { isPolymerElement } from "../utils/polymer";
@@ -8,31 +7,13 @@ import {
   isRichShelfRenderer,
   isShelfRenderer,
   isShortsLockupViewModel,
-  isVideoRenderer,
-  videoRendererSchema
+  isVideoRenderer
 } from "../youtube-api/guards";
 import { parseLockupViewModel, parseRenderer, parseShortsLockupViewModel } from "../youtube-api/parse-video";
+import { richItemDataSchema } from "../youtube-api/schemas";
 
 // Reads the DOM into a VideoSnapshot map for the diff layer, plus element-lookup helpers for
 // finding items by video ID and shelves by section name.
-
-const itemDataSchema = z.looseObject({
-  content: z.looseObject({}).optional().catch(undefined)
-});
-
-const richGridMediaRendererSchema = z.looseObject({
-  content: z.looseObject({}).optional().catch(undefined)
-});
-
-const contentWithRichGridSchema = z.looseObject({
-  richGridMediaRenderer: z.looseObject({}).optional().catch(undefined),
-  videoRenderer: videoRendererSchema.optional().catch(undefined),
-  gridVideoRenderer: videoRendererSchema.optional().catch(undefined),
-  lockupViewModel: z.looseObject({ contentId: z.string().optional() }).optional().catch(undefined),
-  shortsLockupViewModel: z.looseObject({}).optional().catch(undefined)
-});
-
-const looseObjectSchema = z.looseObject({});
 
 interface SectionContext {
   sectionTitle: string;
@@ -150,30 +131,19 @@ function addRichItemToSnapshot({ elItem, sectionTitle, bandIndex, snapshot }: Ad
     return;
   }
 
-  const itemData = elItem.data;
-  const itemDataParsed = itemDataSchema.safeParse(itemData);
-  const contentParsed = itemDataParsed.success
-    ? looseObjectSchema.safeParse(itemDataParsed.data.content)
-    : null;
-  const content = contentParsed?.success ? contentParsed.data : null;
-  const contentWithRichGridParsed = contentWithRichGridSchema.safeParse(content);
-  const contentTyped = contentWithRichGridParsed.success ? contentWithRichGridParsed.data : null;
-  const richGridMediaRendererParsed = contentTyped !== null
-    ? richGridMediaRendererSchema.safeParse(contentTyped.richGridMediaRenderer)
-    : null;
-  const richGridInnerParsed = richGridMediaRendererParsed?.success
-    ? looseObjectSchema.safeParse(richGridMediaRendererParsed.data.content)
-    : null;
-  const richGridInner = richGridInnerParsed?.success ? richGridInnerParsed.data : null;
+  const parsed = richItemDataSchema.safeParse(elItem.data);
+  const content = parsed.success ? parsed.data.content : undefined;
+  if (!content) {
+    return;
+  }
+
   // Try each known renderer wrapper in priority order - shape varies by item type.
-  const rawRendererCandidate =
-    contentTyped?.videoRenderer ??
-    contentTyped?.gridVideoRenderer ??
-    richGridInner?.videoRenderer ??
-    contentTyped?.lockupViewModel ??
-    contentTyped?.shortsLockupViewModel;
-  const rawRendererParsed = looseObjectSchema.safeParse(rawRendererCandidate);
-  const rawRenderer = rawRendererParsed.success ? rawRendererParsed.data : null;
+  const rawRenderer = content.videoRenderer
+    ?? content.gridVideoRenderer
+    ?? content.richGridMediaRenderer?.content?.videoRenderer
+    ?? content.lockupViewModel
+    ?? content.shortsLockupViewModel
+    ?? null;
   const videoSnapshot = parseRichItemRenderer({
     rawRenderer,
     sectionTitle,

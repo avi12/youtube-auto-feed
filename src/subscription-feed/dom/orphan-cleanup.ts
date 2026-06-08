@@ -1,13 +1,11 @@
-import { z } from "../../shared/zod";
 import type { InnerTubeRichGridItem } from "../types/innertube";
 import type { PolymerElement } from "../types/polymer";
 import type { Prettify } from "../types/prettify";
 import { isPolymerElement } from "../utils/polymer";
 import { deepArray } from "../utils/records";
 import { videoIdFromData } from "../utils/video-id";
+import { gridDataSchema } from "../youtube-api/schemas";
 import { videoIdFromRichItem } from "./rich-item";
-
-const gridDataSchema = z.looseObject({});
 
 // Reconciles Polymer drift: prunes DOM items whose videoId is no longer in `data.contents`,
 // dedupes the data model, and removes section headers that no longer exist in the data.

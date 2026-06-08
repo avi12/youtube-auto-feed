@@ -3,6 +3,7 @@ import type { PolymerElement } from "../../types/polymer";
 import type { Prettify } from "../../types/prettify";
 import type { VideoSnapshot } from "../../types/video";
 import { isLockupViewModel } from "../../youtube-api/guards";
+import { richItemContentSchema } from "../../youtube-api/schemas";
 import { applyWithDissolve } from "./dissolve";
 import { mutateLockupMetadata } from "./lockup-model";
 import { applyPolymerUpdate, syncGridModelItem } from "./polymer-model";
@@ -308,11 +309,7 @@ async function applyTargetedLockupUpdate({
 }
 
 const itemDataSchema = z.looseObject({
-  content: z.looseObject({}).optional().catch(undefined)
-});
-
-const contentSchema = z.looseObject({
-  lockupViewModel: z.looseObject({ contentId: z.string().optional() }).optional().catch(undefined)
+  content: richItemContentSchema.optional().catch(undefined)
 });
 
 // Dispatch point. Full Polymer rebuild for status/channel-live flips or missing data; targeted
@@ -358,8 +355,7 @@ export function applyUpdate({ videoId, elItem, fresh, previous }: ApplyUpdatePar
   }
 
   const { content } = itemDataParse.data;
-  const contentParse = contentSchema.safeParse(content);
-  const hasLockupContent = contentParse.success && contentSchema.safeParse(contentParse.data.lockupViewModel).success;
+  const hasLockupContent = content?.lockupViewModel !== undefined;
   const elLockup = hasLockupContent ? elItem.querySelector<HTMLElement>("yt-lockup-view-model") : null;
   if (elLockup) {
     applyTargetedLockupUpdate({

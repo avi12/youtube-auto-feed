@@ -1,11 +1,5 @@
-import { z } from "../shared/zod";
 import { isPolymerElement } from "./utils/polymer";
-
-const polymerDataSchema = z.looseObject({});
-
-const polymerDataWithContentsSchema = z.looseObject({
-  contents: z.array(z.looseObject({}))
-});
+import { gridDataSchema, gridVideoDataSchema, richItemDataSchema } from "./youtube-api/schemas";
 
 // Polymer hydrates `data` asynchronously. Any one of these signals confirms the feed is safe to
 // read/mutate. Called in a MutationObserver loop on initial load and each SPA nav to the feed.
@@ -14,7 +8,7 @@ export function isDomContentReady() {
   if (elShelf) {
     const elItem = elShelf.querySelector<HTMLElement>("ytd-rich-item-renderer");
     const isShelfItemHydrated = !!elItem && isPolymerElement(elItem)
-      && polymerDataSchema.safeParse(elItem.data).success;
+      && richItemDataSchema.safeParse(elItem.data).success;
     if (isShelfItemHydrated) {
       return true;
     }
@@ -25,7 +19,7 @@ export function isDomContentReady() {
     for (const elChild of elGridContents.children) {
       const isHydratedGridItem = elChild.tagName === "YTD-RICH-ITEM-RENDERER"
         && isPolymerElement(elChild)
-        && polymerDataSchema.safeParse(elChild.data).success;
+        && richItemDataSchema.safeParse(elChild.data).success;
       if (isHydratedGridItem) {
         return true;
       }
@@ -34,7 +28,7 @@ export function isDomContentReady() {
 
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
   if (elGrid && isPolymerElement(elGrid)) {
-    const dataParsed = polymerDataWithContentsSchema.safeParse(elGrid.data);
+    const dataParsed = gridDataSchema.safeParse(elGrid.data);
     if (dataParsed.success) {
       const { contents } = dataParsed.data;
       const hasContents = Array.isArray(contents) && contents.length > 0;
@@ -45,5 +39,5 @@ export function isDomContentReady() {
   }
 
   const elGridItem = document.querySelector<HTMLElement>("ytd-grid-video-renderer");
-  return !!elGridItem && isPolymerElement(elGridItem) && polymerDataSchema.safeParse(elGridItem.data).success;
+  return !!elGridItem && isPolymerElement(elGridItem) && gridVideoDataSchema.safeParse(elGridItem.data).success;
 }

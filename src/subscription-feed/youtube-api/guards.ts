@@ -13,21 +13,28 @@ import {
 } from "../types/innertube";
 import type { Prettify } from "../types/prettify";
 import { VideoStatus } from "../types/video";
+import {
+  browseContentsSchema,
+  richShelfContentsSchema,
+  shelfContentSchema,
+  shortsOnTapSchema,
+  titleSchema,
+  videoRendererSchema
+} from "./schemas";
 
-// Type guards for InnerTube renderer shapes. Schemas assert only the discriminating fields;
-// `looseObject` lets the rest of the (large, variable) renderer pass through untouched.
+// Type guards for InnerTube renderer shapes. Each schema asserts the discriminating field(s); the
+// rest of every renderer is modelled in ./schemas and passes through via looseObject.
 
-export const videoRendererSchema = z.looseObject({ videoId: z.string() });
 const lockupViewModelSchema = z.looseObject({ contentId: z.string() });
-const shortsLockupViewModelSchema = z.looseObject({ onTap: z.looseObject({}) });
-const browseResponseSchema = z.looseObject({ contents: z.looseObject({}) });
+const shortsLockupViewModelSchema = z.looseObject({ onTap: shortsOnTapSchema });
+const browseResponseSchema = z.looseObject({ contents: browseContentsSchema });
 const richShelfRendererSchema = z.looseObject({
-  title: z.looseObject({}),
-  contents: z.array(z.looseObject({}))
+  title: titleSchema,
+  contents: richShelfContentsSchema
 });
 const shelfRendererSchema = z.looseObject({
-  title: z.looseObject({}),
-  content: z.looseObject({})
+  title: titleSchema,
+  content: shelfContentSchema
 });
 
 export function isVideoRenderer(value: unknown): value is InnerTubeVideoRenderer {

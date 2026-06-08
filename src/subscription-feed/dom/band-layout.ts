@@ -1,15 +1,9 @@
-import { z } from "../../shared/zod";
 import type { InnerTubeRichGridItem } from "../types/innertube";
 import type { Prettify } from "../types/prettify";
 import { isPolymerElement } from "../utils/polymer";
 import { deepArray } from "../utils/records";
+import { gridDataSchema, richItemDataSchema, richShelfDataSchema } from "../youtube-api/schemas";
 import { videoIdFromRichItem } from "./rich-item";
-
-const polymerDataSchema = z.looseObject({});
-
-const shelfDataSchema = z.looseObject({
-  isExpanded: z.boolean().optional()
-});
 
 // Bands are positional groupings: contiguous root-level videos = one inline band, each rich shelf
 // = its own band, title-only legacy shelves start a new inline section. captureBandLayout()
@@ -44,7 +38,7 @@ function readTitleOnlyShelfTitle(item: Prettify<InnerTubeRichGridItem>) {
 
 export function captureBandLayout() {
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
-  const isGridUsable = !!elGrid && isPolymerElement(elGrid) && polymerDataSchema.safeParse(elGrid.data).success;
+  const isGridUsable = !!elGrid && isPolymerElement(elGrid) && gridDataSchema.safeParse(elGrid.data).success;
   if (!isGridUsable) {
     return null;
   }
@@ -104,7 +98,7 @@ export async function normalizeCollapsedShelfRows() {
       continue;
     }
 
-    const shelfDataParsed = shelfDataSchema.safeParse(elShelf.data);
+    const shelfDataParsed = richShelfDataSchema.safeParse(elShelf.data);
     const isCollapsedShelf = shelfDataParsed.success && shelfDataParsed.data.isExpanded === false;
     if (!isCollapsedShelf) {
       continue;
@@ -134,7 +128,7 @@ export async function normalizeCollapsedShelfRows() {
           return [];
         }
 
-        const itemDataParsed = polymerDataSchema.safeParse(elItem.data);
+        const itemDataParsed = richItemDataSchema.safeParse(elItem.data);
         if (!itemDataParsed.success) {
           return [];
         }

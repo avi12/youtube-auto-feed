@@ -9,7 +9,7 @@ A browser extension that keeps the YouTube subscriptions feed (`/feed/subscripti
 
 # Constraints
 - Page is live YouTube. The extension mutates `ytd-rich-grid-renderer.data.contents` through Polymer's `elGrid.set(path, value)`, never through `innerHTML`.
-- InnerTube renderer shapes vary (`videoRenderer`, `lockupViewModel`, `shortsLockupViewModel`, legacy `shelfRenderer` / `gridRenderer`). Always go through the deep accessors and predicates the module exposes; never index into raw shapes.
+- InnerTube renderer shapes vary (`videoRenderer`, `lockupViewModel`, `shortsLockupViewModel`, legacy `shelfRenderer` / `gridRenderer`). The shapes are modelled as Zod schemas in `youtube-api/schemas.ts` (optional fields, `looseObject` passthrough, leaves bottom out at real primitives) and validated through the guards/predicates the module exposes. Go through those; never index into raw shapes.
 - **Section structure is read-only.** The extension may only append or remove videos within sections. It must not reorder, move, merge, dismantle, or tail-pin section markers. Whatever section order YouTube emits is what gets rendered, including repeats.
 - Dev server: `pnpm dev` is the supported path. It launches Edge through `web-ext-run` and reloads via `runner.reloadAllExtensions()`. Direct `--load-extension` Edge launch with manual `chrome.runtime.reload()` over CDP silently disables the extension on every content-script rebuild.
 

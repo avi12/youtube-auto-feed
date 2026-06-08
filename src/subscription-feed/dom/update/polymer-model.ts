@@ -10,13 +10,8 @@ import type { PolymerElement } from "../../types/polymer";
 import type { Prettify } from "../../types/prettify";
 import { isPolymerElement } from "../../utils/polymer";
 import { deepArray } from "../../utils/records";
-import {
-  isLockupViewModel,
-  isShelfRenderer,
-  isShortsLockupViewModel,
-  isVideoRenderer,
-  videoRendererSchema
-} from "../../youtube-api/guards";
+import { isLockupViewModel, isShelfRenderer, isShortsLockupViewModel, isVideoRenderer } from "../../youtube-api/guards";
+import { gridDataSchema, richItemContentSchema, richShelfDataSchema, thumbnailSchema } from "../../youtube-api/schemas";
 import { findRichItemIndex } from "../rich-item";
 import { mergeLockupViewModel } from "./lockup-model";
 
@@ -24,19 +19,9 @@ import { mergeLockupViewModel } from "./lockup-model";
 // more rich shelves, and inside a legacy inner shelf; syncGridModelItem updates every position so
 // Polymer re-renders all copies. applyPolymerUpdate is the preferred entry for element-bound updates.
 
-const objectSchema = z.looseObject({});
+const itemDataSchema = z.looseObject({ content: richItemContentSchema.optional().catch(undefined) });
 
-const itemDataSchema = z.looseObject({ content: z.looseObject({}).optional().catch(undefined) });
-
-const richItemContentSchema = z.looseObject({
-  lockupViewModel: z.looseObject({ contentId: z.string().optional() }).optional().catch(undefined),
-  shortsLockupViewModel: z.looseObject({}).optional().catch(undefined),
-  videoRenderer: videoRendererSchema.optional().catch(undefined),
-  gridVideoRenderer: videoRendererSchema.optional().catch(undefined),
-  richGridMediaRenderer: z.looseObject({}).optional().catch(undefined)
-});
-
-const rendererThumbnailSchema = z.looseObject({ thumbnails: z.array(z.looseObject({})) });
+const rendererThumbnailSchema = z.looseObject({ thumbnails: z.array(thumbnailSchema) });
 
 type ApplyPolymerUpdateParams = Prettify<{
   elItem: Prettify<PolymerElement>;
@@ -50,13 +35,12 @@ export function applyPolymerUpdate({ elItem, rawRenderer }: ApplyPolymerUpdatePa
   }
 
   const itemData = parsedItemData.data;
-  const parsedContent = richItemContentSchema.safeParse(itemData.content);
-  if (!parsedContent.success) {
+  const content = itemData.content;
+  if (!content) {
     elItem.set("data", rawRenderer);
     return;
   }
 
-  const content = parsedContent.data;
   if (isLockupViewModel(content.lockupViewModel) && isLockupViewModel(rawRenderer)) {
     const merged = mergeLockupViewModel({
       existing: content.lockupViewModel,
@@ -97,17 +81,17 @@ export function applyPolymerUpdate({ elItem, rawRenderer }: ApplyPolymerUpdatePa
     return;
   }
 
-  if (objectSchema.safeParse(content.videoRenderer).success) {
+  if (content.videoRenderer) {
     elItem.set("data.content.videoRenderer", rawRenderer);
     return;
   }
 
-  if (objectSchema.safeParse(content.gridVideoRenderer).success) {
+  if (content.gridVideoRenderer) {
     elItem.set("data.content.gridVideoRenderer", rawRenderer);
     return;
   }
 
-  if (objectSchema.safeParse(content.richGridMediaRenderer).success) {
+  if (content.richGridMediaRenderer) {
     elItem.set("data.content.richGridMediaRenderer.content.videoRenderer", rawRenderer);
   }
 }
@@ -159,15 +143,15 @@ function applyRichItemContentUpdate({
   rawRenderer,
   forcePreserveContentImage
 }: ApplyRichItemContentUpdateParams) {
-  if (objectSchema.safeParse(existingContent.richGridMediaRenderer).success) {
+  const parsedExisting = richItemContentSchema.safeParse(existingContent);
+  const existing = parsedExisting.success ? parsedExisting.data : null;
+  if (existing?.richGridMediaRenderer) {
     elElement.set(`${basePath}.richGridMediaRenderer.content.videoRenderer`, rawRenderer);
     return;
   }
 
-  const isLockupApplicable = isLockupViewModel(rawRenderer)
-    || objectSchema.safeParse(existingContent.lockupViewModel).success;
-  if (isLockupApplicable) {
-    const existingLockup = existingContent.lockupViewModel;
+  const existingLockup = existing?.lockupViewModel;
+  if (isLockupViewModel(rawRenderer) || existingLockup !== undefined) {
     const merged = isLockupViewModel(rawRenderer) && isLockupViewModel(existingLockup)
       ? mergeLockupViewModel({
         existing: existingLockup,
@@ -179,18 +163,16 @@ function applyRichItemContentUpdate({
     return;
   }
 
-  const isShortsLockupApplicable = isShortsLockupViewModel(rawRenderer)
-    || objectSchema.safeParse(existingContent.shortsLockupViewModel).success;
-  if (isShortsLockupApplicable) {
+  if (isShortsLockupViewModel(rawRenderer) || existing?.shortsLockupViewModel !== undefined) {
     elElement.set(`${basePath}.shortsLockupViewModel`, rawRenderer);
     return;
   }
 
-  const existingGridVideoRenderer = objectSchema.safeParse(existingContent.gridVideoRenderer);
-  if (existingGridVideoRenderer.success) {
+  const existingGridVideoRenderer = existing?.gridVideoRenderer;
+  if (existingGridVideoRenderer) {
     elElement.set(
       `${basePath}.gridVideoRenderer`, buildMergedVideoRenderer({
-        existing: existingGridVideoRenderer.data,
+        existing: existingGridVideoRenderer,
         incoming: rawRenderer,
         forcePreserveContentImage
       })
@@ -198,10 +180,9 @@ function applyRichItemContentUpdate({
     return;
   }
 
-  const existingVideoRenderer = objectSchema.safeParse(existingContent.videoRenderer);
   elElement.set(
     `${basePath}.videoRenderer`, buildMergedVideoRenderer({
-      existing: existingVideoRenderer.success ? existingVideoRenderer.data : null,
+      existing: existing?.videoRenderer ?? null,
       incoming: rawRenderer,
       forcePreserveContentImage
     })
@@ -216,7 +197,7 @@ type ApplyToGridModelParams = Prettify<{
 
 function applyToGridModel({ videoId, rawRenderer, forcePreserveContentImage }: ApplyToGridModelParams) {
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
-  const isGridUsable = !!elGrid && isPolymerElement(elGrid) && objectSchema.safeParse(elGrid.data).success;
+  const isGridUsable = !!elGrid && isPolymerElement(elGrid) && gridDataSchema.safeParse(elGrid.data).success;
   if (!isGridUsable) {
     return;
   }
@@ -250,7 +231,7 @@ type ApplyToRichShelfModelsParams = Prettify<{
 
 function applyToRichShelfModels({ videoId, rawRenderer, forcePreserveContentImage }: ApplyToRichShelfModelsParams) {
   for (const elShelf of document.querySelectorAll<HTMLElement>("ytd-rich-shelf-renderer")) {
-    const isRichShelfUsable = isPolymerElement(elShelf) && objectSchema.safeParse(elShelf.data).success;
+    const isRichShelfUsable = isPolymerElement(elShelf) && richShelfDataSchema.safeParse(elShelf.data).success;
     if (!isRichShelfUsable) {
       continue;
     }
@@ -285,7 +266,7 @@ type ApplyToLegacyShelfModelsParams = Prettify<{
 
 function applyToLegacyShelfModels({ videoId, rawRenderer, forcePreserveContentImage }: ApplyToLegacyShelfModelsParams) {
   for (const elShelf of document.querySelectorAll<HTMLElement>("ytd-shelf-renderer")) {
-    const isLegacyShelfUsable = isPolymerElement(elShelf) && objectSchema.safeParse(elShelf.data).success;
+    const isLegacyShelfUsable = isPolymerElement(elShelf) && richShelfDataSchema.safeParse(elShelf.data).success;
     if (!isLegacyShelfUsable) {
       continue;
     }

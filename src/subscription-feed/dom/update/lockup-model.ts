@@ -5,6 +5,7 @@ import type { Prettify } from "../../types/prettify";
 import { isPolymerElement } from "../../utils/polymer";
 import { deepArray } from "../../utils/records";
 import { isLockupViewModel } from "../../youtube-api/guards";
+import { gridDataSchema, richItemContentSchema, richShelfDataSchema } from "../../youtube-api/schemas";
 import { findRichItemIndex } from "../rich-item";
 
 // Merges an incoming lockupViewModel into the existing one, preserving already-loaded image bytes
@@ -140,14 +141,8 @@ function mutateLockupInContainer({ containerData, videoId, mutateOne }: MutateLo
 }
 
 const itemDataSchema = z.looseObject({
-  content: z.looseObject({}).optional().catch(undefined)
+  content: richItemContentSchema.optional().catch(undefined)
 });
-
-const contentSchema = z.looseObject({
-  lockupViewModel: z.looseObject({ contentId: z.string().optional() }).optional().catch(undefined)
-});
-
-const polymerDataSchema = z.looseObject({});
 
 export function mutateLockupMetadata({ videoId, elItem, incoming, preserveContentImage }: MutateLockupMetadataParams) {
   const seenLockups = new Set<LockupViewModel>();
@@ -167,14 +162,11 @@ export function mutateLockupMetadata({ videoId, elItem, incoming, preserveConten
 
   const itemDataParse = itemDataSchema.safeParse(elItem.data);
   if (itemDataParse.success) {
-    const contentParse = contentSchema.safeParse(itemDataParse.data.content);
-    if (contentParse.success) {
-      mutateOne(contentParse.data.lockupViewModel);
-    }
+    mutateOne(itemDataParse.data.content?.lockupViewModel);
   }
 
   for (const elGrid of document.querySelectorAll<HTMLElement>("ytd-rich-grid-renderer")) {
-    const isGridUsable = isPolymerElement(elGrid) && polymerDataSchema.safeParse(elGrid.data).success;
+    const isGridUsable = isPolymerElement(elGrid) && gridDataSchema.safeParse(elGrid.data).success;
     if (!isGridUsable) {
       continue;
     }
@@ -187,7 +179,7 @@ export function mutateLockupMetadata({ videoId, elItem, incoming, preserveConten
   }
 
   for (const elShelf of document.querySelectorAll<HTMLElement>("ytd-rich-shelf-renderer")) {
-    const isShelfUsable = isPolymerElement(elShelf) && polymerDataSchema.safeParse(elShelf.data).success;
+    const isShelfUsable = isPolymerElement(elShelf) && richShelfDataSchema.safeParse(elShelf.data).success;
     if (!isShelfUsable) {
       continue;
     }
