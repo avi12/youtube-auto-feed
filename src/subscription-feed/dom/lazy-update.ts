@@ -1,10 +1,8 @@
-import { isAnimationsEnabled } from "../settings-state";
 import type { PolymerElement } from "../types/polymer";
 import type { Prettify } from "../types/prettify";
 import type { VideoSnapshot } from "../types/video";
 import { isPolymerElement } from "../utils/polymer";
 import { videoIdFromData } from "../utils/video-id";
-import { triggerAnimation } from "./animations";
 import { findItemElements } from "./query";
 import { applyUpdate } from "./update";
 
@@ -14,7 +12,6 @@ import { applyUpdate } from "./update";
 
 const IDLE_CALLBACK_TIMEOUT_MS = 500;
 const LAZY_UPDATE_ROOT_MARGIN_PX = 300;
-const LAZY_ENTRANCE_ROOT_MARGIN_PX = 50;
 
 const pendingUpdates = new Map<string, {
   fresh: Prettify<VideoSnapshot>;
@@ -116,61 +113,10 @@ export function scheduleLazyUpdate({ videoId, fresh, previous, elItemHint }: Sch
   }
 }
 
-const pendingEntranceItems = new Set<HTMLElement>();
-let entranceObserver: IntersectionObserver | null = null;
-
-function ensureEntranceObserver() {
-  if (entranceObserver) {
-    return entranceObserver;
-  }
-
-  entranceObserver = new IntersectionObserver(entries => {
-    for (const { isIntersecting, target } of entries) {
-      const shouldSkipObservation = !isIntersecting || !(target instanceof HTMLElement);
-      if (shouldSkipObservation) {
-        continue;
-      }
-
-      const elItem = target;
-      if (!pendingEntranceItems.delete(elItem)) {
-        continue;
-      }
-
-      entranceObserver?.unobserve(elItem);
-      triggerAnimation({
-        elTarget: elItem,
-        animationClass: "ytaf-new"
-      });
-    }
-
-    if (pendingEntranceItems.size === 0) {
-      entranceObserver?.disconnect();
-      entranceObserver = null;
-    }
-  }, { rootMargin: `${LAZY_ENTRANCE_ROOT_MARGIN_PX}px 0px 0px 0px` });
-  return entranceObserver;
-}
-
-export function scheduleLazyEntrance(elItems: HTMLElement[]) {
-  const shouldSkipAnimation = elItems.length === 0 || !isAnimationsEnabled();
-  if (shouldSkipAnimation) {
-    return;
-  }
-
-  const observer = ensureEntranceObserver();
-  for (const elItem of elItems) {
-    pendingEntranceItems.add(elItem);
-    observer.observe(elItem);
-  }
-}
-
 export function resetLazyUpdates() {
   pendingUpdates.clear();
   pendingApplyBatch.length = 0;
   isIdleCallbackScheduled = false;
-  pendingEntranceItems.clear();
   intersectionObserver?.disconnect();
   intersectionObserver = null;
-  entranceObserver?.disconnect();
-  entranceObserver = null;
 }

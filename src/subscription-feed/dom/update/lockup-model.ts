@@ -37,7 +37,7 @@ type MergeContentImagePreservingThumbnailParams = Prettify<{
   incoming: LockupViewModel["contentImage"];
 }>;
 
-export function mergeContentImagePreservingThumbnail({ existing, incoming }: MergeContentImagePreservingThumbnailParams): LockupViewModel["contentImage"] {
+function mergeContentImagePreservingThumbnail({ existing, incoming }: MergeContentImagePreservingThumbnailParams): LockupViewModel["contentImage"] {
   if (!existing) {
     return incoming;
   }
@@ -118,6 +118,28 @@ type MutateLockupMetadataParams = Prettify<{
   preserveContentImage: boolean;
 }>;
 
+type MutateLockupInContainerParams = Prettify<{
+  containerData: unknown;
+  videoId: string;
+  mutateOne: (candidate: unknown) => void;
+}>;
+
+function mutateLockupInContainer({ containerData, videoId, mutateOne }: MutateLockupInContainerParams) {
+  const contents = deepArray<InnerTubeRichGridItem>(containerData, "contents");
+  const iItem = findRichItemIndex({
+    contents,
+    videoId
+  });
+  if (iItem < 0) {
+    return;
+  }
+
+  const content = contents[iItem]?.richItemRenderer?.content;
+  if (content) {
+    mutateOne(content.lockupViewModel);
+  }
+}
+
 export function mutateLockupMetadata({ videoId, elItem, incoming, preserveContentImage }: MutateLockupMetadataParams) {
   const seenLockups = new Set<LockupViewModel>();
   function mutateOne(candidate: unknown) {
@@ -145,19 +167,11 @@ export function mutateLockupMetadata({ videoId, elItem, incoming, preserveConten
       continue;
     }
 
-    const contents = deepArray<InnerTubeRichGridItem>(elGrid.data, "contents");
-    const iItem = findRichItemIndex({
-      contents,
-      videoId
+    mutateLockupInContainer({
+      containerData: elGrid.data,
+      videoId,
+      mutateOne
     });
-    if (iItem < 0) {
-      continue;
-    }
-
-    const content = contents[iItem]?.richItemRenderer?.content;
-    if (content) {
-      mutateOne(content.lockupViewModel);
-    }
   }
 
   for (const elShelf of document.querySelectorAll<HTMLElement>("ytd-rich-shelf-renderer")) {
@@ -166,19 +180,11 @@ export function mutateLockupMetadata({ videoId, elItem, incoming, preserveConten
       continue;
     }
 
-    const contents = deepArray<InnerTubeRichGridItem>(elShelf.data, "contents");
-    const iItem = findRichItemIndex({
-      contents,
-      videoId
+    mutateLockupInContainer({
+      containerData: elShelf.data,
+      videoId,
+      mutateOne
     });
-    if (iItem < 0) {
-      continue;
-    }
-
-    const content = contents[iItem]?.richItemRenderer?.content;
-    if (content) {
-      mutateOne(content.lockupViewModel);
-    }
   }
 }
 

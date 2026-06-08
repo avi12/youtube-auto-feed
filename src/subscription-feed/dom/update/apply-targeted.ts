@@ -37,7 +37,7 @@ interface TargetedUpdateParams {
 
 type ApplyTargetedGenericUpdateParams = Prettify<TargetedUpdateParams>;
 
-export async function applyTargetedGenericUpdate({
+async function applyTargetedGenericUpdate({
   videoId,
   elItem,
   previous,
@@ -121,7 +121,7 @@ type ApplyTargetedLockupUpdateParams = Prettify<TargetedUpdateParams & {
   elLockup: HTMLElement;
 }>;
 
-export async function applyTargetedLockupUpdate({
+async function applyTargetedLockupUpdate({
   videoId,
   elItem,
   elLockup,

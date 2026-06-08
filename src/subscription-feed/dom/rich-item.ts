@@ -69,26 +69,3 @@ type FindRichItemIndexParams = Prettify<{
 export function findRichItemIndex({ contents, videoId }: FindRichItemIndexParams) {
   return contents.findIndex(item => videoIdFromRichItem(item) === videoId);
 }
-
-type FilterOutRichItemsParams = Prettify<{
-  contents: Prettify<InnerTubeRichGridItem>[];
-  excludeVideoIds: Set<string>;
-}>;
-
-export function filterOutRichItems({ contents, excludeVideoIds }: FilterOutRichItemsParams) {
-  return contents.filter(item => {
-    const videoId = videoIdFromRichItem(item);
-    return !videoId || !excludeVideoIds.has(videoId);
-  });
-}
-
-type SortByFreshOrderParams<T extends { videoId: string }> = Prettify<{
-  videos: T[];
-  freshOrder: Map<string, number>;
-}>;
-
-export function sortByFreshOrder<T extends { videoId: string }>({ videos, freshOrder }: SortByFreshOrderParams<T>) {
-  return videos.toSorted(
-    (videoA, videoB) => (freshOrder.get(videoA.videoId) ?? 0) - (freshOrder.get(videoB.videoId) ?? 0)
-  );
-}

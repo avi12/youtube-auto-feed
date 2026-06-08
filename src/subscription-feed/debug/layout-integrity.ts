@@ -34,7 +34,7 @@ interface BandDiff {
   isOrderMatch: boolean;
 }
 
-export interface LayoutIntegrityReport {
+interface LayoutIntegrityReport {
   timestamp: string;
   isPass: boolean;
   isBandOrderMatch: boolean;
