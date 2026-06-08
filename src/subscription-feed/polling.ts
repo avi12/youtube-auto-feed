@@ -35,6 +35,10 @@ const POLL_INTERVAL_MS = 5 * 1000;
 const METADATA_POLL_INTERVAL_MS = 10 * 1000;
 const PENDING_SNAPSHOT_STALE_MS = 5000;
 
+// This factory binds the monitor's mutable lifecycle state (snapshots, timers, flags) to its
+// handlers through one closure. Extracting the handlers to satisfy max-lines would mean threading
+// that shared state through every call, scattering it and reducing readability - so it stays whole.
+// oxlint-disable-next-line max-lines-per-function
 export function createSubscriptionMonitor() {
   let lastSnapshot = new Map<string, Prettify<VideoSnapshot>>();
   let isDomReady = false;

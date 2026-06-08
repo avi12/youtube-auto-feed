@@ -121,6 +121,124 @@ type ApplyTargetedLockupUpdateParams = Prettify<TargetedUpdateParams & {
   elLockup: HTMLElement;
 }>;
 
+interface StaticLockupChangesParams {
+  videoId: string;
+  elItem: PolymerElement;
+  elLockup: HTMLElement;
+  freshRawRenderer: VideoSnapshot["rawRenderer"];
+  freshLockup: Parameters<typeof mutateLockupMetadata>[0]["incoming"] | null;
+  watchProgressPercent: VideoSnapshot["watchProgressPercent"];
+  isWatchProgressChanged: boolean;
+}
+
+function applyStaticLockupChanges({
+  videoId,
+  elItem,
+  elLockup,
+  freshRawRenderer,
+  freshLockup,
+  watchProgressPercent,
+  isWatchProgressChanged
+}: StaticLockupChangesParams) {
+  if (freshLockup) {
+    mutateLockupMetadata({
+      videoId,
+      elItem,
+      incoming: freshLockup,
+      preserveContentImage: true
+    });
+  }
+
+  if (!isWatchProgressChanged) return;
+
+  const didUpdate = applyProgressBarUpdate({
+    elLockup,
+    percent: watchProgressPercent
+  });
+  if (!didUpdate) {
+    applyPolymerUpdate({
+      elItem,
+      rawRenderer: freshRawRenderer
+    });
+    syncGridModelItem({
+      videoId,
+      rawRenderer: freshRawRenderer,
+      forcePreserveContentImage: true
+    });
+  }
+}
+
+interface AnimatedLockupChangesParams {
+  videoId: string;
+  elItem: PolymerElement;
+  elLockup: HTMLElement;
+  elImg: HTMLImageElement | null;
+  freshRawRenderer: VideoSnapshot["rawRenderer"];
+  freshLockup: Parameters<typeof mutateLockupMetadata>[0]["incoming"] | null;
+  refs: ReturnType<typeof collectLockupTextElements>;
+  fresh: VideoSnapshot;
+  textElements: ReturnType<typeof changingLockupTextElements>;
+  thumbWork: Awaited<ReturnType<typeof prepareThumbnailDissolve>> | null;
+  isWatchProgressChanged: boolean;
+}
+
+function applyAnimatedLockupChanges({
+  videoId,
+  elItem,
+  elLockup,
+  elImg,
+  freshRawRenderer,
+  freshLockup,
+  refs,
+  fresh,
+  textElements,
+  thumbWork,
+  isWatchProgressChanged
+}: AnimatedLockupChangesParams) {
+  let isProgressBarDirty = false;
+  applyWithDissolve({
+    elements: [...textElements],
+    apply() {
+      applyLockupTextChanges({
+        refs,
+        fresh
+      });
+
+      if (freshLockup) {
+        mutateLockupMetadata({
+          videoId,
+          elItem,
+          incoming: freshLockup,
+          preserveContentImage: !thumbWork?.willDissolve
+        });
+      }
+
+      if (isWatchProgressChanged) {
+        isProgressBarDirty = !applyProgressBarUpdate({
+          elLockup,
+          percent: fresh.watchProgressPercent
+        });
+      }
+    }
+  });
+
+  if (isProgressBarDirty) {
+    applyPolymerUpdate({
+      elItem,
+      rawRenderer: freshRawRenderer
+    });
+    syncGridModelItem({
+      videoId,
+      rawRenderer: freshRawRenderer,
+      forcePreserveContentImage: !thumbWork?.willDissolve
+    });
+  }
+
+  if (thumbWork?.willDissolve && elImg) {
+    dissolveThumbnail(elImg, thumbWork.newUrl).catch(() => {});
+  }
+}
+
 async function applyTargetedLockupUpdate({
   videoId,
   elItem,
@@ -163,78 +281,31 @@ async function applyTargetedLockupUpdate({
   const isWatchProgressChanged = previous.watchProgressPercent !== watchProgressPercent;
   const isAnimatable = textElements.length > 0 || !!thumbWork?.willDissolve;
   if (!isAnimatable) {
-    if (freshLockup) {
-      mutateLockupMetadata({
-        videoId,
-        elItem,
-        incoming: freshLockup,
-        preserveContentImage: true
-      });
-    }
-
-    if (isWatchProgressChanged) {
-      const didUpdate = applyProgressBarUpdate({
-        elLockup,
-        percent: watchProgressPercent
-      });
-      if (!didUpdate) {
-        applyPolymerUpdate({
-          elItem,
-          rawRenderer: freshRawRenderer
-        });
-        syncGridModelItem({
-          videoId,
-          rawRenderer: freshRawRenderer,
-          forcePreserveContentImage: true
-        });
-      }
-    }
-
+    applyStaticLockupChanges({
+      videoId,
+      elItem,
+      elLockup,
+      freshRawRenderer,
+      freshLockup,
+      watchProgressPercent,
+      isWatchProgressChanged
+    });
     return;
   }
 
-  let isProgressBarDirty = false;
-  applyWithDissolve({
-    elements: [...textElements],
-    apply() {
-      applyLockupTextChanges({
-        refs,
-        fresh
-      });
-
-      if (freshLockup) {
-        mutateLockupMetadata({
-          videoId,
-          elItem,
-          incoming: freshLockup,
-          preserveContentImage: !thumbWork?.willDissolve
-        });
-      }
-
-      if (isWatchProgressChanged) {
-        isProgressBarDirty = !applyProgressBarUpdate({
-          elLockup,
-          percent: watchProgressPercent
-        });
-      }
-    }
+  applyAnimatedLockupChanges({
+    videoId,
+    elItem,
+    elLockup,
+    elImg,
+    freshRawRenderer,
+    freshLockup,
+    refs,
+    fresh,
+    textElements,
+    thumbWork,
+    isWatchProgressChanged
   });
-
-  if (isProgressBarDirty) {
-    applyPolymerUpdate({
-      elItem,
-      rawRenderer: freshRawRenderer
-    });
-    syncGridModelItem({
-      videoId,
-      rawRenderer: freshRawRenderer,
-      forcePreserveContentImage: !thumbWork?.willDissolve
-    });
-  }
-
-  if (thumbWork?.willDissolve && elImg) {
-    dissolveThumbnail(elImg, thumbWork.newUrl).catch(() => {});
-  }
 }
 
 // `applyUpdate` is the dispatch point. It decides whether to do a full Polymer rebuild

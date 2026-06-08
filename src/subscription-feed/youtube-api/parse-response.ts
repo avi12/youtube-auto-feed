@@ -20,6 +20,12 @@ interface CollectSnapshotParams extends AnyRendererParams {
   seenVideoIds: Set<string>;
 }
 
+interface RichSectionParams {
+  richSectionContent: NonNullable<InnerTubeRichGridItem["richSectionRenderer"]>["content"];
+  bandIndex: number;
+  pushSnapshot: (params: Prettify<AnyRendererParams>) => void;
+}
+
 function parseAnyRenderer({ sectionTitle, bandIndex, renderer, lockup, shortsLockup }: Prettify<AnyRendererParams>) {
   if (renderer) {
     return parseRenderer({
@@ -106,6 +112,58 @@ export function extractApiSectionOrder(data: Prettify<InnerTubeBrowseResponse>) 
   return order;
 }
 
+function collectRichSectionSnapshots({ richSectionContent, bandIndex, pushSnapshot }: Prettify<RichSectionParams>) {
+  const { richShelfRenderer, shelfRenderer } = richSectionContent;
+  if (richShelfRenderer) {
+    const { title, contents } = richShelfRenderer;
+    const sectionTitle = title.runs[0]?.text ?? "";
+    for (const richItem of contents) {
+      const {
+        videoRenderer,
+        gridVideoRenderer,
+        richGridMediaRenderer,
+        lockupViewModel,
+        shortsLockupViewModel
+      } = richItem.richItemRenderer?.content ?? {};
+      pushSnapshot({
+        sectionTitle,
+        bandIndex,
+        renderer: videoRenderer ?? gridVideoRenderer ?? richGridMediaRenderer?.content?.videoRenderer,
+        lockup: lockupViewModel,
+        shortsLockup: shortsLockupViewModel
+      });
+    }
+    return {
+      sectionTitle: "",
+      bandIndex: bandIndex + 1
+    };
+  }
+
+  if (shelfRenderer) {
+    const { title, content } = shelfRenderer;
+    const sectionTitle = title.runs[0]?.text ?? "";
+    const shelfItems = content?.horizontalListRenderer?.items
+      ?? content?.gridRenderer?.items
+      ?? [];
+    for (const shelfItem of shelfItems) {
+      pushSnapshot({
+        sectionTitle,
+        bandIndex,
+        renderer: shelfItem.videoRenderer ?? shelfItem.gridVideoRenderer
+      });
+    }
+    return {
+      sectionTitle: "",
+      bandIndex: shelfItems.length > 0 ? bandIndex + 1 : bandIndex
+    };
+  }
+
+  return {
+    sectionTitle: "",
+    bandIndex
+  };
+}
+
 export function parseApiResponse(data: Prettify<InnerTubeBrowseResponse>) {
   const snapshots: Prettify<VideoSnapshot>[] = [];
   const seenVideoIds = new Set<string>();
@@ -128,48 +186,11 @@ export function parseApiResponse(data: Prettify<InnerTubeBrowseResponse>) {
     let currentBandIndex = 0;
     for (const item of tabContent?.richGridRenderer?.contents ?? []) {
       if (item.richSectionRenderer) {
-        const { richShelfRenderer, shelfRenderer } = item.richSectionRenderer.content;
-        if (richShelfRenderer) {
-          const { title, contents } = richShelfRenderer;
-          currentSectionTitle = title.runs[0]?.text ?? "";
-          for (const richItem of contents) {
-            const {
-              videoRenderer,
-              gridVideoRenderer,
-              richGridMediaRenderer,
-              lockupViewModel,
-              shortsLockupViewModel
-            } = richItem.richItemRenderer?.content ?? {};
-            pushSnapshot({
-              sectionTitle: currentSectionTitle,
-              bandIndex: currentBandIndex,
-              renderer: videoRenderer ?? gridVideoRenderer ?? richGridMediaRenderer?.content?.videoRenderer,
-              lockup: lockupViewModel,
-              shortsLockup: shortsLockupViewModel
-            });
-          }
-          currentBandIndex++;
-        } else if (shelfRenderer) {
-          const { title, content } = shelfRenderer;
-          currentSectionTitle = title.runs[0]?.text ?? "";
-          const shelfItems = content?.horizontalListRenderer?.items
-            ?? content?.gridRenderer?.items
-            ?? [];
-          for (const shelfItem of shelfItems) {
-            pushSnapshot({
-              sectionTitle: currentSectionTitle,
-              bandIndex: currentBandIndex,
-              renderer: shelfItem.videoRenderer ?? shelfItem.gridVideoRenderer
-            });
-          }
-
-          if (shelfItems.length > 0) {
-            currentBandIndex++;
-          }
-        }
-
-        // Root-level video items following a shelf are Latest-band siblings, not part of the shelf.
-        currentSectionTitle = "";
+        ({ sectionTitle: currentSectionTitle, bandIndex: currentBandIndex } = collectRichSectionSnapshots({
+          richSectionContent: item.richSectionRenderer.content,
+          bandIndex: currentBandIndex,
+          pushSnapshot
+        }));
       } else if (item.richItemRenderer) {
         const {
           videoRenderer,

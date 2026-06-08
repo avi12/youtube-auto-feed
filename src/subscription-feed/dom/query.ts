@@ -122,44 +122,42 @@ function parseRichItemRenderer({ rawRenderer, sectionTitle, bandIndex }: ParseRi
   return null;
 }
 
-export function readDomSnapshot() {
-  const snapshot = new Map<string, Prettify<VideoSnapshot>>();
+type AddRichItemToSnapshotParams = Prettify<SectionContext & {
+  elItem: Element;
+  snapshot: Map<string, Prettify<VideoSnapshot>>;
+}>;
 
-  type AddRichItemToSnapshotParams = Prettify<SectionContext & {
-    elItem: Element;
-  }>;
-
-  function addRichItemToSnapshot({ elItem, sectionTitle, bandIndex }: AddRichItemToSnapshotParams) {
-    if (!isPolymerElement(elItem)) {
-      return;
-    }
-
-    const itemData = elItem.data;
-    const content = isRecord(itemData) && isRecord(itemData.content) ? itemData.content : null;
-    const richGridInner = isRecord(content?.richGridMediaRenderer) && isRecord(content.richGridMediaRenderer.content)
-      ? content.richGridMediaRenderer.content
-      : null;
-    // Renderer shape varies; try each known wrapper in priority order.
-    const rawRendererCandidate =
-      content?.videoRenderer ??
-      content?.gridVideoRenderer ??
-      richGridInner?.videoRenderer ??
-      content?.lockupViewModel ??
-      content?.shortsLockupViewModel;
-    const rawRenderer = isRecord(rawRendererCandidate) ? rawRendererCandidate : null;
-    const videoSnapshot = parseRichItemRenderer({
-      rawRenderer,
-      sectionTitle,
-      bandIndex
-    });
-    const isAlreadyCaptured = !videoSnapshot || snapshot.has(videoSnapshot.videoId);
-    if (isAlreadyCaptured) {
-      return;
-    }
-
-    snapshot.set(videoSnapshot.videoId, videoSnapshot);
+function addRichItemToSnapshot({ elItem, sectionTitle, bandIndex, snapshot }: AddRichItemToSnapshotParams) {
+  if (!isPolymerElement(elItem)) {
+    return;
   }
 
+  const itemData = elItem.data;
+  const content = isRecord(itemData) && isRecord(itemData.content) ? itemData.content : null;
+  const richGridInner = isRecord(content?.richGridMediaRenderer) && isRecord(content.richGridMediaRenderer.content)
+    ? content.richGridMediaRenderer.content
+    : null;
+  // Renderer shape varies; try each known wrapper in priority order.
+  const rawRendererCandidate =
+    content?.videoRenderer ??
+    content?.gridVideoRenderer ??
+    richGridInner?.videoRenderer ??
+    content?.lockupViewModel ??
+    content?.shortsLockupViewModel;
+  const rawRenderer = isRecord(rawRendererCandidate) ? rawRendererCandidate : null;
+  const videoSnapshot = parseRichItemRenderer({
+    rawRenderer,
+    sectionTitle,
+    bandIndex
+  });
+  if (!videoSnapshot || snapshot.has(videoSnapshot.videoId)) {
+    return;
+  }
+
+  snapshot.set(videoSnapshot.videoId, videoSnapshot);
+}
+
+function collectRichShelfVideos(snapshot: Map<string, Prettify<VideoSnapshot>>) {
   for (const elShelf of document.querySelectorAll<HTMLElement>("ytd-rich-shelf-renderer")) {
     if (!isPolymerElement(elShelf)) {
       continue;
@@ -171,11 +169,14 @@ export function readDomSnapshot() {
       addRichItemToSnapshot({
         elItem,
         sectionTitle,
-        bandIndex: 0
+        bandIndex: 0,
+        snapshot
       });
     }
   }
+}
 
+function collectLegacyShelfVideos(snapshot: Map<string, Prettify<VideoSnapshot>>) {
   for (const elShelf of document.querySelectorAll<HTMLElement>("ytd-shelf-renderer")) {
     if (!isPolymerElement(elShelf)) {
       continue;
@@ -198,62 +199,81 @@ export function readDomSnapshot() {
         sectionTitle,
         bandIndex: 0
       });
-      const isAlreadyCaptured = !videoSnapshot || snapshot.has(videoSnapshot.videoId);
-      if (isAlreadyCaptured) {
+      if (!videoSnapshot || snapshot.has(videoSnapshot.videoId)) {
         continue;
       }
 
       snapshot.set(videoSnapshot.videoId, videoSnapshot);
     }
   }
+}
 
+function collectInlineGridVideos(snapshot: Map<string, Prettify<VideoSnapshot>>) {
   const elGridContents = document.querySelector("ytd-rich-grid-renderer > #contents");
-  if (elGridContents) {
-    let currentSectionTitle = "";
-    let currentBandIndex = 0;
-    for (const elChild of elGridContents.children) {
-      if (elChild.tagName === "YTD-RICH-SECTION-RENDERER") {
-        currentSectionTitle = "";
-        const elRichShelf = elChild.querySelector("ytd-rich-shelf-renderer");
-        const elInnerShelf = elChild.querySelector("ytd-shelf-renderer");
-        // Title-only legacy shelves still mark a band boundary even with no inline contents.
-        const hasInnerShelfVideos = elInnerShelf !== null
-          && elInnerShelf.querySelectorAll("ytd-grid-video-renderer, ytd-video-renderer").length > 0;
-        const isContentBearingSection = elRichShelf !== null || hasInnerShelfVideos;
-        if (isContentBearingSection) {
-          currentBandIndex++;
-        }
-      } else if (elChild.tagName === "YTD-RICH-ITEM-RENDERER") {
-        addRichItemToSnapshot({
-          elItem: elChild,
-          sectionTitle: currentSectionTitle,
-          bandIndex: currentBandIndex
-        });
+  if (!elGridContents) {
+    return;
+  }
+
+  let currentSectionTitle = "";
+  let currentBandIndex = 0;
+  for (const elChild of elGridContents.children) {
+    if (elChild.tagName === "YTD-RICH-SECTION-RENDERER") {
+      currentSectionTitle = "";
+      const elRichShelf = elChild.querySelector("ytd-rich-shelf-renderer");
+      const elInnerShelf = elChild.querySelector("ytd-shelf-renderer");
+      // Title-only legacy shelves still mark a band boundary even with no inline contents.
+      const hasInnerShelfVideos = elInnerShelf !== null
+        && elInnerShelf.querySelectorAll("ytd-grid-video-renderer, ytd-video-renderer").length > 0;
+      if (elRichShelf !== null || hasInnerShelfVideos) {
+        currentBandIndex++;
       }
+
+      continue;
+    }
+
+    if (elChild.tagName === "YTD-RICH-ITEM-RENDERER") {
+      addRichItemToSnapshot({
+        elItem: elChild,
+        sectionTitle: currentSectionTitle,
+        bandIndex: currentBandIndex,
+        snapshot
+      });
     }
   }
+}
+
+function collectFallbackGridVideos(snapshot: Map<string, Prettify<VideoSnapshot>>) {
+  for (const elGridVideo of document.querySelectorAll<HTMLElement>("ytd-grid-video-renderer")) {
+    if (!isPolymerElement(elGridVideo)) {
+      continue;
+    }
+
+    const gridVideoData = elGridVideo.data;
+    if (!isVideoRenderer(gridVideoData)) {
+      continue;
+    }
+
+    const videoSnapshot = parseRenderer({
+      renderer: gridVideoData,
+      sectionTitle: "",
+      bandIndex: 0
+    });
+    if (videoSnapshot) {
+      snapshot.set(videoSnapshot.videoId, videoSnapshot);
+    }
+  }
+}
+
+export function readDomSnapshot() {
+  const snapshot = new Map<string, Prettify<VideoSnapshot>>();
+
+  collectRichShelfVideos(snapshot);
+  collectLegacyShelfVideos(snapshot);
+  collectInlineGridVideos(snapshot);
 
   // Fallback for legacy grid-only layouts (no rich-grid-renderer).
   if (snapshot.size === 0) {
-    for (const elGridVideo of document.querySelectorAll<HTMLElement>("ytd-grid-video-renderer")) {
-      if (!isPolymerElement(elGridVideo)) {
-        continue;
-      }
-
-      const gridVideoData = elGridVideo.data;
-      if (!isVideoRenderer(gridVideoData)) {
-        continue;
-      }
-
-      const videoSnapshot = parseRenderer({
-        renderer: gridVideoData,
-        sectionTitle: "",
-        bandIndex: 0
-      });
-      if (videoSnapshot) {
-        snapshot.set(videoSnapshot.videoId, videoSnapshot);
-      }
-    }
+    collectFallbackGridVideos(snapshot);
   }
 
   return snapshot;
