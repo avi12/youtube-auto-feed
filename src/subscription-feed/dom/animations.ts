@@ -1,10 +1,8 @@
 import { isAnimationsEnabled } from "../settings-state";
 import type { Prettify } from "../types/prettify";
 
-// CSS-class entrance/exit triggers and a viewport check. FLIP/cover reflow lives in mirror.ts;
-// this module only toggles ytaf-* animation classes.
-
-const ANIMATION_DURATION_MS = 380;
+// Pulse/entrance class triggers and a viewport check. The FLIP reflow, the join-tile scale-in, and
+// the leave-tile ghost fade all live in mirror.ts; this module only toggles the ytaf-* classes.
 
 const animationClasses = ["ytaf-new", "ytaf-updated"] as const;
 type AnimationClass = typeof animationClasses[number];
@@ -33,24 +31,4 @@ export function triggerAnimation({ elTarget, animationClass }: TriggerAnimationP
 export function isInViewport(element: Element) {
   const { bottom, top } = element.getBoundingClientRect();
   return bottom > 0 && top < innerHeight;
-}
-
-export async function animateItemsOut(elItems: HTMLElement[]) {
-  if (elItems.length === 0) {
-    return;
-  }
-
-  await new Promise<void>(resolve => {
-    // Fallback: animationend may not fire if the element is removed mid-animation.
-    const timer = setTimeout(resolve, ANIMATION_DURATION_MS + 50);
-    elItems[0].addEventListener("animationend", () => {
-      clearTimeout(timer);
-      resolve();
-    }, { once: true });
-    requestAnimationFrame(() => {
-      for (const elItem of elItems) {
-        elItem.classList.add("ytaf-removing");
-      }
-    });
-  });
 }

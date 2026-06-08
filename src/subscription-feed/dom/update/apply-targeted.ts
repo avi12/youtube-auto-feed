@@ -149,7 +149,9 @@ function applyStaticLockupChanges({
     });
   }
 
-  if (!isWatchProgressChanged) return;
+  if (!isWatchProgressChanged) {
+    return;
+  }
 
   const didUpdate = applyProgressBarUpdate({
     elLockup,
