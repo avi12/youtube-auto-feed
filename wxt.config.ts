@@ -1,5 +1,5 @@
 import { auth, drive } from "@googleapis/drive";
-import JSZip from "jszip";
+import { strToU8, unzipSync, zipSync } from "fflate";
 import { createReadStream, existsSync, readFileSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import { basename } from "node:path";
@@ -52,9 +52,9 @@ function installReadmeFor(browser: string) {
 }
 
 async function injectInstallReadme(zipPath: string, content: string) {
-  const zip = await JSZip.loadAsync(await readFile(zipPath));
-  zip.file("INSTALL.md", content);
-  await writeFile(zipPath, await zip.generateAsync({ type: "nodebuffer" }));
+  const entries = unzipSync(await readFile(zipPath));
+  entries["INSTALL.md"] = strToU8(content);
+  await writeFile(zipPath, zipSync(entries));
 }
 
 export default defineConfig({
