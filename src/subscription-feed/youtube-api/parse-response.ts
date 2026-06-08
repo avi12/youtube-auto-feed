@@ -3,9 +3,8 @@ import type { Prettify } from "../types/prettify";
 import type { VideoSnapshot } from "../types/video";
 import { parseLockupViewModel, parseRenderer, parseShortsLockupViewModel } from "./parse-video";
 
-// Walks an entire InnerTube /browse response and produces a flat list of VideoSnapshots tagged
-// with the section/band they appeared in. This is the single entry point the monitor uses to
-// turn an API payload into something the diff layer can compare against the DOM.
+// Walks an InnerTube /browse response and produces VideoSnapshots tagged with section/band.
+// Single entry point for turning an API payload into something the diff layer can compare.
 
 interface AnyRendererParams {
   sectionTitle: string;
@@ -79,15 +78,13 @@ function collectSnapshot({
   snapshots.push(snapshot);
 }
 
-// Returns the raw top-level richGridRenderer.contents array. The mirror layer in dom/mirror.ts
-// walks this directly so it can preserve raw richSectionRenderer items rather than working from
-// flat VideoSnapshots (which lose shelf wrapping).
+// Returns raw richGridRenderer.contents. The mirror walks this directly to preserve
+// richSectionRenderer items - flat VideoSnapshots lose shelf wrapping.
 export function extractApiContents(data: Prettify<InnerTubeBrowseResponse>): Prettify<InnerTubeRichGridItem>[] {
   return data.contents.twoColumnBrowseResultsRenderer.tabs[0]?.tabRenderer.content?.richGridRenderer?.contents ?? [];
 }
 
-// Returns the section titles in the order YouTube emitted them. Duplicates (YouTube sometimes
-// repeats a shelf header) collapse to the first occurrence.
+// Returns section titles in emission order. YouTube sometimes repeats a shelf header; duplicates collapse to first.
 export function extractApiSectionOrder(data: Prettify<InnerTubeBrowseResponse>) {
   const order: string[] = [];
   const seen = new Set<string>();
@@ -209,7 +206,7 @@ export function parseApiResponse(data: Prettify<InnerTubeBrowseResponse>) {
       }
     }
 
-    // Legacy sectionListRenderer fallback for older feed shapes.
+    // Fallback for older feeds that use sectionListRenderer instead of richGridRenderer.
     if (snapshots.length === 0) {
       for (const sectionItem of tabContent?.sectionListRenderer?.contents ?? []) {
         for (const innerItem of sectionItem.itemSectionRenderer?.contents ?? []) {

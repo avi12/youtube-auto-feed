@@ -32,9 +32,8 @@ export async function detectAndApplyChanges({
     }
   }
 
-  // Metadata diff runs first so watchProgressPercent / title / status flips that arrive on a
-  // structural poll still patch the existing DOM. Without this, changes that fall between the 5s
-  // structural and the 10s metadata cadence would be silently absorbed into lastSnapshot.
+  // Metadata diff runs first so title/status/progress changes on a structural poll still patch
+  // the DOM - otherwise changes between the 5s and 10s cadences would be silently absorbed.
   detectAndApplyMetadataChanges({
     previousSnapshot,
     freshSnapshots

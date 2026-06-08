@@ -1,6 +1,5 @@
-// Raw types describing YouTube's InnerTube API payloads (the `/youtubei/v1/browse` response shape).
-// These types are intentionally permissive: YouTube's response is a tagged union where every renderer
-// is optional, so callers must check presence/use guards rather than assuming a field exists.
+// Raw InnerTube API payload types. Intentionally permissive - every renderer is optional;
+// callers must check presence via guards rather than assuming fields exist.
 
 export interface InnerTubeThumbnail {
   url: string;
@@ -56,7 +55,7 @@ export interface InnerTubeVideoRenderer {
   upcomingEventData?: InnerTubeUpcomingEventData;
 }
 
-// lockupViewModel is YouTube's newer renderer format (used for regular videos in the new UI).
+// lockupViewModel: newer renderer format for regular videos in the updated YouTube UI.
 export enum LockupContentType {
   Shorts = "LOCKUP_CONTENT_TYPE_SHORTS"
 }
@@ -116,8 +115,7 @@ export interface LockupViewModel {
           };
           liveData?: { liveBadgeText?: string };
         };
-        // Collaborative (multi-channel) videos render a stacked avatar here instead of a single
-        // decoratedAvatarViewModel; `avatars` holds one entry per associated channel.
+        // Collaborative videos use a stacked avatar; `avatars` has one entry per channel.
         avatarStackViewModel?: {
           avatars?: unknown[];
         };
@@ -126,7 +124,7 @@ export interface LockupViewModel {
   };
 }
 
-// shortsLockupViewModel is the renderer used inside the "Shorts" rich shelf in the subscriptions feed.
+// shortsLockupViewModel: renderer used inside the "Shorts" rich shelf.
 export interface ShortsLockupViewModel {
   entityId?: string;
   accessibilityText?: string;
@@ -146,7 +144,7 @@ export interface ShortsLockupViewModel {
   }>; };
 }
 
-// Shelf / grid renderer envelopes that contain one or more of the video renderer variants above.
+// Shelf / grid envelopes that contain one or more of the video renderer variants above.
 
 export interface InnerTubeRichItemContent {
   videoRenderer?: InnerTubeVideoRenderer;
@@ -238,7 +236,7 @@ export interface InnerTubeBrowseResponse {
   };
 }
 
-// YouTube's InnerTube client config (exposed on `ytcfg` for content scripts running in the page's MAIN world).
+// InnerTube client config exposed on `ytcfg` (MAIN-world content scripts).
 
 type InnerTubeClientName =
   | "WEB"

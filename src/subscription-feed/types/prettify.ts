@@ -1,4 +1,4 @@
-// Forces IDE hover tooltips to expand named types into their object shape at use sites.
+// Expands named types into their object shape in IDE hover tooltips.
 type Primitive = null | undefined | string | number | boolean | symbol | bigint;
 type NonRecursiveType =
         | Primitive

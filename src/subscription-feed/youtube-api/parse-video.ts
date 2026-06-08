@@ -3,8 +3,7 @@ import type { Prettify } from "../types/prettify";
 import { type VideoSnapshot, VideoStatus } from "../types/video";
 import { statusFromLockup, statusFromRenderer, viewCountFromRenderer } from "./guards";
 
-// These three parsers each normalize one of YouTube's renderer shapes into a single VideoSnapshot
-// the rest of the extension can work with. Anything they can't parse (missing videoId) is dropped.
+// Parsers for each InnerTube renderer shape - normalizes into VideoSnapshot. Missing videoId = null.
 
 interface ParseVideoParams {
   sectionTitle: string;
@@ -58,10 +57,8 @@ export function parseLockupViewModel({ lockup, sectionTitle, bandIndex }: ParseL
   const metaViewModel = metadata?.lockupMetadataViewModel;
   const title = metaViewModel?.title?.content ?? "";
   const sources = contentImage?.thumbnailViewModel?.image?.sources;
-  // Keep the full URL (query included): a creator changing the thumbnail keeps the same /vi/{id}/
-  // path and only rotates the sqp/rs query, so a path-only key would miss the change and the diff
-  // would never refresh the now-stale thumbnail. sqp/rs are stable across polls for an unchanged
-  // image, so the full URL doesn't churn.
+  // Use the full URL (including query): a changed thumbnail keeps the same /vi/{id}/ path but
+  // rotates sqp/rs, so path-only comparison misses it. sqp/rs are stable for an unchanged image.
   const thumbnailUrl = sources?.at(-1)?.url ?? "";
   const metaRows = metaViewModel?.metadata?.contentMetadataViewModel?.metadataRows;
   const metaParts = metaRows?.[1]?.metadataParts;

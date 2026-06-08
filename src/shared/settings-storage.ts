@@ -2,9 +2,8 @@ import { defaultSettings, type FeedSettings, IS_ANIMATIONS_ENABLED_KEY, IS_EXTEN
 import { z } from "./zod";
 import { storage } from "#imports";
 
-// Storage is an untrusted boundary: a stale or corrupted entry can hold a non-boolean. Validate
-// each read and fall back to the shared defaults so the popup and the ISOLATED bridge never seed
-// the feed from a bad value. Owned here because only storage-capable contexts may import it.
+// Storage is untrusted - a stale/corrupted entry may not be boolean. Validate each read and fall
+// back to shared defaults. Only storage-capable contexts (popup, ISOLATED bridge) may import this.
 type FeedSettingKey = typeof IS_EXTENSION_ENABLED_KEY | typeof IS_ANIMATIONS_ENABLED_KEY;
 
 const booleanSettingSchema = z.boolean();

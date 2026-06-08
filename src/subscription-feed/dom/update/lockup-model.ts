@@ -6,15 +6,14 @@ import { deepArray, isRecord } from "../../utils/records";
 import { isLockupViewModel } from "../../youtube-api/guards";
 import { findRichItemIndex } from "../rich-item";
 
-// Helpers for merging the *new* lockupViewModel into the *existing* one while preserving
-// already-loaded image bytes (so the live <img> doesn't refetch when the URL changes but the
-// picture doesn't), and preserving the channel avatar when the incoming payload omits it.
-// Lockup metadata lives in multiple places (the element's `data`, the grid's data.contents,
-// every rich shelf's contents) so `mutateLockupMetadata` walks all of them.
+// Merges an incoming lockupViewModel into the existing one, preserving already-loaded image bytes
+// (so the <img> doesn't refetch when the URL changes but the picture is the same), and restoring the
+// channel avatar when the incoming payload omits it. mutateLockupMetadata walks every location where
+// the lockup lives: the element's data, the grid's data.contents, and every rich shelf's contents.
 
-// Identity of the thumbnail image: the full URL including the sqp/rs query. The query - not the
-// path - is what changes when a creator swaps the thumbnail (the /vi/{id}/ path stays the same), so
-// a path-only key would treat the new image as identical and keep grafting the stale one.
+// Full URL including sqp/rs query as the thumbnail identity key. The query - not the path - changes
+// when a creator swaps the thumbnail; a path-only key would treat the new image as identical and
+// keep grafting the stale bytes.
 function getThumbnailUrlKey(contentImage: LockupViewModel["contentImage"]) {
   return contentImage?.thumbnailViewModel?.image?.sources?.[0]?.url;
 }
@@ -56,10 +55,9 @@ function mergeContentImagePreservingThumbnail({ existing, incoming }: MergeConte
     return incoming;
   }
 
-  // Only graft the already-loaded bytes when it is the same picture (same URL key, ignoring query
-  // params). If the keys differ the existing image belongs to a different video/thumbnail, and
-  // keeping it would pair the incoming video's id with the previous occupant's thumbnail and
-  // overlays - the off-by-one "wrong thumbnail" corruption. In that case take the incoming image.
+  // Only graft the loaded bytes when it is the same picture (same URL key). If the keys differ the
+  // existing image belongs to a different video; keeping it would pair the new video's id with the
+  // previous occupant's thumbnail - the "wrong thumbnail" corruption.
   if (getThumbnailUrlKey(existing) !== getThumbnailUrlKey(incoming)) {
     return incoming;
   }

@@ -1,17 +1,15 @@
 import { isAnimationsEnabled } from "../../settings-state";
 import type { Prettify } from "../../types/prettify";
 
-// Thumbnail handling: finding the <img> element across both shadow-DOM lockups and the legacy
-// markup, deciding whether the picture actually changed, and preparing the dissolve crossfade.
-// The sqp/rs query params in YouTube's thumbnail URLs rotate on CDN re-sign independently of the
-// actual image bytes - only the path portion is stable per picture. Also handles the watch-progress
-// bar fill since it lives inside the same shadow tree.
+// Thumbnail handling: locating the <img> across shadow-DOM lockups and legacy markup, deciding
+// whether the picture changed, and preparing the dissolve crossfade. YouTube's sqp/rs query params
+// rotate on CDN re-sign independently of the image bytes - only the path is stable per picture.
+// Also handles the watch-progress bar, which lives in the same shadow tree.
 
 export function findThumbnailImg(elLockup: HTMLElement) {
   const root: ShadowRoot | HTMLElement = elLockup.shadowRoot ?? elLockup;
-  // The visible lockup thumbnail is the <img> inside yt-thumbnail-view-model. Prefer it over any
-  // bare yt-image (the channel avatar, or an empty/lazy thumbnail slot left mid-rebind): writing
-  // src to a non-visible yt-image leaves the painted tile showing the previous occupant's image.
+  // Prefer yt-thumbnail-view-model's <img> over a bare yt-image (channel avatar or lazy slot
+  // left mid-rebind) - writing src to a non-visible yt-image leaves the tile showing the wrong image.
   const elThumbnailViewModelImg = root.querySelector<HTMLImageElement>("yt-thumbnail-view-model img");
   if (elThumbnailViewModelImg) {
     return elThumbnailViewModelImg;
@@ -81,9 +79,8 @@ function preloadImage(url: string) {
   });
 }
 
-// Decides whether to dissolve to the new thumbnail. Skips dissolve if the user is hovering
-// the item (so we don't disrupt the hover preview), or if the painted URL already matches the
-// new one (same picture).
+// Decides whether to dissolve to the new thumbnail. Skips if the user is hovering (don't disrupt
+// the hover preview) or the painted URL already matches (same picture).
 type PrepareThumbnailDissolveParams = Prettify<{
   elItem: HTMLElement;
   elImg: HTMLImageElement;
@@ -123,10 +120,10 @@ export async function prepareThumbnailDissolve({ elItem, elImg, newUrl }: Prepar
 const THUMBNAIL_DISSOLVE_MS = 250;
 
 // Cross-fades the <img> from its current picture to the new one. The old picture is held as a CSS
-// background while the new picture loads hidden as the foreground (opacity 0); once it has decoded the
-// foreground fades in over the old background. A view transition would be cleaner but does not animate
-// on Firefox here - its new snapshot captures the <img> before it has repainted the new src, so the
-// blend collapses to a hard swap. This live-DOM cross-fade animates on every browser and never flashes.
+// background while the new src loads at opacity:0; once decoded, the foreground fades in. A view
+// transition would be cleaner but doesn't animate on Firefox - its snapshot captures the <img>
+// before the new src repaints, collapsing the blend to a hard swap. This live-DOM approach works
+// everywhere and never flashes.
 export async function dissolveThumbnail(elImg: HTMLImageElement, newUrl: string) {
   if (!isAnimationsEnabled()) {
     elImg.src = newUrl;
@@ -141,7 +138,7 @@ export async function dissolveThumbnail(elImg: HTMLImageElement, newUrl: string)
   style.transition = "none";
   style.opacity = "0";
   elImg.src = newUrl;
-  // Flush the opacity:0 start state so the fade-in transitions from it rather than being batched away.
+  // Force a layout flush so the opacity:0 start state is committed before the transition runs.
   elImg.getBoundingClientRect();
   await elImg.decode().catch(() => undefined);
 

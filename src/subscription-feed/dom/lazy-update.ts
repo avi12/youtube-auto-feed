@@ -6,9 +6,8 @@ import { videoIdFromData } from "../utils/video-id";
 import { findItemElements } from "./query";
 import { applyUpdate } from "./update";
 
-// Lazy update: instead of mutating off-screen DOM right away, schedule the work and run it when
-// the element scrolls into view. This avoids re-rendering thousands of off-screen lockups during
-// a single poll, and prevents layout thrash on long feeds.
+// Defers metadata mutations until an element scrolls into view - avoids re-rendering thousands of
+// off-screen lockups per poll and prevents layout thrash on long feeds.
 
 const IDLE_CALLBACK_TIMEOUT_MS = 500;
 const LAZY_UPDATE_ROOT_MARGIN_PX = 300;
@@ -65,8 +64,7 @@ function ensureObserver() {
       }
 
       const pending = pendingUpdates.get(videoId);
-      // A duplicate (Latest + shelf) may have already consumed the pending update via its own
-      // observer; drop the now-stale observer for this element so we don't keep watching it.
+      // A duplicate (Latest + shelf) may have already consumed the update - unobserve and skip.
       if (!pending) {
         intersectionObserver?.unobserve(elItem);
         continue;
@@ -105,7 +103,7 @@ export function scheduleLazyUpdate({ videoId, fresh, previous, elItemHint }: Sch
     fresh,
     previous: existing?.previous ?? previous
   });
-  // Observe every duplicate of this video; whichever scrolls into view first consumes it.
+  // Observe all duplicates; whichever scrolls into view first consumes the update.
   const elItems = elItemHint ? [elItemHint] : findItemElements(videoId);
   const observer = ensureObserver();
   for (const elItem of elItems) {

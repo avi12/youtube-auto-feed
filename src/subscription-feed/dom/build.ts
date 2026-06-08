@@ -3,8 +3,8 @@ import type { Prettify } from "../types/prettify";
 import type { VideoSnapshot } from "../types/video";
 import { isLockupViewModel, isShortsLockupViewModel } from "../youtube-api/guards";
 
-// Build a richItemRenderer envelope around a raw renderer so it can be spliced into a Polymer
-// `data.contents` array. The shape we produce is what YouTube's grid/shelf renderers expect.
+// Wraps a raw renderer in a richItemRenderer envelope - the shape Polymer grid/shelf renderers
+// expect when items are written into `data.contents`.
 
 function rawThumbnailUrl(
   rawRenderer: Prettify<InnerTubeVideoRenderer> | Prettify<LockupViewModel> | Prettify<ShortsLockupViewModel>
@@ -34,8 +34,7 @@ export function preloadThumbnail(url: string) {
   });
 }
 
-// Preload thumbnails before we insert items so the entrance animation doesn't flash a blank tile
-// while the network fetch completes.
+// Preload thumbnails before inserting so the entrance animation doesn't flash a blank tile.
 export function preloadThumbnails(videos: Prettify<VideoSnapshot>[]) {
   return Promise.all(videos.map(video => preloadThumbnail(rawThumbnailUrl(video.rawRenderer))));
 }

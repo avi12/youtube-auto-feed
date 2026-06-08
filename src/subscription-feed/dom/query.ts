@@ -12,9 +12,8 @@ import {
 } from "../youtube-api/guards";
 import { parseLockupViewModel, parseRenderer, parseShortsLockupViewModel } from "../youtube-api/parse-video";
 
-// Reads the current DOM state into a VideoSnapshot map. The diff layer compares this against the
-// fresh API snapshots to figure out what changed. Also has helpers for finding specific elements
-// by video ID and looking up shelves by section name.
+// Reads the DOM into a VideoSnapshot map for the diff layer, plus element-lookup helpers for
+// finding items by video ID and shelves by section name.
 
 interface SectionContext {
   sectionTitle: string;
@@ -46,8 +45,8 @@ export function findItemElement(videoId: string) {
   return null;
 }
 
-// A video can render twice (Latest band + a rich shelf like "Most relevant"); callers that
-// mutate per-element DOM (metadata updates) need every copy.
+// A video can render in two places (Latest band + a rich shelf); metadata mutation callers need
+// every copy.
 export function findItemElements(videoId: string) {
   const elements: HTMLElement[] = [];
   for (const elItem of document.querySelectorAll<HTMLElement>("ytd-rich-item-renderer")) {
@@ -137,7 +136,7 @@ function addRichItemToSnapshot({ elItem, sectionTitle, bandIndex, snapshot }: Ad
   const richGridInner = isRecord(content?.richGridMediaRenderer) && isRecord(content.richGridMediaRenderer.content)
     ? content.richGridMediaRenderer.content
     : null;
-  // Renderer shape varies; try each known wrapper in priority order.
+  // Try each known renderer wrapper in priority order - shape varies by item type.
   const rawRendererCandidate =
     content?.videoRenderer ??
     content?.gridVideoRenderer ??
@@ -221,7 +220,7 @@ function collectInlineGridVideos(snapshot: Map<string, Prettify<VideoSnapshot>>)
       currentSectionTitle = "";
       const elRichShelf = elChild.querySelector("ytd-rich-shelf-renderer");
       const elInnerShelf = elChild.querySelector("ytd-shelf-renderer");
-      // Title-only legacy shelves still mark a band boundary even with no inline contents.
+      // Title-only legacy shelves mark a band boundary even without inline video contents.
       const hasInnerShelfVideos = elInnerShelf !== null
         && elInnerShelf.querySelectorAll("ytd-grid-video-renderer, ytd-video-renderer").length > 0;
       if (elRichShelf !== null || hasInnerShelfVideos) {
@@ -271,7 +270,7 @@ export function readDomSnapshot() {
   collectLegacyShelfVideos(snapshot);
   collectInlineGridVideos(snapshot);
 
-  // Fallback for legacy grid-only layouts (no rich-grid-renderer).
+  // Fallback for legacy grid-only layouts that lack a rich-grid-renderer.
   if (snapshot.size === 0) {
     collectFallbackGridVideos(snapshot);
   }

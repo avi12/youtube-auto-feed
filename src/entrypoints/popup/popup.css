@@ -1,5 +1,5 @@
 :root {
-  /* Material 3 color roles - indigo scheme (light) */
+  /* M3 color roles - indigo scheme (light) */
   --md-primary: #4338ca;
   --md-on-primary: #ffffff;
   --md-primary-container: #e0e7ff;
@@ -13,23 +13,23 @@
   --md-outline: #76767f;
   --md-outline-variant: #c7c5d0;
 
-  /* Shape scale (md.sys.shape) */
+  /* Shape scale */
   --md-corner-small: 8px;
   --md-corner-medium: 12px;
   --md-corner-large: 16px;
   --md-corner-extra-large: 28px;
   --md-corner-full: 9999px;
 
-  /* State-layer opacities (md.sys.state) */
+  /* State-layer opacities */
   --md-state-hover: 0.08;
   --md-state-focus: 0.12;
   --md-state-pressed: 0.12;
 
-  /* Motion (md.sys.motion) */
+  /* Motion */
   --md-ease-standard: cubic-bezier(0.2, 0, 0, 1);
   --md-ease-overshoot: cubic-bezier(0.175, 0.885, 0.32, 1.275);
 
-  /* The animations setting gates every duration; 0 = instant (no motion) */
+  /* Animations setting gates all durations; 0 = instant */
   --ytaf-motion-scale: 1;
   --ytaf-dur-position: calc(var(--ytaf-motion-scale) * 300ms);
   --ytaf-dur-size: calc(var(--ytaf-motion-scale) * 250ms);

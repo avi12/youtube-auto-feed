@@ -6,10 +6,8 @@ import { deepArray, isRecord } from "../utils/records";
 import { videoIdFromData } from "../utils/video-id";
 import { videoIdFromRichItem } from "./rich-item";
 
-// Polymer occasionally leaves stale DOM nodes around (e.g. a `<ytd-rich-item-renderer>` whose
-// videoId is no longer in `data.contents`), and the data model itself occasionally develops
-// duplicate entries. This module reconciles both: it prunes orphan DOM items, dedupes the model,
-// and trims `<ytd-rich-section-renderer>` headers whose section no longer exists in the data.
+// Reconciles Polymer drift: prunes DOM items whose videoId is no longer in `data.contents`,
+// dedupes the data model, and removes section headers that no longer exist in the data.
 
 export function cleanOrphanedGridItems() {
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");

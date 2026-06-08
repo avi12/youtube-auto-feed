@@ -1,9 +1,7 @@
 import type { InnerTubeVideoRenderer, LockupViewModel, ShortsLockupViewModel } from "./innertube";
 
-// VideoSnapshot is the extension's internal representation of a feed video. It's normalized across
-// all of YouTube's renderer shapes (videoRenderer / lockupViewModel / shortsLockupViewModel) so
-// diffing and DOM updates can work on a single shape, while still keeping the original renderer
-// around (`rawRenderer`) so we can re-insert it through Polymer when needed.
+// Normalized internal representation of a feed video, unified across all renderer shapes.
+// `rawRenderer` retains the original so it can be re-inserted through Polymer when needed.
 
 export enum VideoStatus {
   Video = "video",
@@ -21,9 +19,9 @@ export interface VideoSnapshot {
   publishedTimeText: string;
   isChannelLive: boolean;
   watchProgressPercent: number | null;
-  // "" = Latest band (inline grid). Anything else = a named shelf like "Shorts" or "Most relevant".
+  // "" = Latest band (inline grid); otherwise a named shelf ("Shorts", "Most relevant", etc.).
   sectionTitle: string;
-  // Positional band the video appeared in. 0 = Latest. Used to detect cross-band moves.
+  // Positional band index (0 = Latest). Used to detect cross-band moves.
   bandIndex: number;
   rawRenderer: InnerTubeVideoRenderer | LockupViewModel | ShortsLockupViewModel;
 }

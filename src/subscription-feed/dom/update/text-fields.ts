@@ -2,12 +2,10 @@ import type { Prettify } from "../../types/prettify";
 import type { VideoSnapshot } from "../../types/video";
 import { setAttributeIfChanged, setNodeTextIfChanged } from "./dissolve";
 
-// In-place text edits for the three rendering shapes YouTube emits:
-//  - "lockup" - new lockupViewModel UI
-//  - "shorts" - shorts shelf lockup
-//  - "legacy" - old videoRenderer markup (#video-title + #metadata-line)
-// Each shape has a pair of functions: `update*` actually writes the text, and `changing*` returns
-// the list of elements whose text would change (so the dissolve wrapper knows what to animate).
+// In-place text edits for the three renderer shapes YouTube emits:
+// "lockup" (new lockupViewModel), "shorts" (shorts shelf lockup), "legacy" (videoRenderer).
+// Each shape has two functions: `update*` writes text; `changing*` returns elements that will
+// change so the dissolve wrapper knows what to animate.
 
 const TITLE_SELECTOR_LOCKUP = ".ytLockupMetadataViewModelTitle span.ytAttributedStringHost";
 const TITLE_HEADING_SELECTOR_LOCKUP = ".ytLockupMetadataViewModelHeadingReset";
@@ -61,7 +59,7 @@ function buildAriaLabelUpdate({ elTitleLink, existingTitle, newTitle }: BuildAri
   }
 
   const existingAriaLabel = elTitleLink.getAttribute("aria-label");
-  // Aria-label is "{title} by {channel} {views} {time}"; only patch when prefix matches the prior title.
+  // aria-label is "{title} by {channel} {views} {time}"; only patch when the prefix matches the old title.
   const isAriaLabelPatchable = existingAriaLabel !== null && existingAriaLabel.startsWith(existingTitle);
   if (!isAriaLabelPatchable) {
     return null;

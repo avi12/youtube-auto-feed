@@ -14,10 +14,8 @@ import {
 import type { Prettify } from "../types/prettify";
 import { VideoStatus } from "../types/video";
 
-// Type guards for the different InnerTube renderer shapes a feed item might be.
-// These distinguish a video renderer from a Shorts lockup from a "regular" lockup, etc.
-// The schemas only assert the discriminating fields; `looseObject` lets the rest of the
-// (huge, variable) renderer pass through untouched, matching the deep-accessor contract.
+// Type guards for InnerTube renderer shapes. Schemas assert only the discriminating fields;
+// `looseObject` lets the rest of the (large, variable) renderer pass through untouched.
 
 const videoRendererSchema = z.looseObject({ videoId: z.string() });
 const lockupViewModelSchema = z.looseObject({ contentId: z.string() });
@@ -56,8 +54,7 @@ export function isShelfRenderer(value: unknown): value is InnerTubeShelfRenderer
   return shelfRendererSchema.safeParse(value).success;
 }
 
-// Some videoRenderer payloads put the view count in `viewCountText`, others in `runs`, others
-// only in `shortViewCountText`. This pulls whichever one is populated.
+// View count lives in `viewCountText.simpleText`, `viewCountText.runs`, or `shortViewCountText` - use whichever is set.
 export function viewCountFromRenderer(renderer: Prettify<InnerTubeVideoRenderer>) {
   const { viewCountText, shortViewCountText } = renderer;
   const { simpleText, runs } = viewCountText ?? {};
@@ -67,7 +64,7 @@ export function viewCountFromRenderer(renderer: Prettify<InnerTubeVideoRenderer>
     ?? "";
 }
 
-// Maps the various live/upcoming/short signals YouTube emits onto our normalized VideoStatus enum.
+// Maps live/upcoming/short signals from videoRenderer onto VideoStatus.
 export function statusFromRenderer(renderer: Prettify<InnerTubeVideoRenderer>) {
   const {
     badges, thumbnailOverlays, navigationEndpoint, upcomingEventData, publishedTimeText
@@ -83,8 +80,7 @@ export function statusFromRenderer(renderer: Prettify<InnerTubeVideoRenderer>) {
     return VideoStatus.Live;
   }
 
-  // publishedTimeText wins over stale badge/eventData: when a scheduled stream ends, YouTube sets
-  // "Streamed X ago" before clearing upcomingEventData or badges.
+  // publishedTimeText wins over stale badge/eventData: YouTube sets "Streamed X ago" before clearing upcomingEventData.
   const isStreamedAgo = publishedTimeText?.simpleText?.toLowerCase().startsWith("streamed") ?? false;
   const hasUpcomingSignal = badgeStyle === BadgeStyle.Upcoming
     || overlayStyle === OverlayStyle.Upcoming
@@ -100,7 +96,7 @@ export function statusFromRenderer(renderer: Prettify<InnerTubeVideoRenderer>) {
   return VideoStatus.Video;
 }
 
-// Same idea as statusFromRenderer but for the newer lockupViewModel shape.
+// Same as statusFromRenderer but for the lockupViewModel shape.
 export function statusFromLockup(lockup: Prettify<LockupViewModel>) {
   const { contentType, contentImage } = lockup;
   if (contentType === LockupContentType.Shorts) {
@@ -119,7 +115,7 @@ export function statusFromLockup(lockup: Prettify<LockupViewModel>) {
         return VideoStatus.Upcoming;
       }
 
-      // Fallback when YouTube omits the structured badgeStyle but still renders the label.
+      // Fallback: YouTube sometimes omits badgeStyle but still renders the text label.
       if (text === "Upcoming") {
         return VideoStatus.Upcoming;
       }
@@ -128,8 +124,8 @@ export function statusFromLockup(lockup: Prettify<LockupViewModel>) {
   return VideoStatus.Video;
 }
 
-// Converts a human-readable publishedTimeText ("3 hours ago") into seconds, so we can sort by age.
-// Returns 0 for empty strings and unrecognised formats (e.g. live videos with no time text).
+// Converts publishedTimeText ("3 hours ago") to seconds for age-based sorting.
+// Returns 0 for empty or unrecognised formats (e.g. live videos with no time text).
 export function parseSecondsAgo(publishedTimeText: string) {
   const match = publishedTimeText.match(/(\d+)\s+(second|minute|hour|day|week|month|year)/);
   if (!match) {

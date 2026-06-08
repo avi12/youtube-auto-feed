@@ -15,9 +15,8 @@ function extractYtInitialData(html: string) {
   }
 }
 
-// Re-fetches the subscriptions page HTML so we can extract a fresh ytInitialData payload.
-// We deliberately don't read window.ytInitialData: that global is set once at page load and
-// stays frozen across YouTube SPA navigation, so it would feed us stale snapshots.
+// Fetches the subscriptions page HTML and extracts a fresh ytInitialData payload.
+// window.ytInitialData is set once at page load and stays frozen across SPA nav - don't use it.
 export async function fetchInitialVideos() {
   const response = await fetch("/feed/subscriptions", {
     credentials: "include"

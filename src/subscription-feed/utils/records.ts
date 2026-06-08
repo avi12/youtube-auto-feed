@@ -1,5 +1,4 @@
-// Tiny helpers for safely walking unknown-shape objects (e.g. raw InnerTube responses or Polymer
-// `data` payloads) without resorting to `any`.
+// Helpers for safely walking unknown-shape objects (InnerTube responses, Polymer data) without `any`.
 
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -21,8 +20,7 @@ function dig(object: unknown, ...path: string[]) {
   return current;
 }
 
-// Walks `object` along `path`. Returns the value cast to T[] when it's an array, otherwise [].
-// Use this anywhere an InnerTube renderer might emit a list or omit it entirely.
+// Walks `object` along `path` and returns the value as T[] if it's an array, otherwise [].
 export function deepArray<T = unknown>(object: unknown, ...path: string[]): T[] {
   const value = dig(object, ...path);
   if (Array.isArray(value)) {

@@ -1,9 +1,8 @@
 import { isPolymerElement } from "./utils/polymer";
 import { isRecord } from "./utils/records";
 
-// Polymer hydrates `data` asynchronously after the page loads. Any one of these signals confirms
-// the feed is wired up and safe to read/mutate. The monitor calls this in a MutationObserver loop
-// during initial page load (and after each SPA navigation back to /feed/subscriptions).
+// Polymer hydrates `data` asynchronously. Any one of these signals confirms the feed is safe to
+// read/mutate. Called in a MutationObserver loop on initial load and each SPA nav to the feed.
 export function isDomContentReady() {
   const elShelf = document.querySelector<HTMLElement>("ytd-rich-shelf-renderer");
   if (elShelf) {

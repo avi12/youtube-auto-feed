@@ -8,9 +8,8 @@ import { settingsMessenger } from "../shared/settings-messaging";
 import { loadStoredSettings } from "../shared/settings-storage";
 import { storage } from "#imports";
 
-// ISOLATED-world bridge: the only context here that can read browser.storage. It loads the stored
-// settings, answers the MAIN world's startup pull, and broadcasts every later change so the live
-// feed reacts to popup toggles without a reload.
+// ISOLATED-world bridge: sole context with browser.storage access. Loads stored settings,
+// answers MAIN's startup "getSettings" pull, and broadcasts every change on toggle.
 export default defineContentScript({
   matches: ["https://www.youtube.com/*"],
   runAt: "document_start",

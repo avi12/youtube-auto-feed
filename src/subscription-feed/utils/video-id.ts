@@ -4,9 +4,9 @@ import { isRecord } from "./records";
 
 const nonEmptyStringSchema = z.string().min(1);
 
-// Pulls a videoId out of whatever renderer shape a Polymer element's `data` happens to be:
-// videoRenderer, gridVideoRenderer, richGridMediaRenderer, lockupViewModel, or shortsLockupViewModel.
-// Returns null if no recognised renderer is present (e.g. continuation items, section headers).
+// Extracts a videoId from a Polymer element's `data` regardless of renderer shape
+// (videoRenderer, gridVideoRenderer, richGridMediaRenderer, lockupViewModel, shortsLockupViewModel).
+// Returns null for unrecognised shapes (continuation items, section headers).
 export function videoIdFromData(data: unknown) {
   if (!isRecord(data)) {
     return null;
@@ -35,7 +35,7 @@ export function videoIdFromData(data: unknown) {
     return richGridInner.videoRenderer.videoId || null;
   }
 
-  // Some lockup payloads use `videoId` instead of `contentId`; fall through to a Record check for those.
+  // Some lockup payloads use `videoId` instead of `contentId`.
   if (isLockupViewModel(lockupViewModel) && lockupViewModel.contentId) {
     return lockupViewModel.contentId;
   }
@@ -51,8 +51,8 @@ export function videoIdFromData(data: unknown) {
   return null;
 }
 
-// Used for the legacy inner-shelf list shape (horizontalListRenderer / gridRenderer items), where
-// the renderer is at the list-item root rather than nested under `content`.
+// For legacy shelf list items (horizontalListRenderer / gridRenderer) where the renderer is at
+// the item root, not nested under `content`.
 export function videoIdFromShelfListItem(listItem: unknown) {
   if (!isRecord(listItem)) {
     return "";

@@ -15,38 +15,31 @@ import {
   videoIdFromRichItem
 } from "./rich-item";
 
-// Reconciles Edge's Latest band inline videos with the API's emission. The new data.contents is
-// rebuilt each poll, but every richSectionRenderer (shelf wrapper) and continuationItemRenderer is
-// passed through by reference from the previous contents - never reconstructed. That way Polymer's
-// dom-repeat sees identical object identity for the shelves and won't re-render or alter their
-// inner contents. Only inline video slots (root-level richItemRenderers) are mutated, and only to
-// match the API's order/membership.
+// Reconciles the Latest band inline videos with the API's emission. Shelf wrappers
+// (richSectionRenderer) and continuation items pass through by reference so Polymer's dom-repeat
+// never re-renders them. Only root-level richItemRenderers are mutated.
 //
-// The grid's dom-repeat is index-based: replacing data.contents rebinds each existing node to the
-// item now at its index rather than moving nodes. So a front insert shifts every inline node's data
-// to the previous slot's video, and each node must repaint its thumbnail. YouTube paints a grid
-// tile's thumbnail once and does NOT repaint it on an in-place data change - only a fresh viewport
-// intersection (a scroll) does - so a reused node keeps the previous occupant's image until we do
-// what a scroll would: re-assert each tile's thumbnail src from its bound video, repeated until the
-// grid stops needing corrections.
+// The dom-repeat is index-based: replacing data.contents rebinds each node to the item now at its
+// index. A front insert shifts every node's bound video, and each node must repaint its thumbnail -
+// YouTube paints a tile's thumbnail once and skips repaints on data-change; only a scroll (viewport
+// intersection) re-asserts it. We simulate that: re-assert each tile's src until the grid settles.
 
 const THUMBNAIL_PRELOAD_TIMEOUT_MS = 1000;
 const REBIND_MICROTASK_POLL_MAX = 20;
 const REBIND_FRAME_POLL_MAX = 10;
-// Re-assert thumbnails until THUMBNAIL_STABLE_FRAMES consecutive frames need no correction, capped
-// at THUMBNAIL_REASSERT_FRAMES_MAX so a tile YouTube keeps fighting can't spin forever (~2s).
+// Re-assert thumbnails until THUMBNAIL_STABLE_FRAMES consecutive frames need no correction,
+// capped at THUMBNAIL_REASSERT_FRAMES_MAX so a fighting tile can't spin forever (~2s).
 const THUMBNAIL_REASSERT_FRAMES_MAX = 120;
 const THUMBNAIL_STABLE_FRAMES = 5;
 const GRID_ITEM_SELECTOR = "ytd-rich-grid-renderer > #contents > ytd-rich-item-renderer";
-// A dropped COLLABORATIVE (multi-channel) video is kept in place until it has been absent for this many
-// consecutive polls, because such videos flicker out and back in the API's noisy pagination tail.
-// Non-collaborative videos are not buffered - they are removed on the first poll they are absent.
+// Collaborative (multi-channel) videos flicker in the API's noisy pagination tail, so they are
+// buffered for STICKY_DELETE_POLLS before removal. Non-collaborative videos are dropped immediately.
 const STICKY_DELETE_POLLS = 4;
 const SURVIVOR_SHIFT_MS = 380;
 const REMOVAL_SETTLE_FRAMES_MAX = 12;
 const REMOVAL_STABLE_FRAMES = 2;
-// Tiles just below the fold slide up into view when something above them is removed; record and
-// animate them too. Covers a few rows of the largest tiles so multi-item shifts still animate.
+// Include tiles just below the fold - they slide up when something above is removed. The margin
+// covers enough rows that multi-item shifts still animate fully.
 const REFLOW_MARGIN_BELOW_PX = 1200;
 const absenceCountByVideoId = new Map<string, number>();
 
@@ -74,11 +67,9 @@ export async function mirrorFromApi({ apiContents }: MirrorFromApiParams) {
     return;
   }
 
-  // Newly-inserted videos are derived from newContents (what's actually written), not from a
-  // parallel sequence. Otherwise the entrance animation, thumbnail preload, and rebind-await all
-  // operate on a different set of IDs than the data write - tiles can land in the DOM without a
-  // bound thumbnail or fully-attached event handlers, leaving them un-interactable until the
-  // user hovers and forces Polymer to flush.
+  // Derive inserted IDs from newContents (what is actually written), not a parallel sequence.
+  // Otherwise the entrance animation, thumbnail preload, and rebind-await operate on different IDs
+  // than the write - tiles can land without a bound thumbnail or event handlers until Polymer flushes.
   const newlyInsertedIds = new Set<string>();
   const newThumbnailUrls = new Map<string, string>();
   for (const item of newContents) {
@@ -94,11 +85,9 @@ export async function mirrorFromApi({ apiContents }: MirrorFromApiParams) {
 
   await preloadNewThumbnails(newThumbnailUrls);
 
-  // One reflow path for every change. A view transition can't drive it: the grid detaches/rebinds
-  // nodes via requestAnimationFrame, which is stalled for the whole transition, so a removal's
-  // survivors never move until it ends. Instead fade any dropped tiles out, write, then FLIP every
-  // survivor from its old slot to its new one - released together so they glide simultaneously
-  // (Google-Meet style) rather than cascading. Reduced motion gets an instant write.
+  // Can't use a view transition: rAF is stalled for the whole transition, so survivors never move
+  // until it ends. Instead: fade dropped tiles out, write, FLIP every survivor from its old slot to
+  // its new one, release together so they glide simultaneously. Reduced motion gets an instant write.
   if (!isAnimationsEnabled()) {
     elGrid.set("data.contents", newContents);
   } else {
@@ -134,8 +123,7 @@ function inlineDomVideoIds() {
     .join();
 }
 
-// The reflow zone is the viewport plus a margin below it, so tiles that slide up into view from
-// just under the fold are recorded and animated, not just the ones already on screen.
+// Reflow zone = viewport + margin below, so tiles sliding up from just under the fold are animated.
 function isInReflowZone(elItem: HTMLElement) {
   const { bottom, top } = elItem.getBoundingClientRect();
   return bottom > 0 && top < innerHeight + REFLOW_MARGIN_BELOW_PX;
@@ -161,11 +149,9 @@ type PinSurvivorsParams = Prettify<{
   newlyInsertedIds: Set<string>;
 }>;
 
-// Hold each survivor at the screen position it had before the write by offsetting it with the
-// `translate` property. Re-run every frame while the grid settles: the mirror clones shifted items
-// so Polymer re-stamps their nodes asynchronously, and re-pinning catches whatever node currently
-// holds each video. The offset is measured from the untranslated rect, so it stays correct as the
-// grid reflows underneath.
+// Hold each survivor at its pre-write screen position via `translate`. Re-run every frame while
+// the grid settles - Polymer re-stamps cloned nodes asynchronously and re-pinning catches whichever
+// node currently holds each video. Offset is from the untranslated rect, so it stays correct.
 function pinSurvivorsToOldRects({ oldRects, newlyInsertedIds }: PinSurvivorsParams) {
   for (const elItem of document.querySelectorAll<HTMLElement>(GRID_ITEM_SELECTOR)) {
     if (!isInReflowZone(elItem) || !isPolymerElement(elItem)) {
@@ -194,7 +180,7 @@ function pinSurvivorsToOldRects({ oldRects, newlyInsertedIds }: PinSurvivorsPara
   }
 }
 
-// Animate every pinned survivor from its held (old) position to its real one.
+// Release each pinned survivor: animate from its held position to its real layout position.
 function releaseSurvivors() {
   for (const elItem of document.querySelectorAll<HTMLElement>(GRID_ITEM_SELECTOR)) {
     if (!elItem.style.translate) {
@@ -252,10 +238,9 @@ function hideNewInsertedTiles(newlyInsertedIds: Set<string>) {
   }
 }
 
-// Reflow path for inserts, removals and reorders. Dropped tiles have already faded out. Snapshot
-// survivor positions, write, then hold every survivor at its old position each frame until the
-// grid's deferred rebind/re-stamp settles, revealing any reused node along the way; finally release
-// them so they glide into place together. New tiles get the entrance animation.
+// Reflow path for inserts, removals, and reorders. Dropped tiles have already faded out.
+// Snapshot survivor positions, write, hold every survivor at its old position each frame until
+// the grid's deferred rebind/re-stamp settles, then release so they all glide together.
 async function setContentsWithFlip({ elGrid, newContents, newlyInsertedIds }: SetContentsParams) {
   if (!isPolymerElement(elGrid)) {
     return;
@@ -264,30 +249,26 @@ async function setContentsWithFlip({ elGrid, newContents, newlyInsertedIds }: Se
   const newInlineIds = new Set(newContents.map(videoIdFromRichItem).filter((id): id is string => !!id));
   const expectedInlineIds = [...newInlineIds].join();
 
-  // A node rebound to a different video has its thumbnail and avatar <img> src cleared by YouTube and
-  // only repainted once the new image decodes. On Chromium that clear/reload is synchronous within
-  // the write; on Firefox it is deferred, so the tile paints blank for a frame or two. This observer
-  // covers the gap in the same microtask the src is cleared (ahead of paint) by mirroring the bound
-  // image into a CSS background, so survivors never flash empty.
+  // When a node is rebound, YouTube clears the thumbnail/avatar src and repaints only after decode.
+  // On Chromium this is synchronous; on Firefox it is deferred, leaving tiles blank for a frame or
+  // two. This observer covers that gap by mirroring the bound image into a CSS background in the
+  // same microtask the src is cleared - ahead of paint - so survivors never flash empty.
   const imageCoverObserver = observeAndCoverBlankImages(elGrid);
 
-  // Paint each survivor's FUTURE thumbnail as a background on its stable tile node ONE FRAME before
-  // the write. On Firefox the rebind defers clearing the <img> and, for some tiles, replaces the
-  // whole lockup subtree - so an img-level cover applied during the write either paints too late or
-  // is discarded with the replaced element, and the tile flashes empty just before it slides. The
-  // tile node (ytd-rich-item-renderer) is never replaced, and a background set a frame early has
-  // already rasterised by the time the <img> blanks, so the future thumbnail holds with no gap.
+  // Paint each survivor's FUTURE thumbnail as a background on the stable tile node one frame before
+  // the write. On Firefox the rebind defers clearing the <img> and sometimes replaces the whole
+  // lockup subtree - an img-level cover applied during the write paints too late or is discarded with
+  // the replaced element. ytd-rich-item-renderer is never replaced, and a background set a frame
+  // early has rasterised before the <img> blanks, so the future thumbnail shows with no gap.
   await new Promise<void>(resolve =>
     requestAnimationFrame(() => {
       preCoverReflowImages(newContents, newlyInsertedIds);
       resolve();
     }));
 
-  // Write and first pin inside a single rAF so the DOM mutation and the survivor pins are
-  // guaranteed to land before the same frame's layout+paint. Polymer.flush() does not
-  // synchronously reposition dom-repeat nodes, so a synchronous pin outside a rAF computes
-  // delta=0 and leaves survivors un-pinned for the paint that follows animationend (which
-  // fires after the rAF phase).
+  // Write and first pin inside one rAF so the mutation and pins land before the same frame's paint.
+  // Polymer.flush() does not synchronously reposition dom-repeat nodes - a pin outside a rAF would
+  // compute delta=0 and leave survivors un-pinned for the paint that follows animationend.
   const oldRects = await new Promise<Map<string, DOMRect>>(resolve =>
     requestAnimationFrame(() => {
       const rects = recordReflowZoneRects();
@@ -295,9 +276,8 @@ async function setContentsWithFlip({ elGrid, newContents, newlyInsertedIds }: Se
       flushPolymerRender();
       revealReboundSurvivors(newInlineIds);
       hideNewInsertedTiles(newlyInsertedIds);
-      // Correct thumbnails before pinSurvivorsToOldRects so that if the browser
-      // delivers a compositor frame mid-loop (during getBoundingClientRect calls),
-      // it shows corrected thumbnails rather than the blank state Polymer left behind.
+      // Correct thumbnails before pinning so any mid-loop compositor frame shows correct
+      // thumbnails rather than the blank state Polymer left behind.
       repaintInlineThumbnails();
       coverBlankImages();
       pinSurvivorsToOldRects({
@@ -329,9 +309,9 @@ async function setContentsWithFlip({ elGrid, newContents, newlyInsertedIds }: Se
   coverBlankImages();
   animateNewEntrances(newlyInsertedIds);
 
-  // Keep the cover observer live through the slide: the release-time repaint above, or a late
-  // re-stamp by YouTube, can blank a tile after the settle loop, which would otherwise paint empty
-  // just as the videos start sliding. The per-tile load handler drops each cover as its image lands.
+  // Keep the cover observer live through the slide: the release-time repaint or a late YouTube
+  // re-stamp can blank a tile after the settle loop, just as videos start sliding. Each cover is
+  // dropped by its per-tile load handler once the image lands.
   for (let i = 0; i < Math.ceil(SURVIVOR_SHIFT_MS / 16) + 2; i++) {
     await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
   }
@@ -339,13 +319,12 @@ async function setContentsWithFlip({ elGrid, newContents, newlyInsertedIds }: Se
   clearReflowImageCovers();
 }
 
-// Paint each reflow-zone survivor's FUTURE images one frame before the write as shaped overlays on the
-// STABLE tile node (ytd-rich-item-renderer, which YouTube never replaces - unlike the thumbnail and
-// avatar containers, which it swaps wholesale on ~1 in 3 tiles). Each overlay sits BEHIND the real
-// <img> (z-index -1), so it only shows while a rebound image is blank and never paints the upcoming
-// picture over the tile's current content. The thumbnail overlay carries the thumbnail's own
-// border-radius (rounded corners); the avatar overlay is a circle. The i-th ytd-rich-item-renderer
-// binds to the i-th new rich item, so DOM order maps onto content order. New tiles are skipped.
+// Pre-cover reflow-zone survivor thumbnails and avatars one frame before the write. Overlays are
+// placed on the stable ytd-rich-item-renderer node (YouTube never replaces it, unlike the thumbnail
+// and avatar containers which are swapped wholesale on ~1 in 3 tiles). z-index:-1 keeps each overlay
+// behind the real <img>, visible only while the rebound image is blank. Thumbnail overlay uses the
+// thumbnail's border-radius; avatar overlay is a circle. DOM order maps to content order (i-th node
+// binds to i-th item). New tiles are skipped.
 function preCoverReflowImages(newContents: Prettify<InnerTubeRichGridItem>[], newlyInsertedIds: Set<string>) {
   const futureItems = newContents.filter(item => !!item.richItemRenderer);
   const elItems = [...document.querySelectorAll<HTMLElement>(GRID_ITEM_SELECTOR)];
@@ -382,8 +361,8 @@ function preCoverReflowImages(newContents: Prettify<InnerTubeRichGridItem>[], ne
   }
 }
 
-// Make the tile node a positioned, isolated stacking context so a z-index:-1 child stays behind the
-// tile's own content yet never slips behind neighbouring tiles.
+// Give the tile an isolated stacking context so z-index:-1 overlays stay behind its content but
+// not behind neighbouring tiles.
 function prepareCoverHost(elItem: HTMLElement) {
   if (getComputedStyle(elItem).position === "static") {
     elItem.style.position = "relative";
@@ -433,11 +412,9 @@ function thumbnailContainerInItem(elItem: HTMLElement) {
   return root.querySelector<HTMLElement>("yt-thumbnail-view-model, ytd-thumbnail");
 }
 
-// Mirror each rebound tile's bound images into a CSS background while their foreground <img> is empty
-// or still decoding, so the tile never paints blank during the reload. The cached background paints
-// immediately (the image was just on screen at the neighbour slot) and is dropped the moment the
-// foreground image finishes loading, leaving the real <img> in place. Both the video thumbnail and
-// the channel avatar rebind - and so blank - when the node shifts to a different video.
+// Mirror each rebound tile's images into a CSS background while the foreground <img> is blank or
+// decoding. The cached background paints immediately (the image was just on screen) and is dropped
+// once the foreground finishes loading. Both thumbnail and avatar blank on a node shift.
 function coverBlankImages() {
   for (const elItem of document.querySelectorAll<RichItemElement>(GRID_ITEM_SELECTOR)) {
     if (!isInReflowZone(elItem) || !isPolymerElement(elItem)) {
@@ -492,9 +469,8 @@ function observeAndCoverBlankImages(elGrid: HTMLElement) {
   };
   observer.observe(elContents, observeConfig);
 
-  // Avatars live inside each lockup's shadow root, which a #contents subtree observer can't reach;
-  // observe those roots too so an avatar src-clear is re-covered in the same microtask, ahead of
-  // paint, with the same robustness as a light-DOM thumbnail clear.
+  // Avatars live inside lockup shadow roots, which a #contents subtree observer can't reach.
+  // Observe those roots too so an avatar src-clear is re-covered in the same microtask, ahead of paint.
   for (const elLockup of elContents.querySelectorAll("yt-lockup-view-model")) {
     if (elLockup.shadowRoot) {
       observer.observe(elLockup.shadowRoot, observeConfig);
@@ -530,8 +506,8 @@ function preloadNewThumbnails(newThumbnailUrls: Map<string, string>) {
 }
 
 async function repaintInsertedThumbnails(newlyInsertedIds: Set<string>) {
-  // Polymer debounces the dom-repeat rebind across microtasks/frames. Wait until the newly inserted
-  // tiles exist before repainting, otherwise the first passes run against a half-rendered grid.
+  // Polymer debounces dom-repeat rebind across microtasks/frames. Wait for new tiles to exist
+  // before repainting; otherwise early passes run against a half-rendered grid.
   for (let i = 0; i < REBIND_MICROTASK_POLL_MAX && !areInsertedTilesPresent(newlyInsertedIds); i++) {
     await Promise.resolve();
   }
@@ -539,10 +515,9 @@ async function repaintInsertedThumbnails(newlyInsertedIds: Set<string>) {
     await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
   }
 
-  // Re-assert each tile's thumbnail from its bound video until the grid is stable (or we hit the
-  // cap). The model's preferred source URL is exactly what YouTube paints and stays byte-stable per
-  // picture (sqp/rs only rotate when the image itself changes), so a full-URL compare repaints both
-  // a rebound tile (different video) and a same-id thumbnail the creator swapped, without churning.
+  // Re-assert each tile's thumbnail until stable or capped. The preferred source URL is byte-stable
+  // per picture (sqp/rs only rotate when the image changes), so a full-URL compare catches both a
+  // rebound tile and a creator-swapped thumbnail without churning.
   let stableFrames = 0;
   for (let i = 0; i < THUMBNAIL_REASSERT_FRAMES_MAX && stableFrames < THUMBNAIL_STABLE_FRAMES; i++) {
     const correctedCount = repaintInlineThumbnails();
@@ -591,11 +566,10 @@ function avatarImgInItem(elItem: HTMLElement) {
   return root.querySelector<HTMLImageElement>("yt-decorated-avatar-view-model img");
 }
 
-// Every thumbnail <img> in a tile, across the lockup shadow root and each thumbnail container's own
-// shadow tree. Scoped to the thumbnail containers (yt-thumbnail-view-model for lockups, ytd-thumbnail
-// for legacy renderers) so the channel avatar - which lives outside them - is never repainted with a
-// video thumbnail URL. Returning every match makes the repaint robust to whichever element YouTube
-// actually paints in a given layout, instead of guessing a single one.
+// Every thumbnail <img> in a tile, across the lockup shadow root and each thumbnail container's
+// shadow tree. Scoped to yt-thumbnail-view-model / ytd-thumbnail so the channel avatar (outside
+// those containers) is never repainted with a video URL. Returning every match is robust to
+// whichever element YouTube actually paints in a given layout.
 function thumbnailImgsInItem(elItem: HTMLElement) {
   const elImgs: HTMLImageElement[] = [];
   const searchRoots: (HTMLElement | ShadowRoot)[] = [elItem];
@@ -642,16 +616,12 @@ type ComposeNewContentsParams = Prettify<{
   currentContents: Prettify<InnerTubeRichGridItem>[];
 }>;
 
-// Reconcile the grid's Latest band (every top-level inline video, unioned across the runs that the
-// section markers split it into) to the API's emission with a sequence diff. The longest common
-// subsequence of the two id sequences is kept in place; around it, videos the API added are inserted
-// at their API position (so a newly-subscribed channel's upload lands at its correct spot, not just
-// the front), videos that merely reordered follow the API, and videos the API dropped are retained
-// until they have been absent for STICKY_DELETE_POLLS consecutive polls - so the API's noisy
-// pagination tail can't flicker tiles in and out. The merged band is then re-flowed into the grid's
-// run structure: section markers and the continuation pass through by reference at their positions,
-// middle runs keep their length so each marker stays at its row, and the last run absorbs the net
-// size change.
+// Reconcile the Latest band (all top-level inline videos across runs) to the API via sequence diff.
+// The LCS of the two id sequences is kept in place; API-added videos insert at their API position,
+// reordered videos follow the API, and dropped videos are retained for STICKY_DELETE_POLLS polls so
+// the noisy pagination tail can't flicker tiles. The merged band is re-flowed into the run structure:
+// section markers and continuation pass through by reference, middle runs keep their length so each
+// marker stays at its row, and the last run absorbs the net size change.
 function composeNewContents({ apiContents, currentContents }: ComposeNewContentsParams) {
   const currentRuns = findAllInlineRuns(currentContents);
   if (currentRuns.length === 0) {
@@ -661,8 +631,8 @@ function composeNewContents({ apiContents, currentContents }: ComposeNewContents
   const currentBand = extractInlineBand(currentContents);
   const currentBandIds = new Set(currentBand.map(entry => entry.videoId));
 
-  // Exclude any API video that lives only inside a grid shelf (Most relevant / Shorts): pulling it
-  // into the Latest band would render the same video twice.
+  // Exclude API videos that already live inside a shelf (Most relevant / Shorts); pulling them into
+  // Latest would render the same video twice.
   const gridVideoIds = collectAllGridVideoIds(currentContents);
   const apiBand = extractInlineBand(apiContents).filter(
     entry => currentBandIds.has(entry.videoId) || !gridVideoIds.has(entry.videoId)
@@ -739,15 +709,14 @@ function updateAbsenceCountsAndRetain({ currentBandIds, apiBandIds, collaborativ
     const absenceCount = (absenceCountByVideoId.get(videoId) ?? 0) + 1;
     absenceCountByVideoId.set(videoId, absenceCount);
 
-    // Only collaborative videos get the sticky buffer; a non-collaborative video absent from the API
-    // is dropped immediately (threshold 0, so its first absent poll already exceeds it).
+    // Non-collaborative videos are dropped immediately (threshold 0).
     const stickyThreshold = collaborativeIds.has(videoId) ? STICKY_DELETE_POLLS : 0;
     if (absenceCount <= stickyThreshold) {
       retainedDroppedIds.add(videoId);
     }
   }
 
-  // Forget counters for videos that have left the band entirely so a later reappearance starts fresh.
+  // Forget counters for videos that have left the band so a later reappearance starts fresh.
   for (const videoId of absenceCountByVideoId.keys()) {
     if (!currentBandIds.has(videoId)) {
       absenceCountByVideoId.delete(videoId);
@@ -765,15 +734,12 @@ type MergeBandParams = Prettify<{
   retainedDroppedIds: Set<string>;
 }>;
 
-// Walk both bands against their longest common subsequence. Between two shared anchors: drop-but-
-// retained videos (gone from the API, still within the sticky window) keep their slot, then API-side
-// videos (new or reordered) fill in. Each video already present in the band keeps its LIVE current
-// item reference; only genuinely new videos use the API item. Preserving identity lets Polymer's
-// index-based dom-repeat reuse the existing node for any video whose index is unchanged - so its
-// thumbnail is never reloaded and the band doesn't flash. reflowBandIntoRuns then clones exactly the
-// items whose final index differs from their original, which is what prevents the path-effect bleed
-// (a moved object linking its slot to a neighbor's contentImage); items that never change slot stay
-// untouched and so can't bleed.
+// Walk both bands against their LCS. Between anchors: retained-dropped videos (absent from API but
+// within the sticky window) keep their slot, then API-side videos (new or reordered) fill in.
+// Each video already in the band keeps its live item reference so Polymer's index-based dom-repeat
+// reuses the existing node for any unchanged-index video - no thumbnail reload, no flash.
+// reflowBandIntoRuns then clones only items whose final index differs from their original, preventing
+// path-effect bleed (a moved object sharing a slot with a neighbour's contentImage).
 function mergeBand({
   currentBand,
   apiBand,
@@ -865,11 +831,11 @@ type ReflowBandParams = Prettify<{
   targetBand: Prettify<InnerTubeRichGridItem>[];
 }>;
 
-// Lay the merged band back over the grid array. Non-inline items (section markers, continuation) are
-// copied by reference at their original positions; middle runs take exactly their original count of
-// band items so each following marker stays at its row, and the last run takes whatever remains so
-// the net size change is absorbed there. Any band item whose final index differs from its original
-// is cloned so Polymer's index-based rebind can't share sub-objects between shifting tiles.
+// Lay the merged band back over the grid array. Non-inline items (section markers, continuation)
+// copy by reference at their original positions. Middle runs keep their original length so each
+// following marker stays at its row; the last run absorbs the net size change. Items whose final
+// index differs from their original are cloned so Polymer's rebind can't share sub-objects between
+// shifting tiles.
 function reflowBandIntoRuns({ currentContents, currentRuns, targetBand }: ReflowBandParams) {
   const currentIndexByRef = new Map<Prettify<InnerTubeRichGridItem>, number>();
   for (let i = 0; i < currentContents.length; i++) {

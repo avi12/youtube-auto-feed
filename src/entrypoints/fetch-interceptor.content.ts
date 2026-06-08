@@ -2,8 +2,8 @@ import { feedMessenger } from "../shared/feed-messaging";
 import { ytafChannel } from "../shared/messaging";
 import { z } from "../shared/zod";
 
-// Exposed so the CDP test harness can simulate a browse response through the real messenger. The
-// interceptor's messenger is a different instance than the monitor's, so the monitor receives it.
+// Exposed for the CDP test harness to inject browse responses. The interceptor holds a separate
+// messenger instance from the monitor's, so the monitor receives it correctly.
 declare global {
   var __ytafFeedMessenger: typeof feedMessenger | undefined;
 }
@@ -24,7 +24,7 @@ export default defineContentScript({
       if (url.includes("/youtubei/v1/browse")) {
         const { body: rawBody, headers } = init ?? {};
         const body = requestBodySchema.parse(rawBody);
-        // The X-YTAF header is the marker for fetches we issue ourselves, so we don't re-broadcast our own responses.
+        // X-YTAF marks our own fetches - skip to avoid re-broadcasting our own responses.
         const isOurRequest = ourRequestSchema.safeParse(headers).success;
         const isSubscriptionsBrowse = body.includes("FEsubscriptions") && !isOurRequest;
         if (isSubscriptionsBrowse) {

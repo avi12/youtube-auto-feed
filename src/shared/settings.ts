@@ -14,8 +14,7 @@ function prefersReducedMotion() {
   return matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
-// Single source of truth for the storage fallbacks, shared by the popup, the ISOLATED bridge, and
-// the MAIN-world live mirror so every context defaults identically.
+// Shared fallbacks - popup, ISOLATED bridge, and MAIN-world mirror all default identically.
 export function defaultSettings(): FeedSettings {
   return {
     isExtensionEnabled: true,

@@ -14,10 +14,9 @@ import { isLockupViewModel, isShelfRenderer, isShortsLockupViewModel, isVideoRen
 import { findRichItemIndex } from "../rich-item";
 import { mergeLockupViewModel } from "./lockup-model";
 
-// Writes back into Polymer's data binding so the DOM re-renders. A single video may appear in
-// the rich grid root *and* inside one or more rich shelves *and* inside a legacy inner shelf;
-// `syncGridModelItem` touches every position so the binding picks them all up. `applyPolymerUpdate`
-// is the higher-level entry that handles the actual element-bound update (preferred path).
+// Writes back into Polymer's data binding. A video may appear in the rich grid root, inside one or
+// more rich shelves, and inside a legacy inner shelf; syncGridModelItem updates every position so
+// Polymer re-renders all copies. applyPolymerUpdate is the preferred entry for element-bound updates.
 
 type ApplyPolymerUpdateParams = Prettify<{
   elItem: Prettify<PolymerElement>;
@@ -118,7 +117,7 @@ function buildMergedVideoRenderer({
     return incoming;
   }
 
-  // Preserve the existing thumbnail object so the in-flight <img> keeps its decoded bytes.
+  // Keep the existing thumbnail so the in-flight <img> retains its decoded bytes.
   return {
     ...incoming,
     thumbnail
@@ -300,8 +299,7 @@ function applyToLegacyShelfModels({ videoId, rawRenderer, forcePreserveContentIm
   }
 }
 
-// A video may appear in multiple places (e.g. Latest band + a "Most relevant" rich shelf).
-// Update every model position so the Polymer data binding refreshes both DOM copies.
+// Update every model position (grid root, rich shelves, legacy shelves) so all DOM copies refresh.
 type SyncGridModelItemParams = Prettify<{
   videoId: string;
   rawRenderer: Prettify<InnerTubeVideoRenderer> | Prettify<LockupViewModel> | Prettify<ShortsLockupViewModel>;

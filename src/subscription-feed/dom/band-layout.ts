@@ -4,10 +4,9 @@ import { isPolymerElement } from "../utils/polymer";
 import { deepArray, isRecord } from "../utils/records";
 import { videoIdFromRichItem } from "./rich-item";
 
-// "Bands" are positional groupings of feed items: contiguous root-level videos form one band,
-// each rich shelf forms another, and title-only legacy shelves push subsequent root videos into
-// a new section. captureBandLayout() snapshots the current band structure so insertions can be
-// routed to the right zone later.
+// Bands are positional groupings: contiguous root-level videos = one inline band, each rich shelf
+// = its own band, title-only legacy shelves start a new inline section. captureBandLayout()
+// snapshots this structure so insertions can be routed to the correct zone.
 
 export type BandKind = "inline" | "richShelf";
 
@@ -85,10 +84,9 @@ export function captureBandLayout() {
   };
 }
 
-// Collapsed shelves (isExpanded: false) sometimes render more than one visible row depending on
-// the browser's grid column count. This trims the overflow visible items from the data model so
-// YouTube always shows exactly one row. Only overflow items are removed - hidden data items (not
-// rendered in DOM) are preserved.
+// Collapsed shelves (isExpanded: false) can overflow to multiple visible rows depending on column
+// count. Trims the excess from the data model to enforce one row. Hidden (non-rendered) items are
+// left untouched.
 export async function normalizeCollapsedShelfRows() {
   const trimmedVideoIds = new Set<string>();
   for (const elShelf of document.querySelectorAll<HTMLElement>("ytd-rich-shelf-renderer")) {
@@ -97,11 +95,11 @@ export async function normalizeCollapsedShelfRows() {
       continue;
     }
 
-    // Two frames let Polymer finish rendering the shelf before we measure layout.
+    // Two rAF ticks let Polymer finish rendering before we measure layout.
     await new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
 
     const elItems = [...elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer")];
-    // offsetWidth === 0 means YouTube has hidden the item (not part of the visible row set).
+    // offsetWidth === 0: YouTube has hidden the item (not in the visible row set).
     const visibleItems = elItems.filter(elItem => elItem.offsetWidth > 0);
     if (visibleItems.length === 0) {
       continue;
@@ -126,7 +124,7 @@ export async function normalizeCollapsedShelfRows() {
       })
     );
 
-    // Filter data by video ID (not index) so hidden items beyond the visible set are untouched.
+    // Filter by video ID (not index) so hidden items beyond the visible set are untouched.
     const currentContents = deepArray<InnerTubeRichGridItem>(elShelf.data, "contents");
     const normalizedContents = currentContents.filter(item => {
       const videoId = videoIdFromRichItem(item);

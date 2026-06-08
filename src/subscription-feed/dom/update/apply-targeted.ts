@@ -23,10 +23,9 @@ import {
   prepareThumbnailDissolve
 } from "./thumbnail";
 
-// The "targeted" path patches specific DOM nodes (text spans, <img>, progress bar) so the
-// already-loaded thumbnail bytes don't flicker and the page doesn't reflow. There are two
-// flavours: lockup (new UI) and legacy/shorts (everything else). Both fall back to a full
-// Polymer rebuild when they can't locate the <img> or progress bar.
+// Targeted path: patches specific DOM nodes (text spans, <img>, progress bar) to avoid thumbnail
+// flicker and reflow. Two flavours: lockup (new UI) and legacy/shorts. Both fall back to a full
+// Polymer rebuild when the <img> or progress bar can't be located.
 
 interface TargetedUpdateParams {
   videoId: string;
@@ -66,7 +65,7 @@ async function applyTargetedGenericUpdate({
 
   const isThumbnailChanging = previous.thumbnailUrl !== thumbnailUrl;
   const elImg = isThumbnailChanging ? findThumbnailImgInItem(elItem) : null;
-  // Thumbnail changed but the live <img> couldn't be located, so rebuild the whole renderer.
+  // Thumbnail changed but <img> not found - rebuild the whole renderer.
   if (isThumbnailChanging && !elImg) {
     applyPolymerUpdate({
       elItem,
@@ -88,7 +87,7 @@ async function applyTargetedGenericUpdate({
     : null;
   const isAnimatable = textElements.length > 0 || !!thumbWork?.willDissolve;
   if (!isAnimatable) {
-    // Thumbnail bytes are identical though URL changed; sync the model but keep DOM <img> alone.
+    // URL changed but bytes are the same - sync the model only, leave the DOM <img> alone.
     if (elImg && isThumbnailChanging) {
       syncGridModelItem({
         videoId,
@@ -257,7 +256,7 @@ async function applyTargetedLockupUpdate({
   const newUrl = freshLockup?.contentImage?.thumbnailViewModel?.image?.sources?.at(-1)?.url ?? thumbnailUrl;
   const thumbUrlDiffers = previous.thumbnailUrl !== thumbnailUrl;
   const elImg = thumbUrlDiffers ? findThumbnailImg(elLockup) : null;
-  // Thumbnail changed but the live <img> couldn't be located, so rebuild the whole renderer.
+  // Thumbnail changed but <img> not found - rebuild the whole renderer.
   const isThumbnailReachable = !thumbUrlDiffers || !!elImg;
   if (!isThumbnailReachable) {
     applyPolymerUpdate({
@@ -308,10 +307,9 @@ async function applyTargetedLockupUpdate({
   });
 }
 
-// `applyUpdate` is the dispatch point. It decides whether to do a full Polymer rebuild
-// (status flips, channel-live flips, or anything else that can't be patched in place) or to
-// take the targeted lockup/generic path. Status changes always rebuild because targeted patches
-// only know how to update metadata, not change the renderer kind.
+// Dispatch point. Full Polymer rebuild for status/channel-live flips or missing data; targeted
+// lockup/generic path for pure metadata changes. Status changes always rebuild - targeted patches
+// can update metadata but can't change the renderer kind.
 type ApplyUpdateParams = Prettify<{
   videoId: string;
   elItem: PolymerElement;
@@ -328,7 +326,7 @@ export function applyUpdate({ videoId, elItem, fresh, previous }: ApplyUpdatePar
       elItem,
       rawRenderer
     });
-    // When only the channel-live flag changed, the thumbnail bytes are the same - keep them.
+    // Only the channel-live flag changed - thumbnail bytes are the same, preserve them.
     const isOnlyChannelLiveFlip = isChannelLiveChanged && previous !== undefined && previous.status === fresh.status;
     syncGridModelItem({
       videoId,

@@ -14,7 +14,7 @@
 
   const props: Props = $props();
 
-  // Props are a one-time preload from storage; seed mutable state from their initial values.
+  // Props are a one-time preload - seed reactive state from their initial values.
   let isExtensionEnabled = $state(untrack(() => props.isExtensionEnabled));
   let isAnimationsEnabled = $state(untrack(() => props.isAnimationsEnabled));
 

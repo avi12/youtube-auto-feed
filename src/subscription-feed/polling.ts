@@ -14,10 +14,8 @@ import { fetchInitialVideos } from "./youtube-api/fetch";
 import { isInnerTubeBrowseResponse } from "./youtube-api/guards";
 import { extractApiContents, extractApiSectionOrder, parseApiResponse } from "./youtube-api/parse-response";
 
-// Owns the polling lifecycle: the 5s full-feed poll, the 10s metadata-only poll, the orphan
-// cleanup tick, and the navigation/visibility hooks that pause polling when the tab is hidden
-// or the user has navigated away from /feed/subscriptions. The fetch-interceptor entrypoint
-// feeds InnerTube responses through here via the feedMessenger "browseResponse" message.
+// Owns the polling lifecycle: 5s full-feed poll, 10s metadata-only poll, orphan-cleanup tick,
+// and visibility/navigation hooks. The fetch-interceptor feeds InnerTube responses via feedMessenger.
 
 interface FeedPayload {
   snapshots: VideoSnapshot[];
@@ -35,9 +33,8 @@ const POLL_INTERVAL_MS = 5 * 1000;
 const METADATA_POLL_INTERVAL_MS = 10 * 1000;
 const PENDING_SNAPSHOT_STALE_MS = 5000;
 
-// This factory binds the monitor's mutable lifecycle state (snapshots, timers, flags) to its
-// handlers through one closure. Extracting the handlers to satisfy max-lines would mean threading
-// that shared state through every call, scattering it and reducing readability - so it stays whole.
+// All mutable lifecycle state (snapshots, timers, flags) lives in one closure.
+// Splitting handlers out to satisfy max-lines would scatter that shared state and hurt readability.
 // oxlint-disable-next-line max-lines-per-function
 export function createSubscriptionMonitor() {
   let lastSnapshot = new Map<string, Prettify<VideoSnapshot>>();
@@ -70,8 +67,7 @@ export function createSubscriptionMonitor() {
       });
       lastSnapshot = result.snapshot;
 
-      // The mirror rewrites data.contents on every poll; re-capture band layout afterwards
-      // so any cached layout snapshot reflects the now-current shape of the grid.
+      // Re-capture band layout after each poll - the mirror rewrites data.contents.
       if (!isInitialLoad && initialBandLayout !== null) {
         const updatedLayout = captureBandLayout();
         if (updatedLayout !== null) {
@@ -298,7 +294,7 @@ export function createSubscriptionMonitor() {
     lastSnapshot.clear();
     initialBandLayout = null;
 
-    // Discard a pending response if the SPA navigation took long enough that it likely belongs to a prior page state.
+    // Discard stale pending response - it likely belongs to a prior page state.
     const isPendingPayloadFresh = Date.now() - pendingApiSnapshotsTime < PENDING_SNAPSHOT_STALE_MS;
     if (!isPendingPayloadFresh) {
       pendingApiSnapshots = null;
@@ -342,8 +338,7 @@ export function createSubscriptionMonitor() {
     }
   }
 
-  // Disabling pauses every apply path exactly like a hidden tab; enabling resumes and runs an
-  // immediate fetch + sync, as if the tab just regained focus.
+  // Disabling pauses every apply path (like a hidden tab); enabling runs an immediate fetch + sync.
   function setEnabled(enabled: boolean) {
     if (enabled === isEnabled) {
       return;
@@ -365,10 +360,8 @@ export function createSubscriptionMonitor() {
     fetchFreshVideos().finally(() => restartPolling()).catch(() => {});
   }
 
-  // The interceptor can emit a browse response before any given navigation's startMonitoring runs,
-  // so these listeners live for the monitor's whole lifetime (the handlers self-gate on page/DOM
-  // state). An always-registered listener also guarantees the messenger send resolves rather than
-  // leaking a pending request.
+  // Registered for the monitor's whole lifetime - the interceptor can fire before startMonitoring.
+  // Handlers self-gate on page/DOM state. Always-registered also prevents messenger send from leaking.
   feedMessenger.onMessage("browseResponse", ({ data }) => handleBrowseResponse(data));
   feedMessenger.onMessage("subscriptionChange", handleSubscriptionChange);
 

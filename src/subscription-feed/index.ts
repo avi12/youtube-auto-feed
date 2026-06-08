@@ -1,4 +1,3 @@
-// Public surface of the subscription-feed feature. Everything outside this folder (i.e. the WXT
-// entrypoints under src/entrypoints/) only ever imports from here.
+// Public surface of the subscription-feed feature. All external imports (WXT entrypoints) go through here.
 
 export { createSubscriptionMonitor } from "./polling";

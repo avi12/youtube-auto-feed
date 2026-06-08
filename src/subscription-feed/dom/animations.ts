@@ -1,8 +1,8 @@
 import { isAnimationsEnabled } from "../settings-state";
 import type { Prettify } from "../types/prettify";
 
-// Animation helpers for the feed: the entrance/exit CSS-class triggers and a viewport check. The
-// FLIP/cover reflow itself lives in mirror.ts; this module only toggles the ytaf-* animation classes.
+// CSS-class entrance/exit triggers and a viewport check. FLIP/cover reflow lives in mirror.ts;
+// this module only toggles ytaf-* animation classes.
 
 const ANIMATION_DURATION_MS = 380;
 
@@ -41,7 +41,7 @@ export async function animateItemsOut(elItems: HTMLElement[]) {
   }
 
   await new Promise<void>(resolve => {
-    // Fallback timer in case animationend never fires (e.g. element removed mid-animation).
+    // Fallback: animationend may not fire if the element is removed mid-animation.
     const timer = setTimeout(resolve, ANIMATION_DURATION_MS + 50);
     elItems[0].addEventListener("animationend", () => {
       clearTimeout(timer);

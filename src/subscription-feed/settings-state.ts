@@ -1,9 +1,8 @@
 import { defaultSettings, type FeedSettings, feedSettingsSchema } from "../shared/settings";
 import { settingsMessenger } from "../shared/settings-messaging";
 
-// MAIN-world live mirror of the user settings. The DOM modules read the getters synchronously while
-// reacting to feed changes; the lifecycle wiring subscribes through onSettingsChange. Values default
-// to "on" until the ISOLATED bridge delivers the stored values.
+// MAIN-world mirror of user settings. DOM modules read the getters synchronously; lifecycle wiring
+// subscribes via onSettingsChange. Defaults to "on" until the ISOLATED bridge delivers stored values.
 type SettingsListener = (settings: FeedSettings) => void;
 
 let currentSettings: FeedSettings = defaultSettings();

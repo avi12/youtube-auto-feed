@@ -3,9 +3,8 @@ import type { Prettify } from "../types/prettify";
 import { videoIdFromData } from "../utils/video-id";
 import { isLockupViewModel, isShortsLockupViewModel, isVideoRenderer } from "../youtube-api/guards";
 
-// Small helpers for working with InnerTube richItemRenderer envelopes (the wrapper YouTube uses
-// for every grid/shelf item in the feed). They're shared between the diff layer and the DOM
-// mutation layer, so they live here rather than colocated with either.
+// Helpers for InnerTube richItemRenderer envelopes - shared between the diff and DOM mutation
+// layers, so they live here rather than colocated with either.
 
 export function videoIdFromRichItem(
   contentItem: Prettify<InnerTubeRichGridItem> | Record<string, unknown> | undefined
@@ -13,8 +12,7 @@ export function videoIdFromRichItem(
   return videoIdFromData(contentItem?.richItemRenderer);
 }
 
-// A collaborative video is associated with more than one channel - YouTube renders its byline avatar
-// as a stack of channel pictures (avatarStackViewModel) rather than a single decoratedAvatarViewModel.
+// Collaborative videos (multi-channel) use avatarStackViewModel instead of decoratedAvatarViewModel.
 export function isCollaborativeRichItem(item: Prettify<InnerTubeRichGridItem>) {
   const lockupViewModel = item.richItemRenderer?.content?.lockupViewModel;
   if (!isLockupViewModel(lockupViewModel)) {

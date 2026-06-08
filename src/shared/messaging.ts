@@ -3,8 +3,7 @@ import { z } from "./zod";
 
 const CHANNEL_NAME = "ytaf";
 
-// The schema is the single source of truth for the broadcast envelope; the message-name and
-// envelope types derive from it via z.infer, so there is no hand-written shape to keep in sync.
+// Schema is the source of truth - message-name and envelope types derive via z.infer, no manual shape to maintain.
 const ytafEnvelopeSchema = z.object({ type: z.literal("subscription-change") });
 
 type YtafEnvelope = z.infer<typeof ytafEnvelopeSchema>;

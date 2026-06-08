@@ -8,8 +8,8 @@ import { scheduleLazyUpdate } from "../lazy-update";
 import { findItemElements } from "../query";
 import { applyUpdate } from "./apply-targeted";
 
-// Public surface of the update layer. Internally it dispatches to apply-targeted.ts. Items that
-// are in the viewport apply synchronously; off-screen items get deferred to lazy-update.ts.
+// Public surface of the update layer. Dispatches to apply-targeted.ts. Viewport items apply
+// synchronously; off-screen items are deferred to lazy-update.ts.
 
 export { applyUpdate } from "./apply-targeted";
 
@@ -20,7 +20,7 @@ type UpdateVideoInDomParams = Prettify<{
 }>;
 
 export function updateVideoInDom({ videoId, freshSnapshot, previousSnapshot }: UpdateVideoInDomParams) {
-  // Each duplicate of the same video (e.g. Latest band + "Most relevant" shelf) needs its own DOM patch.
+  // A video may appear in multiple places (e.g. Latest band + "Most relevant" shelf); patch each copy.
   const elItems = findItemElements(videoId).filter(isPolymerElement);
   if (elItems.length === 0) {
     return;
@@ -96,7 +96,7 @@ function buildVideoElementMap() {
   return map;
 }
 
-// batch variant used by the metadata-only poll: one DOM walk for many videos.
+// Batch variant for the metadata-only poll: one DOM walk for many videos.
 type BatchUpdateVideosInDomParams = Prettify<{
   freshSnapshots: Prettify<VideoSnapshot>[];
   previousSnapshotMap?: Map<string, Prettify<VideoSnapshot>>;
