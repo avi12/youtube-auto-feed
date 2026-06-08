@@ -1,7 +1,7 @@
+import { z } from "../../../shared/zod";
 import type { PolymerElement } from "../../types/polymer";
 import type { Prettify } from "../../types/prettify";
 import type { VideoSnapshot } from "../../types/video";
-import { isRecord } from "../../utils/records";
 import { isLockupViewModel } from "../../youtube-api/guards";
 import { applyWithDissolve } from "./dissolve";
 import { mutateLockupMetadata } from "./lockup-model";
@@ -307,6 +307,14 @@ async function applyTargetedLockupUpdate({
   });
 }
 
+const itemDataSchema = z.looseObject({
+  content: z.unknown()
+});
+
+const contentSchema = z.looseObject({
+  lockupViewModel: z.unknown()
+});
+
 // Dispatch point. Full Polymer rebuild for status/channel-live flips or missing data; targeted
 // lockup/generic path for pure metadata changes. Status changes always rebuild - targeted patches
 // can update metadata but can't change the renderer kind.
@@ -336,8 +344,8 @@ export function applyUpdate({ videoId, elItem, fresh, previous }: ApplyUpdatePar
     return;
   }
 
-  const itemData = elItem.data;
-  if (!isRecord(itemData)) {
+  const itemDataParse = itemDataSchema.safeParse(elItem.data);
+  if (!itemDataParse.success) {
     applyPolymerUpdate({
       elItem,
       rawRenderer
@@ -349,8 +357,9 @@ export function applyUpdate({ videoId, elItem, fresh, previous }: ApplyUpdatePar
     return;
   }
 
-  const { content } = itemData;
-  const hasLockupContent = isRecord(content) && isRecord(content.lockupViewModel);
+  const { content } = itemDataParse.data;
+  const contentParse = contentSchema.safeParse(content);
+  const hasLockupContent = contentParse.success && contentSchema.safeParse(contentParse.data.lockupViewModel).success;
   const elLockup = hasLockupContent ? elItem.querySelector<HTMLElement>("yt-lockup-view-model") : null;
   if (elLockup) {
     applyTargetedLockupUpdate({

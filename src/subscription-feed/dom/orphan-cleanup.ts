@@ -1,17 +1,20 @@
+import { z } from "../../shared/zod";
 import type { InnerTubeRichGridItem } from "../types/innertube";
 import type { PolymerElement } from "../types/polymer";
 import type { Prettify } from "../types/prettify";
 import { isPolymerElement } from "../utils/polymer";
-import { deepArray, isRecord } from "../utils/records";
+import { deepArray } from "../utils/records";
 import { videoIdFromData } from "../utils/video-id";
 import { videoIdFromRichItem } from "./rich-item";
+
+const gridDataSchema = z.looseObject({});
 
 // Reconciles Polymer drift: prunes DOM items whose videoId is no longer in `data.contents`,
 // dedupes the data model, and removes section headers that no longer exist in the data.
 
 export function cleanOrphanedGridItems() {
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
-  const isGridUsable = !!elGrid && isPolymerElement(elGrid) && isRecord(elGrid.data);
+  const isGridUsable = !!elGrid && isPolymerElement(elGrid) && gridDataSchema.safeParse(elGrid.data).success;
   if (!isGridUsable) {
     return;
   }
@@ -46,7 +49,7 @@ type PruneOrphanedDomSectionsParams = Prettify<{
 }>;
 
 function pruneOrphanedDomSections({ elGrid, elGridContents }: PruneOrphanedDomSectionsParams) {
-  if (!isRecord(elGrid.data)) {
+  if (!gridDataSchema.safeParse(elGrid.data).success) {
     return;
   }
 
@@ -73,7 +76,7 @@ function pruneOrphanedDomSections({ elGrid, elGridContents }: PruneOrphanedDomSe
 }
 
 function collectGridModelIds(elGrid: PolymerElement) {
-  if (!isRecord(elGrid.data)) {
+  if (!gridDataSchema.safeParse(elGrid.data).success) {
     return {
       standaloneModelIds: new Set<string>(),
       standaloneModelDuplicates: new Set<string>(),
@@ -114,7 +117,7 @@ function filterMisplacedAndDuplicates({
   misplacedIds,
   standaloneModelDuplicates
 }: FilterMisplacedAndDuplicatesParams) {
-  if (!isRecord(elGrid.data)) {
+  if (!gridDataSchema.safeParse(elGrid.data).success) {
     return;
   }
 

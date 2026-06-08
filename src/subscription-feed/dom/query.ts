@@ -1,7 +1,7 @@
+import { z } from "../../shared/zod";
 import type { Prettify } from "../types/prettify";
 import { type VideoSnapshot, VideoStatus } from "../types/video";
 import { isPolymerElement } from "../utils/polymer";
-import { isRecord } from "../utils/records";
 import { videoIdFromData } from "../utils/video-id";
 import {
   isLockupViewModel,
@@ -14,6 +14,24 @@ import { parseLockupViewModel, parseRenderer, parseShortsLockupViewModel } from 
 
 // Reads the DOM into a VideoSnapshot map for the diff layer, plus element-lookup helpers for
 // finding items by video ID and shelves by section name.
+
+const itemDataSchema = z.looseObject({
+  content: z.unknown()
+});
+
+const richGridMediaRendererSchema = z.looseObject({
+  content: z.unknown()
+});
+
+const contentWithRichGridSchema = z.looseObject({
+  richGridMediaRenderer: z.unknown(),
+  videoRenderer: z.unknown(),
+  gridVideoRenderer: z.unknown(),
+  lockupViewModel: z.unknown(),
+  shortsLockupViewModel: z.unknown()
+});
+
+const looseObjectSchema = z.looseObject({});
 
 interface SectionContext {
   sectionTitle: string;
@@ -132,18 +150,29 @@ function addRichItemToSnapshot({ elItem, sectionTitle, bandIndex, snapshot }: Ad
   }
 
   const itemData = elItem.data;
-  const content = isRecord(itemData) && isRecord(itemData.content) ? itemData.content : null;
-  const richGridInner = isRecord(content?.richGridMediaRenderer) && isRecord(content.richGridMediaRenderer.content)
-    ? content.richGridMediaRenderer.content
+  const itemDataParsed = itemDataSchema.safeParse(itemData);
+  const contentParsed = itemDataParsed.success
+    ? looseObjectSchema.safeParse(itemDataParsed.data.content)
     : null;
+  const content = contentParsed?.success ? contentParsed.data : null;
+  const contentWithRichGridParsed = contentWithRichGridSchema.safeParse(content);
+  const contentTyped = contentWithRichGridParsed.success ? contentWithRichGridParsed.data : null;
+  const richGridMediaRendererParsed = contentTyped !== null
+    ? richGridMediaRendererSchema.safeParse(contentTyped.richGridMediaRenderer)
+    : null;
+  const richGridInnerParsed = richGridMediaRendererParsed?.success
+    ? looseObjectSchema.safeParse(richGridMediaRendererParsed.data.content)
+    : null;
+  const richGridInner = richGridInnerParsed?.success ? richGridInnerParsed.data : null;
   // Try each known renderer wrapper in priority order - shape varies by item type.
   const rawRendererCandidate =
-    content?.videoRenderer ??
-    content?.gridVideoRenderer ??
+    contentTyped?.videoRenderer ??
+    contentTyped?.gridVideoRenderer ??
     richGridInner?.videoRenderer ??
-    content?.lockupViewModel ??
-    content?.shortsLockupViewModel;
-  const rawRenderer = isRecord(rawRendererCandidate) ? rawRendererCandidate : null;
+    contentTyped?.lockupViewModel ??
+    contentTyped?.shortsLockupViewModel;
+  const rawRendererParsed = looseObjectSchema.safeParse(rawRendererCandidate);
+  const rawRenderer = rawRendererParsed.success ? rawRendererParsed.data : null;
   const videoSnapshot = parseRichItemRenderer({
     rawRenderer,
     sectionTitle,

@@ -1,14 +1,43 @@
 import { z } from "../../shared/zod";
 import { isLockupViewModel, isShortsLockupViewModel, isVideoRenderer } from "../youtube-api/guards";
-import { isRecord } from "./records";
 
 const nonEmptyStringSchema = z.string().min(1);
+
+const dataSchema = z.looseObject({
+  content: z.unknown()
+});
+
+const contentSchema = z.looseObject({
+  videoRenderer: z.unknown(),
+  gridVideoRenderer: z.unknown(),
+  richGridMediaRenderer: z.unknown(),
+  lockupViewModel: z.unknown(),
+  shortsLockupViewModel: z.unknown()
+});
+
+const richGridMediaRendererSchema = z.looseObject({
+  content: z.unknown()
+});
+
+const richGridInnerSchema = z.looseObject({
+  videoRenderer: z.unknown()
+});
+
+const lockupViewModelSchema = z.looseObject({
+  videoId: z.unknown()
+});
+
+const listItemSchema = z.looseObject({
+  videoRenderer: z.unknown(),
+  gridVideoRenderer: z.unknown()
+});
 
 // Extracts a videoId from a Polymer element's `data` regardless of renderer shape
 // (videoRenderer, gridVideoRenderer, richGridMediaRenderer, lockupViewModel, shortsLockupViewModel).
 // Returns null for unrecognised shapes (continuation items, section headers).
 export function videoIdFromData(data: unknown) {
-  if (!isRecord(data)) {
+  const dataParsed = dataSchema.safeParse(data);
+  if (!dataParsed.success) {
     return null;
   }
 
@@ -16,12 +45,19 @@ export function videoIdFromData(data: unknown) {
     return data.videoId || null;
   }
 
-  const content = data.content;
-  if (!isRecord(content)) {
+  const { content } = dataParsed.data;
+  const contentParsed = contentSchema.safeParse(content);
+  if (!contentParsed.success) {
     return null;
   }
 
-  const { videoRenderer, gridVideoRenderer, richGridMediaRenderer, lockupViewModel, shortsLockupViewModel } = content;
+  const {
+    videoRenderer,
+    gridVideoRenderer,
+    richGridMediaRenderer,
+    lockupViewModel,
+    shortsLockupViewModel
+  } = contentParsed.data;
   if (isVideoRenderer(videoRenderer)) {
     return videoRenderer.videoId || null;
   }
@@ -30,9 +66,11 @@ export function videoIdFromData(data: unknown) {
     return gridVideoRenderer.videoId || null;
   }
 
-  const richGridInner = isRecord(richGridMediaRenderer) ? richGridMediaRenderer.content : null;
-  if (isRecord(richGridInner) && isVideoRenderer(richGridInner.videoRenderer)) {
-    return richGridInner.videoRenderer.videoId || null;
+  const rgmrParsed = richGridMediaRendererSchema.safeParse(richGridMediaRenderer);
+  const richGridInner = rgmrParsed.success ? rgmrParsed.data.content : null;
+  const richGridInnerParsed = richGridInnerSchema.safeParse(richGridInner);
+  if (richGridInnerParsed.success && isVideoRenderer(richGridInnerParsed.data.videoRenderer)) {
+    return richGridInnerParsed.data.videoRenderer.videoId || null;
   }
 
   // Some lockup payloads use `videoId` instead of `contentId`.
@@ -40,8 +78,9 @@ export function videoIdFromData(data: unknown) {
     return lockupViewModel.contentId;
   }
 
-  if (isRecord(lockupViewModel)) {
-    return stringOrNull(lockupViewModel.videoId);
+  const lockupViewModelParsed = lockupViewModelSchema.safeParse(lockupViewModel);
+  if (lockupViewModelParsed.success) {
+    return stringOrNull(lockupViewModelParsed.data.videoId);
   }
 
   if (isShortsLockupViewModel(shortsLockupViewModel)) {
@@ -54,11 +93,12 @@ export function videoIdFromData(data: unknown) {
 // For legacy shelf list items (horizontalListRenderer / gridRenderer) where the renderer is at
 // the item root, not nested under `content`.
 export function videoIdFromShelfListItem(listItem: unknown) {
-  if (!isRecord(listItem)) {
+  const parsed = listItemSchema.safeParse(listItem);
+  if (!parsed.success) {
     return "";
   }
 
-  const { videoRenderer, gridVideoRenderer } = listItem;
+  const { videoRenderer, gridVideoRenderer } = parsed.data;
   if (isVideoRenderer(videoRenderer)) {
     return videoRenderer.videoId;
   }

@@ -9,7 +9,7 @@ import type {
 import type { PolymerElement } from "../../types/polymer";
 import type { Prettify } from "../../types/prettify";
 import { isPolymerElement } from "../../utils/polymer";
-import { deepArray, isRecord } from "../../utils/records";
+import { deepArray } from "../../utils/records";
 import { isLockupViewModel, isShelfRenderer, isShortsLockupViewModel, isVideoRenderer } from "../../youtube-api/guards";
 import { findRichItemIndex } from "../rich-item";
 import { mergeLockupViewModel } from "./lockup-model";
@@ -18,23 +18,39 @@ import { mergeLockupViewModel } from "./lockup-model";
 // more rich shelves, and inside a legacy inner shelf; syncGridModelItem updates every position so
 // Polymer re-renders all copies. applyPolymerUpdate is the preferred entry for element-bound updates.
 
+const objectSchema = z.looseObject({});
+
+const itemDataSchema = z.looseObject({ content: z.unknown() });
+
+const richItemContentSchema = z.looseObject({
+  lockupViewModel: z.unknown(),
+  shortsLockupViewModel: z.unknown(),
+  videoRenderer: z.unknown(),
+  gridVideoRenderer: z.unknown(),
+  richGridMediaRenderer: z.unknown()
+});
+
+const rendererThumbnailSchema = z.looseObject({ thumbnails: z.array(z.unknown()) });
+
 type ApplyPolymerUpdateParams = Prettify<{
   elItem: Prettify<PolymerElement>;
   rawRenderer: Prettify<InnerTubeVideoRenderer> | Prettify<LockupViewModel> | Prettify<ShortsLockupViewModel>;
 }>;
 
 export function applyPolymerUpdate({ elItem, rawRenderer }: ApplyPolymerUpdateParams) {
-  const itemData = elItem.data;
-  if (!isRecord(itemData)) {
+  const parsedItemData = itemDataSchema.safeParse(elItem.data);
+  if (!parsedItemData.success) {
     return;
   }
 
-  const { content } = itemData;
-  if (!isRecord(content)) {
+  const itemData = parsedItemData.data;
+  const parsedContent = richItemContentSchema.safeParse(itemData.content);
+  if (!parsedContent.success) {
     elItem.set("data", rawRenderer);
     return;
   }
 
+  const content = parsedContent.data;
   if (isLockupViewModel(content.lockupViewModel) && isLockupViewModel(rawRenderer)) {
     const merged = mergeLockupViewModel({
       existing: content.lockupViewModel,
@@ -75,22 +91,20 @@ export function applyPolymerUpdate({ elItem, rawRenderer }: ApplyPolymerUpdatePa
     return;
   }
 
-  if (isRecord(content.videoRenderer)) {
+  if (objectSchema.safeParse(content.videoRenderer).success) {
     elItem.set("data.content.videoRenderer", rawRenderer);
     return;
   }
 
-  if (isRecord(content.gridVideoRenderer)) {
+  if (objectSchema.safeParse(content.gridVideoRenderer).success) {
     elItem.set("data.content.gridVideoRenderer", rawRenderer);
     return;
   }
 
-  if (isRecord(content.richGridMediaRenderer)) {
+  if (objectSchema.safeParse(content.richGridMediaRenderer).success) {
     elItem.set("data.content.richGridMediaRenderer.content.videoRenderer", rawRenderer);
   }
 }
-
-const rendererThumbnailSchema = z.looseObject({ thumbnails: z.array(z.unknown()) });
 
 function isRendererThumbnail(value: unknown): value is InnerTubeVideoRenderer["thumbnail"] {
   return rendererThumbnailSchema.safeParse(value).success;
@@ -139,12 +153,13 @@ function applyRichItemContentUpdate({
   rawRenderer,
   forcePreserveContentImage
 }: ApplyRichItemContentUpdateParams) {
-  if (isRecord(existingContent.richGridMediaRenderer)) {
+  if (objectSchema.safeParse(existingContent.richGridMediaRenderer).success) {
     elElement.set(`${basePath}.richGridMediaRenderer.content.videoRenderer`, rawRenderer);
     return;
   }
 
-  const isLockupApplicable = isLockupViewModel(rawRenderer) || isRecord(existingContent.lockupViewModel);
+  const isLockupApplicable = isLockupViewModel(rawRenderer)
+    || objectSchema.safeParse(existingContent.lockupViewModel).success;
   if (isLockupApplicable) {
     const existingLockup = existingContent.lockupViewModel;
     const merged = isLockupViewModel(rawRenderer) && isLockupViewModel(existingLockup)
@@ -159,16 +174,17 @@ function applyRichItemContentUpdate({
   }
 
   const isShortsLockupApplicable = isShortsLockupViewModel(rawRenderer)
-    || isRecord(existingContent.shortsLockupViewModel);
+    || objectSchema.safeParse(existingContent.shortsLockupViewModel).success;
   if (isShortsLockupApplicable) {
     elElement.set(`${basePath}.shortsLockupViewModel`, rawRenderer);
     return;
   }
 
-  if (isRecord(existingContent.gridVideoRenderer)) {
+  const existingGridVideoRenderer = objectSchema.safeParse(existingContent.gridVideoRenderer);
+  if (existingGridVideoRenderer.success) {
     elElement.set(
       `${basePath}.gridVideoRenderer`, buildMergedVideoRenderer({
-        existing: existingContent.gridVideoRenderer,
+        existing: existingGridVideoRenderer.data,
         incoming: rawRenderer,
         forcePreserveContentImage
       })
@@ -176,9 +192,10 @@ function applyRichItemContentUpdate({
     return;
   }
 
+  const existingVideoRenderer = objectSchema.safeParse(existingContent.videoRenderer);
   elElement.set(
     `${basePath}.videoRenderer`, buildMergedVideoRenderer({
-      existing: isRecord(existingContent.videoRenderer) ? existingContent.videoRenderer : null,
+      existing: existingVideoRenderer.success ? existingVideoRenderer.data : null,
       incoming: rawRenderer,
       forcePreserveContentImage
     })
@@ -193,7 +210,7 @@ type ApplyToGridModelParams = Prettify<{
 
 function applyToGridModel({ videoId, rawRenderer, forcePreserveContentImage }: ApplyToGridModelParams) {
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
-  const isGridUsable = !!elGrid && isPolymerElement(elGrid) && isRecord(elGrid.data);
+  const isGridUsable = !!elGrid && isPolymerElement(elGrid) && objectSchema.safeParse(elGrid.data).success;
   if (!isGridUsable) {
     return;
   }
@@ -227,7 +244,7 @@ type ApplyToRichShelfModelsParams = Prettify<{
 
 function applyToRichShelfModels({ videoId, rawRenderer, forcePreserveContentImage }: ApplyToRichShelfModelsParams) {
   for (const elShelf of document.querySelectorAll<HTMLElement>("ytd-rich-shelf-renderer")) {
-    const isRichShelfUsable = isPolymerElement(elShelf) && isRecord(elShelf.data);
+    const isRichShelfUsable = isPolymerElement(elShelf) && objectSchema.safeParse(elShelf.data).success;
     if (!isRichShelfUsable) {
       continue;
     }
@@ -262,7 +279,7 @@ type ApplyToLegacyShelfModelsParams = Prettify<{
 
 function applyToLegacyShelfModels({ videoId, rawRenderer, forcePreserveContentImage }: ApplyToLegacyShelfModelsParams) {
   for (const elShelf of document.querySelectorAll<HTMLElement>("ytd-shelf-renderer")) {
-    const isLegacyShelfUsable = isPolymerElement(elShelf) && isRecord(elShelf.data);
+    const isLegacyShelfUsable = isPolymerElement(elShelf) && objectSchema.safeParse(elShelf.data).success;
     if (!isLegacyShelfUsable) {
       continue;
     }

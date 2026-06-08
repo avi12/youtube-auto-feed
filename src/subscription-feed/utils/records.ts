@@ -1,9 +1,5 @@
 // Helpers for safely walking unknown-shape objects (InnerTube responses, Polymer data) without `any`.
 
-export function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
 function isIndexable(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }

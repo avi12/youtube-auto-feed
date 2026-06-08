@@ -1,9 +1,10 @@
+import { z } from "../../shared/zod";
 import { isAnimationsEnabled } from "../settings-state";
 import type { InnerTubeRichGridItem } from "../types/innertube";
 import type { PolymerElement } from "../types/polymer";
 import type { Prettify } from "../types/prettify";
 import { flushPolymerRender, isPolymerElement } from "../utils/polymer";
-import { deepArray, isRecord } from "../utils/records";
+import { deepArray } from "../utils/records";
 import { videoIdFromData } from "../utils/video-id";
 import { animateItemsOut, isInViewport } from "./animations";
 import { preloadThumbnail } from "./build";
@@ -41,6 +42,7 @@ const REMOVAL_STABLE_FRAMES = 2;
 // Include tiles just below the fold - they slide up when something above is removed. The margin
 // covers enough rows that multi-item shifts still animate fully.
 const REFLOW_MARGIN_BELOW_PX = 1200;
+const gridDataSchema = z.looseObject({});
 const absenceCountByVideoId = new Map<string, number>();
 
 type MirrorFromApiParams = Prettify<{
@@ -49,7 +51,7 @@ type MirrorFromApiParams = Prettify<{
 
 export async function mirrorFromApi({ apiContents }: MirrorFromApiParams) {
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
-  if (!elGrid || !isPolymerElement(elGrid) || !isRecord(elGrid.data)) {
+  if (!elGrid || !isPolymerElement(elGrid) || !gridDataSchema.safeParse(elGrid.data).success) {
     return;
   }
 

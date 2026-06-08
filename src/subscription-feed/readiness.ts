@@ -1,5 +1,11 @@
+import { z } from "../shared/zod";
 import { isPolymerElement } from "./utils/polymer";
-import { isRecord } from "./utils/records";
+
+const polymerDataSchema = z.looseObject({});
+
+const polymerDataWithContentsSchema = z.looseObject({
+  contents: z.unknown()
+});
 
 // Polymer hydrates `data` asynchronously. Any one of these signals confirms the feed is safe to
 // read/mutate. Called in a MutationObserver loop on initial load and each SPA nav to the feed.
@@ -7,7 +13,8 @@ export function isDomContentReady() {
   const elShelf = document.querySelector<HTMLElement>("ytd-rich-shelf-renderer");
   if (elShelf) {
     const elItem = elShelf.querySelector<HTMLElement>("ytd-rich-item-renderer");
-    const isShelfItemHydrated = !!elItem && isPolymerElement(elItem) && isRecord(elItem.data);
+    const isShelfItemHydrated = !!elItem && isPolymerElement(elItem)
+      && polymerDataSchema.safeParse(elItem.data).success;
     if (isShelfItemHydrated) {
       return true;
     }
@@ -18,7 +25,7 @@ export function isDomContentReady() {
     for (const elChild of elGridContents.children) {
       const isHydratedGridItem = elChild.tagName === "YTD-RICH-ITEM-RENDERER"
         && isPolymerElement(elChild)
-        && isRecord(elChild.data);
+        && polymerDataSchema.safeParse(elChild.data).success;
       if (isHydratedGridItem) {
         return true;
       }
@@ -26,14 +33,17 @@ export function isDomContentReady() {
   }
 
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
-  if (elGrid && isPolymerElement(elGrid) && isRecord(elGrid.data)) {
-    const { contents } = elGrid.data;
-    const hasContents = Array.isArray(contents) && contents.length > 0;
-    if (hasContents) {
-      return true;
+  if (elGrid && isPolymerElement(elGrid)) {
+    const dataParsed = polymerDataWithContentsSchema.safeParse(elGrid.data);
+    if (dataParsed.success) {
+      const { contents } = dataParsed.data;
+      const hasContents = Array.isArray(contents) && contents.length > 0;
+      if (hasContents) {
+        return true;
+      }
     }
   }
 
   const elGridItem = document.querySelector<HTMLElement>("ytd-grid-video-renderer");
-  return !!elGridItem && isPolymerElement(elGridItem) && isRecord(elGridItem.data);
+  return !!elGridItem && isPolymerElement(elGridItem) && polymerDataSchema.safeParse(elGridItem.data).success;
 }

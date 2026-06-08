@@ -1,8 +1,15 @@
+import { z } from "../../shared/zod";
 import type { InnerTubeRichGridItem } from "../types/innertube";
 import type { Prettify } from "../types/prettify";
 import { isPolymerElement } from "../utils/polymer";
-import { deepArray, isRecord } from "../utils/records";
+import { deepArray } from "../utils/records";
 import { videoIdFromRichItem } from "./rich-item";
+
+const polymerDataSchema = z.looseObject({});
+
+const shelfDataSchema = z.looseObject({
+  isExpanded: z.unknown()
+});
 
 // Bands are positional groupings: contiguous root-level videos = one inline band, each rich shelf
 // = its own band, title-only legacy shelves start a new inline section. captureBandLayout()
@@ -37,7 +44,7 @@ function readTitleOnlyShelfTitle(item: Prettify<InnerTubeRichGridItem>) {
 
 export function captureBandLayout() {
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
-  const isGridUsable = !!elGrid && isPolymerElement(elGrid) && isRecord(elGrid.data);
+  const isGridUsable = !!elGrid && isPolymerElement(elGrid) && polymerDataSchema.safeParse(elGrid.data).success;
   if (!isGridUsable) {
     return null;
   }
@@ -93,7 +100,12 @@ export function captureBandLayout() {
 export async function normalizeCollapsedShelfRows() {
   const trimmedVideoIds = new Set<string>();
   for (const elShelf of document.querySelectorAll<HTMLElement>("ytd-rich-shelf-renderer")) {
-    const isCollapsedShelf = isPolymerElement(elShelf) && isRecord(elShelf.data) && elShelf.data.isExpanded === false;
+    if (!isPolymerElement(elShelf)) {
+      continue;
+    }
+
+    const shelfDataParsed = shelfDataSchema.safeParse(elShelf.data);
+    const isCollapsedShelf = shelfDataParsed.success && shelfDataParsed.data.isExpanded === false;
     if (!isCollapsedShelf) {
       continue;
     }
@@ -118,11 +130,16 @@ export async function normalizeCollapsedShelfRows() {
 
     const overflowVideoIds = new Set(
       overflowItems.flatMap(elItem => {
-        if (!isPolymerElement(elItem) || !isRecord(elItem.data)) {
+        if (!isPolymerElement(elItem)) {
           return [];
         }
 
-        const videoId = videoIdFromRichItem(elItem.data);
+        const itemDataParsed = polymerDataSchema.safeParse(elItem.data);
+        if (!itemDataParsed.success) {
+          return [];
+        }
+
+        const videoId = videoIdFromRichItem(itemDataParsed.data);
         return videoId ? [videoId] : [];
       })
     );
