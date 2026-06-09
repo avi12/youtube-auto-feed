@@ -1,7 +1,7 @@
 import type { Prettify } from "../types/prettify";
 import { isPolymerElement } from "../utils/polymer";
 import { videoIdFromData } from "../utils/video-id";
-import { GRID_ITEM_SELECTOR, SURVIVOR_SHIFT_MS } from "./mirror-constants";
+import { FLIP_MAX_GLIDE_PX, GRID_ITEM_SELECTOR, SURVIVOR_SHIFT_MS } from "./mirror-constants";
 import { isInReflowZone } from "./mirror-elements";
 
 type PinSurvivorsParams = Prettify<{
@@ -33,7 +33,8 @@ export function pinSurvivorsToOldRects({ oldRects, newlyInsertedIds }: PinSurviv
     const newRect = elItem.getBoundingClientRect();
     const deltaX = oldRect.left - newRect.left;
     const deltaY = oldRect.top - newRect.top;
-    if (Math.abs(deltaX) >= 1 || Math.abs(deltaY) >= 1) {
+    const isGlideable = Math.hypot(deltaX, deltaY) <= FLIP_MAX_GLIDE_PX;
+    if (isGlideable && (Math.abs(deltaX) >= 1 || Math.abs(deltaY) >= 1)) {
       elItem.style.translate = `${deltaX}px ${deltaY}px`;
     }
   }
