@@ -8,8 +8,10 @@ import {
 } from "./mirror-constants";
 import { clearReflowImageCovers, preCoverReflowImages } from "./mirror-cover";
 import { coverNewlyInsertedTiles } from "./mirror-cover-new";
+import { recordReflowZoneRects } from "./mirror-elements";
 import { animateNewEntrances, areInsertedTilesPresent, hideNewInsertedTiles } from "./mirror-entrances";
 import { clearRemovalGhosts, dissolveRemovalGhosts } from "./mirror-ghosts";
+import { pinSurvivorsToOldRects, releaseSurvivors } from "./mirror-survivors";
 import { repaintInlineThumbnails } from "./mirror-thumbnails";
 
 function nextFrame() {
@@ -30,11 +32,16 @@ export async function setContentsWithFlip(
 
   await nextFrame();
   preCoverReflowImages(newContents, newlyInsertedIds);
+  const oldRects = recordReflowZoneRects();
 
   await new Promise<void>(resolve =>
     requestAnimationFrame(() => {
       elGrid.set("data.contents", newContents);
       flushPolymerRender();
+      pinSurvivorsToOldRects({
+        oldRects,
+        newlyInsertedIds
+      });
       hideNewInsertedTiles(newlyInsertedIds);
       repaintInlineThumbnails();
       coverBlankImages();
@@ -52,6 +59,7 @@ export async function setContentsWithFlip(
     hideNewInsertedTiles(newlyInsertedIds);
   }
 
+  releaseSurvivors();
   dissolveRemovalGhosts(removalGhosts);
   repaintInlineThumbnails();
   coverBlankImages();

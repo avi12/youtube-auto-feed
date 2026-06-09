@@ -13,6 +13,7 @@ export const STICKY_DELETE_POLLS = 4;
 export const SURVIVOR_SHIFT_MS = 380;
 export const GHOST_DISSOLVE_MS = 250;
 export const REFLOW_MARGIN_BELOW_PX = 1200;
+export const FLIP_MAX_GLIDE_PX = 600;
 export const absenceCountByVideoId = new Map<string, number>();
 
 export type RichItemElement = PolymerElement<NonNullable<InnerTubeRichGridItem["richItemRenderer"]>>;
