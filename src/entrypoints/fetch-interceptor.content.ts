@@ -2,14 +2,22 @@ import { feedMessenger } from "../shared/feed-messaging";
 import { ytafChannel } from "../shared/messaging";
 import { z } from "../shared/zod";
 
-// Exposed for the CDP test harness to inject browse responses. The interceptor holds a separate
-// messenger instance from the monitor's, so the monitor receives it correctly.
 declare global {
+  // Exposed so the CDP test harness can inject browse responses through the interceptor's messenger.
   var __ytafFeedMessenger: typeof feedMessenger | undefined;
 }
 
+const BROWSE_ENDPOINT = "/youtubei/v1/browse";
+const SUBSCRIPTION_ENDPOINT = "/youtubei/v1/subscription/";
+const SUBSCRIPTIONS_BROWSE_ID = "FEsubscriptions";
+const OWN_REQUEST_MARKER_HEADER = "X-YTAF";
+
 const requestBodySchema = z.string().catch("");
-const ourRequestSchema = z.looseObject({ "X-YTAF": z.string() });
+const ownRequestSchema = z.looseObject({ [OWN_REQUEST_MARKER_HEADER]: z.string() });
+
+function isOwnRequest(headers: HeadersInit | undefined) {
+  return ownRequestSchema.safeParse(headers).success;
+}
 
 export default defineContentScript({
   matches: ["https://www.youtube.com/*"],
@@ -21,13 +29,11 @@ export default defineContentScript({
 
     globalThis.fetch = async (input, init) => {
       const url = input instanceof Request ? input.url : String(input);
-      if (url.includes("/youtubei/v1/browse")) {
-        const { body: rawBody, headers } = init ?? {};
-        const body = requestBodySchema.parse(rawBody);
-        // X-YTAF marks our own fetches - skip to avoid re-broadcasting our own responses.
-        const isOurRequest = ourRequestSchema.safeParse(headers).success;
-        const isSubscriptionsBrowse = body.includes("FEsubscriptions") && !isOurRequest;
-        if (isSubscriptionsBrowse) {
+      if (url.includes(BROWSE_ENDPOINT)) {
+        const { body, headers } = init ?? {};
+        const requestBody = requestBodySchema.parse(body);
+        const isSubscriptionsFeed = requestBody.includes(SUBSCRIPTIONS_BROWSE_ID) && !isOwnRequest(headers);
+        if (isSubscriptionsFeed) {
           const response = await originalFetch(input, init);
           response.clone().json()
             .then(data => feedMessenger.sendMessage("browseResponse", data))
@@ -36,7 +42,7 @@ export default defineContentScript({
         }
       }
 
-      if (url.includes("/youtubei/v1/subscription/")) {
+      if (url.includes(SUBSCRIPTION_ENDPOINT)) {
         const response = await originalFetch(input, init);
         if (response.ok) {
           feedMessenger.sendMessage("subscriptionChange").catch(() => {});
