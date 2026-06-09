@@ -2,21 +2,20 @@ import { isInnerTubeBrowseResponse } from "./guards";
 import { extractApiContents, extractApiSectionOrder, parseApiResponse } from "./parse-response";
 
 function extractYtInitialData(html: string) {
-  const match = /var ytInitialData = (.+?);<\/script>/s.exec(html);
-  if (!match) {
+  const scriptMatch = /var ytInitialData = (.+?);<\/script>/s.exec(html);
+  if (!scriptMatch) {
     return null;
   }
 
   try {
-    const parsed: unknown = JSON.parse(match[1]);
+    const parsed: unknown = JSON.parse(scriptMatch[1]);
     return parsed;
   } catch {
     return null;
   }
 }
 
-// Fetches the subscriptions page HTML and extracts a fresh ytInitialData payload.
-// window.ytInitialData is set once at page load and stays frozen across SPA nav - don't use it.
+// global ytInitialData freezes at page load and goes stale across SPA nav; re-fetch the page HTML.
 export async function fetchInitialVideos() {
   const response = await fetch("/feed/subscriptions", {
     credentials: "include"
