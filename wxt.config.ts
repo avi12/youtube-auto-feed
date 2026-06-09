@@ -7,8 +7,13 @@ import { defineConfig } from "wxt";
 
 const DRIVE_CREDENTIALS_FILE = "youtube-auto-feed-drive-upload.json";
 
-// Opera isn't published to the Opera Add-ons store; its source zip is archived in this Drive folder.
-const OPERA_DRIVE_FOLDER_ID = "1X0baGCRRcc6svI96PQ9BXtOwdKLeRtYZ";
+// Source zips archived in a browser-specific Drive folder rather than the default parent. (Opera
+// isn't published to the Opera Add-ons store, so its source only lives here.) Folder IDs come from
+// .env so they stay out of version control.
+const DRIVE_FOLDER_ENV_BY_BROWSER: Record<string, string> = {
+  firefox: "DRIVE_FOLDER_FIREFOX",
+  opera: "DRIVE_FOLDER_OPERA"
+};
 
 // A store's source zip is reviewed by humans who must reproduce the build, so it ships build (not
 // install) instructions. The only per-browser difference is the build target.
@@ -73,14 +78,18 @@ export default defineConfig({
       "Keeps your YouTube subscriptions feed current as videos are published, removed, or change state - no page reload needed.",
     permissions: ["storage"],
     browser_specific_settings: {
-      gecko: { id: "youtube-auto-feed@avi12.com" }
+      gecko: {
+        id: "youtube-auto-feed@avi12.com",
+        // AMO data-consent disclosure: this extension transmits no user data off-device.
+        data_collection_permissions: { required: ["none"] }
+      }
     }
   },
   modules: ["@wxt-dev/module-svelte"],
   srcDir: "src",
   publicDir: "src/public",
   zip: {
-    excludeSources: [DRIVE_CREDENTIALS_FILE, "user-profiles/**", "screenshots/**", "tmp/**"],
+    excludeSources: ["CLAUDE.md", DRIVE_CREDENTIALS_FILE, "user-profiles/**", "screenshots/**", "tmp/**"],
     sourcesTemplate: "{{name}}-{{version}}-{{browser}}-source.zip"
   },
   hooks: {
@@ -106,12 +115,13 @@ export default defineConfig({
         version: "v3",
         auth: authClient
       });
-      // Opera has its own dedicated Drive folder; everything else goes to the default parent.
-      const parents = browser === "opera" ? [OPERA_DRIVE_FOLDER_ID] : driveConfig.parents;
+      // Firefox and Opera each archive to their own folder; everything else uses the default parent.
+      const folderEnvName = DRIVE_FOLDER_ENV_BY_BROWSER[browser];
+      const dedicatedFolderId = folderEnvName ? process.env[folderEnvName] : undefined;
       await client.files.create({
         requestBody: {
           name: basename(sourcesZipPath),
-          parents
+          parents: dedicatedFolderId ? [dedicatedFolderId] : driveConfig.parents
         },
         media: {
           mimeType: "application/zip",

@@ -21,6 +21,11 @@ user-profiles/
 # Credentials for Google Drive source upload
 youtube-auto-feed-drive-upload.json
 
+# Local environment config (Drive folder IDs, etc.)
+.env
+.env.*
+!.env.example
+
 # Claude Code
 .claude/
 .mcp.json
