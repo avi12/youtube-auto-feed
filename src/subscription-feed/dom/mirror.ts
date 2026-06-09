@@ -8,7 +8,7 @@ import { collectInlineVideoIds, composeNewContents, isReferenceEqualArray } from
 import { findRemovedViewportTiles } from "./mirror-find-tiles";
 import { setContentsWithFlip } from "./mirror-flip";
 import { createRemovalGhosts } from "./mirror-ghosts";
-import { repaintInsertedThumbnails } from "./mirror-thumbnails";
+import { awaitNewThumbnailsReady, repaintInsertedThumbnails } from "./mirror-thumbnails";
 import { thumbnailUrlFromRichItem, videoIdFromRichItem } from "./rich-item";
 
 type MirrorFromApiParams = Prettify<{
@@ -42,6 +42,7 @@ export async function mirrorFromApi({ apiContents }: MirrorFromApiParams) {
   if (!isAnimationsEnabled()) {
     elGrid.set("data.contents", newContents);
   } else {
+    await awaitNewThumbnailsReady(newThumbnailUrls.values());
     const removalGhosts = createRemovalGhosts(findRemovedViewportTiles(newContents));
     await setContentsWithFlip({
       elGrid,

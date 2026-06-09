@@ -1,5 +1,6 @@
 import {
   GRID_ITEM_SELECTOR,
+  NEW_THUMBNAIL_DECODE_CAP_FRAMES,
   REBIND_FRAME_POLL_MAX,
   REBIND_MICROTASK_POLL_MAX,
   THUMBNAIL_REASSERT_FRAMES_MAX,
@@ -12,6 +13,36 @@ import { avatarUrlFromContent, thumbnailUrlFromContent } from "./rich-item";
 
 function pathWithoutQuery(url: string) {
   return url.split("?")[0];
+}
+
+function nextFrame() {
+  return new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+}
+
+// On a slow connection a newly inserted tile would otherwise animate in blank because its thumbnail
+// is still downloading. Decode the thumbnails into the browser cache first (capped) so the entrance
+// plays over the real image and the cover overlay paints immediately.
+export async function awaitNewThumbnailsReady(thumbnailUrls: Iterable<string>) {
+  const urls = [...thumbnailUrls];
+  if (urls.length === 0) {
+    return;
+  }
+
+  let isReady = false;
+  const decodes = urls.map(decodeThumbnail);
+  Promise.all(decodes).then(() => {
+    isReady = true;
+  });
+
+  for (let frame = 0; frame < NEW_THUMBNAIL_DECODE_CAP_FRAMES && !isReady; frame++) {
+    await nextFrame();
+  }
+}
+
+function decodeThumbnail(url: string) {
+  const img = new Image();
+  img.src = url;
+  return img.decode().catch(() => {});
 }
 
 export function repaintInlineThumbnails() {
