@@ -14,7 +14,6 @@ export const GRID_ITEM_SELECTOR = "ytd-rich-grid-renderer > #contents > ytd-rich
 // buffered for this many polls before removal. Non-collaborative videos are dropped immediately.
 export const STICKY_DELETE_POLLS = 4;
 export const SURVIVOR_SHIFT_MS = 380;
-export const GHOST_DISSOLVE_MS = 250;
 export const REFLOW_MARGIN_BELOW_PX = 1200;
 export const absenceCountByVideoId = new Map<string, number>();
 
