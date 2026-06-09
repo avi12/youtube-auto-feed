@@ -32,8 +32,7 @@ export async function detectAndApplyChanges({
     }
   }
 
-  // Metadata diff runs first so title/status/progress changes on a structural poll still patch
-  // the DOM - otherwise changes between the 5s and 10s cadences would be silently absorbed.
+  // Runs before the mirror so metadata changes on a structural poll patch the DOM instead of being absorbed.
   detectAndApplyMetadataChanges({
     previousSnapshot,
     freshSnapshots

@@ -1,8 +1,6 @@
 import { isPolymerElement } from "./utils/polymer";
 import { gridDataSchema, gridVideoDataSchema, richItemDataSchema } from "./youtube-api/schemas";
 
-// Polymer hydrates `data` asynchronously. Any one of these signals confirms the feed is safe to
-// read/mutate. Called in a MutationObserver loop on initial load and each SPA nav to the feed.
 export function isDomContentReady() {
   const elShelf = document.querySelector<HTMLElement>("ytd-rich-shelf-renderer");
   if (elShelf) {
@@ -28,9 +26,9 @@ export function isDomContentReady() {
 
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
   if (elGrid && isPolymerElement(elGrid)) {
-    const dataParsed = gridDataSchema.safeParse(elGrid.data);
-    if (dataParsed.success) {
-      const { contents } = dataParsed.data;
+    const gridDataParsed = gridDataSchema.safeParse(elGrid.data);
+    if (gridDataParsed.success) {
+      const { contents } = gridDataParsed.data;
       const hasContents = Array.isArray(contents) && contents.length > 0;
       if (hasContents) {
         return true;

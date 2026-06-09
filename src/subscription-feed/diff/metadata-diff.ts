@@ -2,9 +2,6 @@ import { batchUpdateVideosInDom } from "../dom/update";
 import type { Prettify } from "../types/prettify";
 import type { VideoSnapshot } from "../types/video";
 
-// Metadata-only diff - lighter than a full mirror. Updates title/view-count/status/progress in
-// place without touching layout. Catches metadata changes between 5s structural polls.
-
 type HasMetadataChangeParams = Prettify<{
   previous: Prettify<VideoSnapshot>;
   fresh: Prettify<VideoSnapshot>;
@@ -25,9 +22,8 @@ type StickyWatchProgressParams = Prettify<{
   previous: Prettify<VideoSnapshot> | undefined;
 }>;
 
-// YouTube inconsistently includes the watch-progress overlay (backend eventual consistency).
-// Treating a missing overlay as a real change rebuilds the tile and causes visible flicker.
-// Once set, carry the last progress value forward if the API drops it; genuine changes still flow through.
+// YouTube inconsistently drops the watch-progress overlay; carry the last value
+// forward so the tile isn't rebuilt and flickered.
 export function withStickyWatchProgress({ fresh, previous }: StickyWatchProgressParams) {
   const shouldCarryForward = fresh.watchProgressPercent === null
     && previous !== undefined
