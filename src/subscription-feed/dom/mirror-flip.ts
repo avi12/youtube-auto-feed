@@ -1,9 +1,14 @@
 import { flushPolymerRender, isPolymerElement } from "../utils/polymer";
 import { coverBlankImages, observeAndCoverBlankImages } from "./mirror-blank-cover";
-import { SURVIVOR_SHIFT_MS, type SetContentsParams } from "./mirror-constants";
+import {
+  REBIND_FRAME_POLL_MAX,
+  REBIND_MICROTASK_POLL_MAX,
+  SURVIVOR_SHIFT_MS,
+  type SetContentsParams
+} from "./mirror-constants";
 import { clearReflowImageCovers, preCoverReflowImages } from "./mirror-cover";
 import { coverNewlyInsertedTiles } from "./mirror-cover-new";
-import { animateNewEntrances, hideNewInsertedTiles } from "./mirror-entrances";
+import { animateNewEntrances, areInsertedTilesPresent, hideNewInsertedTiles } from "./mirror-entrances";
 import { clearRemovalGhosts, dissolveRemovalGhosts } from "./mirror-ghosts";
 import { repaintInlineThumbnails } from "./mirror-thumbnails";
 
@@ -35,6 +40,17 @@ export async function setContentsWithFlip(
       coverBlankImages();
       resolve();
     }));
+
+  function newTilesPending() {
+    return newlyInsertedIds.size > 0 && !areInsertedTilesPresent(newlyInsertedIds);
+  }
+  for (let i = 0; newTilesPending() && i < REBIND_MICROTASK_POLL_MAX; i++) {
+    await Promise.resolve();
+  }
+  for (let i = 0; newTilesPending() && i < REBIND_FRAME_POLL_MAX; i++) {
+    await nextFrame();
+    hideNewInsertedTiles(newlyInsertedIds);
+  }
 
   dissolveRemovalGhosts(removalGhosts);
   repaintInlineThumbnails();
