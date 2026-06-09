@@ -38,10 +38,6 @@ export async function setContentsWithFlip(
     requestAnimationFrame(() => {
       elGrid.set("data.contents", newContents);
       flushPolymerRender();
-      pinSurvivorsToOldRects({
-        oldRects,
-        newlyInsertedIds
-      });
       hideNewInsertedTiles(newlyInsertedIds);
       repaintInlineThumbnails();
       coverBlankImages();
@@ -58,6 +54,16 @@ export async function setContentsWithFlip(
     await nextFrame();
     hideNewInsertedTiles(newlyInsertedIds);
   }
+
+  // Pin only after Polymer has stamped the new tiles: on Firefox the grid reflows asynchronously, so
+  // pinning inside the write frame measured a not-yet-shifted layout (delta 0 = no glide). The extra
+  // frame lets the pinned offset paint before the release transition starts.
+  pinSurvivorsToOldRects({
+    oldRects,
+    newlyInsertedIds
+  });
+  hideNewInsertedTiles(newlyInsertedIds);
+  await nextFrame();
 
   releaseSurvivors();
   dissolveRemovalGhosts(removalGhosts);

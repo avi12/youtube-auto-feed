@@ -1,7 +1,7 @@
 import type { Prettify } from "../types/prettify";
 import { isPolymerElement } from "../utils/polymer";
 import { videoIdFromData } from "../utils/video-id";
-import { FLIP_MAX_GLIDE_PX, GRID_ITEM_SELECTOR, SURVIVOR_SHIFT_MS } from "./mirror-constants";
+import { GRID_ITEM_SELECTOR, SURVIVOR_SHIFT_MS } from "./mirror-constants";
 import { isInReflowZone } from "./mirror-elements";
 
 type PinSurvivorsParams = Prettify<{
@@ -25,8 +25,11 @@ export function pinSurvivorsToOldRects({ oldRects, newlyInsertedIds }: PinSurviv
     const newRect = elItem.getBoundingClientRect();
     const deltaX = oldRect.left - newRect.left;
     const deltaY = oldRect.top - newRect.top;
-    const isGlideable = Math.hypot(deltaX, deltaY) <= FLIP_MAX_GLIDE_PX;
-    if (isGlideable && (Math.abs(deltaX) >= 1 || Math.abs(deltaY) >= 1)) {
+
+    // Every moved survivor slides from its old slot to its new one (Google-Meet reflow), including
+    // tiles that wrap to another row - they glide diagonally rather than snapping or fading.
+    const hasMoved = Math.abs(deltaX) >= 1 || Math.abs(deltaY) >= 1;
+    if (hasMoved) {
       elItem.style.translate = `${deltaX}px ${deltaY}px`;
     }
   }
