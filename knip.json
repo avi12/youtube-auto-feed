@@ -1,7 +1,0 @@
-{
-  "entry": [
-    "src/entrypoints/**/index.{ts,tsx}",
-    "src/entrypoints/*.content.{ts,tsx}"
-  ],
-  "project": ["src/**/*.{ts,tsx}"]
-}
