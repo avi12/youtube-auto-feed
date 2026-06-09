@@ -1,9 +1,6 @@
 import { isAnimationsEnabled } from "../settings-state";
 import type { Prettify } from "../types/prettify";
 
-// Pulse/entrance class triggers and a viewport check. The FLIP reflow, the join-tile scale-in, and
-// the leave-tile ghost fade all live in mirror.ts; this module only toggles the ytaf-* classes.
-
 const animationClasses = ["ytaf-new", "ytaf-updated"] as const;
 type AnimationClass = typeof animationClasses[number];
 
