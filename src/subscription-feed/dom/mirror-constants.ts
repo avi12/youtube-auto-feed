@@ -12,13 +12,7 @@ export const GRID_ITEM_SELECTOR = "ytd-rich-grid-renderer > #contents > ytd-rich
 export const STICKY_DELETE_POLLS = 4;
 export const SURVIVOR_SHIFT_MS = 380;
 export const GHOST_DISSOLVE_MS = 250;
-export const REMOVAL_SETTLE_FRAMES_MAX = 12;
-export const REMOVAL_STABLE_FRAMES = 2;
-// Extends the reflow zone below the fold so tiles sliding up into view still animate fully.
 export const REFLOW_MARGIN_BELOW_PX = 1200;
-// Tiles that would fly more than this (px Euclidean) snap instead of glide. Catches row-wrap
-// diagonals and Polymer node-recycling jumps without suppressing normal column shifts.
-export const FLIP_MAX_GLIDE_PX = 600;
 export const absenceCountByVideoId = new Map<string, number>();
 
 export type RichItemElement = PolymerElement<NonNullable<InnerTubeRichGridItem["richItemRenderer"]>>;

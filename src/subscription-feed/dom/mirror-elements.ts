@@ -1,6 +1,4 @@
-import { isPolymerElement } from "../utils/polymer";
-import { videoIdFromData } from "../utils/video-id";
-import { GRID_ITEM_SELECTOR, REFLOW_MARGIN_BELOW_PX } from "./mirror-constants";
+import { REFLOW_MARGIN_BELOW_PX } from "./mirror-constants";
 
 export function thumbnailContainerInItem(elItem: HTMLElement) {
   const elLockup = elItem.querySelector<HTMLElement>("yt-lockup-view-model");
@@ -43,26 +41,4 @@ export function thumbnailImgsInItem(elItem: HTMLElement) {
 export function isInReflowZone(elItem: HTMLElement) {
   const { bottom, top } = elItem.getBoundingClientRect();
   return bottom > 0 && top < innerHeight + REFLOW_MARGIN_BELOW_PX;
-}
-
-export function recordReflowZoneRects() {
-  const rects = new Map<string, DOMRect>();
-  for (const elItem of document.querySelectorAll<HTMLElement>(GRID_ITEM_SELECTOR)) {
-    if (!isInReflowZone(elItem) || !isPolymerElement(elItem)) {
-      continue;
-    }
-
-    const videoId = videoIdFromData(elItem.data);
-    if (videoId) {
-      rects.set(videoId, elItem.getBoundingClientRect());
-    }
-  }
-  return rects;
-}
-
-export function inlineDomVideoIds() {
-  return [...document.querySelectorAll<HTMLElement>(GRID_ITEM_SELECTOR)]
-    .map(elItem => (isPolymerElement(elItem) ? videoIdFromData(elItem.data) : ""))
-    .filter(Boolean)
-    .join();
 }
