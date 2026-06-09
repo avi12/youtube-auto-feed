@@ -16,6 +16,7 @@ node_modules
 stats.html
 stats-*.json
 .wxt
+.fallow
 user-profiles/
 
 # Credentials for Google Drive source upload
