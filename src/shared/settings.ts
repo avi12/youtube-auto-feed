@@ -14,7 +14,6 @@ function prefersReducedMotion() {
   return matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
-// Shared fallbacks - popup, ISOLATED bridge, and MAIN-world mirror all default identically.
 export function defaultSettings(): FeedSettings {
   return {
     isExtensionEnabled: true,

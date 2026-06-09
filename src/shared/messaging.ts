@@ -3,7 +3,6 @@ import { z } from "./zod";
 
 const CHANNEL_NAME = "ytaf";
 
-// Schema is the source of truth - message-name and envelope types derive via z.infer, no manual shape to maintain.
 const ytafEnvelopeSchema = z.object({ type: z.literal("subscription-change") });
 
 type YtafEnvelope = z.infer<typeof ytafEnvelopeSchema>;

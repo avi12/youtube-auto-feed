@@ -1,7 +1,7 @@
 import type { FeedSettings } from "./settings";
 import { defineCustomEventMessaging } from "@webext-core/messaging/page";
 
-// MAIN can't read browser.storage - the ISOLATED bridge owns storage and relays values via
+// MAIN cannot read browser.storage: the ISOLATED bridge owns storage and relays values via
 // CustomEvents. MAIN pulls once on startup ("getSettings"); the bridge pushes every change.
 interface SettingsProtocolMap {
   getSettings(): FeedSettings | null;

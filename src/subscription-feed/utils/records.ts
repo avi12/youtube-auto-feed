@@ -1,13 +1,11 @@
-// Helpers for safely walking unknown-shape objects (InnerTube responses, Polymer data) without `any`.
-
-function isIndexable(value: unknown): value is Record<string, unknown> {
+function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
-function dig(object: unknown, ...path: string[]) {
+function readPath(object: unknown, ...path: string[]) {
   let current = object;
   for (const key of path) {
-    if (!isIndexable(current)) {
+    if (!isObject(current)) {
       return undefined;
     }
 
@@ -16,9 +14,8 @@ function dig(object: unknown, ...path: string[]) {
   return current;
 }
 
-// Walks `object` along `path` and returns the value as T[] if it's an array, otherwise [].
 export function deepArray<T = unknown>(object: unknown, ...path: string[]): T[] {
-  const value = dig(object, ...path);
+  const value = readPath(object, ...path);
   if (Array.isArray(value)) {
     return value;
   }
