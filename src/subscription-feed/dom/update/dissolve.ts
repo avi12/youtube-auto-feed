@@ -1,11 +1,9 @@
 import type { Prettify } from "../../types/prettify";
 import { triggerAnimation } from "../animations";
 
-// "Dissolve" = apply a metadata edit in place with a short per-element pulse so it eases in.
-// Avoids a document-level view transition, which leaves every tile un-hittable for its duration
-// (elementFromPoint falls through to <html>). These edits fire constantly as tiles scroll into view;
-// serialized transitions would chain into seconds of an un-hoverable grid. Per-element keeps the
-// page live.
+// Per-element pulse instead of a document-level view transition: a page-wide transition leaves every
+// tile un-hittable for its duration (elementFromPoint falls through to <html>), and these edits fire
+// constantly as tiles scroll in, so serialized transitions would chain into seconds of dead grid.
 
 type ApplyWithDissolveParams = Prettify<{
   elements: HTMLElement[];
@@ -21,8 +19,6 @@ export function applyWithDissolve({ elements, apply }: ApplyWithDissolveParams) 
     });
   }
 }
-
-// Utilities used by text-fields.
 
 type SetNodeTextIfChangedParams = Prettify<{
   elNode: Element | null;
