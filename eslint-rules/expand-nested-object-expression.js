@@ -1,24 +1,28 @@
 /**
  * Requires multi-line formatting for object expressions ({ ... }) when:
  * - The object has 2 or more properties, OR
- * - Any property's value is itself an object expression (direct nesting)
+ * - Any property's value is itself an object or array expression (direct nesting)
  *
  * Single-property leaf objects with primitive/identifier values may stay on one line:
  *   { signatureTimestamp }                              // OK — leaf
  *   { x: 1 }                                            // OK — leaf
  *
- * Expanded due to nested object:
+ * Expanded due to a nested object or array:
  *   {
  *     contentPlaybackContext: { signatureTimestamp }    // parent expands; deepest stays inline
  *   }
+ *   {
+ *     required: ["none"]                                // parent expands; array stays inline
+ *   }
  */
 
-function propertyHasDirectObjectExpression(property) {
-  return property.type === "Property" && property.value?.type === "ObjectExpression";
+function propertyHasDirectStructuredValue(property) {
+  return property.type === "Property"
+    && (property.value?.type === "ObjectExpression" || property.value?.type === "ArrayExpression");
 }
 
 function requiresMultiline(node) {
-  return node.properties.length >= 2 || node.properties.some(propertyHasDirectObjectExpression);
+  return node.properties.length >= 2 || node.properties.some(propertyHasDirectStructuredValue);
 }
 
 function getLineIndentCount(sourceCode, token) {
