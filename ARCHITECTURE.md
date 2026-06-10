@@ -25,18 +25,14 @@ page's own JavaScript world, not an isolated content-script world).
 
 ## The journey of a feed update
 
-```
-YouTube InnerTube /browse response
-        │  (the interceptor clones it)
-        ▼
-  feed message  ──►  the monitor
-                       │
-        ┌──────────────┼───────────────┐
-        ▼              ▼                ▼
-     parse          diff             apply
-  (youtube-api/)   (diff/)          (dom/)
-   raw JSON →     previous vs       mutate the live
-   VideoSnapshot   fresh snapshot   Polymer grid
+```mermaid
+flowchart TD
+    response["YouTube InnerTube /browse response"]
+    response -->|the interceptor clones it| message["feed message"]
+    message --> monitor["the monitor"]
+    monitor --> parse["parse (youtube-api/)<br/>raw JSON → VideoSnapshot"]
+    monitor --> diff["diff (diff/)<br/>previous vs fresh snapshot"]
+    monitor --> apply["apply (dom/)<br/>mutate the live Polymer grid"]
 ```
 
 1. **Capture.** The interceptor watches every `fetch`. When YouTube itself loads the
