@@ -2,7 +2,6 @@ import type { InnerTubeRichGridItem } from "../../types/innertube";
 import type { Prettify } from "../../types/prettify";
 import { flushPolymerRender, isPolymerElement } from "../../utils/polymer";
 import { videoIdFromData } from "../../utils/video-id";
-import { isInViewport } from "../animations";
 import { SURVIVOR_SHIFT_MS } from "./mirror-constants";
 import { createRemovalGhosts, dissolveRemovalGhosts } from "./mirror-ghosts";
 
@@ -30,6 +29,23 @@ function nextFrame() {
 
 function shelfItemId(elItem: HTMLElement) {
   return isPolymerElement(elItem) ? videoIdFromData(elItem.data) : null;
+}
+
+// True only when the tile is painted where the user is looking. elementFromPoint respects overflow
+// clipping, so a tile tucked in a collapsed shelf's hidden rows - even one whose rect overlaps the
+// viewport - is not the element at its own centre and reads as not visible, alongside display:none
+// and scrolled-off tiles.
+function isVisibleToUser(elItem: HTMLElement) {
+  const { left, top, width, height } = elItem.getBoundingClientRect();
+  const centerX = left + width / 2;
+  const centerY = top + height / 2;
+  const isCenterOnScreen = centerX >= 0 && centerX < innerWidth && centerY >= 0 && centerY < innerHeight;
+  if (width === 0 || height === 0 || !isCenterOnScreen) {
+    return false;
+  }
+
+  const elAtPoint = document.elementFromPoint(centerX, centerY);
+  return !!elAtPoint && elItem.contains(elAtPoint);
 }
 
 function shelfItems(elShelf: HTMLElement) {
@@ -107,10 +123,10 @@ export async function animateShelfRemoval({ elShelf, retained, removedVideoIds }
 
   const elRemovedTiles = shelfItems(elShelf).filter(elItem => {
     const videoId = shelfItemId(elItem);
-    return !!videoId && removedVideoIds.has(videoId) && isInViewport(elItem);
+    return !!videoId && removedVideoIds.has(videoId) && isVisibleToUser(elItem);
   });
-  // Only animate when a removed tile is actually on screen. A removal hidden in a collapsed shelf's
-  // overflow or scrolled out of the viewport has nothing the user can see - apply it instantly.
+  // Only animate when a removed tile is actually on screen. A removal tucked in a collapsed shelf's
+  // hidden rows or scrolled out of the viewport has nothing the user can see - apply it instantly.
   if (elRemovedTiles.length === 0) {
     elShelf.set("data.contents", retained);
     return;
