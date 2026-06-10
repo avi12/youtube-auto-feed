@@ -56,6 +56,12 @@
         "typescript/no-explicit-any": "off",
         "prefer-const": "off"
       }
+    },
+    {
+      "files": ["**/polling/polling.ts"],
+      "rules": {
+        "typescript/consistent-type-assertions": "off"
+      }
     }
   ],
   "ignorePatterns": [
