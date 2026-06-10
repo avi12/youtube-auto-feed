@@ -2,6 +2,7 @@ import type { InnerTubeRichGridItem } from "../../types/innertube";
 import type { Prettify } from "../../types/prettify";
 import { flushPolymerRender, isPolymerElement } from "../../utils/polymer";
 import { videoIdFromData } from "../../utils/video-id";
+import { isInViewport } from "../animations";
 import { SURVIVOR_SHIFT_MS } from "./mirror-constants";
 import { createRemovalGhosts, dissolveRemovalGhosts } from "./mirror-ghosts";
 
@@ -104,6 +105,17 @@ export async function animateShelfRemoval({ elShelf, retained, removedVideoIds }
     return;
   }
 
+  const elRemovedTiles = shelfItems(elShelf).filter(elItem => {
+    const videoId = shelfItemId(elItem);
+    return !!videoId && removedVideoIds.has(videoId) && isInViewport(elItem);
+  });
+  // Only animate when a removed tile is actually on screen. A removal hidden in a collapsed shelf's
+  // overflow or scrolled out of the viewport has nothing the user can see - apply it instantly.
+  if (elRemovedTiles.length === 0) {
+    elShelf.set("data.contents", retained);
+    return;
+  }
+
   const beforePositions = recordVisiblePositions(elShelf, elContents);
   const slideInDistance = columnSpacing(beforePositions);
   // Pre-hide the overflow so the tile promoted into view starts invisible and does not flash.
@@ -111,10 +123,6 @@ export async function animateShelfRemoval({ elShelf, retained, removedVideoIds }
     elItem.style.opacity = "0";
   }
 
-  const elRemovedTiles = visibleShelfItems(elShelf).filter(elItem => {
-    const videoId = shelfItemId(elItem);
-    return !!videoId && removedVideoIds.has(videoId);
-  });
   const ghosts = createRemovalGhosts(elRemovedTiles);
 
   // Write inside a frame, then invert in the microtask that follows (before the browser paints the
