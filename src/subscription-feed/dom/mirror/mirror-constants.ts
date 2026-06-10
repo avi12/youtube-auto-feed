@@ -12,7 +12,7 @@ export const NEW_THUMBNAIL_DECODE_CAP_FRAMES = 180;
 export const GRID_ITEM_SELECTOR = "ytd-rich-grid-renderer > #contents > ytd-rich-item-renderer";
 // Collaborative (multi-channel) videos flicker in the API's noisy pagination tail, so they are
 // buffered for this many polls before removal. Non-collaborative videos are dropped immediately.
-export const STICKY_DELETE_POLLS = 4;
+export const STICKY_DELETE_POLLS = 10;
 export const SURVIVOR_SHIFT_MS = 380;
 export const REFLOW_MARGIN_BELOW_PX = 1200;
 export const absenceCountByVideoId = new Map<string, number>();
