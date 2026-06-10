@@ -1,6 +1,7 @@
 import { detectAndApplyMetadataChanges } from "../diff";
 import { isOnSubscriptionsPage } from "../utils/subscriptions-page";
 import { fetchInitialVideos } from "../youtube-api/fetch";
+import { invalidateSubscribedChannelKeys } from "../youtube-api/subscriptions";
 import { type MonitorContext, preloadSnapshotThumbnails } from "./polling-state";
 
 export function createFetchHandlers(context: MonitorContext) {
@@ -61,6 +62,7 @@ export function createFetchHandlers(context: MonitorContext) {
   }
 
   function handleSubscriptionChange() {
+    invalidateSubscribedChannelKeys();
     state.isSubscriptionFetchInProgress = true;
     fetchFreshVideos()
       .finally(() => {
