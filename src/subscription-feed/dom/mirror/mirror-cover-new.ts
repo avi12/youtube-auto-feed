@@ -1,7 +1,7 @@
-import type { Prettify } from "../types/prettify";
-import { isPolymerElement } from "../utils/polymer";
-import { videoIdFromData } from "../utils/video-id";
-import { isInViewport } from "./animations";
+import type { Prettify } from "../../types/prettify";
+import { isPolymerElement } from "../../utils/polymer";
+import { videoIdFromData } from "../../utils/video-id";
+import { isInViewport } from "../animations";
 import { GRID_ITEM_SELECTOR } from "./mirror-constants";
 import { thumbnailContainerInItem } from "./mirror-elements";
 import { addCoverOverlay, dropOverlayWhenThumbnailLoads, prepareCoverHost } from "./mirror-overlay";

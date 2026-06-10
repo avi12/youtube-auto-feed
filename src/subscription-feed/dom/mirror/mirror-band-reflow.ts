@@ -1,5 +1,5 @@
-import type { InnerTubeRichGridItem } from "../types/innertube";
-import type { Prettify } from "../types/prettify";
+import type { InnerTubeRichGridItem } from "../../types/innertube";
+import type { Prettify } from "../../types/prettify";
 import { absenceCountByVideoId, STICKY_DELETE_POLLS } from "./mirror-constants";
 
 type UpdateAbsenceCountsParams = Prettify<{

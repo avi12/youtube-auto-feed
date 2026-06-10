@@ -1,5 +1,5 @@
-import type { Prettify } from "../types/prettify";
-import type { VideoSnapshot } from "../types/video";
+import type { Prettify } from "../../types/prettify";
+import type { VideoSnapshot } from "../../types/video";
 import { collectLegacyShelfVideos, collectRichShelfVideos } from "./query-snapshot-collectors";
 import { collectFallbackGridVideos, collectInlineGridVideos } from "./query-snapshot-grid-collectors";
 

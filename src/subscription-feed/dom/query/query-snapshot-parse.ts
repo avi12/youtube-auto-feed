@@ -1,9 +1,9 @@
-import type { Prettify } from "../types/prettify";
-import type { VideoSnapshot } from "../types/video";
-import { isPolymerElement } from "../utils/polymer";
-import { isLockupViewModel, isShortsLockupViewModel, isVideoRenderer } from "../youtube-api/guards";
-import { parseLockupViewModel, parseRenderer, parseShortsLockupViewModel } from "../youtube-api/parse-video";
-import { richItemDataSchema } from "../youtube-api/schemas";
+import type { Prettify } from "../../types/prettify";
+import type { VideoSnapshot } from "../../types/video";
+import { isPolymerElement } from "../../utils/polymer";
+import { isLockupViewModel, isShortsLockupViewModel, isVideoRenderer } from "../../youtube-api/guards";
+import { parseLockupViewModel, parseRenderer, parseShortsLockupViewModel } from "../../youtube-api/parse-video";
+import { richItemDataSchema } from "../../youtube-api/schemas";
 
 interface SectionContext {
   sectionTitle: string;

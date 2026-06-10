@@ -32,7 +32,11 @@ function cloneTileGhost(elTile: HTMLElement) {
     return null;
   }
 
-  const elGhost = elContent.cloneNode(true) as HTMLElement;
+  const elGhost = elContent.cloneNode(true);
+  if (!(elGhost instanceof HTMLElement)) {
+    return null;
+  }
+
   positionRemovalGhost(elGhost, rect);
   paintGhostThumbnailBackground(elTile, elGhost);
   return elGhost;

@@ -1,4 +1,4 @@
-import { flushPolymerRender, isPolymerElement } from "../utils/polymer";
+import { flushPolymerRender, isPolymerElement } from "../../utils/polymer";
 import { coverBlankImages, observeAndCoverBlankImages } from "./mirror-blank-cover";
 import {
   REBIND_FRAME_POLL_MAX,

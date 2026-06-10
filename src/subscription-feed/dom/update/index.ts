@@ -3,7 +3,7 @@ import type { Prettify } from "../../types/prettify";
 import type { VideoSnapshot } from "../../types/video";
 import { isPolymerElement } from "../../utils/polymer";
 import { isInViewport } from "../animations";
-import { scheduleLazyUpdate } from "../lazy-update";
+import { scheduleLazyUpdate } from "../lazy/lazy-update";
 import { applyUpdate } from "./apply-targeted";
 import { buildVideoElementMap } from "./video-element-map";
 

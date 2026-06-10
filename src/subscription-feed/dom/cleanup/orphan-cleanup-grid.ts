@@ -1,9 +1,9 @@
-import type { InnerTubeRichGridItem } from "../types/innertube";
-import type { PolymerElement } from "../types/polymer";
-import type { Prettify } from "../types/prettify";
-import { deepArray } from "../utils/records";
-import { gridDataSchema } from "../youtube-api/schemas";
-import { videoIdFromRichItem } from "./rich-item";
+import type { InnerTubeRichGridItem } from "../../types/innertube";
+import type { PolymerElement } from "../../types/polymer";
+import type { Prettify } from "../../types/prettify";
+import { deepArray } from "../../utils/records";
+import { gridDataSchema } from "../../youtube-api/schemas";
+import { videoIdFromRichItem } from "../rich-item";
 
 export function collectGridModelIds(elGrid: PolymerElement) {
   if (!gridDataSchema.safeParse(elGrid.data).success) {

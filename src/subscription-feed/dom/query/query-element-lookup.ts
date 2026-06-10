@@ -1,6 +1,6 @@
-import { isPolymerElement } from "../utils/polymer";
-import { videoIdFromData } from "../utils/video-id";
-import { isVideoRenderer } from "../youtube-api/guards";
+import { isPolymerElement } from "../../utils/polymer";
+import { videoIdFromData } from "../../utils/video-id";
+import { isVideoRenderer } from "../../youtube-api/guards";
 
 function elementMatchesVideoId(elItem: HTMLElement, videoId: string) {
   if (!isPolymerElement(elItem)) {

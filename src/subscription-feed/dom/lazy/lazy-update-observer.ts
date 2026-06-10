@@ -1,9 +1,9 @@
-import type { PolymerElement } from "../types/polymer";
-import type { Prettify } from "../types/prettify";
-import type { VideoSnapshot } from "../types/video";
-import { isPolymerElement } from "../utils/polymer";
-import { videoIdFromData } from "../utils/video-id";
-import { applyUpdate } from "./update/apply-targeted";
+import type { PolymerElement } from "../../types/polymer";
+import type { Prettify } from "../../types/prettify";
+import type { VideoSnapshot } from "../../types/video";
+import { isPolymerElement } from "../../utils/polymer";
+import { videoIdFromData } from "../../utils/video-id";
+import { applyUpdate } from "../update/apply-targeted";
 
 const IDLE_CALLBACK_TIMEOUT_MS = 500;
 const LAZY_UPDATE_ROOT_MARGIN_PX = 300;

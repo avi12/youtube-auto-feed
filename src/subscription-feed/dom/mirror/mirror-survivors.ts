@@ -1,6 +1,6 @@
-import type { Prettify } from "../types/prettify";
-import { isPolymerElement } from "../utils/polymer";
-import { videoIdFromData } from "../utils/video-id";
+import type { Prettify } from "../../types/prettify";
+import { isPolymerElement } from "../../utils/polymer";
+import { videoIdFromData } from "../../utils/video-id";
 import { GRID_ITEM_SELECTOR, SURVIVOR_SHIFT_MS } from "./mirror-constants";
 import { isInReflowZone } from "./mirror-elements";
 
@@ -11,14 +11,20 @@ type PinSurvivorsParams = Prettify<{
 
 export function pinSurvivorsToOldRects({ oldRects, newlyInsertedIds }: PinSurvivorsParams) {
   for (const elItem of document.querySelectorAll<HTMLElement>(GRID_ITEM_SELECTOR)) {
-    if (!isInReflowZone(elItem) || !isPolymerElement(elItem)) continue;
+    if (!isInReflowZone(elItem) || !isPolymerElement(elItem)) {
+      continue;
+    }
 
     const videoId = videoIdFromData(elItem.data);
     const isPinnable = !!videoId && !newlyInsertedIds.has(videoId) && oldRects.has(videoId);
-    if (!isPinnable) continue;
+    if (!isPinnable) {
+      continue;
+    }
 
     const oldRect = oldRects.get(videoId);
-    if (!oldRect) continue;
+    if (!oldRect) {
+      continue;
+    }
 
     elItem.style.transition = "none";
     elItem.style.translate = "";

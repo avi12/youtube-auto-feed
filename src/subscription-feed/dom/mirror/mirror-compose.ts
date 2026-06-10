@@ -1,10 +1,10 @@
-import type { InnerTubeRichGridItem } from "../types/innertube";
-import type { Prettify } from "../types/prettify";
+import type { InnerTubeRichGridItem } from "../../types/innertube";
+import type { Prettify } from "../../types/prettify";
+import { isCollaborativeRichItem, videoIdFromRichItem } from "../rich-item";
 import { mergeBand } from "./mirror-band-merge";
 import { reflowBandIntoRuns, updateAbsenceCountsAndRetain } from "./mirror-band-reflow";
 import { collectInlineVideoIds, extractInlineBand, findAllInlineRuns, isReferenceEqualArray } from "./mirror-band-runs";
 import { longestCommonSubsequence } from "./mirror-lcs";
-import { isCollaborativeRichItem, videoIdFromRichItem } from "./rich-item";
 
 export { collectInlineVideoIds, isReferenceEqualArray };
 

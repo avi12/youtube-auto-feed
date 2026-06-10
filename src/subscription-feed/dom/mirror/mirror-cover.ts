@@ -1,9 +1,9 @@
-import type { InnerTubeRichGridItem } from "../types/innertube";
-import type { Prettify } from "../types/prettify";
+import type { InnerTubeRichGridItem } from "../../types/innertube";
+import type { Prettify } from "../../types/prettify";
+import { avatarUrlFromContent, thumbnailUrlFromContent, videoIdFromRichItem } from "../rich-item";
 import { GRID_ITEM_SELECTOR } from "./mirror-constants";
 import { avatarImgInItem, isInReflowZone, thumbnailContainerInItem } from "./mirror-elements";
 import { addCoverOverlay, clearReflowImageCovers, prepareCoverHost } from "./mirror-overlay";
-import { avatarUrlFromContent, thumbnailUrlFromContent, videoIdFromRichItem } from "./rich-item";
 
 export { clearReflowImageCovers };
 

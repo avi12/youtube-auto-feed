@@ -1,5 +1,5 @@
-import { isPolymerElement } from "../utils/polymer";
-import { videoIdFromData } from "../utils/video-id";
+import { isPolymerElement } from "../../utils/polymer";
+import { videoIdFromData } from "../../utils/video-id";
 import { GRID_ITEM_SELECTOR, REFLOW_MARGIN_BELOW_PX } from "./mirror-constants";
 
 export function thumbnailContainerInItem(elItem: HTMLElement) {

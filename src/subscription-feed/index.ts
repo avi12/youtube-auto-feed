@@ -1,1 +1,1 @@
-export { createSubscriptionMonitor } from "./polling";
+export { createSubscriptionMonitor } from "./polling/polling";

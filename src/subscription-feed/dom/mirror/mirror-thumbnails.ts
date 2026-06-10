@@ -1,3 +1,4 @@
+import { avatarUrlFromContent, thumbnailUrlFromContent } from "../rich-item";
 import {
   GRID_ITEM_SELECTOR,
   NEW_THUMBNAIL_DECODE_CAP_FRAMES,
@@ -9,7 +10,6 @@ import {
 } from "./mirror-constants";
 import { avatarImgInItem, thumbnailImgsInItem } from "./mirror-elements";
 import { areInsertedTilesPresent } from "./mirror-entrances";
-import { avatarUrlFromContent, thumbnailUrlFromContent } from "./rich-item";
 
 function pathWithoutQuery(url: string) {
   return url.split("?")[0];
@@ -31,6 +31,8 @@ export async function awaitNewThumbnailsReady(thumbnailUrls: Iterable<string>) {
   let isReady = false;
   const decodes = urls.map(decodeThumbnail);
   Promise.all(decodes).then(() => {
+    isReady = true;
+  }).catch(() => {
     isReady = true;
   });
 

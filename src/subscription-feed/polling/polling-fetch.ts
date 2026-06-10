@@ -1,7 +1,7 @@
-import { detectAndApplyMetadataChanges } from "./diff";
+import { detectAndApplyMetadataChanges } from "../diff";
+import { isOnSubscriptionsPage } from "../utils/subscriptions-page";
+import { fetchInitialVideos } from "../youtube-api/fetch";
 import { type MonitorContext, preloadSnapshotThumbnails } from "./polling-state";
-import { isOnSubscriptionsPage } from "./utils/subscriptions-page";
-import { fetchInitialVideos } from "./youtube-api/fetch";
 
 export function createFetchHandlers(context: MonitorContext) {
   const { state } = context;

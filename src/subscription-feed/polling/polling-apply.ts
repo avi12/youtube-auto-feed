@@ -1,14 +1,14 @@
-import { detectAndApplyChanges } from "./diff";
-import { captureBandLayout, normalizeCollapsedShelfRows } from "./dom/band-layout";
+import { detectAndApplyChanges } from "../diff";
+import { captureBandLayout, normalizeCollapsedShelfRows } from "../dom/band/band-layout";
+import { isOnSubscriptionsPage } from "../utils/subscriptions-page";
+import { isInnerTubeBrowseResponse } from "../youtube-api/guards";
+import { extractApiContents, extractApiSectionOrder, parseApiResponse } from "../youtube-api/parse-response";
 import {
   type ApplyChangesParams,
   type MonitorContext,
   preloadSnapshotThumbnails,
   rebuildBaselineFromDom
 } from "./polling-state";
-import { isOnSubscriptionsPage } from "./utils/subscriptions-page";
-import { isInnerTubeBrowseResponse } from "./youtube-api/guards";
-import { extractApiContents, extractApiSectionOrder, parseApiResponse } from "./youtube-api/parse-response";
 
 export function createApplyHandlers(context: MonitorContext) {
   const { state } = context;

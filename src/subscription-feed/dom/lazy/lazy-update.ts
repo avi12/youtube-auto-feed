@@ -1,7 +1,7 @@
-import type { Prettify } from "../types/prettify";
-import type { VideoSnapshot } from "../types/video";
+import type { Prettify } from "../../types/prettify";
+import type { VideoSnapshot } from "../../types/video";
+import { findItemElements } from "../query/query";
 import { ensureObserver, pendingUpdates, resetObserverState } from "./lazy-update-observer";
-import { findItemElements } from "./query";
 
 type ScheduleLazyUpdateParams = Prettify<{
   videoId: string;

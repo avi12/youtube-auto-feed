@@ -1,5 +1,5 @@
-import { mirrorFromApi } from "../dom/mirror";
-import { cleanOrphanedGridItems } from "../dom/orphan-cleanup";
+import { cleanOrphanedGridItems } from "../dom/cleanup/orphan-cleanup";
+import { mirrorFromApi } from "../dom/mirror/mirror";
 import type { InnerTubeRichGridItem } from "../types/innertube";
 import type { Prettify } from "../types/prettify";
 import type { VideoSnapshot } from "../types/video";

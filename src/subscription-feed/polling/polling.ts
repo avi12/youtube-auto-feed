@@ -1,4 +1,4 @@
-import { feedMessenger } from "../shared/feed-messaging";
+import { feedMessenger } from "../../shared/feed-messaging";
 import { createApplyHandlers } from "./polling-apply";
 import { createBaselineHandlers } from "./polling-baseline";
 import { createFetchHandlers } from "./polling-fetch";

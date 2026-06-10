@@ -1,8 +1,8 @@
-import type { Prettify } from "../types/prettify";
-import type { VideoSnapshot } from "../types/video";
-import { isPolymerElement } from "../utils/polymer";
-import { isVideoRenderer } from "../youtube-api/guards";
-import { parseRenderer } from "../youtube-api/parse-video";
+import type { Prettify } from "../../types/prettify";
+import type { VideoSnapshot } from "../../types/video";
+import { isPolymerElement } from "../../utils/polymer";
+import { isVideoRenderer } from "../../youtube-api/guards";
+import { parseRenderer } from "../../youtube-api/parse-video";
 import { addRichItemToSnapshot } from "./query-snapshot-parse";
 
 export function collectInlineGridVideos(snapshot: Map<string, Prettify<VideoSnapshot>>) {

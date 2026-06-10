@@ -1,9 +1,9 @@
-import type { InnerTubeRichGridItem } from "../types/innertube";
-import type { PolymerElement } from "../types/polymer";
-import type { Prettify } from "../types/prettify";
-import { isPolymerElement } from "../utils/polymer";
-import { deepArray } from "../utils/records";
-import { gridDataSchema } from "../youtube-api/schemas";
+import type { InnerTubeRichGridItem } from "../../types/innertube";
+import type { PolymerElement } from "../../types/polymer";
+import type { Prettify } from "../../types/prettify";
+import { isPolymerElement } from "../../utils/polymer";
+import { deepArray } from "../../utils/records";
+import { gridDataSchema } from "../../youtube-api/schemas";
 import { pruneOrphanedDomItems } from "./orphan-cleanup-dom";
 import { collectGridModelIds, filterMisplacedAndDuplicates } from "./orphan-cleanup-grid";
 

@@ -1,8 +1,8 @@
-import type { InnerTubeRichGridItem } from "../types/innertube";
-import { isPolymerElement } from "../utils/polymer";
-import { deepArray } from "../utils/records";
-import { richItemDataSchema, richShelfDataSchema } from "../youtube-api/schemas";
-import { videoIdFromRichItem } from "./rich-item";
+import type { InnerTubeRichGridItem } from "../../types/innertube";
+import { isPolymerElement } from "../../utils/polymer";
+import { deepArray } from "../../utils/records";
+import { richItemDataSchema, richShelfDataSchema } from "../../youtube-api/schemas";
+import { videoIdFromRichItem } from "../rich-item";
 
 function waitForPolymerToFinishRendering() {
   return new Promise<void>(resolve =>

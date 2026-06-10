@@ -1,8 +1,8 @@
-import { isPolymerElement } from "../utils/polymer";
+import { isPolymerElement } from "../../utils/polymer";
+import { avatarUrlFromContent, thumbnailUrlFromContent } from "../rich-item";
 import { GRID_ITEM_SELECTOR, type RichItemElement } from "./mirror-constants";
 import { avatarImgInItem, isInReflowZone, thumbnailImgsInItem } from "./mirror-elements";
 import { repaintInlineThumbnails } from "./mirror-thumbnails";
-import { avatarUrlFromContent, thumbnailUrlFromContent } from "./rich-item";
 
 export function coverBlankImages() {
   for (const elItem of document.querySelectorAll<RichItemElement>(GRID_ITEM_SELECTOR)) {

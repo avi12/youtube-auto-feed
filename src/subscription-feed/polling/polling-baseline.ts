@@ -1,7 +1,7 @@
-import { normalizeCollapsedShelfRows } from "./dom/band-layout";
-import { resetLazyUpdates } from "./dom/lazy-update";
+import { normalizeCollapsedShelfRows } from "../dom/band/band-layout";
+import { resetLazyUpdates } from "../dom/lazy/lazy-update";
+import { isDomContentReady } from "../readiness";
 import { type MonitorContext, PENDING_SNAPSHOT_STALE_MS, rebuildBaselineFromDom } from "./polling-state";
-import { isDomContentReady } from "./readiness";
 
 export function createBaselineHandlers(context: MonitorContext) {
   const { state } = context;

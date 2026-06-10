@@ -1,10 +1,10 @@
-import type { InnerTubeRichGridItem } from "../types/innertube";
-import type { Prettify } from "../types/prettify";
-import { isPolymerElement } from "../utils/polymer";
-import { videoIdFromData } from "../utils/video-id";
-import { isInViewport } from "./animations";
+import type { InnerTubeRichGridItem } from "../../types/innertube";
+import type { Prettify } from "../../types/prettify";
+import { isPolymerElement } from "../../utils/polymer";
+import { videoIdFromData } from "../../utils/video-id";
+import { isInViewport } from "../animations";
+import { videoIdFromRichItem } from "../rich-item";
 import { GRID_ITEM_SELECTOR } from "./mirror-constants";
-import { videoIdFromRichItem } from "./rich-item";
 
 export function findNewlyInsertedElements(newVideoIds: Set<string>) {
   const result: HTMLElement[] = [];

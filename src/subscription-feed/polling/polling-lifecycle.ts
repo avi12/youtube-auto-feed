@@ -1,8 +1,8 @@
-import { ytafChannel } from "../shared/messaging";
-import { resetLazyUpdates } from "./dom/lazy-update";
-import { cleanOrphanedGridItems } from "./dom/orphan-cleanup";
+import { ytafChannel } from "../../shared/messaging";
+import { cleanOrphanedGridItems } from "../dom/cleanup/orphan-cleanup";
+import { resetLazyUpdates } from "../dom/lazy/lazy-update";
+import { isOnSubscriptionsPage } from "../utils/subscriptions-page";
 import { METADATA_POLL_INTERVAL_MS, type MonitorContext, ORPHAN_CLEANUP_INTERVAL_MS } from "./polling-state";
-import { isOnSubscriptionsPage } from "./utils/subscriptions-page";
 
 export function createLifecycleHandlers(context: MonitorContext) {
   const { state } = context;

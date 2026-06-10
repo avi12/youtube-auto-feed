@@ -1,15 +1,15 @@
-import { isAnimationsEnabled } from "../settings-state";
-import type { InnerTubeRichGridItem } from "../types/innertube";
-import type { Prettify } from "../types/prettify";
-import { isPolymerElement } from "../utils/polymer";
-import { deepArray } from "../utils/records";
-import { gridDataSchema } from "../youtube-api/schemas";
+import { isAnimationsEnabled } from "../../settings-state";
+import type { InnerTubeRichGridItem } from "../../types/innertube";
+import type { Prettify } from "../../types/prettify";
+import { isPolymerElement } from "../../utils/polymer";
+import { deepArray } from "../../utils/records";
+import { gridDataSchema } from "../../youtube-api/schemas";
+import { thumbnailUrlFromRichItem, videoIdFromRichItem } from "../rich-item";
 import { collectInlineVideoIds, composeNewContents, isReferenceEqualArray } from "./mirror-compose";
 import { findRemovedViewportTiles } from "./mirror-find-tiles";
 import { setContentsWithFlip } from "./mirror-flip";
 import { createRemovalGhosts } from "./mirror-ghosts";
 import { awaitNewThumbnailsReady, repaintInsertedThumbnails } from "./mirror-thumbnails";
-import { thumbnailUrlFromRichItem, videoIdFromRichItem } from "./rich-item";
 
 type MirrorFromApiParams = Prettify<{
   apiContents: Prettify<InnerTubeRichGridItem>[];

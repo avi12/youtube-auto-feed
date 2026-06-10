@@ -1,6 +1,6 @@
-import type { Prettify } from "../types/prettify";
-import { isPolymerElement } from "../utils/polymer";
-import { videoIdFromData } from "../utils/video-id";
+import type { Prettify } from "../../types/prettify";
+import { isPolymerElement } from "../../utils/polymer";
+import { videoIdFromData } from "../../utils/video-id";
 
 type PruneOrphanedDomItemsParams = Prettify<{
   elGridContents: HTMLElement;

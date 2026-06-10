@@ -1,6 +1,6 @@
-import { isPolymerElement } from "../utils/polymer";
-import { videoIdFromData } from "../utils/video-id";
-import { isInViewport } from "./animations";
+import { isPolymerElement } from "../../utils/polymer";
+import { videoIdFromData } from "../../utils/video-id";
+import { isInViewport } from "../animations";
 import { GRID_ITEM_SELECTOR } from "./mirror-constants";
 import { findNewlyInsertedElements } from "./mirror-find-tiles";
 
