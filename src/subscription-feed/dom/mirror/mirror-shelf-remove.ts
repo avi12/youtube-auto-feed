@@ -8,9 +8,11 @@ import { createRemovalGhosts, dissolveRemovalGhosts } from "./mirror-ghosts";
 // Animated removal inside a rich shelf. An expanded shelf reflows like the Latest band - survivors
 // glide to their new slots, wrapping rows. A collapsed shelf shows one row and hides the overflow with
 // display:none, so a removed visible tile leaves a gap: the survivors slide left to fill it and the
-// first previously-hidden tile slides in one column behind them into the last slot, a column ahead of
-// the nearest survivor so the wide tiles never pile up. That tile starts off the shelf's right edge,
-// so its opacity is eased-in - it stays invisible out there and only fades up as it settles in.
+// first previously-hidden tile slides one column behind them into the freed last slot, staying a column
+// ahead of the nearest survivor so the wide tiles never pile up. That tile's last slot sits at the
+// shelf's right edge, so it briefly overhangs it while sliding in; its opacity rides an ease-in-out so
+// the leading edge fades up into the slot as it arrives (no empty gap) while the bit still overhanging
+// the edge stays faint (no off-screen fly-in).
 //
 // The shelf's Polymer dom-repeat rebinds nodes in place rather than moving them, and does so
 // synchronously on flush. So the FLIP is keyed by the video each node now shows (not by node identity)
@@ -19,8 +21,7 @@ import { createRemovalGhosts, dissolveRemovalGhosts } from "./mirror-ghosts";
 // moving the whole shelf does not leak into the per-tile deltas.
 
 const SHELF_ITEM_SELECTOR = "ytd-rich-item-renderer";
-const SURVIVOR_EASING = "cubic-bezier(0.4, 0, 0.2, 1)";
-const ENTRANCE_FADE_EASING = "cubic-bezier(0.7, 0, 1, 1)";
+const GLIDE_EASING = "cubic-bezier(0.4, 0, 0.2, 1)";
 const MILLISECONDS_PER_FRAME = 1000 / 60;
 const PROMOTION_POLL_FRAMES = 8;
 const GLIDE_FRAME_BUFFER = 4;
@@ -187,7 +188,7 @@ async function glideNewlyVisible(
 
 function releaseSurvivors(elGliders: HTMLElement[]) {
   for (const elItem of elGliders) {
-    elItem.style.transition = `translate ${SURVIVOR_SHIFT_MS}ms ${SURVIVOR_EASING}`;
+    elItem.style.transition = `translate ${SURVIVOR_SHIFT_MS}ms ${GLIDE_EASING}`;
     elItem.style.translate = "";
     elItem.addEventListener("transitionend", () => {
       elItem.style.transition = "";
@@ -198,8 +199,8 @@ function releaseSurvivors(elGliders: HTMLElement[]) {
 
 function releaseEntrants(elEntrants: HTMLElement[]) {
   for (const elItem of elEntrants) {
-    elItem.style.transition = `translate ${SURVIVOR_SHIFT_MS}ms ${SURVIVOR_EASING}, `
-      + `opacity ${SURVIVOR_SHIFT_MS}ms ${ENTRANCE_FADE_EASING}`;
+    elItem.style.transition = `translate ${SURVIVOR_SHIFT_MS}ms ${GLIDE_EASING}, `
+      + `opacity ${SURVIVOR_SHIFT_MS}ms ${GLIDE_EASING}`;
     elItem.style.translate = "";
     elItem.style.opacity = "";
     elItem.addEventListener("transitionend", () => {
