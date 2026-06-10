@@ -3,6 +3,16 @@ import type { Prettify } from "../../types/prettify";
 // Locating the thumbnail <img> across shadow-DOM lockups and legacy markup, plus the watch-progress
 // bar, which lives in the same shadow tree.
 
+const PROGRESS_BAR_HOST_TAG = "yt-thumbnail-overlay-progress-bar-view-model";
+const THUMBNAIL_VIEW_MODEL_TAG = "yt-thumbnail-view-model";
+const BOTTOM_OVERLAY_TAG = "yt-thumbnail-bottom-overlay-view-model";
+const THUMBNAIL_LARGE_CLASS = "ytThumbnailViewModelLarge";
+const BOTTOM_OVERLAY_HOST_CLASS = "ytThumbnailBottomOverlayViewModelHost";
+const PROGRESS_BAR_HOST_CLASS = "ytThumbnailOverlayProgressBarHost";
+const PROGRESS_BAR_HOST_LARGE_CLASS = "ytThumbnailOverlayProgressBarHostLarge";
+const PROGRESS_BAR_TRACK_CLASS = "ytThumbnailOverlayProgressBarHostWatchedProgressBar ytThumbnailOverlayProgressBarHostUseLegacyBar";
+const PROGRESS_BAR_SEGMENT_CLASS = "ytThumbnailOverlayProgressBarHostWatchedProgressBarSegment";
+
 function findImgInYtImages(root: ShadowRoot | HTMLElement, selector: string) {
   for (const elYtImage of root.querySelectorAll<HTMLElement>(selector)) {
     const elImg = elYtImage.shadowRoot?.querySelector<HTMLImageElement>("img")
@@ -31,13 +41,56 @@ type ApplyProgressBarUpdateParams = Prettify<{
   percent: number | null;
 }>;
 
+// The first time a video gains watch progress YouTube has not stamped the overlay element yet. Build
+// it in place rather than rebuilding the whole renderer, which re-stamps the <img> and flickers the
+// thumbnail. The class-based stylesheet supplies the red gradient once the element carries the names.
+function buildProgressBarHost(isLarge: boolean) {
+  const elHost = document.createElement(PROGRESS_BAR_HOST_TAG);
+  elHost.className = isLarge ? `${PROGRESS_BAR_HOST_CLASS} ${PROGRESS_BAR_HOST_LARGE_CLASS}` : PROGRESS_BAR_HOST_CLASS;
+  const elTrack = document.createElement("div");
+  elTrack.className = PROGRESS_BAR_TRACK_CLASS;
+  const elSegment = document.createElement("div");
+  elSegment.className = PROGRESS_BAR_SEGMENT_CLASS;
+  elTrack.append(elSegment);
+  elHost.append(elTrack);
+  return elHost;
+}
+
+function ensureBottomOverlay(elThumbnail: HTMLElement) {
+  const elExisting = elThumbnail.querySelector<HTMLElement>(`:scope > ${BOTTOM_OVERLAY_TAG}`);
+  if (elExisting) {
+    return elExisting;
+  }
+
+  const elBottomOverlay = document.createElement(BOTTOM_OVERLAY_TAG);
+  elBottomOverlay.className = BOTTOM_OVERLAY_HOST_CLASS;
+  elThumbnail.append(elBottomOverlay);
+  return elBottomOverlay;
+}
+
+function ensureProgressBarHost(elLockup: HTMLElement) {
+  const root: ShadowRoot | HTMLElement = elLockup.shadowRoot ?? elLockup;
+  const elExistingHost = root.querySelector<HTMLElement>(PROGRESS_BAR_HOST_TAG);
+  if (elExistingHost) {
+    return elExistingHost;
+  }
+
+  const elThumbnail = root.querySelector<HTMLElement>(THUMBNAIL_VIEW_MODEL_TAG);
+  if (!elThumbnail) {
+    return null;
+  }
+
+  const elHost = buildProgressBarHost(elThumbnail.classList.contains(THUMBNAIL_LARGE_CLASS));
+  ensureBottomOverlay(elThumbnail).prepend(elHost);
+  return elHost;
+}
+
 export function applyProgressBarUpdate({ elLockup, percent }: ApplyProgressBarUpdateParams) {
   if (percent === null) {
     return false;
   }
 
-  const root: ShadowRoot | HTMLElement = elLockup.shadowRoot ?? elLockup;
-  const elProgressHost = root.querySelector<HTMLElement>("yt-thumbnail-overlay-progress-bar-view-model");
+  const elProgressHost = ensureProgressBarHost(elLockup);
   if (!elProgressHost) {
     return false;
   }
