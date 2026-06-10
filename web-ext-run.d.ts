@@ -11,9 +11,28 @@ declare module "web-ext-run" {
     noInput?: boolean;
   }
 
+  interface FirefoxRdpClient {
+    request(request: string | {
+      to: string;
+      type: string;
+      options?: unknown;
+    }): Promise<{
+      tabs?: Array<{
+        actor: string;
+        url?: string;
+      }>;
+      frame?: { actor?: string };
+    }>;
+  }
+
+  interface FirefoxExtensionRunner {
+    remoteFirefox?: { client: FirefoxRdpClient };
+  }
+
   interface RunResult {
     reloadAllExtensions(): Promise<void>;
     exit(): Promise<void>;
+    extensionRunners?: FirefoxExtensionRunner[];
   }
 
   const webExt: {

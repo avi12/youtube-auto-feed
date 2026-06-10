@@ -446,6 +446,38 @@ async function reloadYouTubeTabsAt(cdpPort: number) {
   }
 }
 
+type WebExtRunner = Awaited<ReturnType<typeof webExtRun.cmd.run>>;
+
+// web-ext reloads the Firefox extension but never the open tabs, so a sideloaded Firefox keeps
+// running the previous content script after a rebuild. Reuse web-ext's own RDP connection (its port
+// is a random free port, so it can't be hardcoded) to reload the YouTube tabs, mirroring CDP for
+// Chromium.
+async function reloadFirefoxYouTubeTabs(runner: WebExtRunner) {
+  const client = runner.extensionRunners?.find(extensionRunner => extensionRunner.remoteFirefox)?.remoteFirefox?.client;
+  if (!client) {
+    return;
+  }
+
+  const { tabs = [] } = await client.request("listTabs");
+  for (const tab of tabs) {
+    if (!tab.url?.includes("youtube.com")) {
+      continue;
+    }
+
+    const { frame } = await client.request({
+      to: tab.actor,
+      type: "getTarget"
+    });
+    if (frame?.actor) {
+      await client.request({
+        to: frame.actor,
+        type: "reload",
+        options: {}
+      });
+    }
+  }
+}
+
 async function waitForCdpReady(cdpPort: number) {
   const cdpUrl = `http://localhost:${cdpPort}/json/version`;
   for (let attempt = 0; attempt < CDP_BOOT_POLL_ATTEMPTS; attempt++) {
@@ -609,7 +641,7 @@ async function launchFirefox(spec: BrowserSpec): Promise<BrowserHandle> {
     return {
       spec,
       reloadExtension: () => runner.reloadAllExtensions(),
-      async reloadTabs() {},
+      reloadTabs: () => reloadFirefoxYouTubeTabs(runner),
       shutdown: () => runner.exit()
     };
   }
