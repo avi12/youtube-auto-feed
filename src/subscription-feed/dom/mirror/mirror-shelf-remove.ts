@@ -8,7 +8,9 @@ import { createRemovalGhosts, dissolveRemovalGhosts } from "./mirror-ghosts";
 // Animated removal inside a rich shelf. An expanded shelf reflows like the Latest band - survivors
 // glide to their new slots, wrapping rows. A collapsed shelf shows one row and hides the overflow with
 // display:none, so a removed visible tile leaves a gap: the survivors slide left to fill it and the
-// first previously-hidden tile (promoted into the last slot) fades in while sliding from the right.
+// first previously-hidden tile slides in one column behind them into the last slot, a column ahead of
+// the nearest survivor so the wide tiles never pile up. That tile starts off the shelf's right edge,
+// so its opacity is eased-in - it stays invisible out there and only fades up as it settles in.
 //
 // The shelf's Polymer dom-repeat rebinds nodes in place rather than moving them, and does so
 // synchronously on flush. So the FLIP is keyed by the video each node now shows (not by node identity)
@@ -18,7 +20,7 @@ import { createRemovalGhosts, dissolveRemovalGhosts } from "./mirror-ghosts";
 
 const SHELF_ITEM_SELECTOR = "ytd-rich-item-renderer";
 const SURVIVOR_EASING = "cubic-bezier(0.4, 0, 0.2, 1)";
-const ENTRANCE_EASING = "cubic-bezier(0.05, 0.7, 0.1, 1)";
+const ENTRANCE_FADE_EASING = "cubic-bezier(0.7, 0, 1, 1)";
 const MILLISECONDS_PER_FRAME = 1000 / 60;
 const PROMOTION_POLL_FRAMES = 8;
 const GLIDE_FRAME_BUFFER = 4;
@@ -151,7 +153,7 @@ export async function animateShelfRemoval({ elShelf, retained, removedVideoIds }
   const elGliders = pinSurvivors(elShelf, elContents, beforePositions);
 
   await nextFrame();
-  releaseShelfGliders(elGliders);
+  releaseSurvivors(elGliders);
   dissolveRemovalGhosts(ghosts);
   await glideNewlyVisible(elShelf, beforePositions, slideInDistance);
   await clearHiddenOpacity(elShelf);
@@ -175,7 +177,7 @@ async function glideNewlyVisible(
       }
 
       await nextFrame();
-      releaseShelfGliders(elPromoted);
+      releaseEntrants(elPromoted);
       return;
     }
 
@@ -183,10 +185,21 @@ async function glideNewlyVisible(
   }
 }
 
-function releaseShelfGliders(elGliders: HTMLElement[]) {
+function releaseSurvivors(elGliders: HTMLElement[]) {
   for (const elItem of elGliders) {
-    elItem.style.transition =
-      `translate ${SURVIVOR_SHIFT_MS}ms ${SURVIVOR_EASING}, opacity ${SURVIVOR_SHIFT_MS}ms ${ENTRANCE_EASING}`;
+    elItem.style.transition = `translate ${SURVIVOR_SHIFT_MS}ms ${SURVIVOR_EASING}`;
+    elItem.style.translate = "";
+    elItem.addEventListener("transitionend", () => {
+      elItem.style.transition = "";
+      elItem.style.translate = "";
+    }, { once: true });
+  }
+}
+
+function releaseEntrants(elEntrants: HTMLElement[]) {
+  for (const elItem of elEntrants) {
+    elItem.style.transition = `translate ${SURVIVOR_SHIFT_MS}ms ${SURVIVOR_EASING}, `
+      + `opacity ${SURVIVOR_SHIFT_MS}ms ${ENTRANCE_FADE_EASING}`;
     elItem.style.translate = "";
     elItem.style.opacity = "";
     elItem.addEventListener("transitionend", () => {
