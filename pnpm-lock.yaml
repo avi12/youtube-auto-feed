@@ -4,6 +4,9 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+patchedDependencies:
+  zod: aefe3b02813253e32ed34c380a9e8b863aba75b07f566af8f2ddd6c6b5fc331b
+
 importers:
 
   .:
@@ -13,7 +16,7 @@ importers:
         version: 3.0.2
       zod:
         specifier: ^4.4.3
-        version: 4.4.3
+        version: 4.4.3(patch_hash=aefe3b02813253e32ed34c380a9e8b863aba75b07f566af8f2ddd6c6b5fc331b)
     devDependencies:
       '@eslint/js':
         specifier: ^10.0.1
@@ -6853,7 +6856,7 @@ snapshots:
       jsonwebtoken: 9.0.3
       listr2: 10.2.1
       ofetch: 1.5.1
-      zod: 4.4.3
+      zod: 4.4.3(patch_hash=aefe3b02813253e32ed34c380a9e8b863aba75b07f566af8f2ddd6c6b5fc331b)
 
   punycode@2.3.1: {}
 
@@ -7985,4 +7988,4 @@ snapshots:
       async: 3.2.6
       jszip: 3.10.1
 
-  zod@4.4.3: {}
+  zod@4.4.3(patch_hash=aefe3b02813253e32ed34c380a9e8b863aba75b07f566af8f2ddd6c6b5fc331b): {}

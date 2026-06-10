@@ -4,3 +4,6 @@ allowBuilds:
   esbuild: true
   sharp: true
   spawn-sync: true
+
+patchedDependencies:
+  zod: patches/zod.patch
