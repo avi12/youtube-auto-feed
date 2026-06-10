@@ -34,21 +34,8 @@ function shelfItemId(elItem: HTMLElement) {
   return isPolymerElement(elItem) ? videoIdFromData(elItem.data) : null;
 }
 
-// True only when the tile is painted where the user is looking. elementFromPoint respects overflow
-// clipping, so a tile tucked in a collapsed shelf's hidden rows - even one whose rect overlaps the
-// viewport - is not the element at its own centre and reads as not visible, alongside display:none
-// and scrolled-off tiles.
 function isVisibleToUser(elItem: HTMLElement) {
-  const { left, top, width, height } = elItem.getBoundingClientRect();
-  const centerX = left + width / 2;
-  const centerY = top + height / 2;
-  const isCenterOnScreen = centerX >= 0 && centerX < innerWidth && centerY >= 0 && centerY < innerHeight;
-  if (width === 0 || height === 0 || !isCenterOnScreen) {
-    return false;
-  }
-
-  const elAtPoint = document.elementFromPoint(centerX, centerY);
-  return !!elAtPoint && elItem.contains(elAtPoint);
+  return elItem.offsetWidth > 0 && elItem.offsetHeight > 0;
 }
 
 function shelfItems(elShelf: HTMLElement) {

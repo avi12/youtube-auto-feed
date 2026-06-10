@@ -2,7 +2,7 @@ import type { Prettify } from "../../types/prettify";
 import { triggerAnimation } from "../animations";
 
 // Per-element pulse instead of a document-level view transition: a page-wide transition leaves every
-// tile un-hittable for its duration (elementFromPoint falls through to <html>), and these edits fire
+// tile un-hittable for its duration (pointer hit-testing falls through to <html>), and these edits fire
 // constantly as tiles scroll in, so serialized transitions would chain into seconds of dead grid.
 
 type ApplyWithDissolveParams = Prettify<{
