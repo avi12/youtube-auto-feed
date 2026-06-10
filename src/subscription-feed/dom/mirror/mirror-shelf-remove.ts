@@ -117,8 +117,13 @@ export async function animateShelfRemoval({ elShelf, retained, removedVideoIds }
   });
   const ghosts = createRemovalGhosts(elRemovedTiles);
 
-  elShelf.set("data.contents", retained);
-  flushPolymerRender();
+  // Write inside a frame, then invert in the microtask that follows (before the browser paints the
+  // rebound layout). A synchronous pin does not establish the transition baseline on Firefox.
+  await new Promise<void>(resolve => requestAnimationFrame(() => {
+    elShelf.set("data.contents", retained);
+    flushPolymerRender();
+    resolve();
+  }));
   const elGliders = pinSurvivors(elShelf, elContents, beforePositions);
 
   await nextFrame();
