@@ -9,6 +9,7 @@ import { collectInlineVideoIds, composeNewContents, isReferenceEqualArray } from
 import { findRemovedViewportTiles } from "./mirror-find-tiles";
 import { setContentsWithFlip } from "./mirror-flip";
 import { createRemovalGhosts } from "./mirror-ghosts";
+import { pruneUnsubscribedShelfVideos } from "./mirror-shelf-prune";
 import { awaitNewThumbnailsReady, repaintInsertedThumbnails } from "./mirror-thumbnails";
 
 type MirrorFromApiParams = Prettify<{
@@ -25,6 +26,11 @@ export async function mirrorFromApi({ apiContents }: MirrorFromApiParams) {
   if (currentContents.length === 0) {
     return;
   }
+
+  // Removal spans every band (Latest plus rich shelves); the inline reflow below only handles Latest,
+  // so reconcile the shelves here. Runs before the unchanged-inline early return so a video that lives
+  // only in a shelf is still pruned.
+  pruneUnsubscribedShelfVideos(apiContents);
 
   const previousInlineIds = collectInlineVideoIds(currentContents);
   const newContents = composeNewContents({
