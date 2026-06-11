@@ -29,7 +29,7 @@ export async function mirrorFromApi({ apiContents }: MirrorFromApiParams) {
 
   // Removal spans every band (Latest plus rich shelves); the inline reflow below only handles Latest,
   // so reconcile the shelves here. Runs before the unchanged-inline early return so a video that lives
-  // only in a shelf is still pruned. Fire-and-forget: it awaits /player and the subscription set, which
+  // only in a shelf is still pruned. Fire-and-forget: it awaits watch-page and oEmbed lookups, which
   // must not stall the synchronous inline reflow.
   pruneUnsubscribedShelfVideos(apiContents).catch(() => {});
 

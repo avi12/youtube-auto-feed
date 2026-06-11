@@ -14,7 +14,7 @@ const CHANNEL_BROWSE_ID = /"browseEndpoint":\{"browseId":"(UC[\w-]{22})"/g;
 // A lockup links its uploader - and a collaborative (multi-channel) lockup links every collaborator -
 // through channel browseEndpoints in its deeply nested, largely unmodelled view-model data. Returns all
 // of them deduped, so the prune can keep a collaboration while any one collaborator is still subscribed.
-// Empty for shorts lockups, which carry no channel reference - the caller resolves those via /player.
+// Empty for shorts lockups, which carry no channel reference - the caller resolves those via the watch page.
 export function channelIdsFromRichItem(item: Prettify<InnerTubeRichGridItem>) {
   const { lockupViewModel } = item.richItemRenderer?.content ?? {};
   if (!isLockupViewModel(lockupViewModel)) {
