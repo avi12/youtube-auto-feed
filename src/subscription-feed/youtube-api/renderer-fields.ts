@@ -9,6 +9,9 @@ import {
 import type { Prettify } from "../types/prettify";
 import { VideoStatus } from "../types/video";
 
+const STREAMED_AGO_TEXT_PREFIX = "streamed";
+const UPCOMING_BADGE_TEXT = "Upcoming";
+
 export function viewCountFromRenderer(renderer: Prettify<InnerTubeVideoRenderer>) {
   const { viewCountText, shortViewCountText } = renderer;
   const { simpleText, runs } = viewCountText ?? {};
@@ -34,7 +37,7 @@ export function statusFromRenderer(renderer: Prettify<InnerTubeVideoRenderer>) {
   }
 
   // "Streamed X ago" lands before YouTube clears upcomingEventData, so this text overrides the stale upcoming signal.
-  const isStreamedAgo = publishedTimeText?.simpleText?.toLowerCase().startsWith("streamed") ?? false;
+  const isStreamedAgo = publishedTimeText?.simpleText?.toLowerCase().startsWith(STREAMED_AGO_TEXT_PREFIX) ?? false;
   const hasUpcomingSignal = badgeStyle === BadgeStyle.Upcoming
     || overlayStyle === OverlayStyle.Upcoming
     || upcomingEventData !== undefined;
@@ -67,7 +70,7 @@ export function statusFromLockup(lockup: Prettify<LockupViewModel>) {
         return VideoStatus.Upcoming;
       }
 
-      const hasUpcomingTextWithoutBadgeStyle = text === "Upcoming";
+      const hasUpcomingTextWithoutBadgeStyle = text === UPCOMING_BADGE_TEXT;
       if (hasUpcomingTextWithoutBadgeStyle) {
         return VideoStatus.Upcoming;
       }
