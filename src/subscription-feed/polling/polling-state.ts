@@ -37,6 +37,8 @@ export interface MonitorState {
   cancelBroadcastListener: (() => void) | null;
   initialBandLayout: Prettify<BandLayout> | null;
   isSubscriptionFetchInProgress: boolean;
+  thumbnailContentHashes: Map<string, string>;
+  lastThumbnailWatchTime: number;
 }
 
 export function createMonitorState(): MonitorState {
@@ -55,7 +57,9 @@ export function createMonitorState(): MonitorState {
     metadataPollingTimer: null,
     cancelBroadcastListener: null,
     initialBandLayout: null,
-    isSubscriptionFetchInProgress: false
+    isSubscriptionFetchInProgress: false,
+    thumbnailContentHashes: new Map(),
+    lastThumbnailWatchTime: 0
   };
 }
 

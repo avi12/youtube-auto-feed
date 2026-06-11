@@ -1,42 +1,19 @@
 import { isAnimationsEnabled } from "../../settings-state";
 import type { Prettify } from "../../types/prettify";
 
-// Deciding whether the picture changed and preparing the dissolve crossfade. YouTube's sqp/rs query
-// params rotate on CDN re-sign independently of the image bytes - only the path is stable per picture.
-
-function preloadImage(url: string) {
-  return new Promise<void>(resolve => {
-    const preload = new Image();
-    preload.onload = () => resolve();
-    preload.onerror = () => resolve();
-    preload.src = url;
-  });
-}
-
-// Decides whether to dissolve to the new thumbnail. Skips if the user is hovering (don't disrupt
-// the hover preview) or the painted URL already matches (same picture).
+// Deciding whether to dissolve to the new thumbnail. The caller only reaches here when the snapshot
+// thumbnail URL changed, which YouTube rotates only on a real picture edit - so the picture is new
+// and the painted image must be repainted. The image bytes cannot confirm this: i.ytimg signed URLs
+// are not version-pinned (the old URL serves the current picture once the CDN propagates), the
+// painted <img> is cross-origin tainted so its displayed pixels are unreadable, and two signed
+// variants of one picture are not byte-equal. So the only gate is hover - never disrupt the hover
+// preview - and every other change repaints.
 type PrepareThumbnailDissolveParams = Prettify<{
   elItem: HTMLElement;
-  elImg: HTMLImageElement;
   newUrl: string;
 }>;
 
-function urlPath(url: string) {
-  return url.split("?")[0];
-}
-
-export async function prepareThumbnailDissolve({ elItem, elImg, newUrl }: PrepareThumbnailDissolveParams) {
-  const isHovering = elItem.matches(":hover");
-  const isSamePicture = urlPath(elImg.src) === urlPath(newUrl);
-  if (isHovering || isSamePicture) {
-    return {
-      willDissolve: false,
-      newUrl
-    };
-  }
-
-  await preloadImage(newUrl);
-
+export function prepareThumbnailDissolve({ elItem, newUrl }: PrepareThumbnailDissolveParams) {
   return {
     willDissolve: !elItem.matches(":hover"),
     newUrl

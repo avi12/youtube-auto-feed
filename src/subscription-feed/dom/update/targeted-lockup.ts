@@ -41,9 +41,8 @@ export async function applyTargetedLockupUpdate({
   }
 
   const thumbWork = elImg
-    ? await prepareThumbnailDissolve({
+    ? prepareThumbnailDissolve({
       elItem,
-      elImg,
       newUrl
     })
     : null;

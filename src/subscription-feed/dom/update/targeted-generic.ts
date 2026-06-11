@@ -53,9 +53,8 @@ export async function applyTargetedGenericUpdate({
   }
 
   const thumbWork = elImg
-    ? await prepareThumbnailDissolve({
+    ? prepareThumbnailDissolve({
       elItem,
-      elImg,
       newUrl: thumbnailUrl
     })
     : null;
