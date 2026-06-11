@@ -23,7 +23,7 @@ user-profiles/
 youtube-auto-feed-drive-upload.json
 
 # Local environment config (Drive folder IDs, etc.)
-.env
+*.env
 .env.*
 !.env.example
 
