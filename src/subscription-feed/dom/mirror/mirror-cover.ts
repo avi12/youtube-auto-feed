@@ -13,7 +13,8 @@ export { clearReflowImageCovers };
 export function preCoverReflowImages(newContents: Prettify<InnerTubeRichGridItem>[], newlyInsertedIds: Set<string>) {
   const futureItems = newContents.filter(item => !!item.richItemRenderer);
   const elItems = [...document.querySelectorAll<HTMLElement>(GRID_ITEM_SELECTOR)];
-  for (let i = 0; i < elItems.length && i < futureItems.length; i++) {
+  const coverableCount = Math.min(elItems.length, futureItems.length);
+  for (let i = 0; i < coverableCount; i++) {
     const elItem = elItems[i];
     const futureContent = futureItems[i].richItemRenderer?.content;
     if (!isInReflowZone(elItem) || !futureContent) {
