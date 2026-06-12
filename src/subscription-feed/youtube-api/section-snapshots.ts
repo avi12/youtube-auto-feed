@@ -68,8 +68,13 @@ type TabContent = NonNullable<
   InnerTubeBrowseResponse["contents"]["twoColumnBrowseResultsRenderer"]["tabs"][number]["tabRenderer"]["content"]
 >;
 
+interface SectionListParams {
+  tabContent: TabContent | undefined;
+  pushSnapshot: PushSnapshot;
+}
+
 // Fallback for older feeds that use sectionListRenderer instead of richGridRenderer.
-export function collectSectionListSnapshots(tabContent: TabContent | undefined, pushSnapshot: PushSnapshot) {
+export function collectSectionListSnapshots({ tabContent, pushSnapshot }: Prettify<SectionListParams>) {
   for (const sectionItem of tabContent?.sectionListRenderer?.contents ?? []) {
     for (const innerItem of sectionItem.itemSectionRenderer?.contents ?? []) {
       const shelf = innerItem.shelfRenderer;

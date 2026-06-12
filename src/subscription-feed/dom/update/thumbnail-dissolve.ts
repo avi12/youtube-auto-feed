@@ -27,7 +27,12 @@ const THUMBNAIL_DISSOLVE_MS = 250;
 // transition would be cleaner but doesn't animate on Firefox - its snapshot captures the <img>
 // before the new src repaints, collapsing the blend to a hard swap. This live-DOM approach works
 // everywhere and never flashes.
-export async function dissolveThumbnail(elImg: HTMLImageElement, newUrl: string) {
+type DissolveThumbnailParams = Prettify<{
+  elImg: HTMLImageElement;
+  newUrl: string;
+}>;
+
+export async function dissolveThumbnail({ elImg, newUrl }: DissolveThumbnailParams) {
   if (!isAnimationsEnabled()) {
     elImg.src = newUrl;
     return;

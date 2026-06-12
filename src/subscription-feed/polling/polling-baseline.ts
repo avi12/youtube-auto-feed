@@ -10,7 +10,10 @@ export function createBaselineHandlers(context: MonitorContext) {
     state.isDomReady = true;
     state.pageLoadTime = Date.now();
     resetLazyUpdates();
-    rebuildBaselineFromDom(state, await normalizeCollapsedShelfRows());
+    rebuildBaselineFromDom({
+      state,
+      trimmedVideoIds: await normalizeCollapsedShelfRows()
+    });
 
     if (state.pendingApiSnapshots !== null) {
       const pending = state.pendingApiSnapshots;
@@ -19,7 +22,10 @@ export function createBaselineHandlers(context: MonitorContext) {
         payload: pending,
         isInitialLoad: false
       });
-      rebuildBaselineFromDom(state, await normalizeCollapsedShelfRows());
+      rebuildBaselineFromDom({
+        state,
+        trimmedVideoIds: await normalizeCollapsedShelfRows()
+      });
     }
   }
 

@@ -37,11 +37,17 @@ export async function mirrorFromApi({ apiContents }: MirrorFromApiParams) {
     apiContents,
     currentContents
   });
-  if (isReferenceEqualArray(currentContents, newContents)) {
+  if (isReferenceEqualArray({
+    left: currentContents,
+    right: newContents
+  })) {
     return;
   }
 
-  const { newlyInsertedIds, newThumbnailUrls } = collectNewlyInsertedTiles(newContents, previousInlineIds);
+  const { newlyInsertedIds, newThumbnailUrls } = collectNewlyInsertedTiles({
+    newContents,
+    previousInlineIds
+  });
 
   repaintInsertedThumbnails(newlyInsertedIds).catch(() => {});
 
@@ -60,10 +66,12 @@ export async function mirrorFromApi({ apiContents }: MirrorFromApiParams) {
   }
 }
 
-function collectNewlyInsertedTiles(
-  newContents: Prettify<InnerTubeRichGridItem>[],
-  previousInlineIds: Set<string>
-) {
+type CollectNewlyInsertedTilesParams = Prettify<{
+  newContents: Prettify<InnerTubeRichGridItem>[];
+  previousInlineIds: Set<string>;
+}>;
+
+function collectNewlyInsertedTiles({ newContents, previousInlineIds }: CollectNewlyInsertedTilesParams) {
   const newlyInsertedIds = new Set<string>();
   const newThumbnailUrls = new Map<string, string>();
   for (const item of newContents) {

@@ -31,7 +31,10 @@ export async function setContentsWithFlip(
   const imageCoverObserver = observeAndCoverBlankImages(elGrid);
 
   await nextFrame();
-  preCoverReflowImages(newContents, newlyInsertedIds);
+  preCoverReflowImages({
+    newContents,
+    newlyInsertedIds
+  });
   const oldRects = recordReflowZoneRects();
 
   await new Promise<void>(resolve =>

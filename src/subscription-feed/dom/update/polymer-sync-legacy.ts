@@ -1,5 +1,6 @@
 import type { InnerTubeVideoRenderer } from "../../types/innertube";
 import type { PolymerElement } from "../../types/polymer";
+import type { Prettify } from "../../types/prettify";
 import { isShelfRenderer } from "../../youtube-api/guards";
 import { richShelfDataSchema } from "../../youtube-api/schemas";
 import { buildMergedVideoRenderer } from "./merged-video-renderer";
@@ -10,7 +11,12 @@ type ShelfListItem = {
   gridVideoRenderer?: InnerTubeVideoRenderer;
 };
 
-function findMatchingRendererKey(item: ShelfListItem, videoId: string) {
+type FindMatchingRendererKeyParams = Prettify<{
+  item: ShelfListItem;
+  videoId: string;
+}>;
+
+function findMatchingRendererKey({ item, videoId }: FindMatchingRendererKeyParams) {
   if ((item.videoRenderer?.videoId ?? "") === videoId) {
     return "videoRenderer" as const;
   }
@@ -34,7 +40,10 @@ export function applyToLegacyShelfModels({ videoId, rawRenderer, forcePreserveCo
     for (const listKey of ["horizontalListRenderer", "gridRenderer"] as const) {
       const { items = [] } = shelfContent?.[listKey] ?? {};
       for (const [iItem, item] of items.entries()) {
-        const rendererKey = findMatchingRendererKey(item, videoId);
+        const rendererKey = findMatchingRendererKey({
+          item,
+          videoId
+        });
         if (!rendererKey) {
           continue;
         }

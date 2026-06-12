@@ -35,10 +35,10 @@ export function composeNewContents({ apiContents, currentContents }: ComposeNewC
     collaborativeIds
   });
 
-  const commonSubsequence = longestCommonSubsequence(
-    currentBand.map(entry => entry.videoId),
-    apiBand.map(entry => entry.videoId)
-  );
+  const commonSubsequence = longestCommonSubsequence({
+    leftIds: currentBand.map(entry => entry.videoId),
+    rightIds: apiBand.map(entry => entry.videoId)
+  });
   const targetBand = mergeBand({
     currentBand,
     apiBand,

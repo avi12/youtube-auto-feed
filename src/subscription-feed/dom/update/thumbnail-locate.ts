@@ -13,7 +13,12 @@ const PROGRESS_BAR_HOST_LARGE_CLASS = "ytThumbnailOverlayProgressBarHostLarge";
 const PROGRESS_BAR_TRACK_CLASS = "ytThumbnailOverlayProgressBarHostWatchedProgressBar ytThumbnailOverlayProgressBarHostUseLegacyBar";
 const PROGRESS_BAR_SEGMENT_CLASS = "ytThumbnailOverlayProgressBarHostWatchedProgressBarSegment";
 
-function findImgInYtImages(root: ShadowRoot | HTMLElement, selector: string) {
+type FindImgInYtImagesParams = Prettify<{
+  root: ShadowRoot | HTMLElement;
+  selector: string;
+}>;
+
+function findImgInYtImages({ root, selector }: FindImgInYtImagesParams) {
   for (const elYtImage of root.querySelectorAll<HTMLElement>(selector)) {
     const elImg = elYtImage.shadowRoot?.querySelector<HTMLImageElement>("img")
       ?? elYtImage.querySelector<HTMLImageElement>("img");
@@ -33,7 +38,10 @@ export function findThumbnailImg(elLockup: HTMLElement) {
     return elThumbnailViewModelImg;
   }
 
-  return findImgInYtImages(root, "yt-image");
+  return findImgInYtImages({
+    root,
+    selector: "yt-image"
+  });
 }
 
 type ApplyProgressBarUpdateParams = Prettify<{
@@ -114,5 +122,8 @@ export function findThumbnailImgInItem(elItem: HTMLElement) {
     }
   }
 
-  return findImgInYtImages(elItem, "ytd-thumbnail yt-image");
+  return findImgInYtImages({
+    root: elItem,
+    selector: "ytd-thumbnail yt-image"
+  });
 }

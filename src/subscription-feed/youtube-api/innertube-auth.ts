@@ -19,7 +19,12 @@ async function sapisidHashHeader() {
   return `SAPISIDHASH ${timestamp}_${hex}`;
 }
 
-export async function innertubePost(endpoint: string, payload: Record<string, unknown>) {
+interface InnertubePostParams {
+  endpoint: string;
+  payload: Record<string, unknown>;
+}
+
+export async function innertubePost({ endpoint, payload }: InnertubePostParams) {
   const apiKey = ytcfg?.get("INNERTUBE_API_KEY");
   const context = ytcfg?.get("INNERTUBE_CONTEXT");
   if (!apiKey || !context) {

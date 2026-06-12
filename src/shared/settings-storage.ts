@@ -1,3 +1,4 @@
+import type { Prettify } from "../subscription-feed/types/prettify";
 import { defaultSettings, type FeedSettings, IS_ANIMATIONS_ENABLED_KEY, IS_EXTENSION_ENABLED_KEY } from "./settings";
 import { z } from "./zod";
 import { storage } from "#imports";
@@ -7,7 +8,12 @@ type FeedSettingKey = typeof IS_EXTENSION_ENABLED_KEY | typeof IS_ANIMATIONS_ENA
 
 const booleanSettingSchema = z.boolean();
 
-async function readBooleanSetting(key: FeedSettingKey, fallback: boolean) {
+type ReadBooleanSettingParams = Prettify<{
+  key: FeedSettingKey;
+  fallback: boolean;
+}>;
+
+async function readBooleanSetting({ key, fallback }: ReadBooleanSettingParams) {
   const parsed = booleanSettingSchema.safeParse(await storage.getItem(key));
   return parsed.success ? parsed.data : fallback;
 }
@@ -15,8 +21,14 @@ async function readBooleanSetting(key: FeedSettingKey, fallback: boolean) {
 export async function loadStoredSettings(): Promise<FeedSettings> {
   const defaults = defaultSettings();
   const [isExtensionEnabled, isAnimationsEnabled] = await Promise.all([
-    readBooleanSetting(IS_EXTENSION_ENABLED_KEY, defaults.isExtensionEnabled),
-    readBooleanSetting(IS_ANIMATIONS_ENABLED_KEY, defaults.isAnimationsEnabled)
+    readBooleanSetting({
+      key: IS_EXTENSION_ENABLED_KEY,
+      fallback: defaults.isExtensionEnabled
+    }),
+    readBooleanSetting({
+      key: IS_ANIMATIONS_ENABLED_KEY,
+      fallback: defaults.isAnimationsEnabled
+    })
   ]);
   return {
     isExtensionEnabled,

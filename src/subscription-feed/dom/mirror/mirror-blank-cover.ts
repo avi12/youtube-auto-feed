@@ -1,3 +1,4 @@
+import type { Prettify } from "../../types/prettify";
 import { isPolymerElement } from "../../utils/polymer";
 import { avatarUrlFromContent, thumbnailUrlFromContent } from "../rich-item";
 import { GRID_ITEM_SELECTOR, type RichItemElement } from "./mirror-constants";
@@ -13,14 +14,25 @@ export function coverBlankImages() {
     const { content } = elItem.data;
     const thumbnailUrl = thumbnailUrlFromContent(content);
     for (const elImg of thumbnailImgsInItem(elItem)) {
-      coverImgWhileBlank(elImg, thumbnailUrl);
+      coverImgWhileBlank({
+        elImg,
+        url: thumbnailUrl
+      });
     }
 
-    coverImgWhileBlank(avatarImgInItem(elItem), avatarUrlFromContent(content));
+    coverImgWhileBlank({
+      elImg: avatarImgInItem(elItem),
+      url: avatarUrlFromContent(content)
+    });
   }
 }
 
-function coverImgWhileBlank(elImg: HTMLImageElement | null, url: string) {
+type CoverImgWhileBlankParams = Prettify<{
+  elImg: HTMLImageElement | null;
+  url: string;
+}>;
+
+function coverImgWhileBlank({ elImg, url }: CoverImgWhileBlankParams) {
   if (!elImg || !url) {
     return;
   }

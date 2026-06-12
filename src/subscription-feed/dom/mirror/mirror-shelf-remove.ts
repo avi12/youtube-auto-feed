@@ -51,7 +51,12 @@ interface RelativePosition {
   top: number;
 }
 
-function recordVisiblePositions(elShelf: HTMLElement, elContents: HTMLElement) {
+type RecordVisiblePositionsParams = Prettify<{
+  elShelf: HTMLElement;
+  elContents: HTMLElement;
+}>;
+
+function recordVisiblePositions({ elShelf, elContents }: RecordVisiblePositionsParams) {
   const positions = new Map<string, RelativePosition>();
   const contentsRect = elContents.getBoundingClientRect();
   for (const elItem of visibleShelfItems(elShelf)) {
@@ -79,7 +84,13 @@ function columnSpacing(positions: Map<string, RelativePosition>) {
   return 0;
 }
 
-function pinSurvivors(elShelf: HTMLElement, elContents: HTMLElement, beforePositions: Map<string, RelativePosition>) {
+type PinSurvivorsParams = Prettify<{
+  elShelf: HTMLElement;
+  elContents: HTMLElement;
+  beforePositions: Map<string, RelativePosition>;
+}>;
+
+function pinSurvivors({ elShelf, elContents, beforePositions }: PinSurvivorsParams) {
   const contentsRect = elContents.getBoundingClientRect();
   const elGliders: HTMLElement[] = [];
   for (const elItem of visibleShelfItems(elShelf)) {
@@ -125,7 +136,10 @@ export async function animateShelfRemoval({ elShelf, retained, removedVideoIds }
     return;
   }
 
-  const beforePositions = recordVisiblePositions(elShelf, elContents);
+  const beforePositions = recordVisiblePositions({
+    elShelf,
+    elContents
+  });
   const slideInDistance = columnSpacing(beforePositions);
   // Pre-hide the overflow so the tile promoted into view starts invisible and does not flash.
   for (const elItem of shelfItems(elShelf).filter(elItem => elItem.offsetWidth === 0)) {
@@ -141,20 +155,30 @@ export async function animateShelfRemoval({ elShelf, retained, removedVideoIds }
     flushPolymerRender();
     resolve();
   }));
-  const elGliders = pinSurvivors(elShelf, elContents, beforePositions);
+  const elGliders = pinSurvivors({
+    elShelf,
+    elContents,
+    beforePositions
+  });
 
   await nextFrame();
   releaseSurvivors(elGliders);
   dissolveRemovalGhosts(ghosts);
-  await glideNewlyVisible(elShelf, beforePositions, slideInDistance);
+  await glideNewlyVisible({
+    elShelf,
+    beforePositions,
+    slideInDistance
+  });
   await clearHiddenOpacity(elShelf);
 }
 
-async function glideNewlyVisible(
-  elShelf: HTMLElement,
-  beforePositions: Map<string, RelativePosition>,
-  slideInDistance: number
-) {
+type GlideNewlyVisibleParams = Prettify<{
+  elShelf: HTMLElement;
+  beforePositions: Map<string, RelativePosition>;
+  slideInDistance: number;
+}>;
+
+async function glideNewlyVisible({ elShelf, beforePositions, slideInDistance }: GlideNewlyVisibleParams) {
   for (let iFrame = 0; iFrame < PROMOTION_POLL_FRAMES; iFrame++) {
     const elPromoted = visibleShelfItems(elShelf).filter(elItem => {
       const videoId = shelfItemId(elItem);

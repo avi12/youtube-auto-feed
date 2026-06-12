@@ -67,7 +67,12 @@ function collectApiVideoIds(apiContents: Prettify<InnerTubeRichGridItem>[]) {
   return videoIds;
 }
 
-function collectShelfVideos(elShelves: PolymerElement[], apiVideoIds: Set<string>) {
+type CollectShelfVideosParams = Prettify<{
+  elShelves: PolymerElement[];
+  apiVideoIds: Set<string>;
+}>;
+
+function collectShelfVideos({ elShelves, apiVideoIds }: CollectShelfVideosParams) {
   const shelfVideos: ShelfVideo[] = [];
   const seen = new Set<string>();
   for (const elShelf of elShelves) {
@@ -102,7 +107,12 @@ function forgetDepartedVideos(presentVideoIds: Set<string>) {
 // a trust window and the calls are capped per poll, so a first load of many Shorts spreads over a couple
 // of polls rather than firing dozens of requests at once. When the budget is spent, an earlier result is
 // reused; an unknown video is treated as available so a valid video is never dropped on a transient miss.
-async function isDeleted(videoId: string, budget: PruneBudget) {
+type IsDeletedParams = Prettify<{
+  videoId: string;
+  budget: PruneBudget;
+}>;
+
+async function isDeleted({ videoId, budget }: IsDeletedParams) {
   const remembered = availabilityByVideoId.get(videoId);
   if (remembered && remembered.until > Date.now()) {
     return !remembered.isAvailable;
@@ -126,13 +136,25 @@ async function isDeleted(videoId: string, budget: PruneBudget) {
 // settled from the watch page; a Short carries none and falls back to the owner the probe reports. The
 // deletion check runs only for Shorts and videos absent from this poll - a present regular video is known
 // to exist. An unknown subscription verdict keeps the video, so a transient failure never removes it.
-async function isRemovable(video: ShelfVideo, budget: PruneBudget) {
+type IsRemovableParams = Prettify<{
+  video: ShelfVideo;
+  budget: PruneBudget;
+}>;
+
+async function isRemovable({ video, budget }: IsRemovableParams) {
   const isDeletionCandidate = video.lockupChannelIds.length === 0 || video.isAbsent;
-  if (isDeletionCandidate && await isDeleted(video.videoId, budget)) {
+  if (isDeletionCandidate && await isDeleted({
+    videoId: video.videoId,
+    budget
+  })) {
     return true;
   }
 
-  const verdict = await resolveChannelSubscription(video.lockupChannelIds, video.videoId, budget);
+  const verdict = await resolveChannelSubscription({
+    lockupChannelIds: video.lockupChannelIds,
+    videoId: video.videoId,
+    budget
+  });
   return verdict === SubscriptionVerdict.Unsubscribed;
 }
 
@@ -180,7 +202,10 @@ export async function pruneUnsubscribedShelfVideos(apiContents: Prettify<InnerTu
     return;
   }
 
-  const shelfVideos = collectShelfVideos(elShelves, collectApiVideoIds(apiContents));
+  const shelfVideos = collectShelfVideos({
+    elShelves,
+    apiVideoIds: collectApiVideoIds(apiContents)
+  });
   forgetDepartedVideos(new Set(shelfVideos.map(video => video.videoId)));
 
   const budget: PruneBudget = {
@@ -190,7 +215,10 @@ export async function pruneUnsubscribedShelfVideos(apiContents: Prettify<InnerTu
   const verdicts = await Promise.all(
     shelfVideos.map(async video => ({
       videoId: video.videoId,
-      isRemovable: await isRemovable(video, budget)
+      isRemovable: await isRemovable({
+        video,
+        budget
+      })
     }))
   );
   const removableVideoIds = new Set(

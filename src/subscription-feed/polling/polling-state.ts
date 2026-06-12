@@ -83,7 +83,12 @@ export interface MonitorContext {
   setEnabled: (enabled: boolean) => void;
 }
 
-export function rebuildBaselineFromDom(state: MonitorState, trimmedVideoIds: Iterable<string>) {
+type RebuildBaselineFromDomParams = Prettify<{
+  state: MonitorState;
+  trimmedVideoIds: Iterable<string>;
+}>;
+
+export function rebuildBaselineFromDom({ state, trimmedVideoIds }: RebuildBaselineFromDomParams) {
   state.lastSnapshot = readDomSnapshot();
   for (const videoId of trimmedVideoIds) {
     state.lastSnapshot.delete(videoId);

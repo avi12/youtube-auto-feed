@@ -37,8 +37,14 @@ function cloneTileGhost(elTile: HTMLElement) {
     return null;
   }
 
-  positionRemovalGhost(elGhost, rect);
-  paintGhostThumbnailBackground(elTile, elGhost);
+  positionRemovalGhost({
+    elGhost,
+    rect
+  });
+  paintGhostThumbnailBackground({
+    elTile,
+    elGhost
+  });
   return elGhost;
 }
 

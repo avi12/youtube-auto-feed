@@ -1,3 +1,4 @@
+import type { Prettify } from "../../types/prettify";
 import { thumbnailContainerInItem, thumbnailImgsInItem } from "./mirror-elements";
 import { positionRemovalGhost } from "./mirror-ghost-position";
 
@@ -18,7 +19,10 @@ export function thumbnailGhost(elTile: HTMLElement) {
   }
 
   const elGhost = document.createElement("div");
-  positionRemovalGhost(elGhost, rect);
+  positionRemovalGhost({
+    elGhost,
+    rect
+  });
   const { style } = elGhost;
   style.borderRadius = getComputedStyle(elThumb).borderRadius;
   style.backgroundImage = `url("${url}")`;
@@ -28,7 +32,12 @@ export function thumbnailGhost(elTile: HTMLElement) {
 }
 
 // The cloned <img> re-decodes from cache, so hold its already-painted picture as a background.
-export function paintGhostThumbnailBackground(elTile: HTMLElement, elGhost: HTMLElement) {
+type PaintGhostThumbnailBackgroundParams = Prettify<{
+  elTile: HTMLElement;
+  elGhost: HTMLElement;
+}>;
+
+export function paintGhostThumbnailBackground({ elTile, elGhost }: PaintGhostThumbnailBackgroundParams) {
   const url = thumbnailUrlInItem(elTile);
   if (!url) {
     return;

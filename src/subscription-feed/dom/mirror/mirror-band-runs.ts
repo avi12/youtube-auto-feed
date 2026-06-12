@@ -64,6 +64,11 @@ export function collectInlineVideoIds(contents: Prettify<InnerTubeRichGridItem>[
   return ids;
 }
 
-export function isReferenceEqualArray(left: readonly unknown[], right: readonly unknown[]) {
+type IsReferenceEqualArrayParams = Prettify<{
+  left: readonly unknown[];
+  right: readonly unknown[];
+}>;
+
+export function isReferenceEqualArray({ left, right }: IsReferenceEqualArrayParams) {
   return left.length === right.length && left.every((item, i) => item === right[i]);
 }

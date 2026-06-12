@@ -1,6 +1,12 @@
+import type { Prettify } from "../../types/prettify";
 import { thumbnailImgsInItem } from "./mirror-elements";
 
-export function dropOverlayWhenThumbnailLoads(elItem: HTMLElement, elOverlay: HTMLElement | null) {
+type DropOverlayWhenThumbnailLoadsParams = Prettify<{
+  elItem: HTMLElement;
+  elOverlay: HTMLElement | null;
+}>;
+
+export function dropOverlayWhenThumbnailLoads({ elItem, elOverlay }: DropOverlayWhenThumbnailLoadsParams) {
   if (!elOverlay) {
     return;
   }
@@ -25,7 +31,15 @@ export function prepareCoverHost(elItem: HTMLElement) {
   elItem.dataset.ytafCoverHost = "1";
 }
 
-export function addCoverOverlay(elItem: HTMLElement, url: string, rect: DOMRect, tileRect: DOMRect, radius: string) {
+type AddCoverOverlayParams = Prettify<{
+  elItem: HTMLElement;
+  url: string;
+  rect: DOMRect;
+  tileRect: DOMRect;
+  radius: string;
+}>;
+
+export function addCoverOverlay({ elItem, url, rect, tileRect, radius }: AddCoverOverlayParams) {
   if (rect.width === 0) {
     return null;
   }

@@ -1,6 +1,13 @@
+import type { Prettify } from "../../types/prettify";
+
 export const REMOVAL_GHOST_ATTR = "data-ytaf-removal-ghost";
 
-export function positionRemovalGhost(elGhost: HTMLElement, rect: DOMRect) {
+type PositionRemovalGhostParams = Prettify<{
+  elGhost: HTMLElement;
+  rect: DOMRect;
+}>;
+
+export function positionRemovalGhost({ elGhost, rect }: PositionRemovalGhostParams) {
   elGhost.setAttribute(REMOVAL_GHOST_ATTR, "1");
   const { style } = elGhost;
   style.position = "fixed";

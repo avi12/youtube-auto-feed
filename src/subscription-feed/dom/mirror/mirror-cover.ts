@@ -10,7 +10,12 @@ export { clearReflowImageCovers };
 // Each tile node (ytd-rich-item-renderer) is stable but YouTube swaps its inner image containers on
 // some rebinds, so the z-index:-1 overlay is pinned to the tile node, showing through only while the
 // rebound image is briefly blank.
-export function preCoverReflowImages(newContents: Prettify<InnerTubeRichGridItem>[], newlyInsertedIds: Set<string>) {
+type PreCoverReflowImagesParams = Prettify<{
+  newContents: Prettify<InnerTubeRichGridItem>[];
+  newlyInsertedIds: Set<string>;
+}>;
+
+export function preCoverReflowImages({ newContents, newlyInsertedIds }: PreCoverReflowImagesParams) {
   const futureItems = newContents.filter(item => !!item.richItemRenderer);
   const elItems = [...document.querySelectorAll<HTMLElement>(GRID_ITEM_SELECTOR)];
   const coverableCount = Math.min(elItems.length, futureItems.length);
@@ -39,11 +44,23 @@ export function preCoverReflowImages(newContents: Prettify<InnerTubeRichGridItem
     const tileRect = elItem.getBoundingClientRect();
     if (elThumbnail && thumbnailUrl) {
       const thumbnailRadius = getComputedStyle(elThumbnail).borderRadius;
-      addCoverOverlay(elItem, thumbnailUrl, elThumbnail.getBoundingClientRect(), tileRect, thumbnailRadius);
+      addCoverOverlay({
+        elItem,
+        url: thumbnailUrl,
+        rect: elThumbnail.getBoundingClientRect(),
+        tileRect,
+        radius: thumbnailRadius
+      });
     }
 
     if (elAvatar && avatarUrl) {
-      addCoverOverlay(elItem, avatarUrl, elAvatar.getBoundingClientRect(), tileRect, "50%");
+      addCoverOverlay({
+        elItem,
+        url: avatarUrl,
+        rect: elAvatar.getBoundingClientRect(),
+        tileRect,
+        radius: "50%"
+      });
     }
   }
 }

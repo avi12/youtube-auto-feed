@@ -31,13 +31,16 @@ export function coverNewlyInsertedTiles({ newlyInsertedIds, newThumbnailUrls }: 
     }
 
     prepareCoverHost(elItem);
-    const elOverlay = addCoverOverlay(
+    const elOverlay = addCoverOverlay({
       elItem,
-      thumbnailUrl,
-      elThumbnail.getBoundingClientRect(),
-      elItem.getBoundingClientRect(),
-      getComputedStyle(elThumbnail).borderRadius
-    );
-    dropOverlayWhenThumbnailLoads(elItem, elOverlay);
+      url: thumbnailUrl,
+      rect: elThumbnail.getBoundingClientRect(),
+      tileRect: elItem.getBoundingClientRect(),
+      radius: getComputedStyle(elThumbnail).borderRadius
+    });
+    dropOverlayWhenThumbnailLoads({
+      elItem,
+      elOverlay
+    });
   }
 }

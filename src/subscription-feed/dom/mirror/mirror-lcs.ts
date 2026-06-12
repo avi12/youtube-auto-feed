@@ -1,4 +1,11 @@
-export function longestCommonSubsequence(leftIds: string[], rightIds: string[]) {
+import type { Prettify } from "../../types/prettify";
+
+type LongestCommonSubsequenceParams = Prettify<{
+  leftIds: string[];
+  rightIds: string[];
+}>;
+
+export function longestCommonSubsequence({ leftIds, rightIds }: LongestCommonSubsequenceParams) {
   const leftCount = leftIds.length;
   const rightCount = rightIds.length;
   const suffixLengths = Array.from(

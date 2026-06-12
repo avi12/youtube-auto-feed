@@ -36,8 +36,14 @@ export function mergeBand({
     return !apiBandIds.has(videoId) && retainedDroppedIds.has(videoId);
   }
 
-  const currentSegments = splitAtAnchors(currentBand, anchorIds);
-  const apiSegments = splitAtAnchors(apiBand, anchorIds);
+  const currentSegments = splitAtAnchors({
+    band: currentBand,
+    anchorIds
+  });
+  const apiSegments = splitAtAnchors({
+    band: apiBand,
+    anchorIds
+  });
   const mergedBand: Prettify<InnerTubeRichGridItem>[] = [];
 
   for (let iSegment = 0; iSegment <= anchorIds.length; iSegment++) {
@@ -62,7 +68,12 @@ export function mergeBand({
   return mergedBand;
 }
 
-function splitAtAnchors(band: InlineBandEntry[], anchorIds: string[]) {
+type SplitAtAnchorsParams = Prettify<{
+  band: InlineBandEntry[];
+  anchorIds: string[];
+}>;
+
+function splitAtAnchors({ band, anchorIds }: SplitAtAnchorsParams) {
   const segments: InlineBandEntry[][] = [[]];
   let iAnchor = 0;
   for (const entry of band) {

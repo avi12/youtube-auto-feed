@@ -70,6 +70,9 @@ export function applyAnimatedLockupChanges({
   }
 
   if (thumbWork?.willDissolve && elImg) {
-    dissolveThumbnail(elImg, thumbWork.newUrl).catch(() => {});
+    dissolveThumbnail({
+      elImg,
+      newUrl: thumbWork.newUrl
+    }).catch(() => {});
   }
 }

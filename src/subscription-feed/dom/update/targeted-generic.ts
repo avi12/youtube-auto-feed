@@ -85,6 +85,9 @@ export async function applyTargetedGenericUpdate({
   });
 
   if (thumbWork?.willDissolve && elImg) {
-    dissolveThumbnail(elImg, thumbWork.newUrl).catch(() => {});
+    dissolveThumbnail({
+      elImg,
+      newUrl: thumbWork.newUrl
+    }).catch(() => {});
   }
 }

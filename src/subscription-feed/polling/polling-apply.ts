@@ -36,7 +36,10 @@ export function createApplyHandlers(context: MonitorContext) {
       }
 
       if (isInitialLoad) {
-        await rebuildBaselineFromDom(state, await normalizeCollapsedShelfRows());
+        rebuildBaselineFromDom({
+          state,
+          trimmedVideoIds: await normalizeCollapsedShelfRows()
+        });
       }
 
       return true;

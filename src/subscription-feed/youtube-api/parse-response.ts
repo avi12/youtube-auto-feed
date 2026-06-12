@@ -79,7 +79,10 @@ export function parseApiResponse(data: Prettify<InnerTubeBrowseResponse>) {
     }
 
     if (snapshots.length === 0) {
-      collectSectionListSnapshots(tabContent, pushSnapshot);
+      collectSectionListSnapshots({
+        tabContent,
+        pushSnapshot
+      });
     }
   } catch {}
   return snapshots;

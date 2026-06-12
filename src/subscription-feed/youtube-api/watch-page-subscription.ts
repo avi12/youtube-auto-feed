@@ -70,7 +70,12 @@ function rememberSubscriptions(channelSubscriptions: Map<string, boolean>) {
   }
 }
 
-function verdictFrom(channelIds: string[], lookup: (channelId: string) => boolean | undefined): SubscriptionVerdict {
+interface VerdictFromParams {
+  channelIds: string[];
+  lookup: (channelId: string) => boolean | undefined;
+}
+
+function verdictFrom({ channelIds, lookup }: VerdictFromParams): SubscriptionVerdict {
   if (channelIds.length === 0) {
     return SubscriptionVerdict.Unknown;
   }
@@ -87,7 +92,12 @@ function verdictFrom(channelIds: string[], lookup: (channelId: string) => boolea
   return SubscriptionVerdict.Unknown;
 }
 
-function resolveDecisionIds(lockupChannelIds: string[], ownerChannelId: string | null) {
+interface ResolveDecisionIdsParams {
+  lockupChannelIds: string[];
+  ownerChannelId: string | null;
+}
+
+function resolveDecisionIds({ lockupChannelIds, ownerChannelId }: ResolveDecisionIdsParams) {
   if (lockupChannelIds.length > 0) {
     return lockupChannelIds;
   }
@@ -109,13 +119,25 @@ function cachedSubscription(channelId: string) {
 // channel-less Short would miss the per-channel cache and re-fetch its heavy watch page every poll,
 // which YouTube flags as abuse and soft-blocks the video for the session. The video is kept while any
 // of those channels is subscribed, and removed only when all of them are known and none is.
-export async function resolveChannelSubscription(
-  lockupChannelIds: string[],
-  videoId: string,
-  budget: { watchPageChecks: number }
-): Promise<SubscriptionVerdict> {
-  const knownChannelIds = resolveDecisionIds(lockupChannelIds, ownerChannelByVideoId.get(videoId) ?? null);
-  const cached = verdictFrom(knownChannelIds, cachedSubscription);
+interface ResolveChannelSubscriptionParams {
+  lockupChannelIds: string[];
+  videoId: string;
+  budget: { watchPageChecks: number };
+}
+
+export async function resolveChannelSubscription({
+  lockupChannelIds,
+  videoId,
+  budget
+}: ResolveChannelSubscriptionParams): Promise<SubscriptionVerdict> {
+  const knownChannelIds = resolveDecisionIds({
+    lockupChannelIds,
+    ownerChannelId: ownerChannelByVideoId.get(videoId) ?? null
+  });
+  const cached = verdictFrom({
+    channelIds: knownChannelIds,
+    lookup: cachedSubscription
+  });
   if (cached !== SubscriptionVerdict.Unknown) {
     return cached;
   }
@@ -136,8 +158,11 @@ export async function resolveChannelSubscription(
     ownerChannelByVideoId.set(videoId, probe.ownerChannelId);
   }
 
-  return verdictFrom(
-    resolveDecisionIds(lockupChannelIds, probe.ownerChannelId),
-    channelId => probe.channelSubscriptions.get(channelId)
-  );
+  return verdictFrom({
+    channelIds: resolveDecisionIds({
+      lockupChannelIds,
+      ownerChannelId: probe.ownerChannelId
+    }),
+    lookup: channelId => probe.channelSubscriptions.get(channelId)
+  });
 }

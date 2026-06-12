@@ -39,7 +39,12 @@ async function hashBytes(buffer: ArrayBuffer) {
 // Crossfade the new variant in with the View Transition API, naming only the <img> so the rest of
 // the grid is untouched. The new bytes are decoded inside the update callback so the post-swap
 // snapshot captures the new picture rather than a blank frame.
-async function viewTransitionSwap(elImg: HTMLImageElement, src: string) {
+type ViewTransitionSwapParams = Prettify<{
+  elImg: HTMLImageElement;
+  src: string;
+}>;
+
+async function viewTransitionSwap({ elImg, src }: ViewTransitionSwapParams) {
   if (!isAnimationsEnabled() || !document.startViewTransition) {
     elImg.src = src;
     return;
@@ -54,9 +59,17 @@ async function viewTransitionSwap(elImg: HTMLImageElement, src: string) {
   elImg.style.viewTransitionName = "";
 }
 
-async function swapToBytes(elImg: HTMLImageElement, buffer: ArrayBuffer) {
+type SwapToBytesParams = Prettify<{
+  elImg: HTMLImageElement;
+  buffer: ArrayBuffer;
+}>;
+
+async function swapToBytes({ elImg, buffer }: SwapToBytesParams) {
   const objectUrl = URL.createObjectURL(new Blob([buffer]));
-  await viewTransitionSwap(elImg, objectUrl);
+  await viewTransitionSwap({
+    elImg,
+    src: objectUrl
+  });
   URL.revokeObjectURL(objectUrl);
 }
 
@@ -108,7 +121,10 @@ export async function reconcileVisibleThumbnails({ contentHashes }: ReconcileVis
     contentHashes.set(videoId, hash);
     const hasServedVariantChanged = previousHash !== undefined && previousHash !== hash;
     if (hasServedVariantChanged) {
-      swapToBytes(elImg, buffer).catch(() => {});
+      swapToBytes({
+        elImg,
+        buffer
+      }).catch(() => {});
     }
   }
 }
