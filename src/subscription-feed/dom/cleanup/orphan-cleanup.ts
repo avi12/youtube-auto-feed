@@ -2,15 +2,13 @@ import type { InnerTubeRichGridItem } from "../../types/innertube";
 import type { PolymerElement } from "../../types/polymer";
 import type { Prettify } from "../../types/prettify";
 import { isPolymerElement } from "../../utils/polymer";
-import { deepArray } from "../../utils/records";
-import { gridDataSchema } from "../../youtube-api/schemas";
+import { isRichGridData } from "../../youtube-api/guards";
 import { pruneOrphanedDomItems } from "./orphan-cleanup-dom";
 import { collectGridModelIds, filterMisplacedAndDuplicates } from "./orphan-cleanup-grid";
 
 export function cleanOrphanedGridItems() {
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
-  const isGridUsable = !!elGrid && isPolymerElement(elGrid) && gridDataSchema.safeParse(elGrid.data).success;
-  if (!isGridUsable) {
+  if (!elGrid || !isPolymerElement(elGrid) || !isRichGridData(elGrid.data)) {
     return;
   }
 
@@ -44,12 +42,12 @@ type PruneOrphanedDomSectionsParams = Prettify<{
 }>;
 
 function pruneOrphanedDomSections({ elGrid, elGridContents }: PruneOrphanedDomSectionsParams) {
-  if (!gridDataSchema.safeParse(elGrid.data).success) {
+  if (!isRichGridData(elGrid.data)) {
     return;
   }
 
   const sectionTitleCounts = new Map<string, number>();
-  for (const item of deepArray<InnerTubeRichGridItem>(elGrid.data, "contents")) {
+  for (const item of elGrid.data.contents ?? []) {
     const sectionTitle = sectionTitleFromGridItem(item);
     if (sectionTitle) {
       sectionTitleCounts.set(sectionTitle, (sectionTitleCounts.get(sectionTitle) ?? 0) + 1);

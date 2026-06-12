@@ -1,12 +1,10 @@
-import type { InnerTubeRichGridItem } from "../../types/innertube";
 import type { PolymerElement } from "../../types/polymer";
 import type { Prettify } from "../../types/prettify";
-import { deepArray } from "../../utils/records";
-import { gridDataSchema } from "../../youtube-api/schemas";
+import { isRichGridData } from "../../youtube-api/guards";
 import { videoIdFromRichItem } from "../rich-item";
 
 export function collectGridModelIds(elGrid: PolymerElement) {
-  if (!gridDataSchema.safeParse(elGrid.data).success) {
+  if (!isRichGridData(elGrid.data)) {
     return {
       standaloneModelIds: new Set<string>(),
       standaloneModelDuplicates: new Set<string>()
@@ -16,7 +14,7 @@ export function collectGridModelIds(elGrid: PolymerElement) {
   const standaloneModelIds = new Set<string>();
   const standaloneModelDuplicates = new Set<string>();
 
-  for (const item of deepArray<InnerTubeRichGridItem>(elGrid.data, "contents")) {
+  for (const item of elGrid.data.contents ?? []) {
     const videoId = videoIdFromRichItem(item);
     if (!videoId) {
       continue;
@@ -46,12 +44,12 @@ export function filterMisplacedAndDuplicates({
   misplacedIds,
   standaloneModelDuplicates
 }: FilterMisplacedAndDuplicatesParams) {
-  if (!gridDataSchema.safeParse(elGrid.data).success) {
+  if (!isRichGridData(elGrid.data)) {
     return;
   }
 
   const seenDuplicates = new Set<string>();
-  const filteredContents = deepArray<InnerTubeRichGridItem>(elGrid.data, "contents").filter(item => {
+  const filteredContents = (elGrid.data.contents ?? []).filter(item => {
     const videoId = videoIdFromRichItem(item);
     if (!videoId) {
       return true;

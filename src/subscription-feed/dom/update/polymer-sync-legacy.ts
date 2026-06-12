@@ -1,6 +1,5 @@
 import type { InnerTubeVideoRenderer } from "../../types/innertube";
 import { isPolymerElement } from "../../utils/polymer";
-import { deepArray } from "../../utils/records";
 import { isShelfRenderer } from "../../youtube-api/guards";
 import { richShelfDataSchema } from "../../youtube-api/schemas";
 import { buildMergedVideoRenderer } from "./merged-video-renderer";
@@ -33,7 +32,7 @@ export function applyToLegacyShelfModels({ videoId, rawRenderer, forcePreserveCo
     const shelfData = elShelf.data;
     const shelfContent = isShelfRenderer(shelfData) ? shelfData.content : undefined;
     for (const listKey of ["horizontalListRenderer", "gridRenderer"] as const) {
-      const items = deepArray<ShelfListItem>(shelfContent, listKey, "items");
+      const items = shelfContent?.[listKey]?.items ?? [];
       for (const [iItem, item] of items.entries()) {
         const rendererKey = findMatchingRendererKey(item, videoId);
         if (!rendererKey) {

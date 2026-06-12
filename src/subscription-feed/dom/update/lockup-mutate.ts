@@ -1,11 +1,9 @@
 import { z } from "../../../shared/zod";
-import type { InnerTubeRichGridItem, LockupViewModel } from "../../types/innertube";
+import type { LockupViewModel } from "../../types/innertube";
 import type { PolymerElement } from "../../types/polymer";
 import type { Prettify } from "../../types/prettify";
-import { isPolymerElement } from "../../utils/polymer";
-import { deepArray } from "../../utils/records";
-import { isLockupViewModel } from "../../youtube-api/guards";
-import { gridDataSchema, richItemContentSchema, richShelfDataSchema } from "../../youtube-api/schemas";
+import { isLockupViewModel, isRichGridData, isRichShelfData, type RichGridData } from "../../youtube-api/guards";
+import { richItemContentSchema } from "../../youtube-api/schemas";
 import { findRichItemIndex } from "../rich-item";
 import { mutateLockupViewModelInPlace } from "./lockup-mutate-in-place";
 
@@ -25,18 +23,18 @@ const itemDataSchema = z.looseObject({
 
 type MutateLockupsInContainersParams = Prettify<{
   selector: string;
-  isUsable: (data: unknown) => boolean;
+  isUsable: (data: unknown) => data is RichGridData;
   videoId: string;
   mutateOne: (candidate: unknown) => void;
 }>;
 
 function mutateLockupsInContainers({ selector, isUsable, videoId, mutateOne }: MutateLockupsInContainersParams) {
-  for (const elContainer of document.querySelectorAll<HTMLElement>(selector)) {
-    if (!isPolymerElement(elContainer) || !isUsable(elContainer.data)) {
+  for (const elContainer of document.querySelectorAll<PolymerElement>(selector)) {
+    if (!isUsable(elContainer.data)) {
       continue;
     }
 
-    const contents = deepArray<InnerTubeRichGridItem>(elContainer.data, "contents");
+    const contents = elContainer.data.contents ?? [];
     const iItem = findRichItemIndex({
       contents,
       videoId
@@ -71,13 +69,13 @@ export function mutateLockupMetadata({ videoId, elItem, incoming, preserveConten
 
   mutateLockupsInContainers({
     selector: "ytd-rich-grid-renderer",
-    isUsable: data => gridDataSchema.safeParse(data).success,
+    isUsable: isRichGridData,
     videoId,
     mutateOne
   });
   mutateLockupsInContainers({
     selector: "ytd-rich-shelf-renderer",
-    isUsable: data => richShelfDataSchema.safeParse(data).success,
+    isUsable: isRichShelfData,
     videoId,
     mutateOne
   });

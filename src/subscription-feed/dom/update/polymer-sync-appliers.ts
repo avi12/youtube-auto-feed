@@ -1,8 +1,5 @@
-import type { InnerTubeRichGridItem } from "../../types/innertube";
 import type { PolymerElement } from "../../types/polymer";
-import { isPolymerElement } from "../../utils/polymer";
-import { deepArray } from "../../utils/records";
-import { gridDataSchema, richShelfDataSchema } from "../../youtube-api/schemas";
+import { isRichGridData, isRichShelfData } from "../../youtube-api/guards";
 import { findRichItemIndex } from "../rich-item";
 import { applyRichItemContentUpdate } from "./polymer-renderer-merge";
 import type { ApplyToContainerParams } from "./polymer-sync-types";
@@ -14,7 +11,11 @@ type UpdateRichItemParams = ApplyToContainerParams & {
 };
 
 function updateRichItem({ elElement, videoId, rawRenderer, forcePreserveContentImage }: UpdateRichItemParams) {
-  const contents = deepArray<InnerTubeRichGridItem>(elElement.data, "contents");
+  if (!isRichGridData(elElement.data) && !isRichShelfData(elElement.data)) {
+    return;
+  }
+
+  const contents = elElement.data.contents ?? [];
   const iItem = findRichItemIndex({
     contents,
     videoId
@@ -34,9 +35,8 @@ function updateRichItem({ elElement, videoId, rawRenderer, forcePreserveContentI
 }
 
 export function applyToGridModel({ videoId, rawRenderer, forcePreserveContentImage }: ApplyToContainerParams) {
-  const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
-  const isGridUsable = !!elGrid && isPolymerElement(elGrid) && gridDataSchema.safeParse(elGrid.data).success;
-  if (!isGridUsable) {
+  const elGrid = document.querySelector<PolymerElement>("ytd-rich-grid-renderer");
+  if (!elGrid) {
     return;
   }
 
@@ -49,12 +49,7 @@ export function applyToGridModel({ videoId, rawRenderer, forcePreserveContentIma
 }
 
 export function applyToRichShelfModels({ videoId, rawRenderer, forcePreserveContentImage }: ApplyToContainerParams) {
-  for (const elShelf of document.querySelectorAll<HTMLElement>("ytd-rich-shelf-renderer")) {
-    const isRichShelfUsable = isPolymerElement(elShelf) && richShelfDataSchema.safeParse(elShelf.data).success;
-    if (!isRichShelfUsable) {
-      continue;
-    }
-
+  for (const elShelf of document.querySelectorAll<PolymerElement>("ytd-rich-shelf-renderer")) {
     updateRichItem({
       elElement: elShelf,
       videoId,

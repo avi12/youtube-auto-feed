@@ -1,6 +1,7 @@
 import { z } from "../../shared/zod";
 import type {
   InnerTubeBrowseResponse,
+  InnerTubeRichGridItem,
   InnerTubeRichShelfRenderer,
   InnerTubeShelfRenderer,
   InnerTubeVideoRenderer,
@@ -9,12 +10,23 @@ import type {
 } from "../types/innertube";
 import {
   browseContentsSchema,
+  gridDataSchema,
   richShelfContentsSchema,
+  richShelfDataSchema,
   shelfContentSchema,
   shortsOnTapSchema,
   titleSchema,
   videoRendererSchema
 } from "./schemas";
+
+export interface RichGridData {
+  contents?: InnerTubeRichGridItem[];
+}
+
+export interface RichShelfData {
+  isExpanded?: boolean;
+  contents?: InnerTubeRichGridItem[];
+}
 
 const lockupViewModelSchema = z.looseObject({ contentId: z.string() });
 const shortsLockupViewModelSchema = z.looseObject({ onTap: shortsOnTapSchema });
@@ -42,6 +54,14 @@ export function isShortsLockupViewModel(value: unknown): value is ShortsLockupVi
 
 export function isInnerTubeBrowseResponse(value: unknown): value is InnerTubeBrowseResponse {
   return browseResponseSchema.safeParse(value).success;
+}
+
+export function isRichGridData(value: unknown): value is RichGridData {
+  return gridDataSchema.safeParse(value).success;
+}
+
+export function isRichShelfData(value: unknown): value is RichShelfData {
+  return richShelfDataSchema.safeParse(value).success;
 }
 
 export function isRichShelfRenderer(value: unknown): value is InnerTubeRichShelfRenderer {

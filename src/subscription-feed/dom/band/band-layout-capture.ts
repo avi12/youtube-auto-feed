@@ -1,8 +1,7 @@
 import type { InnerTubeRichGridItem } from "../../types/innertube";
+import type { PolymerElement } from "../../types/polymer";
 import type { Prettify } from "../../types/prettify";
-import { isPolymerElement } from "../../utils/polymer";
-import { deepArray } from "../../utils/records";
-import { gridDataSchema } from "../../youtube-api/schemas";
+import { isRichGridData } from "../../youtube-api/guards";
 import { videoIdFromRichItem } from "../rich-item";
 
 enum BandKind {
@@ -33,13 +32,12 @@ function readTitleOnlyShelfTitle(item: Prettify<InnerTubeRichGridItem>) {
 }
 
 export function captureBandLayout() {
-  const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
-  const isGridUsable = !!elGrid && isPolymerElement(elGrid) && gridDataSchema.safeParse(elGrid.data).success;
-  if (!isGridUsable) {
+  const elGrid = document.querySelector<PolymerElement>("ytd-rich-grid-renderer");
+  if (!elGrid || !isRichGridData(elGrid.data)) {
     return null;
   }
 
-  const contents = deepArray<InnerTubeRichGridItem>(elGrid.data, "contents");
+  const contents = elGrid.data.contents ?? [];
   const bands: Prettify<CapturedBand>[] = [];
   const sectionOrder: string[] = [];
   let currentInlineSection = "";

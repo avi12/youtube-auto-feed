@@ -1,7 +1,6 @@
-import type { InnerTubeRichGridItem } from "../../types/innertube";
 import { isPolymerElement } from "../../utils/polymer";
-import { deepArray } from "../../utils/records";
-import { richItemDataSchema, richShelfDataSchema } from "../../youtube-api/schemas";
+import { isRichShelfData } from "../../youtube-api/guards";
+import { richItemDataSchema } from "../../youtube-api/schemas";
 import { videoIdFromRichItem } from "../rich-item";
 
 function waitForPolymerToFinishRendering() {
@@ -16,8 +15,11 @@ export async function normalizeCollapsedShelfRows() {
       continue;
     }
 
-    const shelfDataParsed = richShelfDataSchema.safeParse(elShelf.data);
-    const isCollapsedShelf = shelfDataParsed.success && shelfDataParsed.data.isExpanded === false;
+    if (!isRichShelfData(elShelf.data)) {
+      continue;
+    }
+
+    const isCollapsedShelf = elShelf.data.isExpanded === false;
     if (!isCollapsedShelf) {
       continue;
     }
@@ -54,7 +56,7 @@ export async function normalizeCollapsedShelfRows() {
       })
     );
 
-    const currentContents = deepArray<InnerTubeRichGridItem>(elShelf.data, "contents");
+    const currentContents = elShelf.data.contents ?? [];
     const normalizedContents = currentContents.filter(item => {
       const videoId = videoIdFromRichItem(item);
       const isOverflowItem = !!videoId && overflowVideoIds.has(videoId);

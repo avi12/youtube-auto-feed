@@ -3,7 +3,7 @@ import type { InnerTubeRichGridItem } from "../../types/innertube";
 import type { PolymerElement } from "../../types/polymer";
 import type { Prettify } from "../../types/prettify";
 import { isPolymerElement } from "../../utils/polymer";
-import { deepArray } from "../../utils/records";
+import { isRichShelfData } from "../../youtube-api/guards";
 import { fetchVideoChannel } from "../../youtube-api/oembed";
 import { richShelfDataSchema } from "../../youtube-api/schemas";
 import { resolveChannelSubscription, SubscriptionVerdict } from "../../youtube-api/watch-page-subscription";
@@ -73,7 +73,11 @@ function collectShelfVideos(elShelves: PolymerElement[], apiVideoIds: Set<string
   const shelfVideos: ShelfVideo[] = [];
   const seen = new Set<string>();
   for (const elShelf of elShelves) {
-    for (const item of deepArray<InnerTubeRichGridItem>(elShelf.data, "contents")) {
+    if (!isRichShelfData(elShelf.data)) {
+      continue;
+    }
+
+    for (const item of elShelf.data.contents ?? []) {
       const videoId = videoIdFromRichItem(item);
       if (videoId && !seen.has(videoId)) {
         seen.add(videoId);
@@ -135,7 +139,11 @@ async function isRemovable(video: ShelfVideo, budget: PruneBudget) {
 
 function applyShelfRemovals(removableVideoIds: Set<string>) {
   for (const elShelf of usableShelves()) {
-    const contents = deepArray<InnerTubeRichGridItem>(elShelf.data, "contents");
+    if (!isRichShelfData(elShelf.data)) {
+      continue;
+    }
+
+    const contents = elShelf.data.contents ?? [];
     const removedVideoIds = new Set<string>();
     const retained = contents.filter(item => {
       const videoId = videoIdFromRichItem(item);

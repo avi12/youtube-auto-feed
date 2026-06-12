@@ -2,8 +2,7 @@ import { isAnimationsEnabled } from "../../settings-state";
 import type { InnerTubeRichGridItem } from "../../types/innertube";
 import type { Prettify } from "../../types/prettify";
 import { isPolymerElement } from "../../utils/polymer";
-import { deepArray } from "../../utils/records";
-import { gridDataSchema } from "../../youtube-api/schemas";
+import { isRichGridData } from "../../youtube-api/guards";
 import { thumbnailUrlFromRichItem, videoIdFromRichItem } from "../rich-item";
 import { collectInlineVideoIds, composeNewContents, isReferenceEqualArray } from "./mirror-compose";
 import { findRemovedViewportTiles } from "./mirror-find-tiles";
@@ -18,11 +17,11 @@ type MirrorFromApiParams = Prettify<{
 
 export async function mirrorFromApi({ apiContents }: MirrorFromApiParams) {
   const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
-  if (!elGrid || !isPolymerElement(elGrid) || !gridDataSchema.safeParse(elGrid.data).success) {
+  if (!elGrid || !isPolymerElement(elGrid) || !isRichGridData(elGrid.data)) {
     return;
   }
 
-  const currentContents = deepArray<InnerTubeRichGridItem>(elGrid.data, "contents");
+  const currentContents = elGrid.data.contents ?? [];
   if (currentContents.length === 0) {
     return;
   }
