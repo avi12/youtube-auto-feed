@@ -13,6 +13,8 @@ export { syncGridModelItem } from "./polymer-sync-model";
 // Polymer re-renders all copies. applyPolymerUpdate is the preferred entry for element-bound updates.
 
 const itemDataSchema = z.looseObject({ content: richItemContentSchema.optional().catch(undefined) });
+const lockupHostSchema = z.looseObject({ lockupViewModel: z.looseObject({}) });
+const shortsLockupHostSchema = z.looseObject({ shortsLockupViewModel: z.looseObject({}) });
 
 type ApplyPolymerUpdateParams = Prettify<{
   elItem: Prettify<PolymerElement>;
@@ -38,7 +40,7 @@ export function applyPolymerUpdate({ elItem, rawRenderer }: ApplyPolymerUpdatePa
       incoming: rawRenderer
     });
     const elLockup = elItem.querySelector<HTMLElement>("yt-lockup-view-model");
-    if (elLockup && "lockupViewModel" in elLockup) {
+    if (elLockup && lockupHostSchema.safeParse(elLockup).success) {
       Object.assign(elLockup, { lockupViewModel: merged });
       return;
     }
@@ -57,7 +59,7 @@ export function applyPolymerUpdate({ elItem, rawRenderer }: ApplyPolymerUpdatePa
     && isShortsLockupViewModel(rawRenderer);
   if (isShortsLockupSwap) {
     const elShortsLockup = elItem.querySelector<HTMLElement>("yt-shorts-lockup-view-model");
-    if (elShortsLockup && "shortsLockupViewModel" in elShortsLockup) {
+    if (elShortsLockup && shortsLockupHostSchema.safeParse(elShortsLockup).success) {
       Object.assign(elShortsLockup, { shortsLockupViewModel: rawRenderer });
       return;
     }
