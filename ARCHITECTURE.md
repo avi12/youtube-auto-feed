@@ -43,9 +43,13 @@ flowchart TD
    with a marker header so the interceptor ignores them (no infinite loop).
 
 2. **Poll on a cadence.** Once on the subscriptions page, the monitor (`polling/`) refetches
-   the feed on a timer - the full feed every few seconds - and pauses entirely while the tab
-   is hidden. Each poll asks YouTube for the same data the page would load, parses it, and
-   hands it to the diff. Subscribe/unsubscribe events trigger an immediate refetch.
+   the feed on a timer - the full feed every 5 seconds and a lighter metadata-only pass every
+   10 seconds, after an initial ~10s settle - and pauses entirely while the tab is hidden. The
+   interceptor's captured `/browse` response seeds the first baseline; each subsequent poll
+   re-fetches the `/feed/subscriptions` page HTML and reads `ytInitialData` out of it (the
+   global `ytInitialData` goes stale across YouTube's SPA navigation, so re-fetching is the
+   only way to get fresh data), parses it, and hands it to the diff. Subscribe/unsubscribe
+   events trigger an immediate refetch.
 
 3. **Parse.** The raw InnerTube payload is messy and its shapes vary (videos, lockups,
    shorts, legacy shelves). `youtube-api/` validates it through Zod schemas and flattens it
@@ -58,11 +62,21 @@ flowchart TD
 
 5. **Apply.** This is where the feed actually changes, all inside `dom/`:
    - **Metadata-only** edits patch the existing tile in place (`dom/update/`) - no reflow.
+     A/B-tested thumbnails are a special case: YouTube swaps the served picture under a stable
+     URL, so the URL-keyed diff never sees it. A periodic content check re-fetches the visible
+     thumbnails and dissolves to the new picture only when the image bytes actually change.
    - **Structural** changes (add / remove / reorder) go through the **mirror**
      (`dom/mirror/`). The mirror merges the fresh API ordering into the grid's current
      contents and writes the result back through Polymer, then animates the change with a
      Google-Meet-style slide: surviving tiles glide to their new slots, a new tile scales and
      fades in, a removed tile dissolves in place while its neighbours close the gap.
+   - **Shelf pruning.** Rich shelves (`Most relevant`, `Shorts`) keep their own copies of
+     videos, and YouTube inconsistently omits still-valid ones from a poll, so absence alone
+     is not trusted there. A shelf video is removed only when it is genuinely gone or no longer
+     wanted: subscription is read from the video's own watch-page HTML (the only context that
+     reports the viewer's real subscribed state - the JSON endpoints under-report it), and
+     deletion is confirmed by a 404 from a lightweight oEmbed call. Both verdicts are cached
+     and capped per poll. Insertion stays Latest-band only; this step never adds to a shelf.
 
 ## Where things live
 
@@ -76,13 +90,15 @@ src/
   shared/                          cross-context messaging + settings storage
   subscription-feed/               the monitor
     polling/                       the timer loop: fetch, schedule, apply, lifecycle, state
-    youtube-api/                   parse raw InnerTube -> VideoSnapshot (Zod-validated)
+    youtube-api/                   parse raw InnerTube -> VideoSnapshot (Zod-validated);
+                                   watch-page + oEmbed probes for shelf-prune subscription/availability
     diff/                          previous vs fresh -> change buckets
     dom/                           everything that touches the page
       query/                       read the current grid into a snapshot
-      mirror/                      live-mirror the API into the grid + FLIP/ghost animations
+      mirror/                      live-mirror the API into the grid + FLIP/ghost animations;
+                                   prune unsubscribed/deleted shelf videos
       band/                        section + row ("band") layout maths
-      update/                      patch a single tile's metadata in place
+      update/                      patch a single tile's metadata in place; watch A/B thumbnail swaps
       cleanup/                     remove orphaned / stale grid items
       lazy/                        defer off-viewport changes (animate only what's visible)
       animations.ts, rich-item.ts shared DOM helpers
