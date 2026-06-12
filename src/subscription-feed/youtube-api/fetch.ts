@@ -8,8 +8,8 @@ function extractYtInitialData(html: string) {
   }
 
   try {
-    const parsed: unknown = JSON.parse(scriptMatch[1]);
-    return parsed;
+    const value = JSON.parse(scriptMatch[1]);
+    return isInnerTubeBrowseResponse(value) ? value : null;
   } catch {
     return null;
   }
@@ -30,7 +30,7 @@ export async function fetchInitialVideos() {
   }
 
   const browseData = extractYtInitialData(html);
-  if (!isInnerTubeBrowseResponse(browseData)) {
+  if (!browseData) {
     return null;
   }
 
