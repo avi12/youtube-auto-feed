@@ -36,11 +36,11 @@ export function applyStaticLockupChanges({
     return;
   }
 
-  const didUpdate = applyProgressBarUpdate({
+  const isProgressBarUpdated = applyProgressBarUpdate({
     elLockup,
     percent: watchProgressPercent
   });
-  if (!didUpdate) {
+  if (!isProgressBarUpdated) {
     rebuildPolymerRenderer({
       videoId,
       elItem,
