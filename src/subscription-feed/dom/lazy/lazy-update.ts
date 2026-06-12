@@ -16,9 +16,8 @@ export function scheduleLazyUpdate({ videoId, fresh, previous, elItemHint }: Sch
     fresh,
     previous: existingPending?.previous ?? previous
   });
-  const elItems = elItemHint ? [elItemHint] : findItemElements(videoId);
   const observer = ensureObserver();
-  for (const elItem of elItems) {
+  for (const elItem of elItemHint ? [elItemHint] : findItemElements(videoId)) {
     observer.observe(elItem);
   }
 }

@@ -16,11 +16,10 @@ export function collectInlineGridVideos(snapshot: Map<string, Prettify<VideoSnap
   for (const elChild of elGridContents.children) {
     if (elChild.tagName === "YTD-RICH-SECTION-RENDERER") {
       currentSectionTitle = "";
-      const elRichShelf = elChild.querySelector("ytd-rich-shelf-renderer");
       const elInnerShelf = elChild.querySelector("ytd-shelf-renderer");
       const hasInnerShelfVideos = elInnerShelf !== null
         && elInnerShelf.querySelectorAll("ytd-grid-video-renderer, ytd-video-renderer").length > 0;
-      const isBandBoundary = elRichShelf !== null || hasInnerShelfVideos;
+      const isBandBoundary = elChild.querySelector("ytd-rich-shelf-renderer") !== null || hasInnerShelfVideos;
       if (isBandBoundary) {
         currentBandIndex++;
       }

@@ -60,12 +60,10 @@ export function createApplyHandlers(context: MonitorContext) {
 
     preloadSnapshotThumbnails(snapshots);
 
-    const sectionOrder = extractApiSectionOrder(response);
-    const apiContents = extractApiContents(response);
     const payload = {
       snapshots,
-      sectionOrder,
-      apiContents
+      sectionOrder: extractApiSectionOrder(response),
+      apiContents: extractApiContents(response)
     };
     state.pendingApiSnapshots = payload;
     state.pendingApiSnapshotsTime = Date.now();

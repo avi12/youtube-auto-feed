@@ -31,13 +31,12 @@ export function coverNewlyInsertedTiles({ newlyInsertedIds, newThumbnailUrls }: 
     }
 
     prepareCoverHost(elItem);
-    const thumbnailRadius = getComputedStyle(elThumbnail).borderRadius;
     const elOverlay = addCoverOverlay(
       elItem,
       thumbnailUrl,
       elThumbnail.getBoundingClientRect(),
       elItem.getBoundingClientRect(),
-      thumbnailRadius
+      getComputedStyle(elThumbnail).borderRadius
     );
     dropOverlayWhenThumbnailLoads(elItem, elOverlay);
   }

@@ -42,15 +42,12 @@ export function parseShortsLockupViewModel(
   }
 
   const { primaryText, secondaryText } = overlayMetadata ?? {};
-  const title = primaryText?.content ?? accessibilityText;
-  const thumbnailUrl = thumbnail?.sources?.at(-1)?.url ?? "";
-  const viewCountText = secondaryText?.content ?? "";
   return {
     videoId,
-    title,
-    thumbnailUrl,
+    title: primaryText?.content ?? accessibilityText,
+    thumbnailUrl: thumbnail?.sources?.at(-1)?.url ?? "",
     status: VideoStatus.Short,
-    viewCountText,
+    viewCountText: secondaryText?.content ?? "",
     publishedTimeText: "",
     isChannelLive: false,
     watchProgressPercent: null,

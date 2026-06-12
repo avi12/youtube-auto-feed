@@ -23,24 +23,17 @@ export function parseLockupViewModel({ lockup, sectionTitle, bandIndex }: ParseL
   }
 
   const metaViewModel = metadata?.lockupMetadataViewModel;
-  const title = metaViewModel?.title?.content ?? "";
-  const sources = contentImage?.thumbnailViewModel?.image?.sources;
   // Keep the query string: an edited thumbnail reuses the /vi/{id}/ path and only rotates sqp/rs.
-  const thumbnailUrl = sources?.at(-1)?.url ?? "";
-  const metaRows = metaViewModel?.metadata?.contentMetadataViewModel?.metadataRows;
-  const metaParts = metaRows?.[1]?.metadataParts;
-  const viewCountText = metaParts?.[0]?.text?.content ?? "";
-  const publishedTimeText = metaParts?.[1]?.text?.content ?? "";
-  const status = statusFromLockup(lockup);
-  const isChannelLive = !!metaViewModel?.image?.decoratedAvatarViewModel?.liveData?.liveBadgeText;
+  const thumbnailUrl = contentImage?.thumbnailViewModel?.image?.sources?.at(-1)?.url ?? "";
+  const metaParts = metaViewModel?.metadata?.contentMetadataViewModel?.metadataRows?.[1]?.metadataParts;
   return {
     videoId: contentId,
-    title,
+    title: metaViewModel?.title?.content ?? "",
     thumbnailUrl,
-    status,
-    viewCountText,
-    publishedTimeText,
-    isChannelLive,
+    status: statusFromLockup(lockup),
+    viewCountText: metaParts?.[0]?.text?.content ?? "",
+    publishedTimeText: metaParts?.[1]?.text?.content ?? "",
+    isChannelLive: !!metaViewModel?.image?.decoratedAvatarViewModel?.liveData?.liveBadgeText,
     watchProgressPercent: watchProgressFromLockup(lockup),
     sectionTitle,
     bandIndex,

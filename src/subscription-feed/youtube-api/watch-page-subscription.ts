@@ -136,6 +136,8 @@ export async function resolveChannelSubscription(
     ownerChannelByVideoId.set(videoId, probe.ownerChannelId);
   }
 
-  const decisionIds = resolveDecisionIds(lockupChannelIds, probe.ownerChannelId);
-  return verdictFrom(decisionIds, channelId => probe.channelSubscriptions.get(channelId));
+  return verdictFrom(
+    resolveDecisionIds(lockupChannelIds, probe.ownerChannelId),
+    channelId => probe.channelSubscriptions.get(channelId)
+  );
 }

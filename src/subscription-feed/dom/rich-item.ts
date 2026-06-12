@@ -32,8 +32,7 @@ export function isCollaborativeRichItem(item: Prettify<InnerTubeRichGridItem>) {
 
   const stackedChannelAvatars =
     lockupViewModel.metadata?.lockupMetadataViewModel?.image?.avatarStackViewModel?.avatars;
-  const hasMultipleChannels = (stackedChannelAvatars?.length ?? 0) > 1;
-  return hasMultipleChannels;
+  return (stackedChannelAvatars?.length ?? 0) > 1;
 }
 
 export function avatarUrlFromContent(content: Prettify<InnerTubeRichItemContent>) {
