@@ -2,7 +2,6 @@ import { isAnimationsEnabled } from "../../settings-state";
 import type { InnerTubeRichGridItem } from "../../types/innertube";
 import type { PolymerElement } from "../../types/polymer";
 import type { Prettify } from "../../types/prettify";
-import { isPolymerElement } from "../../utils/polymer";
 import { isRichShelfData } from "../../youtube-api/guards";
 import { fetchVideoChannel } from "../../youtube-api/oembed";
 import { richShelfDataSchema } from "../../youtube-api/schemas";
@@ -46,9 +45,8 @@ interface PruneBudget {
 const availabilityByVideoId = new Map<string, CachedAvailability>();
 
 function usableShelves() {
-  return [...document.querySelectorAll<HTMLElement>("ytd-rich-shelf-renderer")]
-    .filter((elShelf): elShelf is PolymerElement =>
-      isPolymerElement(elShelf) && richShelfDataSchema.safeParse(elShelf.data).success);
+  return [...document.querySelectorAll<PolymerElement>("ytd-rich-shelf-renderer")]
+    .filter(elShelf => richShelfDataSchema.safeParse(elShelf.data).success);
 }
 
 function collectApiVideoIds(apiContents: Prettify<InnerTubeRichGridItem>[]) {

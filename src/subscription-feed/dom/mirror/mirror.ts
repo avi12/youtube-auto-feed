@@ -1,7 +1,7 @@
 import { isAnimationsEnabled } from "../../settings-state";
 import type { InnerTubeRichGridItem } from "../../types/innertube";
+import type { PolymerElement } from "../../types/polymer";
 import type { Prettify } from "../../types/prettify";
-import { isPolymerElement } from "../../utils/polymer";
 import { isRichGridData } from "../../youtube-api/guards";
 import { thumbnailUrlFromRichItem, videoIdFromRichItem } from "../rich-item";
 import { collectInlineVideoIds, composeNewContents, isReferenceEqualArray } from "./mirror-compose";
@@ -16,8 +16,8 @@ type MirrorFromApiParams = Prettify<{
 }>;
 
 export async function mirrorFromApi({ apiContents }: MirrorFromApiParams) {
-  const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
-  if (!elGrid || !isPolymerElement(elGrid) || !isRichGridData(elGrid.data)) {
+  const elGrid = document.querySelector<PolymerElement>("ytd-rich-grid-renderer");
+  if (!elGrid || !isRichGridData(elGrid.data)) {
     return;
   }
 

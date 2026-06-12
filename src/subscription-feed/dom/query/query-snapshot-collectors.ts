@@ -1,3 +1,4 @@
+import type { PolymerElement } from "../../types/polymer";
 import type { Prettify } from "../../types/prettify";
 import type { VideoSnapshot } from "../../types/video";
 import { isPolymerElement } from "../../utils/polymer";
@@ -32,11 +33,7 @@ export function collectLegacyShelfVideos(snapshot: Map<string, Prettify<VideoSna
 
     const shelfData = elShelf.data;
     const sectionTitle = isShelfRenderer(shelfData) ? shelfData.title?.runs?.[0]?.text ?? "" : "";
-    for (const elItem of elShelf.querySelectorAll<HTMLElement>("ytd-grid-video-renderer")) {
-      if (!isPolymerElement(elItem)) {
-        continue;
-      }
-
+    for (const elItem of elShelf.querySelectorAll<PolymerElement>("ytd-grid-video-renderer")) {
       const rawRenderer = elItem.data;
       if (!isVideoRenderer(rawRenderer)) {
         continue;

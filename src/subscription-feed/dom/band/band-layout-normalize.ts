@@ -1,4 +1,4 @@
-import { isPolymerElement } from "../../utils/polymer";
+import type { PolymerElement } from "../../types/polymer";
 import { isRichShelfData } from "../../youtube-api/guards";
 import { richItemDataSchema } from "../../youtube-api/schemas";
 import { videoIdFromRichItem } from "../rich-item";
@@ -10,11 +10,7 @@ function waitForPolymerToFinishRendering() {
 
 export async function normalizeCollapsedShelfRows() {
   const trimmedVideoIds = new Set<string>();
-  for (const elShelf of document.querySelectorAll<HTMLElement>("ytd-rich-shelf-renderer")) {
-    if (!isPolymerElement(elShelf)) {
-      continue;
-    }
-
+  for (const elShelf of document.querySelectorAll<PolymerElement>("ytd-rich-shelf-renderer")) {
     if (!isRichShelfData(elShelf.data)) {
       continue;
     }
@@ -26,7 +22,7 @@ export async function normalizeCollapsedShelfRows() {
 
     await waitForPolymerToFinishRendering();
 
-    const elItems = [...elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer")];
+    const elItems = [...elShelf.querySelectorAll<PolymerElement>("ytd-rich-item-renderer")];
     const visibleItems = elItems.filter(elItem => elItem.offsetWidth > 0);
     if (visibleItems.length === 0) {
       continue;
@@ -42,10 +38,6 @@ export async function normalizeCollapsedShelfRows() {
 
     const overflowVideoIds = new Set(
       overflowItems.flatMap(elItem => {
-        if (!isPolymerElement(elItem)) {
-          return [];
-        }
-
         const itemDataParsed = richItemDataSchema.safeParse(elItem.data);
         if (!itemDataParsed.success) {
           return [];

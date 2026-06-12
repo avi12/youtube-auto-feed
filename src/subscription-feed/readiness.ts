@@ -1,11 +1,12 @@
+import type { PolymerElement } from "./types/polymer";
 import { isPolymerElement } from "./utils/polymer";
 import { gridDataSchema, gridVideoDataSchema, richItemDataSchema } from "./youtube-api/schemas";
 
 export function isDomContentReady() {
   const elShelf = document.querySelector<HTMLElement>("ytd-rich-shelf-renderer");
   if (elShelf) {
-    const elItem = elShelf.querySelector<HTMLElement>("ytd-rich-item-renderer");
-    const isShelfItemHydrated = !!elItem && isPolymerElement(elItem)
+    const elItem = elShelf.querySelector<PolymerElement>("ytd-rich-item-renderer");
+    const isShelfItemHydrated = !!elItem
       && richItemDataSchema.safeParse(elItem.data).success;
     if (isShelfItemHydrated) {
       return true;
@@ -24,8 +25,8 @@ export function isDomContentReady() {
     }
   }
 
-  const elGrid = document.querySelector<HTMLElement>("ytd-rich-grid-renderer");
-  if (elGrid && isPolymerElement(elGrid)) {
+  const elGrid = document.querySelector<PolymerElement>("ytd-rich-grid-renderer");
+  if (elGrid) {
     const gridDataParsed = gridDataSchema.safeParse(elGrid.data);
     if (gridDataParsed.success) {
       const { contents } = gridDataParsed.data;
@@ -36,6 +37,6 @@ export function isDomContentReady() {
     }
   }
 
-  const elGridItem = document.querySelector<HTMLElement>("ytd-grid-video-renderer");
-  return !!elGridItem && isPolymerElement(elGridItem) && gridVideoDataSchema.safeParse(elGridItem.data).success;
+  const elGridItem = document.querySelector<PolymerElement>("ytd-grid-video-renderer");
+  return !!elGridItem && gridVideoDataSchema.safeParse(elGridItem.data).success;
 }

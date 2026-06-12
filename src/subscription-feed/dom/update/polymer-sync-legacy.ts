@@ -1,5 +1,5 @@
 import type { InnerTubeVideoRenderer } from "../../types/innertube";
-import { isPolymerElement } from "../../utils/polymer";
+import type { PolymerElement } from "../../types/polymer";
 import { isShelfRenderer } from "../../youtube-api/guards";
 import { richShelfDataSchema } from "../../youtube-api/schemas";
 import { buildMergedVideoRenderer } from "./merged-video-renderer";
@@ -23,8 +23,8 @@ function findMatchingRendererKey(item: ShelfListItem, videoId: string) {
 }
 
 export function applyToLegacyShelfModels({ videoId, rawRenderer, forcePreserveContentImage }: ApplyToContainerParams) {
-  for (const elShelf of document.querySelectorAll<HTMLElement>("ytd-shelf-renderer")) {
-    const isLegacyShelfUsable = isPolymerElement(elShelf) && richShelfDataSchema.safeParse(elShelf.data).success;
+  for (const elShelf of document.querySelectorAll<PolymerElement>("ytd-shelf-renderer")) {
+    const isLegacyShelfUsable = richShelfDataSchema.safeParse(elShelf.data).success;
     if (!isLegacyShelfUsable) {
       continue;
     }

@@ -1,6 +1,6 @@
+import type { PolymerElement } from "../../types/polymer";
 import type { Prettify } from "../../types/prettify";
 import type { VideoSnapshot } from "../../types/video";
-import { isPolymerElement } from "../../utils/polymer";
 import { isVideoRenderer } from "../../youtube-api/guards";
 import { parseRenderer } from "../../youtube-api/parse-video";
 import { addRichItemToSnapshot } from "./query-snapshot-parse";
@@ -39,11 +39,7 @@ export function collectInlineGridVideos(snapshot: Map<string, Prettify<VideoSnap
 }
 
 export function collectFallbackGridVideos(snapshot: Map<string, Prettify<VideoSnapshot>>) {
-  for (const elGridVideo of document.querySelectorAll<HTMLElement>("ytd-grid-video-renderer")) {
-    if (!isPolymerElement(elGridVideo)) {
-      continue;
-    }
-
+  for (const elGridVideo of document.querySelectorAll<PolymerElement>("ytd-grid-video-renderer")) {
     const gridVideoData = elGridVideo.data;
     if (!isVideoRenderer(gridVideoData)) {
       continue;
