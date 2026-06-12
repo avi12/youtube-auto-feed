@@ -88,7 +88,15 @@ function verdictFrom(channelIds: string[], lookup: (channelId: string) => boolea
 }
 
 function resolveDecisionIds(lockupChannelIds: string[], ownerChannelId: string | null) {
-  return lockupChannelIds.length > 0 ? lockupChannelIds : [ownerChannelId].filter(id => id !== null);
+  if (lockupChannelIds.length > 0) {
+    return lockupChannelIds;
+  }
+
+  if (ownerChannelId) {
+    return [ownerChannelId];
+  }
+
+  return [];
 }
 
 function cachedSubscription(channelId: string) {
