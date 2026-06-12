@@ -34,9 +34,7 @@ function applyIncomingSettings(data: unknown) {
 }
 
 async function requestInitialSettings() {
-  try {
-    applyIncomingSettings(await settingsMessenger.sendMessage("getSettings"));
-  } catch {}
+  applyIncomingSettings(await settingsMessenger.sendMessage("getSettings"));
 }
 
 export function initSettingsClient() {
