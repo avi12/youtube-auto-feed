@@ -34,7 +34,7 @@ export function invalidateSubscriptionCache() {
 
 function decodeEntityChannelId(key: string) {
   try {
-    return atob(key.replace(/-/g, "+").replace(/_/g, "/")).match(CHANNEL_ID)?.[0] ?? null;
+    return atob(key.replaceAll(/-/g, "+").replaceAll(/_/g, "/")).match(CHANNEL_ID)?.[0] ?? null;
   } catch {
     return null;
   }
@@ -80,7 +80,7 @@ function verdictFrom(channelIds: string[], lookup: (channelId: string) => boolea
     return SubscriptionVerdict.Subscribed;
   }
 
-  if (states.every(state => state === false)) {
+  if (!states.includes(undefined)) {
     return SubscriptionVerdict.Unsubscribed;
   }
 
