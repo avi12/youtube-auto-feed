@@ -27,7 +27,8 @@ export function createApplyHandlers(context: MonitorContext) {
       });
       state.lastSnapshot = result.snapshot;
 
-      if (!isInitialLoad && state.initialBandLayout !== null) {
+      const isLayoutRefreshable = !isInitialLoad && state.initialBandLayout !== null;
+      if (isLayoutRefreshable) {
         const updatedLayout = captureBandLayout();
         if (updatedLayout !== null) {
           state.initialBandLayout = updatedLayout;

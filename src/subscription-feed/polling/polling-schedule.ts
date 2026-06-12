@@ -34,7 +34,8 @@ export function createScheduleHandlers(context: MonitorContext) {
       return;
     }
 
-    if (document.hidden || !state.isEnabled) {
+    const isPollingPaused = document.hidden || !state.isEnabled;
+    if (isPollingPaused) {
       clearPolling();
       return;
     }

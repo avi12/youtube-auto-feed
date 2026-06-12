@@ -127,7 +127,8 @@ async function isDeleted(videoId: string, budget: PruneBudget) {
 // deletion check runs only for Shorts and videos absent from this poll - a present regular video is known
 // to exist. An unknown subscription verdict keeps the video, so a transient failure never removes it.
 async function isRemovable(video: ShelfVideo, budget: PruneBudget) {
-  if ((video.lockupChannelIds.length === 0 || video.isAbsent) && await isDeleted(video.videoId, budget)) {
+  const isDeletionCandidate = video.lockupChannelIds.length === 0 || video.isAbsent;
+  if (isDeletionCandidate && await isDeleted(video.videoId, budget)) {
     return true;
   }
 

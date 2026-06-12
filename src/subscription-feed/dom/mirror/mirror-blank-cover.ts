@@ -26,7 +26,8 @@ function coverImgWhileBlank(elImg: HTMLImageElement | null, url: string) {
   }
 
   const isImageReady = elImg.complete && elImg.naturalWidth > 0;
-  if (isImageReady || elImg.style.backgroundImage) {
+  const isAlreadyCovered = isImageReady || !!elImg.style.backgroundImage;
+  if (isAlreadyCovered) {
     return;
   }
 

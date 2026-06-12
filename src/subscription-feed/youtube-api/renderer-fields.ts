@@ -41,7 +41,8 @@ export function statusFromRenderer(renderer: Prettify<InnerTubeVideoRenderer>) {
   const hasUpcomingSignal = badgeStyle === BadgeStyle.Upcoming
     || overlayStyle === OverlayStyle.Upcoming
     || upcomingEventData !== undefined;
-  if (!isStreamedAgo && hasUpcomingSignal) {
+  const isUpcoming = !isStreamedAgo && hasUpcomingSignal;
+  if (isUpcoming) {
     return VideoStatus.Upcoming;
   }
 

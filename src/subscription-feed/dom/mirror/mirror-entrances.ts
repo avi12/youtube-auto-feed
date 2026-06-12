@@ -15,7 +15,8 @@ export function animateNewEntrances(newlyInsertedIds: Set<string>) {
     }
 
     const videoId = videoIdFromData(elItem.data);
-    if (!videoId || !newlyInsertedIds.has(videoId)) {
+    const isNewlyInserted = !!videoId && newlyInsertedIds.has(videoId);
+    if (!isNewlyInserted) {
       continue;
     }
 
@@ -44,7 +45,8 @@ export function hideNewInsertedTiles(newlyInsertedIds: Set<string>) {
     }
 
     const videoId = videoIdFromData(elItem.data);
-    if (videoId && newlyInsertedIds.has(videoId)) {
+    const isNewlyInserted = !!videoId && newlyInsertedIds.has(videoId);
+    if (isNewlyInserted) {
       elItem.style.opacity = "0";
     }
   }

@@ -17,7 +17,8 @@ export function pruneOrphanedDomItems({ elGridContents, standaloneModelIds }: Pr
     const videoId = videoIdFromData(elChild.data);
     const isInModel = !!videoId && standaloneModelIds.has(videoId);
     const isDuplicate = !!videoId && seenDomIds.has(videoId);
-    if (!isInModel || isDuplicate) {
+    const isOrphaned = !isInModel || isDuplicate;
+    if (isOrphaned) {
       elChild.remove();
     } else if (videoId) {
       seenDomIds.add(videoId);

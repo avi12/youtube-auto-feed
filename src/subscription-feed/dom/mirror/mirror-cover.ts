@@ -30,7 +30,8 @@ export function preCoverReflowImages(newContents: Prettify<InnerTubeRichGridItem
     const elAvatar = avatarImgInItem(elItem);
     const thumbnailUrl = thumbnailUrlFromContent(futureContent);
     const avatarUrl = avatarUrlFromContent(futureContent);
-    if ((!elThumbnail || !thumbnailUrl) && (!elAvatar || !avatarUrl)) {
+    const hasNoCoverableImage = (!elThumbnail || !thumbnailUrl) && (!elAvatar || !avatarUrl);
+    if (hasNoCoverableImage) {
       continue;
     }
 
