@@ -25,9 +25,11 @@ interface CachedSubscription {
 }
 
 const subscriptionByChannelId = new Map<string, CachedSubscription>();
+const ownerChannelByVideoId = new Map<string, string>();
 
 export function invalidateSubscriptionCache() {
   subscriptionByChannelId.clear();
+  ownerChannelByVideoId.clear();
 }
 
 function decodeEntityChannelId(key: string) {
@@ -99,14 +101,17 @@ function cachedSubscription(channelId: string) {
 }
 
 // A collab video carries every collaborator's channel id in its lockup; a Short carries none, so its
-// owner channel is taken from the probed watch page instead. The video is kept while any of those
-// channels is subscribed, and removed only when all of them are known and none is.
+// owner channel is taken from the probed watch page instead and remembered by video id - otherwise a
+// channel-less Short would miss the per-channel cache and re-fetch its heavy watch page every poll,
+// which YouTube flags as abuse and soft-blocks the video for the session. The video is kept while any
+// of those channels is subscribed, and removed only when all of them are known and none is.
 export async function resolveChannelSubscription(
   lockupChannelIds: string[],
   videoId: string,
   budget: { watchPageChecks: number }
 ): Promise<SubscriptionVerdict> {
-  const cached = verdictFrom(lockupChannelIds, cachedSubscription);
+  const knownChannelIds = resolveDecisionIds(lockupChannelIds, ownerChannelByVideoId.get(videoId) ?? null);
+  const cached = verdictFrom(knownChannelIds, cachedSubscription);
   if (cached !== SubscriptionVerdict.Unknown) {
     return cached;
   }
@@ -122,6 +127,11 @@ export async function resolveChannelSubscription(
   }
 
   rememberSubscriptions(probe.channelSubscriptions);
+
+  if (probe.ownerChannelId) {
+    ownerChannelByVideoId.set(videoId, probe.ownerChannelId);
+  }
+
   const decisionIds = resolveDecisionIds(lockupChannelIds, probe.ownerChannelId);
   return verdictFrom(decisionIds, channelId => probe.channelSubscriptions.get(channelId));
 }
