@@ -50,7 +50,7 @@ export function observeAndCoverBlankImages(elGrid: HTMLElement) {
     repaintInlineThumbnails();
     coverBlankImages();
   });
-  const observeConfig = {
+  const observeConfig: MutationObserverInit = {
     subtree: true,
     childList: true,
     attributes: true,

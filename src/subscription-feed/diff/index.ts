@@ -22,14 +22,16 @@ export async function detectAndApplyChanges({
   for (const video of freshSnapshots) {
     const existing = freshMap.get(video.videoId);
     const shouldPreferLatestBandEntry = !existing || !existing.sectionTitle;
-    if (shouldPreferLatestBandEntry) {
-      freshMap.set(
-        video.videoId, withStickyWatchProgress({
-          fresh: video,
-          previous: previousSnapshot.get(video.videoId)
-        })
-      );
+    if (!shouldPreferLatestBandEntry) {
+      continue;
     }
+
+    freshMap.set(
+      video.videoId, withStickyWatchProgress({
+        fresh: video,
+        previous: previousSnapshot.get(video.videoId)
+      })
+    );
   }
 
   // Runs before the mirror so metadata changes on a structural poll patch the DOM instead of being absorbed.

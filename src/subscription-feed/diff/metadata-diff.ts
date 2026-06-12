@@ -60,17 +60,20 @@ export function detectAndApplyMetadataChanges({
       fresh: rawFresh,
       previous
     });
-    if (hasMetadataChange({
+    const isMetadataChanged = hasMetadataChange({
       previous,
       fresh
-    })) {
-      changedVideos.push(fresh);
-      updatedSnapshot.set(fresh.videoId, {
-        ...fresh,
-        sectionTitle: previous.sectionTitle,
-        bandIndex: previous.bandIndex
-      });
+    });
+    if (!isMetadataChanged) {
+      continue;
     }
+
+    changedVideos.push(fresh);
+    updatedSnapshot.set(fresh.videoId, {
+      ...fresh,
+      sectionTitle: previous.sectionTitle,
+      bandIndex: previous.bandIndex
+    });
   }
 
   if (changedVideos.length > 0) {

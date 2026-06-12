@@ -16,10 +16,12 @@ export function findNewlyInsertedElements(newVideoIds: Set<string>) {
 
     const videoId = videoIdFromData(elItem.data);
     const isFirstMatch = !!videoId && newVideoIds.has(videoId) && !seen.has(videoId);
-    if (isFirstMatch) {
-      seen.add(videoId);
-      result.push(elItem);
+    if (!isFirstMatch) {
+      continue;
     }
+
+    seen.add(videoId);
+    result.push(elItem);
   }
   return result;
 }

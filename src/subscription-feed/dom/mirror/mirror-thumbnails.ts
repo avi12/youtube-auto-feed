@@ -36,7 +36,7 @@ export async function awaitNewThumbnailsReady(thumbnailUrls: Iterable<string>) {
     isReady = true;
   });
 
-  for (let frame = 0; frame < NEW_THUMBNAIL_DECODE_CAP_FRAMES && !isReady; frame++) {
+  for (let iFrame = 0; iFrame < NEW_THUMBNAIL_DECODE_CAP_FRAMES && !isReady; iFrame++) {
     await nextFrame();
   }
 }

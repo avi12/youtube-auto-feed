@@ -9,12 +9,14 @@ export function extractInlineBand(contents: Prettify<InnerTubeRichGridItem>[]) {
     for (let i = run.start; i < run.end; i++) {
       const item = contents[i];
       const videoId = videoIdFromRichItem(item);
-      if (videoId) {
-        band.push({
-          videoId,
-          item
-        });
+      if (!videoId) {
+        continue;
       }
+
+      band.push({
+        videoId,
+        item
+      });
     }
   }
   return band;

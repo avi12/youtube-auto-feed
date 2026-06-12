@@ -76,7 +76,7 @@ export async function setContentsWithFlip(
   animateNewEntrances(newlyInsertedIds);
 
   const animFrames = Math.ceil(SURVIVOR_SHIFT_MS / MILLISECONDS_PER_FRAME) + GLIDE_FRAME_BUFFER;
-  for (let frame = 0; frame < animFrames; frame++) {
+  for (let iFrame = 0; iFrame < animFrames; iFrame++) {
     await nextFrame();
   }
   imageCoverObserver?.disconnect();

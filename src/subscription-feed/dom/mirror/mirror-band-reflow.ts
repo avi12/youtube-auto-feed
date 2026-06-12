@@ -56,32 +56,32 @@ export function reflowBandIntoRuns({ currentContents, currentRuns, targetBand }:
   const result: Prettify<InnerTubeRichGridItem>[] = [];
 
   function pushBandItem(item: Prettify<InnerTubeRichGridItem>) {
-    const originalIndex = originalIndexByItem.get(item);
-    const hasMovedIndex = originalIndex !== undefined && originalIndex !== result.length;
+    const iOriginal = originalIndexByItem.get(item);
+    const hasMovedIndex = iOriginal !== undefined && iOriginal !== result.length;
     result.push(hasMovedIndex ? structuredClone(item) : item);
   }
 
-  const lastRunIndex = currentRuns.length - 1;
-  let bandIndex = 0;
-  let readIndex = 0;
-  for (let runIndex = 0; runIndex < currentRuns.length; runIndex++) {
-    const run = currentRuns[runIndex];
-    while (readIndex < run.start) {
-      result.push(currentContents[readIndex]);
-      readIndex++;
+  const iLastRun = currentRuns.length - 1;
+  let iBand = 0;
+  let iRead = 0;
+  for (let iRun = 0; iRun < currentRuns.length; iRun++) {
+    const run = currentRuns[iRun];
+    while (iRead < run.start) {
+      result.push(currentContents[iRead]);
+      iRead++;
     }
 
-    const isLastRun = runIndex === lastRunIndex;
-    const slotCount = isLastRun ? targetBand.length - bandIndex : run.end - run.start;
-    for (let slot = 0; slot < slotCount && bandIndex < targetBand.length; slot++, bandIndex++) {
-      pushBandItem(targetBand[bandIndex]);
+    const isLastRun = iRun === iLastRun;
+    const slotCount = isLastRun ? targetBand.length - iBand : run.end - run.start;
+    for (let iSlot = 0; iSlot < slotCount && iBand < targetBand.length; iSlot++, iBand++) {
+      pushBandItem(targetBand[iBand]);
     }
-    readIndex = run.end;
+    iRead = run.end;
   }
 
-  while (readIndex < currentContents.length) {
-    result.push(currentContents[readIndex]);
-    readIndex++;
+  while (iRead < currentContents.length) {
+    result.push(currentContents[iRead]);
+    iRead++;
   }
   return result;
 }

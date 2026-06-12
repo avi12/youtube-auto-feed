@@ -40,18 +40,20 @@ export function mergeBand({
   const apiSegments = splitAtAnchors(apiBand, anchorIds);
   const mergedBand: Prettify<InnerTubeRichGridItem>[] = [];
 
-  for (let segmentIndex = 0; segmentIndex <= anchorIds.length; segmentIndex++) {
-    for (const { videoId, item } of currentSegments[segmentIndex]) {
-      if (isDroppedButRetained(videoId)) {
-        mergedBand.push(item);
+  for (let iSegment = 0; iSegment <= anchorIds.length; iSegment++) {
+    for (const { videoId, item } of currentSegments[iSegment]) {
+      if (!isDroppedButRetained(videoId)) {
+        continue;
       }
+
+      mergedBand.push(item);
     }
 
-    for (const { videoId, item } of apiSegments[segmentIndex]) {
+    for (const { videoId, item } of apiSegments[iSegment]) {
       mergedBand.push(reuseLiveItem(videoId) ?? item);
     }
 
-    const anchorId = anchorIds[segmentIndex];
+    const anchorId = anchorIds[iSegment];
     const anchorItem = anchorId ? reuseLiveItem(anchorId) : undefined;
     if (anchorItem) {
       mergedBand.push(anchorItem);
@@ -62,10 +64,10 @@ export function mergeBand({
 
 function splitAtAnchors(band: InlineBandEntry[], anchorIds: string[]) {
   const segments: InlineBandEntry[][] = [[]];
-  let anchorIndex = 0;
+  let iAnchor = 0;
   for (const entry of band) {
-    if (anchorIndex < anchorIds.length && entry.videoId === anchorIds[anchorIndex]) {
-      anchorIndex++;
+    if (iAnchor < anchorIds.length && entry.videoId === anchorIds[iAnchor]) {
+      iAnchor++;
       segments.push([]);
     } else {
       segments[segments.length - 1].push(entry);

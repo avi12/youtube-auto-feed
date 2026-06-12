@@ -5,26 +5,26 @@ export function longestCommonSubsequence(leftIds: string[], rightIds: string[]) 
     { length: leftCount + 1 },
     () => Array.from({ length: rightCount + 1 }, () => 0)
   );
-  for (let left = leftCount - 1; left >= 0; left--) {
-    for (let right = rightCount - 1; right >= 0; right--) {
-      suffixLengths[left][right] = leftIds[left] === rightIds[right]
-        ? suffixLengths[left + 1][right + 1] + 1
-        : Math.max(suffixLengths[left + 1][right], suffixLengths[left][right + 1]);
+  for (let iLeft = leftCount - 1; iLeft >= 0; iLeft--) {
+    for (let iRight = rightCount - 1; iRight >= 0; iRight--) {
+      suffixLengths[iLeft][iRight] = leftIds[iLeft] === rightIds[iRight]
+        ? suffixLengths[iLeft + 1][iRight + 1] + 1
+        : Math.max(suffixLengths[iLeft + 1][iRight], suffixLengths[iLeft][iRight + 1]);
     }
   }
 
   const sequence: string[] = [];
-  let left = 0;
-  let right = 0;
-  while (left < leftCount && right < rightCount) {
-    if (leftIds[left] === rightIds[right]) {
-      sequence.push(leftIds[left]);
-      left++;
-      right++;
-    } else if (suffixLengths[left + 1][right] >= suffixLengths[left][right + 1]) {
-      left++;
+  let iLeft = 0;
+  let iRight = 0;
+  while (iLeft < leftCount && iRight < rightCount) {
+    if (leftIds[iLeft] === rightIds[iRight]) {
+      sequence.push(leftIds[iLeft]);
+      iLeft++;
+      iRight++;
+    } else if (suffixLengths[iLeft + 1][iRight] >= suffixLengths[iLeft][iRight + 1]) {
+      iLeft++;
     } else {
-      right++;
+      iRight++;
     }
   }
   return sequence;

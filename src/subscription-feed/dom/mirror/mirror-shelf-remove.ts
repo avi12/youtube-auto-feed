@@ -56,13 +56,15 @@ function recordVisiblePositions(elShelf: HTMLElement, elContents: HTMLElement) {
   const contentsRect = elContents.getBoundingClientRect();
   for (const elItem of visibleShelfItems(elShelf)) {
     const videoId = shelfItemId(elItem);
-    if (videoId) {
-      const rect = elItem.getBoundingClientRect();
-      positions.set(videoId, {
-        left: rect.left - contentsRect.left,
-        top: rect.top - contentsRect.top
-      });
+    if (!videoId) {
+      continue;
     }
+
+    const rect = elItem.getBoundingClientRect();
+    positions.set(videoId, {
+      left: rect.left - contentsRect.left,
+      top: rect.top - contentsRect.top
+    });
   }
   return positions;
 }
@@ -152,7 +154,7 @@ async function glideNewlyVisible(
   beforePositions: Map<string, RelativePosition>,
   slideInDistance: number
 ) {
-  for (let frame = 0; frame < PROMOTION_POLL_FRAMES; frame++) {
+  for (let iFrame = 0; iFrame < PROMOTION_POLL_FRAMES; iFrame++) {
     const elPromoted = visibleShelfItems(elShelf).filter(elItem => {
       const videoId = shelfItemId(elItem);
       return !!videoId && !beforePositions.has(videoId);
@@ -200,7 +202,7 @@ function releaseEntrants(elEntrants: HTMLElement[]) {
 
 async function clearHiddenOpacity(elShelf: HTMLElement) {
   const totalFrames = Math.ceil(SURVIVOR_SHIFT_MS / MILLISECONDS_PER_FRAME) + GLIDE_FRAME_BUFFER;
-  for (let frame = 0; frame < totalFrames; frame++) {
+  for (let iFrame = 0; iFrame < totalFrames; iFrame++) {
     await nextFrame();
   }
 
