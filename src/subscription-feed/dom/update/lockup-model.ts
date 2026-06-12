@@ -33,11 +33,11 @@ export function mergeLockupViewModel({
   incoming,
   forcePreserveContentImage = false
 }: MergeLockupViewModelParams) {
-  const shouldPreserveThumbnail = forcePreserveContentImage || hasSameThumbnail({
+  const isThumbnailPreservationNeeded = forcePreserveContentImage || hasSameThumbnail({
     existing,
     incoming
   });
-  const contentImage = shouldPreserveThumbnail
+  const contentImage = isThumbnailPreservationNeeded
     ? mergeContentImagePreservingThumbnail({
       existing: existing.contentImage,
       incoming: incoming.contentImage

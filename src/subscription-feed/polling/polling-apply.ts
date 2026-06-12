@@ -72,9 +72,9 @@ export function createApplyHandlers(context: MonitorContext) {
     state.pendingApiSnapshots = payload;
     state.pendingApiSnapshotsTime = Date.now();
 
-    const canApplyImmediately =
+    const isImmediatelyApplicable =
       state.isDomReady && !document.hidden && state.isEnabled && !state.isSubscriptionFetchInProgress;
-    if (canApplyImmediately) {
+    if (isImmediatelyApplicable) {
       applyChanges({ payload }).catch(() => {});
     }
   }

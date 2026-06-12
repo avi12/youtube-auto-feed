@@ -23,10 +23,10 @@ export function mutateLockupViewModelInPlace({
     });
   }
 
-  const shouldRestoreAvatar = incomingAvatarImage === undefined
+  const isAvatarRestoreNeeded = incomingAvatarImage === undefined
     && existingAvatarImage !== undefined
     && existing.metadata?.lockupMetadataViewModel !== undefined;
-  if (!shouldRestoreAvatar) {
+  if (!isAvatarRestoreNeeded) {
     return;
   }
 

@@ -57,8 +57,8 @@ export function reflowBandIntoRuns({ currentContents, currentRuns, targetBand }:
 
   function pushBandItem(item: Prettify<InnerTubeRichGridItem>) {
     const iOriginal = originalIndexByItem.get(item);
-    const hasMovedIndex = iOriginal !== undefined && iOriginal !== result.length;
-    result.push(hasMovedIndex ? structuredClone(item) : item);
+    const isIndexMoved = iOriginal !== undefined && iOriginal !== result.length;
+    result.push(isIndexMoved ? structuredClone(item) : item);
   }
 
   const iLastRun = currentRuns.length - 1;

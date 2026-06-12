@@ -18,8 +18,8 @@ export function createLifecycleHandlers(context: MonitorContext) {
       context.fetchAndApplyMetadataUpdates().catch(() => {});
     }, METADATA_POLL_INTERVAL_MS);
     state.orphanCleanupTimer = setInterval(() => {
-      const canCleanNow = state.isDomReady && !state.isApplyingChanges && state.isEnabled;
-      if (canCleanNow) {
+      const isCleanableNow = state.isDomReady && !state.isApplyingChanges && state.isEnabled;
+      if (isCleanableNow) {
         requestIdleCallback(() => cleanOrphanedGridItems());
       }
     }, ORPHAN_CLEANUP_INTERVAL_MS);

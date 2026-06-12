@@ -57,7 +57,7 @@ export function createFetchHandlers(context: MonitorContext) {
         previousSnapshot: state.lastSnapshot,
         freshSnapshots: result.snapshots
       });
-    } catch {} finally {
+    } finally {
       state.isApplyingChanges = false;
     }
 

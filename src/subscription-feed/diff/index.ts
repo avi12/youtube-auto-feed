@@ -21,8 +21,8 @@ export async function detectAndApplyChanges({
   const freshMap = new Map<string, Prettify<VideoSnapshot>>();
   for (const video of freshSnapshots) {
     const existing = freshMap.get(video.videoId);
-    const shouldPreferLatestBandEntry = !existing || !existing.sectionTitle;
-    if (!shouldPreferLatestBandEntry) {
+    const isLatestBandEntryPreferred = !existing || !existing.sectionTitle;
+    if (!isLatestBandEntryPreferred) {
       continue;
     }
 

@@ -34,8 +34,8 @@ export function pinSurvivorsToOldRects({ oldRects, newlyInsertedIds }: PinSurviv
 
     // Every moved survivor slides from its old slot to its new one (Google-Meet reflow), including
     // tiles that wrap to another row - they glide diagonally rather than snapping or fading.
-    const hasMoved = Math.abs(deltaX) >= 1 || Math.abs(deltaY) >= 1;
-    if (hasMoved) {
+    const isMoved = Math.abs(deltaX) >= 1 || Math.abs(deltaY) >= 1;
+    if (isMoved) {
       elItem.style.translate = `${deltaX}px ${deltaY}px`;
     }
   }

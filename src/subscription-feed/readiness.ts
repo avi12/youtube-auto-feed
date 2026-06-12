@@ -30,8 +30,8 @@ export function isDomContentReady() {
     const gridDataParsed = gridDataSchema.safeParse(elGrid.data);
     if (gridDataParsed.success) {
       const { contents } = gridDataParsed.data;
-      const hasContents = Array.isArray(contents) && contents.length > 0;
-      if (hasContents) {
+      const isContentsPresent = Array.isArray(contents) && contents.length > 0;
+      if (isContentsPresent) {
         return true;
       }
     }

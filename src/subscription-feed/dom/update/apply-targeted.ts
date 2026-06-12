@@ -28,8 +28,8 @@ type ApplyUpdateParams = Prettify<{
 export function applyUpdate({ videoId, elItem, fresh, previous }: ApplyUpdateParams) {
   const { rawRenderer } = fresh;
   const isChannelLiveChanged = !!previous && previous.isChannelLive !== fresh.isChannelLive;
-  const needsFullRebuild = !previous || previous.status !== fresh.status || isChannelLiveChanged;
-  if (needsFullRebuild) {
+  const isFullRebuildNeeded = !previous || previous.status !== fresh.status || isChannelLiveChanged;
+  if (isFullRebuildNeeded) {
     // Only the channel-live flag changed - thumbnail bytes are the same, preserve them.
     const isOnlyChannelLiveFlip = isChannelLiveChanged && previous !== undefined && previous.status === fresh.status;
     rebuildPolymerRenderer({
@@ -52,8 +52,8 @@ export function applyUpdate({ videoId, elItem, fresh, previous }: ApplyUpdatePar
   }
 
   const { content } = itemDataParse.data;
-  const hasLockupContent = content?.lockupViewModel !== undefined;
-  const elLockup = hasLockupContent ? elItem.querySelector<HTMLElement>("yt-lockup-view-model") : null;
+  const isLockupContentPresent = content?.lockupViewModel !== undefined;
+  const elLockup = isLockupContentPresent ? elItem.querySelector<HTMLElement>("yt-lockup-view-model") : null;
   if (elLockup) {
     applyTargetedLockupUpdate({
       videoId,

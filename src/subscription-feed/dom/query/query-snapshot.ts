@@ -10,8 +10,8 @@ export function readDomSnapshot() {
   collectLegacyShelfVideos(snapshot);
   collectInlineGridVideos(snapshot);
 
-  const hasNoRichGridLayout = snapshot.size === 0;
-  if (hasNoRichGridLayout) {
+  const isRichGridLayoutPresent = snapshot.size > 0;
+  if (!isRichGridLayoutPresent) {
     collectFallbackGridVideos(snapshot);
   }
 

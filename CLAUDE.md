@@ -61,7 +61,7 @@ Contract: **section markers stay exactly where YouTube placed them; the extensio
 ## Variable prefixes
 - Element: `el` prefix (e.g. `elButton`)
 - Index: `i` prefix (e.g. `iItem`, `iRun`, `iSlot`) - never an `Index`/`Idx` suffix or a bare noun like `slot`/`frame`/`left`. Use bare `i` only for the single index of a for loop/higher-order function. Exception: a semantic position that is a data field or comes from the YouTube API keeps the field name (e.g. `bandIndex`, `colIndex`).
-- Boolean: `is` prefix (e.g. `isLoading`), phrased positively. Use `isEnabled` + `!isEnabled`, never `isDisabled`, `isNotX`, `isMissing`, etc.
+- Boolean: always the `is` prefix (e.g. `isLoading`) - never `has`/`can`/`should`/`will`/`needs`/`did`/`was` (e.g. `isFullRebuildNeeded`, not `needsFullRebuild`; `isContentsPresent`, not `hasContents`). Phrased positively: use `isEnabled` + `!isEnabled`, never `isDisabled`, `isNotX`, `isMissing`, etc.
 
 # Types
 - 100% type safety: no `any`, avoid `unknown` unless absolutely necessary

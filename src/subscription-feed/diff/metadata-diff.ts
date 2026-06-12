@@ -25,10 +25,10 @@ type StickyWatchProgressParams = Prettify<{
 // YouTube inconsistently drops the watch-progress overlay; carry the last value
 // forward so the tile isn't rebuilt and flickered.
 export function withStickyWatchProgress({ fresh, previous }: StickyWatchProgressParams) {
-  const shouldCarryForward = fresh.watchProgressPercent === null
+  const isCarryForwardNeeded = fresh.watchProgressPercent === null
     && previous !== undefined
     && previous.watchProgressPercent !== null;
-  if (!shouldCarryForward) {
+  if (!isCarryForwardNeeded) {
     return fresh;
   }
 

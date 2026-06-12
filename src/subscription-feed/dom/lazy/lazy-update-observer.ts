@@ -44,8 +44,8 @@ export function ensureObserver() {
 
   intersectionObserver = new IntersectionObserver(entries => {
     for (const { isIntersecting, target } of entries) {
-      const shouldSkipObservation = !isIntersecting || !(target instanceof HTMLElement);
-      if (shouldSkipObservation) {
+      const isObservationEligible = isIntersecting && target instanceof HTMLElement;
+      if (!isObservationEligible) {
         continue;
       }
 
@@ -77,8 +77,8 @@ export function ensureObserver() {
       });
     }
 
-    const hasBatchToFlush = pendingApplyBatch.length > 0 && !isIdleCallbackScheduled;
-    if (hasBatchToFlush) {
+    const isBatchFlushPending = pendingApplyBatch.length > 0 && !isIdleCallbackScheduled;
+    if (isBatchFlushPending) {
       isIdleCallbackScheduled = true;
       requestIdleCallback(flushApplyBatch, { timeout: IDLE_CALLBACK_TIMEOUT_MS });
     }

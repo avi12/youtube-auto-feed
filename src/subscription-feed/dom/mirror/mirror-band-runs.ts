@@ -29,12 +29,12 @@ export function findAllInlineRuns(contents: Prettify<InnerTubeRichGridItem>[]) {
   }[] = [];
   let runStart = -1;
   for (let i = 0; i < contents.length; i++) {
-    const hasInline = !!videoIdFromRichItem(contents[i]);
-    if (hasInline && runStart === -1) {
+    const isInlinePresent = !!videoIdFromRichItem(contents[i]);
+    if (isInlinePresent && runStart === -1) {
       runStart = i;
     }
 
-    if (!hasInline && runStart !== -1) {
+    if (!isInlinePresent && runStart !== -1) {
       runs.push({
         start: runStart,
         end: i

@@ -35,8 +35,8 @@ export function preCoverReflowImages({ newContents, newlyInsertedIds }: PreCover
     const elAvatar = avatarImgInItem(elItem);
     const thumbnailUrl = thumbnailUrlFromContent(futureContent);
     const avatarUrl = avatarUrlFromContent(futureContent);
-    const hasNoCoverableImage = (!elThumbnail || !thumbnailUrl) && (!elAvatar || !avatarUrl);
-    if (hasNoCoverableImage) {
+    const isImageCoverable = (!!elThumbnail && !!thumbnailUrl) || (!!elAvatar && !!avatarUrl);
+    if (!isImageCoverable) {
       continue;
     }
 

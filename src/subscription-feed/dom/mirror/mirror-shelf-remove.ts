@@ -103,8 +103,8 @@ function pinSurvivors({ elShelf, elContents, beforePositions }: PinSurvivorsPara
     const rect = elItem.getBoundingClientRect();
     const deltaX = before.left - (rect.left - contentsRect.left);
     const deltaY = before.top - (rect.top - contentsRect.top);
-    const hasMoved = Math.abs(deltaX) >= 1 || Math.abs(deltaY) >= 1;
-    if (hasMoved) {
+    const isMoved = Math.abs(deltaX) >= 1 || Math.abs(deltaY) >= 1;
+    if (isMoved) {
       elItem.style.transition = "none";
       elItem.style.translate = `${deltaX}px ${deltaY}px`;
       elGliders.push(elItem);

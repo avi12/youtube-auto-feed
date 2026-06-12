@@ -119,8 +119,8 @@ export async function reconcileVisibleThumbnails({ contentHashes }: ReconcileVis
 
     const previousHash = contentHashes.get(videoId);
     contentHashes.set(videoId, hash);
-    const hasServedVariantChanged = previousHash !== undefined && previousHash !== hash;
-    if (hasServedVariantChanged) {
+    const isServedVariantChanged = previousHash !== undefined && previousHash !== hash;
+    if (isServedVariantChanged) {
       swapToBytes({
         elImg,
         buffer
