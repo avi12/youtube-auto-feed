@@ -27,10 +27,10 @@ export async function applyTargetedLockupUpdate({
   const { rawRenderer: freshRawRenderer, thumbnailUrl, watchProgressPercent } = fresh;
   const freshLockup = isLockupViewModel(freshRawRenderer) ? freshRawRenderer : null;
   const newUrl = freshLockup?.contentImage?.thumbnailViewModel?.image?.sources?.at(-1)?.url ?? thumbnailUrl;
-  const thumbUrlDiffers = previous.thumbnailUrl !== thumbnailUrl;
-  const elImg = thumbUrlDiffers ? findThumbnailImg(elLockup) : null;
+  const isThumbnailUrlDifferent = previous.thumbnailUrl !== thumbnailUrl;
+  const elImg = isThumbnailUrlDifferent ? findThumbnailImg(elLockup) : null;
   // Thumbnail changed but <img> not found - rebuild the whole renderer.
-  const isThumbnailReachable = !thumbUrlDiffers || !!elImg;
+  const isThumbnailReachable = !isThumbnailUrlDifferent || !!elImg;
   if (!isThumbnailReachable) {
     rebuildPolymerRenderer({
       videoId,

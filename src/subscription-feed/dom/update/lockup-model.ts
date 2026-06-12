@@ -10,8 +10,8 @@ export { mutateLockupMetadata } from "./lockup-mutate";
 function buildPreservedAvatarMetadata({ existing, incoming }: Prettify<LockupPair>) {
   const existingAvatarImage = getAvatarImage(existing);
   const incomingLockupMeta = incoming.metadata?.lockupMetadataViewModel;
-  const lacksLockupMetadata = incomingLockupMeta === undefined && existingAvatarImage === undefined;
-  if (lacksLockupMetadata) {
+  const isLockupMetadataPresent = incomingLockupMeta !== undefined || existingAvatarImage !== undefined;
+  if (!isLockupMetadataPresent) {
     return incoming.metadata;
   }
 
