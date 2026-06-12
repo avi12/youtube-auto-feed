@@ -25,14 +25,14 @@ export function parseLockupViewModel({ lockup, sectionTitle, bandIndex }: ParseL
   const metaViewModel = metadata?.lockupMetadataViewModel;
   // Keep the query string: an edited thumbnail reuses the /vi/{id}/ path and only rotates sqp/rs.
   const thumbnailUrl = contentImage?.thumbnailViewModel?.image?.sources?.at(-1)?.url ?? "";
-  const metaParts = metaViewModel?.metadata?.contentMetadataViewModel?.metadataRows?.[1]?.metadataParts;
+  const { metadataParts } = metaViewModel?.metadata?.contentMetadataViewModel?.metadataRows?.[1] ?? {};
   return {
     videoId: contentId,
     title: metaViewModel?.title?.content ?? "",
     thumbnailUrl,
     status: statusFromLockup(lockup),
-    viewCountText: metaParts?.[0]?.text?.content ?? "",
-    publishedTimeText: metaParts?.[1]?.text?.content ?? "",
+    viewCountText: metadataParts?.[0]?.text?.content ?? "",
+    publishedTimeText: metadataParts?.[1]?.text?.content ?? "",
     isChannelLive: !!metaViewModel?.image?.decoratedAvatarViewModel?.liveData?.liveBadgeText,
     watchProgressPercent: watchProgressFromLockup(lockup),
     sectionTitle,

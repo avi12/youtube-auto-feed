@@ -36,7 +36,7 @@ export function parseShortsLockupViewModel(
   { shortsLockup, sectionTitle, bandIndex }: ParseShortsLockupViewModelParams
 ) {
   const { onTap, overlayMetadata, thumbnail, accessibilityText = "" } = shortsLockup;
-  const videoId = onTap?.innertubeCommand?.reelWatchEndpoint?.videoId ?? "";
+  const { videoId = "" } = onTap?.innertubeCommand?.reelWatchEndpoint ?? {};
   if (videoId === "") {
     return null;
   }
