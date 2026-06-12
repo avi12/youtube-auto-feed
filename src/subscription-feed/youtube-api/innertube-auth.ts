@@ -26,21 +26,19 @@ export async function innertubePost(endpoint: string, payload: Record<string, un
     return null;
   }
 
-  const authorization = await sapisidHashHeader();
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    "X-Youtube-Client-Name": WEB_CLIENT_NAME,
-    "X-Youtube-Client-Version": context.client.clientVersion
-  };
-  if (authorization) {
-    headers.Authorization = authorization;
-    headers["X-Origin"] = YOUTUBE_ORIGIN;
-  }
-
+  const Authorization = await sapisidHashHeader();
   const response = await fetch(`/youtubei/v1/${endpoint}?key=${apiKey}&prettyPrint=false`, {
     method: "POST",
     credentials: "include",
-    headers,
+    headers: {
+      "Content-Type": "application/json",
+      "X-Youtube-Client-Name": WEB_CLIENT_NAME,
+      "X-Youtube-Client-Version": context.client.clientVersion,
+      ...Authorization && {
+        Authorization,
+        "X-Origin": YOUTUBE_ORIGIN
+      }
+    },
     body: JSON.stringify({
       context,
       ...payload
