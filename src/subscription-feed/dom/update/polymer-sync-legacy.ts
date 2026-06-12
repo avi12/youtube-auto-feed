@@ -32,7 +32,7 @@ export function applyToLegacyShelfModels({ videoId, rawRenderer, forcePreserveCo
     const shelfData = elShelf.data;
     const shelfContent = isShelfRenderer(shelfData) ? shelfData.content : undefined;
     for (const listKey of ["horizontalListRenderer", "gridRenderer"] as const) {
-      const items = shelfContent?.[listKey]?.items ?? [];
+      const { items = [] } = shelfContent?.[listKey] ?? {};
       for (const [iItem, item] of items.entries()) {
         const rendererKey = findMatchingRendererKey(item, videoId);
         if (!rendererKey) {

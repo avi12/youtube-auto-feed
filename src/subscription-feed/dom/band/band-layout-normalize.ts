@@ -56,7 +56,7 @@ export async function normalizeCollapsedShelfRows() {
       })
     );
 
-    const currentContents = elShelf.data.contents ?? [];
+    const { contents: currentContents = [] } = elShelf.data;
     const normalizedContents = currentContents.filter(item => {
       const videoId = videoIdFromRichItem(item);
       const isOverflowItem = !!videoId && overflowVideoIds.has(videoId);

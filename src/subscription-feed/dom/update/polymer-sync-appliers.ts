@@ -15,7 +15,7 @@ function updateRichItem({ elElement, videoId, rawRenderer, forcePreserveContentI
     return;
   }
 
-  const contents = elElement.data.contents ?? [];
+  const { contents = [] } = elElement.data;
   const iItem = findRichItemIndex({
     contents,
     videoId

@@ -21,7 +21,7 @@ export async function mirrorFromApi({ apiContents }: MirrorFromApiParams) {
     return;
   }
 
-  const currentContents = elGrid.data.contents ?? [];
+  const { contents: currentContents = [] } = elGrid.data;
   if (currentContents.length === 0) {
     return;
   }

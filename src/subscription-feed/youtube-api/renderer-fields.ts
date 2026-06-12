@@ -58,7 +58,7 @@ export function statusFromLockup(lockup: Prettify<LockupViewModel>) {
     return VideoStatus.Short;
   }
 
-  const overlays = contentImage?.thumbnailViewModel?.overlays ?? [];
+  const { overlays = [] } = contentImage?.thumbnailViewModel ?? {};
   for (const overlay of overlays) {
     for (const badge of overlay.thumbnailBottomOverlayViewModel?.badges ?? []) {
       const { badgeStyle, text } = badge.thumbnailBadgeViewModel ?? {};

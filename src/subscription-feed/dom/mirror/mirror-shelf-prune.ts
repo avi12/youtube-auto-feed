@@ -143,7 +143,7 @@ function applyShelfRemovals(removableVideoIds: Set<string>) {
       continue;
     }
 
-    const contents = elShelf.data.contents ?? [];
+    const { contents = [] } = elShelf.data;
     const removedVideoIds = new Set<string>();
     const retained = contents.filter(item => {
       const videoId = videoIdFromRichItem(item);

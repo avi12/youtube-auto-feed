@@ -37,7 +37,7 @@ export function captureBandLayout() {
     return null;
   }
 
-  const contents = elGrid.data.contents ?? [];
+  const { contents = [] } = elGrid.data;
   const bands: Prettify<CapturedBand>[] = [];
   const sectionOrder: string[] = [];
   let currentInlineSection = "";

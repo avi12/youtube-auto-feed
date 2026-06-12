@@ -34,7 +34,7 @@ function mutateLockupsInContainers({ selector, isUsable, videoId, mutateOne }: M
       continue;
     }
 
-    const contents = elContainer.data.contents ?? [];
+    const { contents = [] } = elContainer.data;
     const iItem = findRichItemIndex({
       contents,
       videoId
