@@ -124,7 +124,7 @@ export default defineConfig({
       }
 
       const authClient = new auth.GoogleAuth({
-        keyFilename: DRIVE_CREDENTIALS_FILE,
+        keyFile: DRIVE_CREDENTIALS_FILE,
         scopes: "https://www.googleapis.com/auth/drive"
       });
       const client = drive({
