@@ -1,4 +1,5 @@
 import type { Prettify } from "../../types/prettify";
+import { thumbnailPictureKey } from "../rich-item";
 import { applyWithDissolve } from "./dissolve";
 import { syncGridModelItem } from "./polymer-model";
 import { rebuildPolymerRenderer } from "./polymer-rebuild";
@@ -9,7 +10,7 @@ import {
   updateLegacyRendererTextFields,
   updateShortsTextFields
 } from "./text-fields";
-import { dissolveThumbnail, findThumbnailImgInItem, prepareThumbnailDissolve } from "./thumbnail";
+import { findThumbnailImgInItem, isTileHovered, preloadImage } from "./thumbnail";
 
 type ApplyTargetedGenericUpdateParams = Prettify<TargetedUpdateParams>;
 
@@ -40,7 +41,7 @@ export async function applyTargetedGenericUpdate({
       fresh
     });
 
-  const isThumbnailChanging = previous.thumbnailUrl !== thumbnailUrl;
+  const isThumbnailChanging = thumbnailPictureKey(previous.thumbnailUrl) !== thumbnailPictureKey(thumbnailUrl);
   const elImg = isThumbnailChanging ? findThumbnailImgInItem(elItem) : null;
   // Thumbnail changed but <img> not found - rebuild the whole renderer.
   if (isThumbnailChanging && !elImg) {
@@ -52,16 +53,17 @@ export async function applyTargetedGenericUpdate({
     return;
   }
 
-  const thumbWork = elImg
-    ? prepareThumbnailDissolve({
-      elItem,
-      newUrl: thumbnailUrl
-    })
-    : null;
-  const isAnimatable = textElements.length > 0 || !!thumbWork?.willDissolve;
+  // The refreshed picture is swapped in instantly (no crossfade) - preload it so Polymer's repaint
+  // lands already decoded, and hold off while hovering so the hover preview is not disrupted.
+  const isThumbnailSwapping = !!elImg && !isTileHovered(elItem);
+  if (isThumbnailSwapping) {
+    await preloadImage(thumbnailUrl);
+  }
+
+  const isAnimatable = textElements.length > 0 || isThumbnailSwapping;
   if (!isAnimatable) {
-    // URL changed but bytes are the same - sync the model only, leave the DOM <img> alone.
-    if (elImg && isThumbnailChanging) {
+    // Thumbnail changed under the pointer - sync the model only, leave the DOM <img> alone.
+    if (elImg) {
       syncGridModelItem({
         videoId,
         rawRenderer,
@@ -79,15 +81,8 @@ export async function applyTargetedGenericUpdate({
       syncGridModelItem({
         videoId,
         rawRenderer,
-        forcePreserveContentImage: !thumbWork?.willDissolve
+        forcePreserveContentImage: !isThumbnailSwapping
       });
     }
   });
-
-  if (thumbWork?.willDissolve && elImg) {
-    dissolveThumbnail({
-      elImg,
-      newUrl: thumbWork.newUrl
-    }).catch(() => {});
-  }
 }

@@ -4,19 +4,18 @@ import { applyWithDissolve } from "./dissolve";
 import { mutateLockupMetadata } from "./lockup-model";
 import { rebuildPolymerRenderer } from "./polymer-rebuild";
 import { applyLockupTextChanges, changingLockupTextElements, collectLockupTextElements } from "./text-fields";
-import { applyProgressBarUpdate, dissolveThumbnail, prepareThumbnailDissolve } from "./thumbnail";
+import { applyProgressBarUpdate } from "./thumbnail";
 
 interface AnimatedLockupChangesParams {
   videoId: string;
   elItem: PolymerElement;
   elLockup: HTMLElement;
-  elImg: HTMLImageElement | null;
   freshRawRenderer: VideoSnapshot["rawRenderer"];
   freshLockup: Parameters<typeof mutateLockupMetadata>[0]["incoming"] | null;
   refs: ReturnType<typeof collectLockupTextElements>;
   fresh: VideoSnapshot;
   textElements: ReturnType<typeof changingLockupTextElements>;
-  thumbWork: Awaited<ReturnType<typeof prepareThumbnailDissolve>> | null;
+  isThumbnailSwapping: boolean;
   isWatchProgressChanged: boolean;
 }
 
@@ -24,13 +23,12 @@ export function applyAnimatedLockupChanges({
   videoId,
   elItem,
   elLockup,
-  elImg,
   freshRawRenderer,
   freshLockup,
   refs,
   fresh,
   textElements,
-  thumbWork,
+  isThumbnailSwapping,
   isWatchProgressChanged
 }: AnimatedLockupChangesParams) {
   let isProgressBarDirty = false;
@@ -47,7 +45,7 @@ export function applyAnimatedLockupChanges({
           videoId,
           elItem,
           incoming: freshLockup,
-          preserveContentImage: !thumbWork?.willDissolve
+          preserveContentImage: !isThumbnailSwapping
         });
       }
 
@@ -65,14 +63,7 @@ export function applyAnimatedLockupChanges({
       videoId,
       elItem,
       rawRenderer: freshRawRenderer,
-      forcePreserveContentImage: !thumbWork?.willDissolve
+      forcePreserveContentImage: !isThumbnailSwapping
     });
-  }
-
-  if (thumbWork?.willDissolve && elImg) {
-    dissolveThumbnail({
-      elImg,
-      newUrl: thumbWork.newUrl
-    }).catch(() => {});
   }
 }

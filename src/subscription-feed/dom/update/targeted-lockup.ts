@@ -1,11 +1,12 @@
 import type { Prettify } from "../../types/prettify";
 import { isLockupViewModel } from "../../youtube-api/guards";
+import { thumbnailPictureKey } from "../rich-item";
 import { rebuildPolymerRenderer } from "./polymer-rebuild";
 import { applyAnimatedLockupChanges } from "./targeted-lockup-animated";
 import { applyStaticLockupChanges } from "./targeted-lockup-static";
 import type { TargetedUpdateParams } from "./targeted-types";
 import { changingLockupTextElements, collectLockupTextElements } from "./text-fields";
-import { findThumbnailImg, prepareThumbnailDissolve } from "./thumbnail";
+import { findThumbnailImg, isTileHovered, preloadImage } from "./thumbnail";
 
 type ApplyTargetedLockupUpdateParams = Prettify<TargetedUpdateParams & {
   elLockup: HTMLElement;
@@ -27,7 +28,7 @@ export async function applyTargetedLockupUpdate({
   const { rawRenderer: freshRawRenderer, thumbnailUrl, watchProgressPercent } = fresh;
   const freshLockup = isLockupViewModel(freshRawRenderer) ? freshRawRenderer : null;
   const newUrl = freshLockup?.contentImage?.thumbnailViewModel?.image?.sources?.at(-1)?.url ?? thumbnailUrl;
-  const isThumbnailUrlDifferent = previous.thumbnailUrl !== thumbnailUrl;
+  const isThumbnailUrlDifferent = thumbnailPictureKey(previous.thumbnailUrl) !== thumbnailPictureKey(thumbnailUrl);
   const elImg = isThumbnailUrlDifferent ? findThumbnailImg(elLockup) : null;
   // Thumbnail changed but <img> not found - rebuild the whole renderer.
   const isThumbnailReachable = !isThumbnailUrlDifferent || !!elImg;
@@ -40,14 +41,15 @@ export async function applyTargetedLockupUpdate({
     return;
   }
 
-  const thumbWork = elImg
-    ? prepareThumbnailDissolve({
-      elItem,
-      newUrl
-    })
-    : null;
+  // The refreshed picture is swapped in instantly (no crossfade) - preload it so Polymer's repaint
+  // lands already decoded, and hold off while hovering so the hover preview is not disrupted.
+  const isThumbnailSwapping = !!elImg && !isTileHovered(elItem);
+  if (isThumbnailSwapping) {
+    await preloadImage(newUrl);
+  }
+
   const isWatchProgressChanged = previous.watchProgressPercent !== watchProgressPercent;
-  const isAnimatable = textElements.length > 0 || !!thumbWork?.willDissolve;
+  const isAnimatable = textElements.length > 0 || isThumbnailSwapping;
   if (!isAnimatable) {
     applyStaticLockupChanges({
       videoId,
@@ -65,13 +67,12 @@ export async function applyTargetedLockupUpdate({
     videoId,
     elItem,
     elLockup,
-    elImg,
     freshRawRenderer,
     freshLockup,
     refs,
     fresh,
     textElements,
-    thumbWork,
+    isThumbnailSwapping,
     isWatchProgressChanged
   });
 }
