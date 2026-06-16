@@ -10,7 +10,10 @@ const THUMBNAIL_TRANSITION_NAME = "ytaf-thumbnail-swap";
 // A creator's A/B-tested thumbnails share one feed URL; YouTube swaps which variant that URL serves
 // without changing the URL string, so the URL diff never fires and the painted <img> keeps the old
 // variant until a reload. This watch re-fetches each visible thumbnail's own URL, hashes the bytes,
-// and dissolves in the fresh variant whenever the served picture changed. The fetch rides the
+// and dissolves in the fresh variant whenever the served picture changed. Hashes are keyed by URL,
+// not video id: one video can appear in two bands at once (inline Latest plus a shelf) with two
+// differently-sized thumbnail URLs, and a video-id key would make those tiles overwrite each other's
+// hash every tick and dissolve forever on a picture that never changed. The fetch rides the
 // browser's own image cache (the thumbnail is `max-age=300`): within that window it is a free cache
 // hit, and once it lapses YouTube naturally serves its current variant and the byte hash diverges.
 // The painted <img> already holds that exact URL, so the fresh variant is dissolved from the bytes
@@ -73,13 +76,7 @@ async function swapToBytes({ elImg, buffer }: SwapToBytesParams) {
   URL.revokeObjectURL(objectUrl);
 }
 
-function videoIdFromAnchor(elItem: HTMLElement) {
-  const href = elItem.querySelector("a#thumbnail[href], a[href*='/watch?v=']")?.getAttribute("href") ?? "";
-  return href.match(/[?&]v=([\w-]{11})/)?.[1] ?? href.match(/\/shorts\/([\w-]{11})/)?.[1];
-}
-
 interface VisibleThumbnail {
-  videoId: string;
   elImg: HTMLImageElement;
   url: string;
 }
@@ -91,12 +88,10 @@ function collectVisibleThumbnails() {
       continue;
     }
 
-    const videoId = videoIdFromAnchor(elItem);
     const elImg = findThumbnailImgInItem(elItem);
     const url = elItem.data.content ? thumbnailUrlFromContent(elItem.data.content) : "";
-    if (videoId && elImg && url) {
+    if (elImg && url) {
       visible.push({
-        videoId,
         elImg,
         url
       });
@@ -110,15 +105,15 @@ type ReconcileVisibleThumbnailsParams = Prettify<{
 }>;
 
 export async function reconcileVisibleThumbnails({ contentHashes }: ReconcileVisibleThumbnailsParams) {
-  for (const { videoId, elImg, url } of collectVisibleThumbnails()) {
+  for (const { elImg, url } of collectVisibleThumbnails()) {
     const buffer = await fetchThumbnailBytes(url);
     const hash = buffer && await hashBytes(buffer);
     if (!buffer || !hash) {
       continue;
     }
 
-    const previousHash = contentHashes.get(videoId);
-    contentHashes.set(videoId, hash);
+    const previousHash = contentHashes.get(url);
+    contentHashes.set(url, hash);
     const isServedVariantChanged = previousHash !== undefined && previousHash !== hash;
     if (isServedVariantChanged) {
       swapToBytes({
