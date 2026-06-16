@@ -62,6 +62,15 @@ export function thumbnailUrlFromContent(content: Prettify<InnerTubeRichItemConte
   return "";
 }
 
+// A thumbnail's picture identity is its origin and path; the query is only a signed crop/size token
+// (sqp/rs) that YouTube re-rotates every few minutes for an unchanged picture. A real edit changes the
+// path instead (a new custom thumbnail bumps the hq720_custom_N filename). Comparing by this key keeps
+// signature rotations from flashing a crossfade into the same picture; the byte-hash content watch is
+// the backstop for a genuine same-path edit.
+export function thumbnailPictureKey(url: string) {
+  return url.split("?")[0];
+}
+
 export function thumbnailUrlFromRichItem(item: Prettify<InnerTubeRichGridItem>) {
   const content = item.richItemRenderer?.content;
   if (!content) {

@@ -1,3 +1,4 @@
+import { thumbnailPictureKey } from "../dom/rich-item";
 import { batchUpdateVideosInDom } from "../dom/update";
 import type { Prettify } from "../types/prettify";
 import type { VideoSnapshot } from "../types/video";
@@ -9,7 +10,7 @@ type HasMetadataChangeParams = Prettify<{
 
 function hasMetadataChange({ previous, fresh }: HasMetadataChangeParams) {
   return previous.title !== fresh.title
-    || previous.thumbnailUrl !== fresh.thumbnailUrl
+    || thumbnailPictureKey(previous.thumbnailUrl) !== thumbnailPictureKey(fresh.thumbnailUrl)
     || previous.status !== fresh.status
     || previous.viewCountText !== fresh.viewCountText
     || previous.publishedTimeText !== fresh.publishedTimeText
