@@ -516,7 +516,9 @@ async function buildExtension(format: ExtensionFormat) {
     browser: format === "firefox" ? "firefox" : "chrome",
     manifestVersion: 3,
     vite: () => ({
-      build: { sourcemap: true }
+      build: { sourcemap: true },
+      // Enables the __ytafDebug inspection bridge in dev-server builds (stripped from store builds).
+      define: { __YTAF_DEBUG__: "true" }
     })
   });
 }

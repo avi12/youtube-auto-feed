@@ -148,6 +148,8 @@ export default defineConfig({
     }
   },
   vite: () => ({
-    build: { sourcemap: false }
+    build: { sourcemap: false },
+    // Strips the __ytafDebug inspection bridge from store builds; the dev server overrides this to true.
+    define: { __YTAF_DEBUG__: "false" }
   })
 });

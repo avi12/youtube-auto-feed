@@ -1,4 +1,5 @@
 import { feedMessenger } from "../../shared/feed-messaging";
+import { installDevBridge } from "./dev-bridge";
 import { createApplyHandlers } from "./polling-apply";
 import { createBaselineHandlers } from "./polling-baseline";
 import { createFetchHandlers } from "./polling-fetch";
@@ -14,15 +15,13 @@ export function createSubscriptionMonitor() {
   Object.assign(context, createScheduleHandlers(context));
   Object.assign(context, createBaselineHandlers(context));
   Object.assign(context, createLifecycleHandlers(context));
+  installDevBridge(context);
 
   feedMessenger.onMessage("browseResponse", ({ data }) => context.handleBrowseResponse(data));
   feedMessenger.onMessage("subscriptionChange", context.handleSubscriptionChange);
 
   return {
     handleNavigation: context.handleNavigation,
-    pausePolling: context.pausePolling,
-    resumePolling: context.resumePolling,
-    fetchFreshVideos: context.fetchFreshVideos,
     setEnabled: context.setEnabled
   };
 }
