@@ -4,6 +4,7 @@ import { isCollaborativeRichItem, videoIdFromRichItem } from "../rich-item";
 import { mergeBand } from "./mirror-band-merge";
 import { reflowBandIntoRuns, updateAbsenceCountsAndRetain } from "./mirror-band-reflow";
 import { collectInlineVideoIds, extractInlineBand, findAllInlineRuns, isReferenceEqualArray } from "./mirror-band-runs";
+import { BOUNDARY_TAIL_SIZE } from "./mirror-constants";
 import { longestCommonSubsequence } from "./mirror-lcs";
 
 export { collectInlineVideoIds, isReferenceEqualArray };
@@ -29,10 +30,12 @@ export function composeNewContents({ apiContents, currentContents }: ComposeNewC
   const collaborativeIds = new Set(
     currentBand.filter(entry => isCollaborativeRichItem(entry.item)).map(entry => entry.videoId)
   );
+  const tailIds = new Set(currentBand.slice(-BOUNDARY_TAIL_SIZE).map(entry => entry.videoId));
   const retainedDroppedIds = updateAbsenceCountsAndRetain({
     currentBandIds,
     apiBandIds,
-    collaborativeIds
+    collaborativeIds,
+    tailIds
   });
 
   const commonSubsequence = longestCommonSubsequence({

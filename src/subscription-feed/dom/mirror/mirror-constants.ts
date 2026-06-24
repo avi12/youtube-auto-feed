@@ -10,9 +10,13 @@ export const THUMBNAIL_STABLE_FRAMES = 5;
 // giving up, so slow connections do not animate a blank tile in.
 export const NEW_THUMBNAIL_DECODE_CAP_FRAMES = 180;
 export const GRID_ITEM_SELECTOR = "ytd-rich-grid-renderer > #contents > ytd-rich-item-renderer";
-// Collaborative (multi-channel) videos flicker in the API's noisy pagination tail, so they are
-// buffered for this many polls before removal. Non-collaborative videos are dropped immediately.
+// The API's first-page response is non-deterministic at its tail: the last few videos flip between
+// present and absent across identical fetches. A video dropping there is pagination noise, not a real
+// removal, so a video that is collaborative or sits in the band tail is buffered for this many polls
+// before removal. A non-collaborative mid-band video is dropped immediately.
 export const STICKY_DELETE_POLLS = 10;
+// How many trailing band videos count as the noisy pagination tail.
+export const BOUNDARY_TAIL_SIZE = 5;
 export const SURVIVOR_SHIFT_MS = 380;
 export const REFLOW_MARGIN_BELOW_PX = 1200;
 export const absenceCountByVideoId = new Map<string, number>();

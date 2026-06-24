@@ -6,12 +6,14 @@ type UpdateAbsenceCountsParams = Prettify<{
   currentBandIds: Set<string>;
   apiBandIds: Set<string>;
   collaborativeIds: Set<string>;
+  tailIds: Set<string>;
 }>;
 
 export function updateAbsenceCountsAndRetain({
   currentBandIds,
   apiBandIds,
-  collaborativeIds
+  collaborativeIds,
+  tailIds
 }: UpdateAbsenceCountsParams) {
   const retainedDroppedIds = new Set<string>();
   for (const videoId of currentBandIds) {
@@ -24,7 +26,8 @@ export function updateAbsenceCountsAndRetain({
     absenceCountByVideoId.set(videoId, absenceCount);
 
     const DROP_IMMEDIATELY = 0;
-    const stickyThreshold = collaborativeIds.has(videoId) ? STICKY_DELETE_POLLS : DROP_IMMEDIATELY;
+    const isPaginationNoise = collaborativeIds.has(videoId) || tailIds.has(videoId);
+    const stickyThreshold = isPaginationNoise ? STICKY_DELETE_POLLS : DROP_IMMEDIATELY;
     if (absenceCount <= stickyThreshold) {
       retainedDroppedIds.add(videoId);
     }
