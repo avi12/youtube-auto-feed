@@ -21,8 +21,9 @@ const THUMBNAIL_TRANSITION_NAME = "ytaf-thumbnail-swap";
 
 export const THUMBNAIL_WATCH_INTERVAL_MS = 60 * 1000;
 
-async function fetchThumbnailBytes(url: string) {
-  const response = await fetch(url).catch(() => null);
+async function fetchThumbnailBytes(url: string, isForcedReload = false) {
+  const cache = isForcedReload ? "reload" : "default";
+  const response = await fetch(url, { cache }).catch(() => null);
   if (!response?.ok) {
     return null;
   }
@@ -100,12 +101,52 @@ function collectVisibleThumbnails() {
   return visible;
 }
 
+// A just-uploaded video serves a tiny placeholder at its hq720 URL until processing finishes, then the
+// real picture under the same URL. The painted <img> keeps the stale placeholder decode - an <img> never
+// refetches itself and the path-keyed diff treats the URL as unchanged - so it renders far smaller than
+// its tile. That upscaling is the signal to force a fresh fetch past the cache and swap the real picture
+// in once it has grown.
+const PLACEHOLDER_UPSCALE_FACTOR = 2;
+
+function isPlaceholderThumbnail(elImg: HTMLImageElement) {
+  return elImg.naturalWidth > 0 && elImg.naturalWidth * PLACEHOLDER_UPSCALE_FACTOR < elImg.clientWidth;
+}
+
+async function decodedWidth(buffer: ArrayBuffer) {
+  const bitmap = await createImageBitmap(new Blob([buffer])).catch(() => null);
+  if (!bitmap) {
+    return 0;
+  }
+
+  const { width } = bitmap;
+  bitmap.close();
+  return width;
+}
+
+async function healPlaceholderThumbnail({ elImg, url }: VisibleThumbnail) {
+  const buffer = await fetchThumbnailBytes(url, true);
+  if (!buffer || await decodedWidth(buffer) <= elImg.naturalWidth) {
+    return;
+  }
+
+  await swapToBytes({
+    elImg,
+    buffer
+  }).catch(() => {});
+}
+
 type ReconcileVisibleThumbnailsParams = Prettify<{
   contentHashes: Map<string, string>;
 }>;
 
 export async function reconcileVisibleThumbnails({ contentHashes }: ReconcileVisibleThumbnailsParams) {
-  for (const { elImg, url } of collectVisibleThumbnails()) {
+  for (const visible of collectVisibleThumbnails()) {
+    if (isPlaceholderThumbnail(visible.elImg)) {
+      await healPlaceholderThumbnail(visible);
+      continue;
+    }
+
+    const { elImg, url } = visible;
     const buffer = await fetchThumbnailBytes(url);
     const hash = buffer && await hashBytes(buffer);
     if (!buffer || !hash) {
