@@ -1,5 +1,6 @@
 import type { InnerTubeRichGridItem, InnerTubeRichItemContent } from "../types/innertube";
 import type { Prettify } from "../types/prettify";
+import { VideoStatus } from "../types/video";
 import { videoIdFromData } from "../utils/video-id";
 import { isLockupViewModel, isShortsLockupViewModel, isVideoRenderer } from "../youtube-api/guards";
 
@@ -69,6 +70,25 @@ export function thumbnailUrlFromContent(content: Prettify<InnerTubeRichItemConte
 // the backstop for a genuine same-path edit.
 export function thumbnailPictureKey(url: string) {
   return url.split("?")[0];
+}
+
+// Live and upcoming thumbnails are volatile - a live stream re-captures its preview frame and a
+// countdown card gets redrawn, both under the same /vi/ path with only a fresh sqp. Those are tracked
+// by full URL so every refresh repaints; a settled video stays on the path key so the periodic sqp
+// re-sign of one unchanged picture does not churn a crossfade.
+type IsThumbnailChangedParams = Prettify<{
+  previousUrl: string;
+  freshUrl: string;
+  freshStatus: VideoStatus;
+}>;
+
+export function isThumbnailChanged({ previousUrl, freshUrl, freshStatus }: IsThumbnailChangedParams) {
+  const isVolatile = freshStatus === VideoStatus.Live || freshStatus === VideoStatus.Upcoming;
+  if (isVolatile) {
+    return previousUrl !== freshUrl;
+  }
+
+  return thumbnailPictureKey(previousUrl) !== thumbnailPictureKey(freshUrl);
 }
 
 export function thumbnailUrlFromRichItem(item: Prettify<InnerTubeRichGridItem>) {

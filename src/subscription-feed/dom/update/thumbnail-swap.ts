@@ -10,6 +10,14 @@ export async function preloadImage(url: string) {
   await elPreloader.decode().catch(() => undefined);
 }
 
+// An in-place lockup mutation does not re-stamp the bound <img>, and the reflow repaint is keyed by
+// path, so a same-path refresh (a live stream's new preview frame) needs the picture written onto the
+// element directly. Preload first so the already-decoded picture lands without a blank flash.
+export async function swapThumbnailInPlace(elImg: HTMLImageElement, url: string) {
+  await preloadImage(url);
+  elImg.src = url;
+}
+
 export function isTileHovered(elItem: HTMLElement) {
   return elItem.matches(":hover");
 }

@@ -1,2 +1,2 @@
 export { applyProgressBarUpdate, findThumbnailImg, findThumbnailImgInItem } from "./thumbnail-locate";
-export { isTileHovered, preloadImage } from "./thumbnail-swap";
+export { isTileHovered, preloadImage, swapThumbnailInPlace } from "./thumbnail-swap";

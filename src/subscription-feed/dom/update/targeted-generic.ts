@@ -1,5 +1,5 @@
 import type { Prettify } from "../../types/prettify";
-import { thumbnailPictureKey } from "../rich-item";
+import { isThumbnailChanged } from "../rich-item";
 import { applyWithDissolve } from "./dissolve";
 import { syncGridModelItem } from "./polymer-model";
 import { rebuildPolymerRenderer } from "./polymer-rebuild";
@@ -41,7 +41,11 @@ export async function applyTargetedGenericUpdate({
       fresh
     });
 
-  const isThumbnailChanging = thumbnailPictureKey(previous.thumbnailUrl) !== thumbnailPictureKey(thumbnailUrl);
+  const isThumbnailChanging = isThumbnailChanged({
+    previousUrl: previous.thumbnailUrl,
+    freshUrl: thumbnailUrl,
+    freshStatus: fresh.status
+  });
   const elImg = isThumbnailChanging ? findThumbnailImgInItem(elItem) : null;
   // Thumbnail changed but <img> not found - rebuild the whole renderer.
   if (isThumbnailChanging && !elImg) {
