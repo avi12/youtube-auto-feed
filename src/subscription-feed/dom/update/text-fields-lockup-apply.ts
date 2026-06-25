@@ -51,14 +51,21 @@ export function applyLockupTextChanges({ refs, fresh }: Prettify<LockupTextChang
     elTitleLink?.setAttribute("aria-label", newAriaLabel);
   }
 
-  setNodeTextIfChanged({
-    elNode: elView,
-    newText: fresh.viewCountText
-  });
-  setNodeTextIfChanged({
-    elNode: elTime,
-    newText: fresh.publishedTimeText
-  });
+  // Never blank a real view count / published time with an empty parse (e.g. a renderer shape this
+  // build does not fully model), matching the title guard above.
+  if (fresh.viewCountText !== "") {
+    setNodeTextIfChanged({
+      elNode: elView,
+      newText: fresh.viewCountText
+    });
+  }
+
+  if (fresh.publishedTimeText !== "") {
+    setNodeTextIfChanged({
+      elNode: elTime,
+      newText: fresh.publishedTimeText
+    });
+  }
 }
 
 export function changingLockupTextElements({ refs, fresh }: Prettify<LockupTextChange>) {
@@ -69,12 +76,12 @@ export function changingLockupTextElements({ refs, fresh }: Prettify<LockupTextC
     elements.push(elTitle);
   }
 
-  const isViewChanging = !!elView && elView.textContent !== fresh.viewCountText;
+  const isViewChanging = !!elView && fresh.viewCountText !== "" && elView.textContent !== fresh.viewCountText;
   if (isViewChanging) {
     elements.push(elView);
   }
 
-  const isTimeChanging = !!elTime && elTime.textContent !== fresh.publishedTimeText;
+  const isTimeChanging = !!elTime && fresh.publishedTimeText !== "" && elTime.textContent !== fresh.publishedTimeText;
   if (isTimeChanging) {
     elements.push(elTime);
   }
