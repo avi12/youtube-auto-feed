@@ -6,6 +6,9 @@ import { richItemContentSchema } from "../../youtube-api/schemas";
 import { rebuildPolymerRenderer } from "./polymer-rebuild";
 import { applyTargetedGenericUpdate } from "./targeted-generic";
 import { applyTargetedLockupUpdate } from "./targeted-lockup";
+import { applyTrailerUpdate } from "./trailer-update";
+
+const CHANNEL_TRAILER_TAG = "YTD-CHANNEL-VIDEO-PLAYER-RENDERER";
 
 // Targeted path: patches specific DOM nodes (text spans, <img>, progress bar) to avoid thumbnail
 // flicker and reflow. Two flavours: lockup (new UI) and legacy/shorts. Both fall back to a full
@@ -26,6 +29,16 @@ type ApplyUpdateParams = Prettify<{
 }>;
 
 export function applyUpdate({ videoId, elItem, fresh, previous }: ApplyUpdateParams) {
+  // The channel trailer is not a grid tile - it has no `content` renderer and patches its own
+  // title/meta text nodes directly, so it never reaches the lockup/legacy/rebuild branches below.
+  if (elItem.tagName === CHANNEL_TRAILER_TAG) {
+    applyTrailerUpdate({
+      elTrailer: elItem,
+      fresh
+    });
+    return;
+  }
+
   const { rawRenderer } = fresh;
   const isChannelLiveChanged = !!previous && previous.isChannelLive !== fresh.isChannelLive;
   const isFullRebuildNeeded = !previous || previous.status !== fresh.status || isChannelLiveChanged;

@@ -1,6 +1,11 @@
 import type { PolymerElement } from "./types/polymer";
 import { isPolymerElement } from "./utils/polymer";
-import { gridDataSchema, gridVideoDataSchema, richItemDataSchema } from "./youtube-api/schemas";
+import {
+  channelVideoPlayerRendererSchema,
+  gridDataSchema,
+  gridVideoDataSchema,
+  richItemDataSchema
+} from "./youtube-api/schemas";
 
 export function isDomContentReady() {
   const elShelf = document.querySelector<HTMLElement>("ytd-rich-shelf-renderer");
@@ -39,4 +44,16 @@ export function isDomContentReady() {
 
   const elGridItem = document.querySelector<PolymerElement>("ytd-grid-video-renderer");
   return !!elGridItem && gridVideoDataSchema.safeParse(elGridItem.data).success;
+}
+
+// Readiness for the page-agnostic metadata updater: the subscriptions/rich grid is hydrated, or a
+// channel-page trailer is. Pages with nothing updatable (search, watch) stay not-ready, so the light
+// monitor never starts there and never fetches HTML it cannot use.
+export function isGenericContentReady() {
+  if (isDomContentReady()) {
+    return true;
+  }
+
+  const elTrailer = document.querySelector<PolymerElement>("ytd-channel-video-player-renderer");
+  return !!elTrailer && channelVideoPlayerRendererSchema.safeParse(elTrailer.data).success;
 }

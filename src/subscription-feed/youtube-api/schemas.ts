@@ -2,6 +2,7 @@
 // the browse envelope and Polymer `.data` schemas in ./schemas-browse.
 
 export {
+  channelVideoPlayerRendererSchema,
   richItemContentSchema,
   richShelfContentsSchema,
   shelfContentSchema,

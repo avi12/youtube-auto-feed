@@ -26,6 +26,7 @@ export function createLifecycleHandlers(context: MonitorContext) {
   }
 
   function stopMonitoring() {
+    state.monitorMode = null;
     resetLazyUpdates();
     document.removeEventListener("visibilitychange", context.handlePageFocus);
     state.cancelBroadcastListener?.();
@@ -53,9 +54,14 @@ export function createLifecycleHandlers(context: MonitorContext) {
     stopMonitoring();
 
     if (isOnSubscriptionsPage()) {
+      state.monitorMode = "feed";
       context.initializePage();
       startMonitoring();
+      return;
     }
+
+    state.monitorMode = "light";
+    context.initializeGenericPage();
   }
 
   function setEnabled(enabled: boolean) {

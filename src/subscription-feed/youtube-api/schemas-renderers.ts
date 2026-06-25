@@ -18,6 +18,13 @@ export const thumbnailSchema = z.looseObject({
 
 export const videoRendererSchema = z.looseObject({ videoId: z.string() });
 
+export const channelVideoPlayerRendererSchema = z.looseObject({
+  videoId: z.string(),
+  title: titleSchema.optional(),
+  viewCountText: titleSchema.optional(),
+  publishedTimeText: titleSchema.optional()
+});
+
 const reelWatchEndpointSchema = z.looseObject({ videoId: z.string() });
 
 export const shortsOnTapSchema = z.looseObject({

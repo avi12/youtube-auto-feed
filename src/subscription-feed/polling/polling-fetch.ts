@@ -1,7 +1,7 @@
-import { detectAndApplyMetadataChanges } from "../diff";
+import { applyGenericMetadataUpdates, detectAndApplyMetadataChanges } from "../diff";
 import { reconcileVisibleThumbnails, THUMBNAIL_WATCH_INTERVAL_MS } from "../dom/update/thumbnail-content-watch";
 import { isOnSubscriptionsPage } from "../utils/subscriptions-page";
-import { fetchInitialVideos } from "../youtube-api/fetch";
+import { fetchInitialVideos, fetchPageVideos } from "../youtube-api/fetch";
 import { invalidateSubscriptionCache } from "../youtube-api/watch-page-subscription";
 import { type MonitorContext, preloadSnapshotThumbnails } from "./polling-state";
 
@@ -64,6 +64,33 @@ export function createFetchHandlers(context: MonitorContext) {
     await watchServedThumbnailVariants();
   }
 
+  // The page-agnostic pass for every non-subscription page. Re-fetches the current page's HTML, deep-
+  // collects its videos, and reconciles each tile (and the channel trailer) toward the fresh data.
+  async function fetchAndApplyGenericMetadata() {
+    const isGenericPollEligible = !isOnSubscriptionsPage()
+      && state.isDomReady
+      && state.isEnabled
+      && !state.isApplyingChanges
+      && !document.hidden;
+    if (!isGenericPollEligible) {
+      return;
+    }
+
+    const freshSnapshots = await fetchPageVideos();
+    if (!freshSnapshots || state.isApplyingChanges) {
+      return;
+    }
+
+    state.isApplyingChanges = true;
+    try {
+      applyGenericMetadataUpdates(freshSnapshots);
+    } finally {
+      state.isApplyingChanges = false;
+    }
+
+    await watchServedThumbnailVariants();
+  }
+
   // A/B-tested thumbnails swap the served picture under a stable feed URL, so the URL-keyed metadata
   // diff never sees them. This periodic content check catches those variant swaps on visible tiles.
   async function watchServedThumbnailVariants() {
@@ -89,6 +116,7 @@ export function createFetchHandlers(context: MonitorContext) {
   return {
     fetchFreshVideos,
     fetchAndApplyMetadataUpdates,
+    fetchAndApplyGenericMetadata,
     handleSubscriptionChange
   };
 }

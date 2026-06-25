@@ -35,6 +35,19 @@ export interface InnerTubeUpcomingEventData {
   upcomingEventText?: { runs?: Array<{ text: string }> };
 }
 
+interface InnerTubeText {
+  runs?: Array<{ text: string }>;
+  simpleText?: string;
+}
+
+// The channel-page trailer/featured video. Carries its own title/views/date next to an inline player.
+export interface ChannelVideoPlayerRenderer {
+  videoId: string;
+  title?: InnerTubeText;
+  viewCountText?: InnerTubeText;
+  publishedTimeText?: InnerTubeText;
+}
+
 export interface InnerTubeVideoRenderer {
   videoId: string;
   title: {

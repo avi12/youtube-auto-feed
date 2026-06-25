@@ -1,3 +1,4 @@
+import { readGenericDomSnapshot } from "../dom/query/query";
 import { isThumbnailChanged } from "../dom/rich-item";
 import { batchUpdateVideosInDom } from "../dom/update";
 import type { Prettify } from "../types/prettify";
@@ -89,4 +90,30 @@ export function detectAndApplyMetadataChanges({
   }
 
   return updatedSnapshot;
+}
+
+// Page-agnostic metadata pass for non-subscription pages (channel grid + trailer, watch, search,
+// home). Stateless: the "previous" is read straight off the live tiles, so each poll just reconciles
+// whatever the page currently shows toward the freshly fetched data, with no baseline to seed.
+export function applyGenericMetadataUpdates(freshSnapshots: Prettify<VideoSnapshot>[]) {
+  const domSnapshot = readGenericDomSnapshot();
+  const changedVideos: Prettify<VideoSnapshot>[] = [];
+  for (const fresh of freshSnapshots) {
+    const previous = domSnapshot.get(fresh.videoId);
+    if (previous && hasMetadataChange({
+      previous,
+      fresh
+    })) {
+      changedVideos.push(fresh);
+    }
+  }
+
+  if (changedVideos.length === 0) {
+    return;
+  }
+
+  batchUpdateVideosInDom({
+    freshSnapshots: changedVideos,
+    previousSnapshotMap: domSnapshot
+  });
 }

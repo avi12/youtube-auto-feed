@@ -3,6 +3,7 @@ import { installDevBridge } from "./dev-bridge";
 import { createApplyHandlers } from "./polling-apply";
 import { createBaselineHandlers } from "./polling-baseline";
 import { createFetchHandlers } from "./polling-fetch";
+import { createGenericPageHandlers } from "./polling-generic";
 import { createLifecycleHandlers } from "./polling-lifecycle";
 import { createScheduleHandlers } from "./polling-schedule";
 import { createMonitorState, type MonitorContext } from "./polling-state";
@@ -14,6 +15,7 @@ export function createSubscriptionMonitor() {
   Object.assign(context, createFetchHandlers(context));
   Object.assign(context, createScheduleHandlers(context));
   Object.assign(context, createBaselineHandlers(context));
+  Object.assign(context, createGenericPageHandlers(context));
   Object.assign(context, createLifecycleHandlers(context));
   installDevBridge(context);
 

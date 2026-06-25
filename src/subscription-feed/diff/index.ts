@@ -5,7 +5,7 @@ import type { Prettify } from "../types/prettify";
 import type { VideoSnapshot } from "../types/video";
 import { detectAndApplyMetadataChanges, withStickyWatchProgress } from "./metadata-diff";
 
-export { detectAndApplyMetadataChanges } from "./metadata-diff";
+export { applyGenericMetadataUpdates, detectAndApplyMetadataChanges } from "./metadata-diff";
 
 type DetectAndApplyChangesParams = Prettify<{
   freshSnapshots: Prettify<VideoSnapshot>[];

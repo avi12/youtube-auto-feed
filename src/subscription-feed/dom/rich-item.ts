@@ -68,7 +68,7 @@ export function thumbnailUrlFromContent(content: Prettify<InnerTubeRichItemConte
 // path instead (a new custom thumbnail bumps the hq720_custom_N filename). Comparing by this key keeps
 // signature rotations from flashing a crossfade into the same picture; the byte-hash content watch is
 // the backstop for a genuine same-path edit.
-export function thumbnailPictureKey(url: string) {
+function thumbnailPictureKey(url: string) {
   return url.split("?")[0];
 }
 

@@ -1,5 +1,6 @@
 import { z } from "../../shared/zod";
 import type {
+  ChannelVideoPlayerRenderer,
   InnerTubeBrowseResponse,
   InnerTubeRichGridItem,
   InnerTubeRichShelfRenderer,
@@ -10,6 +11,7 @@ import type {
 } from "../types/innertube";
 import {
   browseContentsSchema,
+  channelVideoPlayerRendererSchema,
   gridDataSchema,
   richShelfContentsSchema,
   richShelfDataSchema,
@@ -50,6 +52,10 @@ export function isLockupViewModel(value: unknown): value is LockupViewModel {
 
 export function isShortsLockupViewModel(value: unknown): value is ShortsLockupViewModel {
   return shortsLockupViewModelSchema.safeParse(value).success;
+}
+
+export function isChannelVideoPlayerRenderer(value: unknown): value is ChannelVideoPlayerRenderer {
+  return channelVideoPlayerRendererSchema.safeParse(value).success;
 }
 
 export function isInnerTubeBrowseResponse(value: unknown): value is InnerTubeBrowseResponse {
