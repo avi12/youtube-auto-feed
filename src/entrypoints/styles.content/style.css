@@ -27,6 +27,23 @@
   animation: ytaf-pulse 400ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+@keyframes ytaf-thumbnail-crossfade {
+  from{ opacity: 100%; }
+  to{ opacity: 0%; }
+}
+
+/* A per-tile overlay holding the outgoing thumbnail, faded out to reveal the fresh picture beneath.
+   The thumbnail's clipping ancestor rounds and crops it. Per-tile so concurrent swaps never collide,
+   unlike a document-level view transition (only one runs at a time). */
+.ytaf-thumbnail-fader {
+  position: absolute;
+  inset: 0;
+  background-position: center;
+  background-size: cover;
+  pointer-events: none;
+  animation: ytaf-thumbnail-crossfade 380ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
 @keyframes ytaf-shelf-overflow-exit {
   from {
     opacity: 100%;
