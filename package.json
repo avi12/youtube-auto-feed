@@ -12,6 +12,7 @@
   "scripts": {
     "dev": "tsx scripts/dev-server.ts",
     "dev:edge-chrome-no-extension": "tsx scripts/dev-server.ts --edge --chrome.no-extension",
+    "dev:edge": "tsx scripts/dev-server.ts --edge",
     "dev:edge-firefox-chrome-no-extension": "tsx scripts/dev-server.ts --edge --chrome.no-extension --firefox",
     "build": "wxt build",
     "build:firefox": "pnpm build -b firefox --mv3",
