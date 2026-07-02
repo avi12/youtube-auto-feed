@@ -81,6 +81,11 @@ export default defineConfig({
     ...browser === "chrome" && { minimum_chrome_version: "111" },
     ...browser === "opera" && { minimum_opera_version: "97" },
     ...browser === "firefox" && {
+      // Reuse the popup as the extension's options page so it has a standalone settings entry in
+      // about:addons (add open_in_new_tab: true to open it as a full tab instead of the inline frame).
+      options_ui: {
+        page: "popup.html"
+      },
       browser_specific_settings: {
         gecko: {
           id: "youtube-auto-feed@avi12.com",
