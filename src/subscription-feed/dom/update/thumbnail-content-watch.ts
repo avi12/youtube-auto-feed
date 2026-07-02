@@ -1,10 +1,9 @@
-import { isAnimationsEnabled } from "../../settings-state";
 import type { Prettify } from "../../types/prettify";
 import { isInViewport } from "../animations";
 import { GRID_ITEM_SELECTOR, type RichItemElement } from "../mirror/mirror-constants";
 import { thumbnailUrlFromContent } from "../rich-item";
 import { findThumbnailImgInItem } from "./thumbnail-locate";
-import { preloadImage } from "./thumbnail-swap";
+import { crossfadeThumbnail } from "./thumbnail-swap";
 
 // A creator's A/B-tested thumbnails share one feed URL; YouTube swaps which variant that URL serves
 // without changing the URL string, so the URL diff never fires and the painted <img> keeps the old
@@ -17,6 +16,7 @@ import { preloadImage } from "./thumbnail-swap";
 // hit, and once it lapses YouTube naturally serves its current variant and the byte hash diverges.
 // The painted <img> already holds that exact URL, so the fresh variant is dissolved from the bytes
 // just fetched (a one-shot object URL) rather than re-requesting the same URL, which would not reload.
+// The <img> is then repointed back at its cached URL so it never lingers on the revoked blob.
 
 export const THUMBNAIL_WATCH_INTERVAL_MS = 60 * 1000;
 
@@ -39,46 +39,24 @@ async function hashBytes(buffer: ArrayBuffer) {
   return [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, "0")).join("");
 }
 
-// Crossfade the fresh variant in with a per-tile overlay rather than a document-level View
-// Transition: only one View Transition runs document-wide, so when several visible thumbnails change
-// in the same pass the later transitions abort the earlier ones and those tiles hard-cut. The overlay
-// holds the outgoing picture and fades out to reveal the freshly decoded picture beneath, so every
-// changed thumbnail crossfades independently. Decoding is awaited so the caller can free the bytes.
-type CrossfadeThumbnailParams = Prettify<{
-  elImg: HTMLImageElement;
-  src: string;
-}>;
-
-async function crossfadeThumbnail({ elImg, src }: CrossfadeThumbnailParams) {
-  const elHost = elImg.parentElement;
-  const outgoingSrc = elImg.currentSrc || elImg.src;
-  if (!isAnimationsEnabled() || !elHost || !outgoingSrc) {
-    elImg.src = src;
-    await elImg.decode().catch(() => undefined);
-    return;
-  }
-
-  await preloadImage(src);
-  const elFader = document.createElement("div");
-  elFader.className = "ytaf-thumbnail-fader";
-  elFader.style.backgroundImage = `url("${outgoingSrc}")`;
-  elFader.addEventListener("animationend", () => elFader.remove(), { once: true });
-  elHost.append(elFader);
-  elImg.src = src;
-  await elImg.decode().catch(() => undefined);
-}
-
 type SwapToBytesParams = Prettify<{
   elImg: HTMLImageElement;
   buffer: ArrayBuffer;
+  url: string;
 }>;
 
-async function swapToBytes({ elImg, buffer }: SwapToBytesParams) {
+async function swapToBytes({ elImg, buffer, url }: SwapToBytesParams) {
   const objectUrl = URL.createObjectURL(new Blob([buffer]));
   await crossfadeThumbnail({
     elImg,
     src: objectUrl
   });
+  // The crossfade revealed the fresh bytes from a one-shot blob; repoint the <img> at its own cached
+  // URL - the fetch above stored these exact bytes in the browser image cache - so a later lazy
+  // re-decode or memory eviction reloads a valid picture. Left on the revoked blob it would reload to
+  // nothing, blanking the tile until the next poll healed it and flickering it back and forth.
+  elImg.src = url;
+  await elImg.decode().catch(() => undefined);
   URL.revokeObjectURL(objectUrl);
 }
 
@@ -136,7 +114,8 @@ async function healPlaceholderThumbnail({ elImg, url }: VisibleThumbnail) {
 
   await swapToBytes({
     elImg,
-    buffer
+    buffer,
+    url
   }).catch(() => {});
 }
 
@@ -164,7 +143,8 @@ export async function reconcileVisibleThumbnails({ contentHashes }: ReconcileVis
     if (isServedVariantChanged) {
       swapToBytes({
         elImg,
-        buffer
+        buffer,
+        url
       }).catch(() => {});
     }
   }

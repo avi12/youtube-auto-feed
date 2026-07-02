@@ -6,7 +6,7 @@ import { applyAnimatedLockupChanges } from "./targeted-lockup-animated";
 import { applyStaticLockupChanges } from "./targeted-lockup-static";
 import type { TargetedUpdateParams } from "./targeted-types";
 import { changingLockupTextElements, collectLockupTextElements } from "./text-fields";
-import { findThumbnailImg, isTileHovered, swapThumbnailInPlace } from "./thumbnail";
+import { crossfadeThumbnail, findThumbnailImg, isTileHovered } from "./thumbnail";
 
 type ApplyTargetedLockupUpdateParams = Prettify<TargetedUpdateParams & {
   elLockup: HTMLElement;
@@ -45,11 +45,14 @@ export async function applyTargetedLockupUpdate({
     return;
   }
 
-  // The refreshed picture is swapped in instantly (no crossfade), preloaded so it lands already decoded,
-  // held off while hovering so the hover preview is not disrupted.
+  // The refreshed picture is crossfaded in with a per-tile overlay, held off while hovering so the
+  // hover preview is not disrupted.
   const isThumbnailSwapping = !!elImg && !isTileHovered(elItem);
   if (isThumbnailSwapping && elImg) {
-    await swapThumbnailInPlace(elImg, newUrl);
+    await crossfadeThumbnail({
+      elImg,
+      src: newUrl
+    });
   }
 
   const isWatchProgressChanged = previous.watchProgressPercent !== watchProgressPercent;

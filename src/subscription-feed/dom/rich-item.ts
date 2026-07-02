@@ -83,6 +83,13 @@ type IsThumbnailChangedParams = Prettify<{
 }>;
 
 export function isThumbnailChanged({ previousUrl, freshUrl, freshStatus }: IsThumbnailChangedParams) {
+  // A video always has a thumbnail; an empty fresh URL is a transient parse gap, not a real edit.
+  // Treating it as a change would swap the tile to an empty src and blank it until the next poll healed
+  // it, flickering it in and out.
+  if (freshUrl === "") {
+    return false;
+  }
+
   const isVolatile = freshStatus === VideoStatus.Live || freshStatus === VideoStatus.Upcoming;
   if (isVolatile) {
     return previousUrl !== freshUrl;
