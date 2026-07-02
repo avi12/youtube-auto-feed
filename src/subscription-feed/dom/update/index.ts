@@ -22,7 +22,7 @@ function applyOrScheduleUpdate({ videoId, elItem, fresh, previous }: ApplyOrSche
       fresh,
       previous
     });
-    return;
+    return true;
   }
 
   scheduleLazyUpdate({
@@ -31,6 +31,7 @@ function applyOrScheduleUpdate({ videoId, elItem, fresh, previous }: ApplyOrSche
     previous,
     elItemHint: elItem
   });
+  return false;
 }
 
 type BatchUpdateVideosInDomParams = Prettify<{
@@ -38,8 +39,11 @@ type BatchUpdateVideosInDomParams = Prettify<{
   previousSnapshotMap?: Map<string, Prettify<VideoSnapshot>>;
 }>;
 
-// Metadata-only poll: one DOM walk shared across many videos.
+// Metadata-only poll: one DOM walk shared across many videos. Returns the ids whose update landed
+// in the DOM now; deferred (lazy) and element-less updates are excluded so the caller can keep the
+// previous snapshot and re-detect them on the next poll.
 export function batchUpdateVideosInDom({ freshSnapshots, previousSnapshotMap }: BatchUpdateVideosInDomParams) {
+  const appliedVideoIds = new Set<string>();
   const elementMap = buildVideoElementMap();
   for (const fresh of freshSnapshots) {
     const elItems = elementMap.get(fresh.videoId) ?? [];
@@ -49,12 +53,16 @@ export function batchUpdateVideosInDom({ freshSnapshots, previousSnapshotMap }: 
         continue;
       }
 
-      applyOrScheduleUpdate({
+      const isAppliedNow = applyOrScheduleUpdate({
         videoId: fresh.videoId,
         elItem,
         fresh,
         previous
       });
+      if (isAppliedNow) {
+        appliedVideoIds.add(fresh.videoId);
+      }
     }
   }
+  return appliedVideoIds;
 }

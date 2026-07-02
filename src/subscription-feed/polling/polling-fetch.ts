@@ -53,10 +53,10 @@ export function createFetchHandlers(context: MonitorContext) {
 
     state.isApplyingChanges = true;
     try {
-      state.lastSnapshot = await detectAndApplyMetadataChanges({
+      state.lastSnapshot = detectAndApplyMetadataChanges({
         previousSnapshot: state.lastSnapshot,
         freshSnapshots: result.snapshots
-      });
+      }).snapshot;
     } finally {
       state.isApplyingChanges = false;
     }

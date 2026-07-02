@@ -35,10 +35,16 @@ export async function detectAndApplyChanges({
   }
 
   // Runs before the mirror so metadata changes on a structural poll patch the DOM instead of being absorbed.
-  detectAndApplyMetadataChanges({
+  const { deferredVideoIds } = detectAndApplyMetadataChanges({
     previousSnapshot,
     freshSnapshots
   });
+  for (const videoId of deferredVideoIds) {
+    const previous = previousSnapshot.get(videoId);
+    if (previous) {
+      freshMap.set(videoId, previous);
+    }
+  }
 
   await mirrorFromApi({ apiContents });
   cleanOrphanedGridItems();

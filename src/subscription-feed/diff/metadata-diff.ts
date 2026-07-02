@@ -82,14 +82,32 @@ export function detectAndApplyMetadataChanges({
     });
   }
 
+  // A deferred (off-viewport) update can be stranded when the grid reflows and rebinds videos to
+  // other tile elements before it applies. Keeping the previous snapshot for those ids re-detects
+  // the change on the next poll and re-schedules against the elements the video currently occupies.
+  const deferredVideoIds = new Set<string>();
   if (changedVideos.length > 0) {
-    batchUpdateVideosInDom({
+    const appliedVideoIds = batchUpdateVideosInDom({
       freshSnapshots: changedVideos,
       previousSnapshotMap: previousSnapshot
     });
+    for (const { videoId } of changedVideos) {
+      if (appliedVideoIds.has(videoId)) {
+        continue;
+      }
+
+      deferredVideoIds.add(videoId);
+      const previous = previousSnapshot.get(videoId);
+      if (previous) {
+        updatedSnapshot.set(videoId, previous);
+      }
+    }
   }
 
-  return updatedSnapshot;
+  return {
+    snapshot: updatedSnapshot,
+    deferredVideoIds
+  };
 }
 
 // Page-agnostic metadata pass for non-subscription pages (channel grid + trailer, watch, search,
