@@ -4,7 +4,7 @@ import type { VideoSnapshot } from "../../types/video";
 import { isPolymerElement } from "../../utils/polymer";
 import { isInViewport } from "../animations";
 import { scheduleLazyUpdate } from "../lazy/lazy-update";
-import { applyUpdate } from "./apply-targeted";
+import { applyUpdate, isSwapHeldOffByHover } from "./apply-targeted";
 import { buildVideoElementMap } from "./video-element-map";
 
 type ApplyOrScheduleParams = Prettify<{
@@ -16,6 +16,14 @@ type ApplyOrScheduleParams = Prettify<{
 
 function applyOrScheduleUpdate({ videoId, elItem, fresh, previous }: ApplyOrScheduleParams) {
   if (isInViewport(elItem)) {
+    if (isSwapHeldOffByHover({
+      elItem,
+      fresh,
+      previous
+    })) {
+      return false;
+    }
+
     applyUpdate({
       videoId,
       elItem,

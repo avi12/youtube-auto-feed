@@ -3,9 +3,11 @@ import type { PolymerElement } from "../../types/polymer";
 import type { Prettify } from "../../types/prettify";
 import type { VideoSnapshot } from "../../types/video";
 import { richItemContentSchema } from "../../youtube-api/schemas";
+import { isThumbnailChanged, isThumbnailUrlRotated } from "../rich-item";
 import { rebuildPolymerRenderer } from "./polymer-rebuild";
 import { applyTargetedGenericUpdate } from "./targeted-generic";
 import { applyTargetedLockupUpdate } from "./targeted-lockup";
+import { isTileHovered } from "./thumbnail";
 import { applyTrailerUpdate } from "./trailer-update";
 
 const CHANNEL_TRAILER_TAG = "YTD-CHANNEL-VIDEO-PLAYER-RENDERER";
@@ -27,6 +29,24 @@ type ApplyUpdateParams = Prettify<{
   fresh: Prettify<VideoSnapshot>;
   previous?: Prettify<VideoSnapshot>;
 }>;
+
+type IsSwapHeldOffByHoverParams = Prettify<Omit<ApplyUpdateParams, "videoId">>;
+
+// A hovered tile's thumbnail swap is held off so the hover preview is not disrupted. Callers defer
+// the whole update (instead of applying without the swap), keeping the previous snapshot so the next
+// poll retries and the swap crossfades in once the pointer leaves.
+export function isSwapHeldOffByHover({ elItem, fresh, previous }: IsSwapHeldOffByHoverParams) {
+  if (!previous || !isTileHovered(elItem)) {
+    return false;
+  }
+
+  const urls = {
+    previousUrl: previous.thumbnailUrl,
+    freshUrl: fresh.thumbnailUrl,
+    freshStatus: fresh.status
+  };
+  return isThumbnailChanged(urls) || isThumbnailUrlRotated(urls);
+}
 
 export function applyUpdate({ videoId, elItem, fresh, previous }: ApplyUpdateParams) {
   // The channel trailer is not a grid tile - it has no `content` renderer and patches its own

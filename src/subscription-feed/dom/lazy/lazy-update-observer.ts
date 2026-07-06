@@ -3,7 +3,7 @@ import type { Prettify } from "../../types/prettify";
 import type { VideoSnapshot } from "../../types/video";
 import { isPolymerElement } from "../../utils/polymer";
 import { videoIdFromData } from "../../utils/video-id";
-import { applyUpdate } from "../update/apply-targeted";
+import { applyUpdate, isSwapHeldOffByHover } from "../update/apply-targeted";
 
 const IDLE_CALLBACK_TIMEOUT_MS = 500;
 const LAZY_UPDATE_ROOT_MARGIN_PX = 300;
@@ -28,6 +28,16 @@ function flushApplyBatch() {
   isIdleCallbackScheduled = false;
   const batch = pendingApplyBatch.splice(0);
   for (const { videoId, elItem, fresh, previous } of batch) {
+    // Dropping the entry is safe: the poll kept the previous snapshot for deferred videos, so the
+    // change re-detects and re-schedules on the next poll.
+    if (isSwapHeldOffByHover({
+      elItem,
+      fresh,
+      previous
+    })) {
+      continue;
+    }
+
     applyUpdate({
       videoId,
       elItem,
