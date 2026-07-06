@@ -1,7 +1,7 @@
 import type { ChannelVideoPlayerRenderer, InnerTubeVideoRenderer, ShortsLockupViewModel } from "../types/innertube";
 import type { Prettify } from "../types/prettify";
 import { type VideoSnapshot, VideoStatus } from "../types/video";
-import { statusFromRenderer, viewCountFromRenderer } from "./guards";
+import { statusFromRenderer, thumbnailUrlFromShortsLockup, viewCountFromRenderer } from "./guards";
 import type { ParseVideoParams } from "./parse-video-params";
 
 type ParseRendererParams = Prettify<ParseVideoParams & { renderer: Prettify<InnerTubeVideoRenderer> }>;
@@ -35,7 +35,7 @@ type ParseShortsLockupViewModelParams = Prettify<ParseVideoParams & { shortsLock
 export function parseShortsLockupViewModel(
   { shortsLockup, sectionTitle, bandIndex }: ParseShortsLockupViewModelParams
 ) {
-  const { onTap, overlayMetadata, thumbnail, accessibilityText = "" } = shortsLockup;
+  const { onTap, overlayMetadata, accessibilityText = "" } = shortsLockup;
   const { videoId = "" } = onTap?.innertubeCommand?.reelWatchEndpoint ?? {};
   if (videoId === "") {
     return null;
@@ -45,7 +45,7 @@ export function parseShortsLockupViewModel(
   return {
     videoId,
     title: primaryText?.content ?? accessibilityText,
-    thumbnailUrl: thumbnail?.sources?.at(-1)?.url ?? "",
+    thumbnailUrl: thumbnailUrlFromShortsLockup(shortsLockup),
     status: VideoStatus.Short,
     viewCountText: secondaryText?.content ?? "",
     publishedTimeText: "",

@@ -6,6 +6,7 @@ import "./innertube-client";
 
 export type {
   ChannelVideoPlayerRenderer,
+  ImageSource,
   InnerTubeVideoRenderer,
   LockupViewModel,
   ShortsLockupViewModel

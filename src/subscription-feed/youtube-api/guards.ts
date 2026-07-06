@@ -81,5 +81,6 @@ export function isShelfRenderer(value: unknown): value is InnerTubeShelfRenderer
 export {
   statusFromLockup,
   statusFromRenderer,
+  thumbnailUrlFromShortsLockup,
   viewCountFromRenderer
 } from "./renderer-fields";

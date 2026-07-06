@@ -68,6 +68,7 @@ export interface InnerTubeVideoRenderer {
 }
 
 export {
+  type ImageSource,
   LockupBadgeStyle,
   LockupContentType,
   type LockupViewModel,

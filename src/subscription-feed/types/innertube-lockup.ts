@@ -68,6 +68,12 @@ export interface LockupViewModel {
   };
 }
 
+export interface ImageSource {
+  url: string;
+  width?: number;
+  height?: number;
+}
+
 export interface ShortsLockupViewModel {
   entityId?: string;
   accessibilityText?: string;
@@ -80,9 +86,10 @@ export interface ShortsLockupViewModel {
     primaryText?: { content?: string };
     secondaryText?: { content?: string };
   };
-  thumbnail?: { sources?: Array<{
-    url: string;
-    width?: number;
-    height?: number;
-  }>; };
+  thumbnail?: { sources?: ImageSource[] };
+  thumbnailViewModel?: {
+    thumbnailViewModel?: {
+      image?: { sources?: ImageSource[] };
+    };
+  };
 }

@@ -1,10 +1,12 @@
 import {
   BadgeStyle,
+  type ImageSource,
   type InnerTubeVideoRenderer,
   LockupBadgeStyle,
   LockupContentType,
   type LockupViewModel,
-  OverlayStyle
+  OverlayStyle,
+  type ShortsLockupViewModel
 } from "../types/innertube";
 import type { Prettify } from "../types/prettify";
 import { VideoStatus } from "../types/video";
@@ -51,6 +53,21 @@ export function statusFromRenderer(renderer: Prettify<InnerTubeVideoRenderer>) {
   }
 
   return VideoStatus.Video;
+}
+
+function imageSourceArea({ width = 0, height = 0 }: Prettify<ImageSource>) {
+  return width * height;
+}
+
+// The shorts shelf has served two shapes: the older `thumbnail.sources` and the newer nested
+// `thumbnailViewModel.thumbnailViewModel.image.sources`. YouTube paints the largest source.
+export function thumbnailUrlFromShortsLockup({ thumbnail, thumbnailViewModel }: Prettify<ShortsLockupViewModel>) {
+  const sources = thumbnail?.sources ?? thumbnailViewModel?.thumbnailViewModel?.image?.sources ?? [];
+  const largest = sources.reduce<Prettify<ImageSource> | null>(
+    (best, source) => (best !== null && imageSourceArea(best) > imageSourceArea(source) ? best : source),
+    null
+  );
+  return largest?.url ?? "";
 }
 
 export function statusFromLockup(lockup: Prettify<LockupViewModel>) {

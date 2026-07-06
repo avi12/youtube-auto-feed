@@ -122,6 +122,13 @@ export function findThumbnailImgInItem(elItem: HTMLElement) {
     }
   }
 
+  // A shorts lockup nests its <img> in a bare yt-thumbnail-view-model with no lockup or
+  // ytd-thumbnail wrapper.
+  const elThumbnailViewModelImg = elItem.querySelector<HTMLImageElement>(`${THUMBNAIL_VIEW_MODEL_TAG} img`);
+  if (elThumbnailViewModelImg) {
+    return elThumbnailViewModelImg;
+  }
+
   return findImgInYtImages({
     root: elItem,
     selector: "ytd-thumbnail yt-image"
