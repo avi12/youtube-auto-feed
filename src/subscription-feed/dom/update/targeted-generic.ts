@@ -1,5 +1,5 @@
 import type { Prettify } from "../../types/prettify";
-import { isThumbnailChanged } from "../rich-item";
+import { isThumbnailChanged, isThumbnailUrlRotated } from "../rich-item";
 import { applyWithDissolve } from "./dissolve";
 import { syncGridModelItem } from "./polymer-model";
 import { rebuildPolymerRenderer } from "./polymer-rebuild";
@@ -10,7 +10,7 @@ import {
   updateLegacyRendererTextFields,
   updateShortsTextFields
 } from "./text-fields";
-import { findThumbnailImgInItem, isTileHovered, preloadImage } from "./thumbnail";
+import { crossfadeChangedThumbnail, findThumbnailImgInItem } from "./thumbnail";
 
 type ApplyTargetedGenericUpdateParams = Prettify<TargetedUpdateParams>;
 
@@ -46,7 +46,12 @@ export async function applyTargetedGenericUpdate({
     freshUrl: thumbnailUrl,
     freshStatus: fresh.status
   });
-  const elImg = isThumbnailChanging ? findThumbnailImgInItem(elItem) : null;
+  const isThumbnailQueryRotated = isThumbnailUrlRotated({
+    previousUrl: previous.thumbnailUrl,
+    freshUrl: thumbnailUrl,
+    freshStatus: fresh.status
+  });
+  const elImg = isThumbnailChanging || isThumbnailQueryRotated ? findThumbnailImgInItem(elItem) : null;
   // Thumbnail changed but <img> not found - rebuild the whole renderer.
   if (isThumbnailChanging && !elImg) {
     rebuildPolymerRenderer({
@@ -57,24 +62,16 @@ export async function applyTargetedGenericUpdate({
     return;
   }
 
-  // The refreshed picture is swapped in instantly (no crossfade) - preload it so Polymer's repaint
-  // lands already decoded, and hold off while hovering so the hover preview is not disrupted.
-  const isThumbnailSwapping = !!elImg && !isTileHovered(elItem);
-  if (isThumbnailSwapping) {
-    await preloadImage(thumbnailUrl);
-  }
+  // Hovered tiles never reach this point - the callers defer the whole update until unhover.
+  const isThumbnailSwapping = !!elImg && await crossfadeChangedThumbnail({
+    elImg,
+    previousUrl: previous.thumbnailUrl,
+    freshUrl: thumbnailUrl,
+    isSamePathRotation: isThumbnailQueryRotated
+  });
 
   const isAnimatable = textElements.length > 0 || isThumbnailSwapping;
   if (!isAnimatable) {
-    // Thumbnail changed under the pointer - sync the model only, leave the DOM <img> alone.
-    if (elImg) {
-      syncGridModelItem({
-        videoId,
-        rawRenderer,
-        forcePreserveContentImage: true
-      });
-    }
-
     return;
   }
 

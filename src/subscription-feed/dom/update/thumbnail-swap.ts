@@ -6,7 +6,7 @@ import type { Prettify } from "../../types/prettify";
 // unchanged URL. Either way the fresh picture is crossfaded in with a per-tile overlay so the change
 // reads as a deliberate transition rather than a hard cut.
 
-export async function preloadImage(url: string) {
+async function preloadImage(url: string) {
   const elPreloader = new Image();
   elPreloader.src = url;
   await elPreloader.decode().catch(() => undefined);

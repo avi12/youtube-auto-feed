@@ -1,5 +1,5 @@
 import { readGenericDomSnapshot } from "../dom/query/query";
-import { isThumbnailChanged } from "../dom/rich-item";
+import { isThumbnailChanged, isThumbnailUrlRotated } from "../dom/rich-item";
 import { batchUpdateVideosInDom } from "../dom/update";
 import type { Prettify } from "../types/prettify";
 import type { VideoSnapshot } from "../types/video";
@@ -12,6 +12,11 @@ type HasMetadataChangeParams = Prettify<{
 function hasMetadataChange({ previous, fresh }: HasMetadataChangeParams) {
   return previous.title !== fresh.title
     || isThumbnailChanged({
+      previousUrl: previous.thumbnailUrl,
+      freshUrl: fresh.thumbnailUrl,
+      freshStatus: fresh.status
+    })
+    || isThumbnailUrlRotated({
       previousUrl: previous.thumbnailUrl,
       freshUrl: fresh.thumbnailUrl,
       freshStatus: fresh.status

@@ -2,7 +2,12 @@ import type { InnerTubeRichGridItem, InnerTubeRichItemContent } from "../types/i
 import type { Prettify } from "../types/prettify";
 import { VideoStatus } from "../types/video";
 import { videoIdFromData } from "../utils/video-id";
-import { isLockupViewModel, isShortsLockupViewModel, isVideoRenderer } from "../youtube-api/guards";
+import {
+  isLockupViewModel,
+  isShortsLockupViewModel,
+  isVideoRenderer,
+  thumbnailUrlFromShortsLockup
+} from "../youtube-api/guards";
 
 export function videoIdFromRichItem(
   contentItem: Prettify<InnerTubeRichGridItem> | Record<string, unknown> | undefined
@@ -57,7 +62,7 @@ export function thumbnailUrlFromContent(content: Prettify<InnerTubeRichItemConte
   }
 
   if (isShortsLockupViewModel(shortsLockupViewModel)) {
-    return shortsLockupViewModel.thumbnail?.sources?.at(-1)?.url ?? "";
+    return thumbnailUrlFromShortsLockup(shortsLockupViewModel);
   }
 
   return "";
@@ -96,6 +101,22 @@ export function isThumbnailChanged({ previousUrl, freshUrl, freshStatus }: IsThu
   }
 
   return thumbnailPictureKey(previousUrl) !== thumbnailPictureKey(freshUrl);
+}
+
+// A settled video's thumbnail can also be re-served under the SAME path with a fresh signed query -
+// that is how YouTube delivers a swapped picture (e.g. a rotated Test & Compare variant). The query
+// alone cannot tell a re-sign of the same picture from a new one, so callers byte-compare before
+// crossfading. Feed URLs are otherwise stable across polls, so a query change is a real signal.
+export function isThumbnailUrlRotated({ previousUrl, freshUrl, freshStatus }: IsThumbnailChangedParams) {
+  if (freshUrl === "" || previousUrl === "") {
+    return false;
+  }
+
+  return !isThumbnailChanged({
+    previousUrl,
+    freshUrl,
+    freshStatus
+  }) && previousUrl !== freshUrl;
 }
 
 export function thumbnailUrlFromRichItem(item: Prettify<InnerTubeRichGridItem>) {

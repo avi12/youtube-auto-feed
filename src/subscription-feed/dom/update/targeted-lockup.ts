@@ -1,12 +1,12 @@
 import type { Prettify } from "../../types/prettify";
 import { isLockupViewModel } from "../../youtube-api/guards";
-import { isThumbnailChanged } from "../rich-item";
+import { isThumbnailChanged, isThumbnailUrlRotated } from "../rich-item";
 import { rebuildPolymerRenderer } from "./polymer-rebuild";
 import { applyAnimatedLockupChanges } from "./targeted-lockup-animated";
 import { applyStaticLockupChanges } from "./targeted-lockup-static";
 import type { TargetedUpdateParams } from "./targeted-types";
 import { changingLockupTextElements, collectLockupTextElements } from "./text-fields";
-import { crossfadeThumbnail, findThumbnailImg, isTileHovered } from "./thumbnail";
+import { crossfadeChangedThumbnail, findThumbnailImg } from "./thumbnail";
 
 type ApplyTargetedLockupUpdateParams = Prettify<TargetedUpdateParams & {
   elLockup: HTMLElement;
@@ -33,7 +33,12 @@ export async function applyTargetedLockupUpdate({
     freshUrl: thumbnailUrl,
     freshStatus: fresh.status
   });
-  const elImg = isThumbnailUrlDifferent ? findThumbnailImg(elLockup) : null;
+  const isThumbnailQueryRotated = isThumbnailUrlRotated({
+    previousUrl: previous.thumbnailUrl,
+    freshUrl: thumbnailUrl,
+    freshStatus: fresh.status
+  });
+  const elImg = isThumbnailUrlDifferent || isThumbnailQueryRotated ? findThumbnailImg(elLockup) : null;
   // Thumbnail changed but <img> not found - rebuild the whole renderer.
   const isThumbnailReachable = !isThumbnailUrlDifferent || !!elImg;
   if (!isThumbnailReachable) {
@@ -45,15 +50,13 @@ export async function applyTargetedLockupUpdate({
     return;
   }
 
-  // The refreshed picture is crossfaded in with a per-tile overlay, held off while hovering so the
-  // hover preview is not disrupted.
-  const isThumbnailSwapping = !!elImg && !isTileHovered(elItem);
-  if (isThumbnailSwapping && elImg) {
-    await crossfadeThumbnail({
-      elImg,
-      src: newUrl
-    });
-  }
+  // Hovered tiles never reach this point - the callers defer the whole update until unhover.
+  const isThumbnailSwapping = !!elImg && await crossfadeChangedThumbnail({
+    elImg,
+    previousUrl: previous.thumbnailUrl,
+    freshUrl: newUrl,
+    isSamePathRotation: isThumbnailQueryRotated
+  });
 
   const isWatchProgressChanged = previous.watchProgressPercent !== watchProgressPercent;
   const isAnimatable = textElements.length > 0 || isThumbnailSwapping;

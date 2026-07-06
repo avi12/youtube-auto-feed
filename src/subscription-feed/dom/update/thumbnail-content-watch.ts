@@ -60,6 +60,54 @@ async function swapToBytes({ elImg, buffer, url }: SwapToBytesParams) {
   URL.revokeObjectURL(objectUrl);
 }
 
+// A changed path is certainly a new picture; a re-signed query on the same path may still serve the
+// same one, so the bytes decide. An expired/unfetchable previous URL counts as changed - crossfading
+// into an identical picture is visually a no-op, while skipping a real swap leaves the tile stale.
+// Both fetches warm the browser cache, so the crossfade decodes instantly. Returns whether the fresh
+// picture was crossfaded in.
+type CrossfadeChangedThumbnailParams = Prettify<{
+  elImg: HTMLImageElement;
+  previousUrl: string;
+  freshUrl: string;
+  isSamePathRotation: boolean;
+}>;
+
+export async function crossfadeChangedThumbnail({
+  elImg,
+  previousUrl,
+  freshUrl,
+  isSamePathRotation
+}: CrossfadeChangedThumbnailParams) {
+  if (!isSamePathRotation) {
+    await crossfadeThumbnail({
+      elImg,
+      src: freshUrl
+    });
+    return true;
+  }
+
+  const [previousBuffer, freshBuffer] = await Promise.all([
+    fetchThumbnailBytes(previousUrl),
+    fetchThumbnailBytes(freshUrl)
+  ]);
+  if (!freshBuffer) {
+    return false;
+  }
+
+  const previousHash = previousBuffer && await hashBytes(previousBuffer);
+  const freshHash = await hashBytes(freshBuffer);
+  const isSamePicture = !!previousHash && !!freshHash && previousHash === freshHash;
+  if (isSamePicture) {
+    return false;
+  }
+
+  await crossfadeThumbnail({
+    elImg,
+    src: freshUrl
+  });
+  return true;
+}
+
 interface VisibleThumbnail {
   elImg: HTMLImageElement;
   url: string;
