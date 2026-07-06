@@ -1,7 +1,7 @@
 import { ytafChannel } from "../../shared/messaging";
 import { cleanOrphanedGridItems } from "../dom/cleanup/orphan-cleanup";
 import { resetLazyUpdates } from "../dom/lazy/lazy-update";
-import { isOnSubscriptionsPage } from "../utils/subscriptions-page";
+import { isOnSubscriptionsPage, isOnVideoPage } from "../utils/subscriptions-page";
 import { METADATA_POLL_INTERVAL_MS, type MonitorContext, ORPHAN_CLEANUP_INTERVAL_MS } from "./polling-state";
 
 export function createLifecycleHandlers(context: MonitorContext) {
@@ -57,6 +57,12 @@ export function createLifecycleHandlers(context: MonitorContext) {
       state.monitorMode = "feed";
       context.initializePage();
       startMonitoring();
+      return;
+    }
+
+    // Refetching a watch page every poll gets the video soft-blocked for the session, and the
+    // light updater has no watch-page renderers to reconcile anyway - stay off video pages.
+    if (isOnVideoPage()) {
       return;
     }
 
