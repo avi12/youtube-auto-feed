@@ -14,7 +14,7 @@ function watchProgressFromLockup(lockup: Prettify<LockupViewModel>): number | nu
   return null;
 }
 
-const VIEW_COUNT_TEXT_PATTERN = /view|watching|waiting/i;
+export const VIEW_COUNT_TEXT_PATTERN = /view|watching|waiting/i;
 
 // A metadata row with two items is always "<view count> · <published time>". A lone item is the view
 // count only when it reads like one (a live "watching"/"waiting" count, or "No views"); otherwise it

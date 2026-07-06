@@ -1,4 +1,5 @@
 import type { Prettify } from "../../types/prettify";
+import { VIEW_COUNT_TEXT_PATTERN } from "../../youtube-api/parse-lockup";
 
 const TITLE_SELECTOR_LOCKUP = ".ytLockupMetadataViewModelTitle span.ytAttributedStringHost";
 const TITLE_HEADING_SELECTOR_LOCKUP = ".ytLockupMetadataViewModelHeadingReset";
@@ -26,6 +27,20 @@ export function collectLockupTextElements(elLockup: HTMLElement): Prettify<Locku
   const elTextSpans = elViewTimeRow
     ? elViewTimeRow.querySelectorAll<HTMLElement>(METADATA_TEXT_SELECTOR_LOCKUP)
     : null;
+  const elLoneSpan = elTextSpans?.length === 1 ? elTextSpans[0] ?? null : null;
+  // Mirrors splitLockupMetadata: a lone metadata part that does not read like a view count is the
+  // published time (e.g. an upcoming stream's "Scheduled for ..."), so slot it as elTime.
+  const isLoneSpanPublishedTime = !!elLoneSpan && !VIEW_COUNT_TEXT_PATTERN.test(elLoneSpan.textContent ?? "");
+  if (isLoneSpanPublishedTime) {
+    return {
+      elTitle,
+      elHeading,
+      elTitleLink,
+      elView: null,
+      elTime: elLoneSpan
+    };
+  }
+
   return {
     elTitle,
     elHeading,
