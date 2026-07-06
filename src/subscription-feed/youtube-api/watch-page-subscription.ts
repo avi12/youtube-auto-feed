@@ -8,6 +8,7 @@
 // poll, so a first load spreads its probes over a couple of polls instead of fetching dozens at once.
 
 const SUBSCRIPTION_TRUST_MS = 30 * 60 * 1000;
+const FAILED_PROBE_BACKOFF_MS = 5 * 60 * 1000;
 const MAX_WATCH_PAGE_CHECKS_PER_POLL = 8;
 const CHANNEL_ID = /UC[\w-]{22}/;
 const OWNER_CHANNEL = /"videoDetails":\{[\s\S]{0,1500}?"channelId":"(UC[\w-]{22})"/;
@@ -26,10 +27,12 @@ interface CachedSubscription {
 
 const subscriptionByChannelId = new Map<string, CachedSubscription>();
 const ownerChannelByVideoId = new Map<string, string>();
+const failedProbeUntilByVideoId = new Map<string, number>();
 
 export function invalidateSubscriptionCache() {
   subscriptionByChannelId.clear();
   ownerChannelByVideoId.clear();
+  failedProbeUntilByVideoId.clear();
 }
 
 function decodeEntityChannelId(key: string) {
@@ -142,13 +145,24 @@ export async function resolveChannelSubscription({
     return cached;
   }
 
+  const failedProbeUntil = failedProbeUntilByVideoId.get(videoId);
+  if (failedProbeUntil !== undefined && failedProbeUntil > Date.now()) {
+    return SubscriptionVerdict.Unknown;
+  }
+
   if (budget.watchPageChecks >= MAX_WATCH_PAGE_CHECKS_PER_POLL) {
     return SubscriptionVerdict.Unknown;
   }
 
   budget.watchPageChecks++;
   const probe = await fetchWatchPageSubscriptions(videoId);
-  if (!probe) {
+
+  // A failed or entity-less probe (network error, or the soft-blocked "unavailable" shell) caches
+  // nothing, so without a backoff the same watch page is re-fetched every poll - which is exactly
+  // the traffic YouTube flags, keeping the video blocked.
+  const isProbeEmpty = !probe || (probe.channelSubscriptions.size === 0 && !probe.ownerChannelId);
+  if (isProbeEmpty) {
+    failedProbeUntilByVideoId.set(videoId, Date.now() + FAILED_PROBE_BACKOFF_MS);
     return SubscriptionVerdict.Unknown;
   }
 
