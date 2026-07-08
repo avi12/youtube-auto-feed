@@ -1,8 +1,27 @@
 {
   "name": "youtube-auto-feed",
   "description": "Keeps your YouTube subscriptions feed current as videos are published, removed, or change state - no page reload needed.",
-  "private": true,
+  "private": false,
   "version": "0.0.9",
+  "license": "GPL-3.0-or-later",
+  "author": "Avi (https://avi12.com)",
+  "homepage": "https://github.com/avi12/youtube-auto-feed",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/avi12/youtube-auto-feed.git"
+  },
+  "bugs": {
+    "url": "https://github.com/avi12/youtube-auto-feed/issues"
+  },
+  "keywords": [
+    "youtube",
+    "subscriptions",
+    "feed",
+    "browser-extension",
+    "wxt",
+    "manifest-v3",
+    "live-feed"
+  ],
   "sideEffects": [
     "**/*.css",
     "**/*.svelte"
@@ -31,20 +50,19 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@googleapis/drive": "^20.2.0",
     "@stylistic/eslint-plugin": "^5.10.0",
     "@stylistic/stylelint-plugin": "5.2.1",
-    "@sveltejs/vite-plugin-svelte": "7.1.2",
+    "@sveltejs/vite-plugin-svelte": "7.2.0",
     "@wxt-dev/module-svelte": "2.0.5",
     "chokidar": "^5.0.0",
     "eslint": "^10.6.0",
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-import-newlines": "^2.0.0",
-    "eslint-plugin-perfectionist": "^5.9.1",
+    "eslint-plugin-perfectionist": "^5.10.0",
     "eslint-plugin-svelte": "3.20.0",
     "fflate": "^0.8.3",
     "globals": "^17.7.0",
-    "oxlint": "1.72.0",
+    "oxlint": "1.73.0",
     "oxlint-tsgolint": "0.24.0",
     "postcss": "^8.5.16",
     "postcss-html": "^1.8.1",
@@ -54,7 +72,7 @@
     "svelte-eslint-parser": "1.8.0",
     "tsx": "^4.23.0",
     "typescript": "^6.0.3",
-    "typescript-eslint": "^8.62.1",
+    "typescript-eslint": "^8.63.0",
     "web-ext-run": "^0.2.4",
     "wxt": "^0.20.27"
   },
