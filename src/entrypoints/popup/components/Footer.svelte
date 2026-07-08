@@ -3,8 +3,11 @@
 </script>
 
 <footer class="app__footer">
+  <a class="app__link" href="https://avi12.com" target="_blank">
+    Made by Avi
+  </a>
   <a
-    class="app__feedback"
+    class="app__link"
     href="https://github.com/avi12/youtube-auto-feed-feedback/issues"
     target="_blank">
     <GithubIcon />
@@ -15,10 +18,12 @@
 <style>
   .app__footer {
     display: flex;
-    justify-content: center;
+    gap: 8px;
+    justify-content: space-between;
+    align-items: center;
   }
 
-  .app__feedback {
+  .app__link {
     position: relative;
     display: inline-flex;
     gap: 8px;
@@ -33,14 +38,14 @@
     letter-spacing: 0.1px;
     text-decoration: none;
     transition: background-color var(--ytaf-dur-state) var(--md-ease-standard);
-  }
 
-  .app__feedback:hover {
-    background-color: color-mix(in sRGB, var(--md-primary) 8%, transparent);
-  }
+    &:hover {
+      background-color: color-mix(in sRGB, var(--md-primary) 8%, transparent);
+    }
 
-  .app__feedback:focus-visible {
-    outline: 3px solid color-mix(in sRGB, var(--md-primary) 50%, transparent);
-    outline-offset: 2px;
+    &:focus-visible {
+      outline: 3px solid color-mix(in sRGB, var(--md-primary) 50%, transparent);
+      outline-offset: 2px;
+    }
   }
 </style>
