@@ -30,7 +30,12 @@ export interface RichShelfData {
   contents?: InnerTubeRichGridItem[];
 }
 
-const lockupViewModelSchema = z.looseObject({ contentId: z.string() });
+const lockupViewModelSchema = z
+  .looseObject({
+    contentId: z.string().optional(),
+    videoId: z.string().optional()
+  })
+  .refine(lockup => !!(lockup.contentId || lockup.videoId));
 const shortsLockupViewModelSchema = z.looseObject({ onTap: shortsOnTapSchema });
 const browseResponseSchema = z.looseObject({ contents: browseContentsSchema });
 const richShelfRendererSchema = z.looseObject({

@@ -11,6 +11,7 @@ export enum LockupBadgeStyle {
 
 export interface LockupViewModel {
   contentId: string;
+  videoId?: string;
   contentType: LockupContentType;
   contentImage?: {
     thumbnailViewModel?: {

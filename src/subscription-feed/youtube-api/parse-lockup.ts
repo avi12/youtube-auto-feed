@@ -45,7 +45,9 @@ type ParseLockupViewModelParams = Prettify<ParseVideoParams & { lockup: Prettify
 
 export function parseLockupViewModel({ lockup, sectionTitle, bandIndex }: ParseLockupViewModelParams) {
   const { contentId, contentImage, metadata } = lockup;
-  if (contentId === "") {
+  // Some lockup renderers expose videoId directly rather than contentId; treat either as the id.
+  const videoId = contentId || lockup.videoId;
+  if (!videoId) {
     return null;
   }
 
@@ -65,7 +67,7 @@ export function parseLockupViewModel({ lockup, sectionTitle, bandIndex }: ParseL
     metadataParts?.[1]?.text?.content ?? ""
   );
   return {
-    videoId: contentId,
+    videoId,
     title: metaViewModel?.title?.content ?? "",
     thumbnailUrl,
     status: statusFromLockup(lockup),
