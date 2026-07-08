@@ -32,12 +32,8 @@ export function videoIdFromData(data: unknown) {
     return innerVideoRenderer.videoId || null;
   }
 
-  if (content.lockupViewModel?.contentId) {
-    return content.lockupViewModel.contentId;
-  }
-
   if (content.lockupViewModel) {
-    return nonEmptyStringOrNull(content.lockupViewModel.videoId);
+    return content.lockupViewModel.contentId || nonEmptyStringOrNull(content.lockupViewModel.videoId);
   }
 
   return content.shortsLockupViewModel?.onTap?.innertubeCommand?.reelWatchEndpoint?.videoId || null;
