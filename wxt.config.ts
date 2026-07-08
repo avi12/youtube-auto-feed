@@ -1,19 +1,6 @@
-import { auth, drive } from "@googleapis/drive";
 import { strToU8, unzipSync, zipSync } from "fflate";
-import { createReadStream, existsSync, readFileSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
-import { basename } from "node:path";
 import { defineConfig } from "wxt";
-
-const DRIVE_CREDENTIALS_FILE = "youtube-auto-feed-drive-upload.json";
-
-// Source zips archived in a browser-specific Drive folder rather than the default parent. (Opera
-// isn't published to the Opera Add-ons store, so its source only lives here.) Folder IDs come from
-// .env so they stay out of version control.
-const DRIVE_FOLDER_ENV_BY_BROWSER: Record<string, string> = {
-  firefox: "DRIVE_FOLDER_FIREFOX",
-  opera: "DRIVE_FOLDER_OPERA"
-};
 
 // A store's source zip is reviewed by humans who must reproduce the build, so it ships build (not
 // install) instructions. The only per-browser difference is the build target.
@@ -48,10 +35,6 @@ YouTube Auto Feed is built with the WXT framework (https://wxt.dev).
 
 The unpacked build is written to .output/opera-mv3/.
 `;
-
-const driveConfig: { parents?: string[] } = existsSync(DRIVE_CREDENTIALS_FILE)
-  ? JSON.parse(readFileSync(DRIVE_CREDENTIALS_FILE, "utf-8"))
-  : {};
 
 function buildInstructionsFor(browser: string) {
   if (browser === "firefox") {
@@ -123,33 +106,6 @@ export default defineConfig({
       if (buildInstructions) {
         await injectBuildInstructions(sourcesZipPath, buildInstructions);
       }
-
-      if (!existsSync(DRIVE_CREDENTIALS_FILE)) {
-        return;
-      }
-
-      const authClient = new auth.GoogleAuth({
-        keyFile: DRIVE_CREDENTIALS_FILE,
-        scopes: "https://www.googleapis.com/auth/drive"
-      });
-      const client = drive({
-        version: "v3",
-        auth: authClient
-      });
-      // Firefox and Opera each archive to their own folder; everything else uses the default parent.
-      const folderEnvName = DRIVE_FOLDER_ENV_BY_BROWSER[browser];
-      const dedicatedFolderId = folderEnvName ? process.env[folderEnvName] : undefined;
-      await client.files.create({
-        requestBody: {
-          name: basename(sourcesZipPath),
-          parents: dedicatedFolderId ? [dedicatedFolderId] : driveConfig.parents
-        },
-        media: {
-          mimeType: "application/zip",
-          body: createReadStream(sourcesZipPath)
-        },
-        fields: "id"
-      });
     }
   },
   vite: () => ({
