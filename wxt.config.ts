@@ -9,7 +9,7 @@ const BUILD_INSTRUCTIONS_FIREFOX = `# Build instructions
 YouTube Auto Feed is built with the WXT framework (https://wxt.dev).
 
 ## Requirements
-- Node.js 20 or newer
+- Node.js 22.13 or newer
 - pnpm (the exact version is pinned in package.json "packageManager"; run \`corepack enable\` to use it)
 
 ## Steps
@@ -25,7 +25,7 @@ const BUILD_INSTRUCTIONS_OPERA = `# Build instructions
 YouTube Auto Feed is built with the WXT framework (https://wxt.dev).
 
 ## Requirements
-- Node.js 20 or newer
+- Node.js 22.13 or newer
 - pnpm (the exact version is pinned in package.json "packageManager"; run \`corepack enable\` to use it)
 
 ## Steps

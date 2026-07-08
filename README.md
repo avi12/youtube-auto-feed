@@ -36,7 +36,7 @@ Works on Chromium (Chrome, Edge, Opera) and Firefox, both on Manifest V3.
 
 You'll want:
 
-- Node.js 20 or newer
+- Node.js 22.13 or newer (required by the pinned pnpm version)
 - pnpm (grab it from the [pnpm installation page](https://pnpm.io/installation); the version's pinned in `package.json` under `packageManager`)
 
 Grab the dependencies and fire up the dev server:
