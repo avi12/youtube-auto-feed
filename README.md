@@ -1,23 +1,45 @@
 # YouTube Auto Feed
 
-A browser extension that keeps the YouTube subscriptions feed (`/feed/subscriptions`) live. New uploads, status changes (upcoming -> live -> ended), removed videos, and metadata edits show up without reloading the page.
+YouTube couldn't make the subscriptions feed (`/feed/subscriptions`) update on its own, so I did. New uploads, live status changes (upcoming -> live -> ended), removed videos, edited titles and thumbnails - they all just show up. No refreshing, no missing that stream that went live 30 seconds ago.
+
+Made by [Avi](https://avi12.com)
+
+## Install
+
+[![Chrome Web Store users](https://img.shields.io/chrome-web-store/users/jcdebdlnakhdinkindpogcehnhggbfad?color=white&label=Chrome%20%2F%20Edge%20users&style=flat-square&logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/jcdebdlnakhdinkindpogcehnhggbfad)  
+[![Firefox Add-on users](https://img.shields.io/amo/users/youtube-auto-feed@avi12.com?color=white&label=Firefox%20users&style=flat-square&logo=firefoxbrowser&logoColor=white)](https://addons.mozilla.org/firefox/addon/youtube-auto-feed@avi12.com)  
+[![Opera](https://img.shields.io/badge/Opera-Install-red?style=flat-square&logo=opera&logoColor=white)](https://addons.opera.com/extensions/details/youtube-auto-feed)
+
+## Features
+
+- New uploads pop in right where they belong, no reload needed
+- Live status flips (upcoming -> live -> ended) update on the spot
+- Removed videos vanish; edited titles and thumbnails refresh themselves
+- Leaves YouTube's sections exactly how it laid them out
+- Chills out when the tab is hidden, and doesn't collect any of your data
 
 ## How it works
 
-The extension mirrors YouTube's own InnerTube `/browse` response for the subscriptions feed and polls it on a short cadence (5s for the full feed, 10s for metadata-only changes), pausing while the tab is hidden. Each fresh snapshot is diffed against the previous one, and the minimal set of add / remove / reposition mutations is applied to the live grid through Polymer, so the feed updates in place without a reload.
+It piggybacks on YouTube's own InnerTube `/browse` response for the feed and checks it every few seconds (5s for the full feed, 10s just for metadata), taking a break while the tab is hidden. Each new snapshot gets diffed against the last one, and only the actual changes - adds, removals, repositions - get poked into the live grid through Polymer. That's why the feed updates in place instead of blinking through a reload.
 
 ## Browser support
 
-Chromium (Chrome, Edge, Opera) and Firefox, both Manifest V3.
+Works on Chromium (Chrome, Edge, Opera) and Firefox, both on Manifest V3.
+
+| Browser       | Minimum version |
+| ------------- | --------------- |
+| Chrome / Edge | 111             |
+| Opera         | 97              |
+| Firefox       | 142             |
 
 ## Development
 
-Requirements:
+You'll want:
 
 - Node.js 20 or newer
-- pnpm (the version is pinned in `package.json` under `packageManager`; run `corepack enable` to use it)
+- pnpm (grab it from the [pnpm installation page](https://pnpm.io/installation); the version's pinned in `package.json` under `packageManager`)
 
-Install dependencies and start the dev server:
+Grab the dependencies and fire up the dev server:
 
 ```sh
 pnpm install
@@ -31,9 +53,9 @@ pnpm build            # Chrome (default)
 pnpm build:firefox    # Firefox MV3
 pnpm build:opera      # Opera
 
-pnpm zip              # produce an uploadable zip for the built target
+pnpm zip              # bundle up an uploadable zip for whatever you just built
 ```
 
-## Configuration
+## License
 
-The source-zip upload to Google Drive is maintainer-only and optional. It reads Drive folder IDs from a gitignored `.env` (see `.env.example`) alongside a Drive credentials file. Both are absent by default, and the build skips the upload when they are missing.
+[GPL-3.0-or-later](LICENSE)
