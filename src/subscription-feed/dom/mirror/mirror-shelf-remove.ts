@@ -186,8 +186,10 @@ async function glideNewlyVisible({ elShelf, beforePositions, slideInDistance }: 
     });
     if (elPromoted.length > 0) {
       for (const elItem of elPromoted) {
+        const distance = slideInDistance || elItem.getBoundingClientRect().width;
+        const isRtl = getComputedStyle(elItem).direction === "rtl";
         elItem.style.transition = "none";
-        elItem.style.translate = `${slideInDistance || elItem.getBoundingClientRect().width}px 0`;
+        elItem.style.translate = `${isRtl ? -distance : distance}px 0`;
         elItem.style.opacity = "0";
       }
 
