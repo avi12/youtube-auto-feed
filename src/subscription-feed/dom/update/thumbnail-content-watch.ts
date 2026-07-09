@@ -79,11 +79,10 @@ export async function crossfadeChangedThumbnail({
   isSamePathRotation
 }: CrossfadeChangedThumbnailParams) {
   if (!isSamePathRotation) {
-    await crossfadeThumbnail({
+    return crossfadeThumbnail({
       elImg,
       src: freshUrl
     });
-    return true;
   }
 
   const [previousBuffer, freshBuffer] = await Promise.all([
@@ -101,11 +100,10 @@ export async function crossfadeChangedThumbnail({
     return false;
   }
 
-  await crossfadeThumbnail({
+  return crossfadeThumbnail({
     elImg,
     src: freshUrl
   });
-  return true;
 }
 
 interface VisibleThumbnail {
