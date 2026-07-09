@@ -5,6 +5,7 @@ import { findThumbnailImgInItem } from "../dom/update/thumbnail-locate";
 import type { Prettify } from "../types/prettify";
 import type { VideoSnapshot } from "../types/video";
 import { videoIdFromData } from "../utils/video-id";
+import { type BlankReportEntry, startBlankThumbnailDetector } from "./blank-detector";
 import type { MonitorContext, MonitorState } from "./polling-state";
 
 // The dev server defines __YTAF_DEBUG__ true; a store build leaves it false, so this whole bridge and
@@ -37,6 +38,7 @@ interface YtafDebug {
   state: MonitorState;
   context: MonitorContext;
   absenceCountByVideoId: Map<string, number>;
+  blankReport: () => BlankReportEntry[];
 }
 
 function findGridItem(videoId: string) {
@@ -73,6 +75,7 @@ export function installDevBridge(context: MonitorContext) {
   }
 
   const { state } = context;
+  const blankReport = startBlankThumbnailDetector();
   globalThis.__ytafDebug = {
     pausePolling: context.pausePolling,
     resumePolling: context.resumePolling,
@@ -83,6 +86,7 @@ export function installDevBridge(context: MonitorContext) {
     inspect: videoId => inspectVideo(state, videoId),
     state,
     context,
-    absenceCountByVideoId
+    absenceCountByVideoId,
+    blankReport
   };
 }
