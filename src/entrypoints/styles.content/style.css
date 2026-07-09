@@ -44,26 +44,6 @@
   animation: ytaf-thumbnail-crossfade 380ms cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
-@keyframes ytaf-shelf-overflow-exit {
-  from {
-    opacity: 100%;
-    translate: none;
-  }
-
-  to {
-    opacity: 0%;
-    translate: var(--ytaf-overflow-translate, -80% 40%);
-  }
-}
-
-.ytaf-section-removing {
-  opacity: 0%;
-  transition:
-    opacity 350ms ease,
-    translate 350ms ease;
-  translate: 0 20px;
-}
-
 ::view-transition-old(*),
 ::view-transition-new(*) {
   pointer-events: none;
