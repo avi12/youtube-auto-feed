@@ -7,6 +7,8 @@ import { scheduleLazyUpdate } from "../lazy/lazy-update";
 import { applyUpdate, isSwapHeldOffByHover } from "./apply-targeted";
 import { buildVideoElementMap } from "./video-element-map";
 
+export { reconcileShortsMetadata } from "./shorts-reconcile";
+
 type ApplyOrScheduleParams = Prettify<{
   videoId: string;
   elItem: PolymerElement;

@@ -32,6 +32,16 @@ export function updateShortsTextFields({ elItem, fresh }: Prettify<ItemTextChang
   });
 }
 
+// What a shorts tile currently displays, as opposed to what its model holds. The shorts lockup
+// renders through a component that does not re-read the grid model, so the two drift apart and only
+// the rendered text reflects what the viewer sees.
+export function readShortsRenderedText(elItem: HTMLElement) {
+  return {
+    title: elItem.querySelector(TITLE_SELECTOR_SHORTS)?.textContent ?? "",
+    viewCountText: elItem.querySelector(SUBHEAD_SELECTOR_SHORTS)?.textContent ?? ""
+  };
+}
+
 export function changingShortsTextElements({ elItem, fresh }: Prettify<ItemTextChange>) {
   const elements: HTMLElement[] = [];
   const elTitle = elItem.querySelector<HTMLElement>(TITLE_SELECTOR_SHORTS);

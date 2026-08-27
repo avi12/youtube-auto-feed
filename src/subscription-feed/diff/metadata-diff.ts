@@ -1,6 +1,6 @@
 import { readGenericDomSnapshot } from "../dom/query/query";
 import { isThumbnailChanged, isThumbnailUrlRotated } from "../dom/rich-item";
-import { batchUpdateVideosInDom } from "../dom/update";
+import { batchUpdateVideosInDom, reconcileShortsMetadata } from "../dom/update";
 import type { Prettify } from "../types/prettify";
 import type { VideoSnapshot } from "../types/video";
 
@@ -58,6 +58,8 @@ export function detectAndApplyMetadataChanges({
   previousSnapshot,
   freshSnapshots
 }: DetectAndApplyMetadataChangesParams) {
+  reconcileShortsMetadata(freshSnapshots);
+
   const updatedSnapshot = new Map(previousSnapshot);
   const changedVideos: Prettify<VideoSnapshot>[] = [];
 
@@ -119,6 +121,8 @@ export function detectAndApplyMetadataChanges({
 // home). Stateless: the "previous" is read straight off the live tiles, so each poll just reconciles
 // whatever the page currently shows toward the freshly fetched data, with no baseline to seed.
 export function applyGenericMetadataUpdates(freshSnapshots: Prettify<VideoSnapshot>[]) {
+  reconcileShortsMetadata(freshSnapshots);
+
   const domSnapshot = readGenericDomSnapshot();
   const changedVideos: Prettify<VideoSnapshot>[] = [];
   for (const fresh of freshSnapshots) {

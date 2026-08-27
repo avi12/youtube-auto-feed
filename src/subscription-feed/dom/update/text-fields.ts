@@ -8,6 +8,7 @@ export { applyLockupTextChanges, changingLockupTextElements } from "./text-field
 export {
   changingLegacyTextElements,
   changingShortsTextElements,
+  readShortsRenderedText,
   updateLegacyRendererTextFields,
   updateShortsTextFields
 } from "./text-fields-legacy";
