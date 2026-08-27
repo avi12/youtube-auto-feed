@@ -2,7 +2,7 @@
   "name": "youtube-auto-feed",
   "description": "Keeps your YouTube subscriptions feed current as videos are published, removed, or change state - no page reload needed.",
   "private": false,
-  "version": "0.0.10",
+  "version": "0.0.11",
   "license": "GPL-3.0-or-later",
   "author": "Avi (https://avi12.com)",
   "homepage": "https://github.com/avi12/youtube-auto-feed",
