@@ -1,4 +1,5 @@
 import { feedMessenger } from "../../shared/feed-messaging";
+import { startThumbnailHealer } from "../dom/update/thumbnail";
 import { installDevBridge } from "./dev-bridge";
 import { createApplyHandlers } from "./polling-apply";
 import { createBaselineHandlers } from "./polling-baseline";
@@ -17,6 +18,7 @@ export function createSubscriptionMonitor() {
   Object.assign(context, createBaselineHandlers(context));
   Object.assign(context, createGenericPageHandlers(context));
   Object.assign(context, createLifecycleHandlers(context));
+  startThumbnailHealer();
   installDevBridge(context);
 
   feedMessenger.onMessage("browseResponse", ({ data }) => context.handleBrowseResponse(data));
