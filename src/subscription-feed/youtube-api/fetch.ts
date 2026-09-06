@@ -1,5 +1,6 @@
 import { collectAllVideoSnapshots } from "./collect-all-videos";
 import { isInnerTubeBrowseResponse } from "./guards";
+import { fetchSubscriptionsBrowse } from "./innertube-browse";
 import { extractApiContents, extractApiSectionOrder, parseApiResponse } from "./parse-response";
 
 function parseInitialData(html: string): unknown {
@@ -27,8 +28,7 @@ async function fetchInitialData(path: string) {
   return html ? parseInitialData(html) : null;
 }
 
-export async function fetchInitialVideos() {
-  const browseData = await fetchInitialData("/feed/subscriptions");
+function toBrowseResult(browseData: unknown) {
   if (!isInnerTubeBrowseResponse(browseData)) {
     return null;
   }
@@ -43,6 +43,19 @@ export async function fetchInitialVideos() {
     sectionOrder: extractApiSectionOrder(browseData),
     apiContents: extractApiContents(browseData)
   };
+}
+
+// InnerTube is asked first: it is the only route that carries the signed-in identity, and on a brand
+// account re-fetching the feed page answers for the default account instead - a feed with no
+// subscriptions, which parses to nothing. The page scrape stays as a fallback for the case where the
+// signing material is unavailable.
+export async function fetchInitialVideos() {
+  const browseResult = toBrowseResult(await fetchSubscriptionsBrowse());
+  if (browseResult) {
+    return browseResult;
+  }
+
+  return toBrowseResult(await fetchInitialData("/feed/subscriptions"));
 }
 
 // Page-agnostic metadata source: re-fetch whatever page is open and deep-collect every video in it.

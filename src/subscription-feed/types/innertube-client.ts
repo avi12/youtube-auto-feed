@@ -63,6 +63,12 @@ interface YouTubeInnertubeConfig {
   INNERTUBE_API_KEY?: string;
   HL?: string;
   GL?: string;
+  LOGGED_IN?: boolean;
+  VISITOR_DATA?: string;
+  // Set when the signed-in identity is a brand account. InnerTube resolves the default account
+  // without it, which for a brand account means a feed with no subscriptions at all.
+  DELEGATED_SESSION_ID?: string;
+  SESSION_INDEX?: string;
 }
 
 declare global {
