@@ -8,6 +8,8 @@
 // with, and the page id naming the brand account. Drop either and the response silently degrades to a
 // channel-discovery page with zero videos.
 
+import { OWN_REQUEST_MARKER_HEADER } from "../../shared/own-request";
+
 const YOUTUBE_ORIGIN = "https://www.youtube.com";
 const BROWSE_ENDPOINT = "/youtubei/v1/browse?prettyPrint=false";
 const SUBSCRIPTIONS_BROWSE_ID = "FEsubscriptions";
@@ -66,6 +68,8 @@ async function buildBrowseHeaders() {
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
+    // Marks the request as ours so the interceptor does not mirror it back to the monitor.
+    [OWN_REQUEST_MARKER_HEADER]: "1",
     Authorization: authorization,
     "X-Origin": YOUTUBE_ORIGIN,
     "X-Goog-AuthUser": ytcfg?.get("SESSION_INDEX") ?? "0",

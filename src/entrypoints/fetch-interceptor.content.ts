@@ -1,5 +1,6 @@
 import { feedMessenger } from "../shared/feed-messaging";
 import { ytafChannel } from "../shared/messaging";
+import { OWN_REQUEST_MARKER_HEADER } from "../shared/own-request";
 import { z } from "../shared/zod";
 
 declare global {
@@ -10,7 +11,6 @@ declare global {
 const BROWSE_ENDPOINT = "/youtubei/v1/browse";
 const SUBSCRIPTION_ENDPOINT = "/youtubei/v1/subscription/";
 const SUBSCRIPTIONS_BROWSE_ID = "FEsubscriptions";
-const OWN_REQUEST_MARKER_HEADER = "X-YTAF";
 
 const requestBodySchema = z.string().catch("");
 const ownRequestSchema = z.looseObject({ [OWN_REQUEST_MARKER_HEADER]: z.string() });
