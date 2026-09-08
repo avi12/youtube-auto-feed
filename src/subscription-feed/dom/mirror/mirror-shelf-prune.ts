@@ -5,7 +5,7 @@ import type { Prettify } from "../../types/prettify";
 import { isRichShelfData } from "../../youtube-api/guards";
 import { fetchVideoChannel } from "../../youtube-api/oembed";
 import { richShelfDataSchema } from "../../youtube-api/schemas";
-import { resolveChannelSubscription, SubscriptionVerdict } from "../../youtube-api/watch-page-subscription";
+import { resolveSubscribedChannels, type SubscribedChannels } from "../../youtube-api/subscribed-channels";
 import { channelIdsFromRichItem, videoIdFromRichItem } from "../rich-item";
 import { animateShelfRemoval } from "./mirror-shelf-remove";
 
@@ -15,18 +15,19 @@ import { animateShelfRemoval } from "./mirror-shelf-remove";
 // poll, so absence alone is not trusted to mean "gone". Each shelf video is kept while it is BOTH from a
 // still-subscribed channel AND still present.
 //
-// Subscription is the authoritative signal and comes from the video's watch page, which carries the real
-// subscribed flag for the uploader and for every collaborator on a collab video - the video stays while
-// any one of them is subscribed. That lives in watch-page-subscription, cached per channel and capped per
-// poll. Deletion is a separate check: a Short (no lockup channel) or a video missing from this poll is run
-// through a light oEmbed call whose 404 means genuinely gone. A restriction-only or transient failure
-// leaves the video available and subscribed-state unknown, so it is kept; insertion stays Latest-only -
-// this step never adds to a shelf.
+// Subscription is settled locally against the viewer's subscribed-channel set, which one guide call
+// returns whole. A regular video's lockup carries its channel ids - every collaborator's, for a collab -
+// so the video stays while any one of them is subscribed. A Short carries none, and its uploader comes
+// from the same light oEmbed call that reports deletion, matched by handle. Deletion is checked only for
+// a Short or a video missing from this poll; a present regular video is known to exist. A restriction-only
+// or transient failure leaves the video available and its channel unknown, so it is kept; insertion stays
+// Latest-only - this step never adds to a shelf.
 
 const RESOLVED_TRUST_MS = 5 * 60 * 1000;
-const MAX_AVAILABILITY_CHECKS_PER_POLL = 16;
+const MAX_CHANNEL_LOOKUPS_PER_POLL = 16;
 
-interface CachedAvailability {
+interface CachedVideoChannel {
+  handle: string | null;
   isAvailable: boolean;
   until: number;
 }
@@ -38,11 +39,10 @@ interface ShelfVideo {
 }
 
 interface PruneBudget {
-  availabilityChecks: number;
-  watchPageChecks: number;
+  channelLookups: number;
 }
 
-const availabilityByVideoId = new Map<string, CachedAvailability>();
+const channelByVideoId = new Map<string, CachedVideoChannel>();
 
 function usableShelves() {
   return [...document.querySelectorAll<PolymerElement>("ytd-rich-shelf-renderer")]
@@ -96,66 +96,69 @@ function collectShelfVideos({ elShelves, apiVideoIds }: CollectShelfVideosParams
 }
 
 function forgetDepartedVideos(presentVideoIds: Set<string>) {
-  for (const videoId of availabilityByVideoId.keys()) {
+  for (const videoId of channelByVideoId.keys()) {
     if (!presentVideoIds.has(videoId)) {
-      availabilityByVideoId.delete(videoId);
+      channelByVideoId.delete(videoId);
     }
   }
 }
 
-// oEmbed reports whether a video still exists: a 404 means it is genuinely gone. The verdict is cached for
-// a trust window and the calls are capped per poll, so a first load of many Shorts spreads over a couple
-// of polls rather than firing dozens of requests at once. When the budget is spent, an earlier result is
-// reused; an unknown video is treated as available so a valid video is never dropped on a transient miss.
-type IsDeletedParams = Prettify<{
+// oEmbed reports a video's uploader handle and whether it still exists - a 404 means it is genuinely
+// gone. The verdict is cached for a trust window and the calls are capped per poll, so a first load of
+// many Shorts spreads over a couple of polls rather than firing dozens of requests at once. When the
+// budget is spent nothing is known about the video, and the caller keeps it.
+type LookupVideoChannelParams = Prettify<{
   videoId: string;
   budget: PruneBudget;
 }>;
 
-async function isDeleted({ videoId, budget }: IsDeletedParams) {
-  const remembered = availabilityByVideoId.get(videoId);
+async function lookupVideoChannel({ videoId, budget }: LookupVideoChannelParams) {
+  const remembered = channelByVideoId.get(videoId);
   if (remembered && remembered.until > Date.now()) {
-    return !remembered.isAvailable;
+    return remembered;
   }
 
-  if (budget.availabilityChecks >= MAX_AVAILABILITY_CHECKS_PER_POLL) {
-    return false;
+  if (budget.channelLookups >= MAX_CHANNEL_LOOKUPS_PER_POLL) {
+    return null;
   }
 
-  budget.availabilityChecks++;
-  const { isAvailable } = await fetchVideoChannel(videoId);
-  availabilityByVideoId.set(videoId, {
+  budget.channelLookups++;
+  const { handle, isAvailable } = await fetchVideoChannel(videoId);
+  const resolved = {
+    handle,
     isAvailable,
     until: Date.now() + RESOLVED_TRUST_MS
-  });
-  return !isAvailable;
+  };
+  channelByVideoId.set(videoId, resolved);
+  return resolved;
 }
 
-// A shelf video is removable when it is genuinely deleted or when its channel is no longer subscribed. A
-// regular video's lockup carries its channel ids (every collaborator's, for a collab), so subscription is
-// settled from the watch page; a Short carries none and falls back to the owner the probe reports. The
-// deletion check runs only for Shorts and videos absent from this poll - a present regular video is known
-// to exist. An unknown subscription verdict keeps the video, so a transient failure never removes it.
+// A shelf video is removable when it is genuinely deleted or when none of its channels is subscribed.
+// The oEmbed lookup runs only where it can decide something: a Short, whose uploader it is the only
+// source for, or a video the poll dropped, which it can confirm as deleted.
 type IsRemovableParams = Prettify<{
   video: ShelfVideo;
+  subscribed: SubscribedChannels;
   budget: PruneBudget;
 }>;
 
-async function isRemovable({ video, budget }: IsRemovableParams) {
-  const isDeletionCandidate = video.lockupChannelIds.length === 0 || video.isAbsent;
-  if (isDeletionCandidate && await isDeleted({
-    videoId: video.videoId,
-    budget
-  })) {
+async function isRemovable({ video, subscribed, budget }: IsRemovableParams) {
+  const isLookupNeeded = video.lockupChannelIds.length === 0 || video.isAbsent;
+  const resolved = isLookupNeeded
+    ? await lookupVideoChannel({
+      videoId: video.videoId,
+      budget
+    })
+    : null;
+  if (resolved && !resolved.isAvailable) {
     return true;
   }
 
-  const verdict = await resolveChannelSubscription({
-    lockupChannelIds: video.lockupChannelIds,
-    videoId: video.videoId,
-    budget
-  });
-  return verdict === SubscriptionVerdict.Unsubscribed;
+  if (video.lockupChannelIds.length > 0) {
+    return !video.lockupChannelIds.some(channelId => subscribed.channelIds.has(channelId));
+  }
+
+  return !!resolved?.handle && !subscribed.handles.has(resolved.handle);
 }
 
 function applyShelfRemovals(removableVideoIds: Set<string>) {
@@ -202,21 +205,25 @@ export async function pruneUnsubscribedShelfVideos(apiContents: Prettify<InnerTu
     return;
   }
 
+  // Without the subscribed set every video would read as unsubscribed, which would empty the shelves.
+  const subscribed = await resolveSubscribedChannels();
+  if (!subscribed) {
+    return;
+  }
+
   const shelfVideos = collectShelfVideos({
     elShelves,
     apiVideoIds: collectApiVideoIds(apiContents)
   });
   forgetDepartedVideos(new Set(shelfVideos.map(video => video.videoId)));
 
-  const budget: PruneBudget = {
-    availabilityChecks: 0,
-    watchPageChecks: 0
-  };
+  const budget: PruneBudget = { channelLookups: 0 };
   const verdicts = await Promise.all(
     shelfVideos.map(async video => ({
       videoId: video.videoId,
       isRemovable: await isRemovable({
         video,
+        subscribed,
         budget
       })
     }))

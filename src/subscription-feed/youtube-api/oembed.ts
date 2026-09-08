@@ -1,4 +1,5 @@
 import { z } from "../../shared/zod";
+import { channelHandleFromUrl } from "./channel-handle";
 
 // YouTube's public oEmbed endpoint resolves a video's uploader channel - as a @handle - and signals
 // whether the video still exists, for a few hundred bytes instead of the tens of KB an authenticated
@@ -9,7 +10,6 @@ import { z } from "../../shared/zod";
 // a transient or restriction-only failure - only a definitive 404 or a known-unsubscribed channel does.
 
 const NOT_FOUND = 404;
-const HANDLE = /\/(@[\w.-]+)$/;
 const oembedSchema = z.looseObject({ author_url: z.string().optional() });
 
 export async function fetchVideoChannel(videoId: string) {
@@ -24,7 +24,7 @@ export async function fetchVideoChannel(videoId: string) {
   }
 
   const parsed = oembedSchema.safeParse(response?.ok ? await response.json().catch(() => null) : null);
-  const handle = parsed.success ? parsed.data.author_url?.match(HANDLE)?.[1]?.toLowerCase() ?? null : null;
+  const handle = parsed.success ? channelHandleFromUrl(parsed.data.author_url) : null;
   return {
     handle,
     isAvailable: true

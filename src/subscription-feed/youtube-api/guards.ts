@@ -2,6 +2,7 @@ import { z } from "../../shared/zod";
 import type {
   ChannelVideoPlayerRenderer,
   InnerTubeBrowseResponse,
+  InnerTubeGuideResponse,
   InnerTubeRichGridItem,
   InnerTubeRichShelfRenderer,
   InnerTubeShelfRenderer,
@@ -13,6 +14,7 @@ import {
   browseContentsSchema,
   channelVideoPlayerRendererSchema,
   gridDataSchema,
+  guideResponseSchema,
   richShelfContentsSchema,
   richShelfDataSchema,
   shelfContentSchema,
@@ -65,6 +67,10 @@ export function isChannelVideoPlayerRenderer(value: unknown): value is ChannelVi
 
 export function isInnerTubeBrowseResponse(value: unknown): value is InnerTubeBrowseResponse {
   return browseResponseSchema.safeParse(value).success;
+}
+
+export function isInnerTubeGuideResponse(value: unknown): value is InnerTubeGuideResponse {
+  return guideResponseSchema.safeParse(value).success;
 }
 
 export function isRichGridData(value: unknown): value is RichGridData {

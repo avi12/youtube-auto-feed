@@ -20,6 +20,11 @@ export {
 } from "./innertube-renderers";
 
 export type {
+  InnerTubeGuideChannelEntry,
+  InnerTubeGuideResponse
+} from "./innertube-guide";
+
+export type {
   InnerTubeBrowseResponse,
   InnerTubeRichGridItem,
   InnerTubeRichItemContent,

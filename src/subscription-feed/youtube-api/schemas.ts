@@ -12,6 +12,8 @@ export {
   videoRendererSchema
 } from "./schemas-renderers";
 
+export { guideResponseSchema } from "./schemas-guide";
+
 export {
   browseContentsSchema,
   gridDataSchema,

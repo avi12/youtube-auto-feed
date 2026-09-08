@@ -2,7 +2,7 @@ import { applyGenericMetadataUpdates, detectAndApplyMetadataChanges } from "../d
 import { reconcileVisibleThumbnails, THUMBNAIL_WATCH_INTERVAL_MS } from "../dom/update/thumbnail-content-watch";
 import { isOnSubscriptionsPage } from "../utils/subscriptions-page";
 import { fetchInitialVideos, fetchPageVideos } from "../youtube-api/fetch";
-import { invalidateSubscriptionCache } from "../youtube-api/watch-page-subscription";
+import { invalidateSubscriptionCache } from "../youtube-api/subscribed-channels";
 import { type MonitorContext, preloadSnapshotThumbnails } from "./polling-state";
 
 export function createFetchHandlers(context: MonitorContext) {
