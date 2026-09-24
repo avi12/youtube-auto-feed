@@ -1,5 +1,5 @@
 import { feedMessenger } from "../../shared/feed-messaging";
-import { startNewBadgeDismissal } from "../dom/new-badge";
+import { startNewBadgeDismissal } from "../dom/new-badge/new-badge";
 import { startThumbnailHealer } from "../dom/update/thumbnail";
 import { installDevBridge } from "./dev-bridge";
 import { createApplyHandlers } from "./polling-apply";

@@ -1,5 +1,5 @@
 import { absenceCountByVideoId, GRID_ITEM_SELECTOR, type RichItemElement } from "../dom/mirror/mirror-constants";
-import { badgeExpiryByVideoId, seenVideoIds } from "../dom/new-badge";
+import { badgeExpiryByVideoId, seenVideoIds } from "../dom/new-badge/new-badge";
 import { thumbnailUrlFromContent } from "../dom/rich-item";
 import { reconcileVisibleThumbnails } from "../dom/update/thumbnail-content-watch";
 import { findThumbnailImgInItem } from "../dom/update/thumbnail-locate";

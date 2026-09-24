@@ -3,7 +3,7 @@ import type { InnerTubeRichGridItem } from "../../types/innertube";
 import type { PolymerElement } from "../../types/polymer";
 import type { Prettify } from "../../types/prettify";
 import { isRichGridData } from "../../youtube-api/guards";
-import { markVideosAsNew, withNewBadges } from "../new-badge";
+import { markVideosAsNew, withNewBadges } from "../new-badge/new-badge";
 import { thumbnailUrlFromRichItem, videoIdFromRichItem } from "../rich-item";
 import { collectInlineVideoIds, composeNewContents, isReferenceEqualArray } from "./mirror-compose";
 import { GRID_SELECTOR } from "./mirror-constants";

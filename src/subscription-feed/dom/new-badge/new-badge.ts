@@ -3,17 +3,19 @@ import {
   LockupBadgePosition,
   LockupBadgeStyle,
   type LockupThumbnailOverlay
-} from "../types/innertube";
-import type { PolymerElement } from "../types/polymer";
-import type { Prettify } from "../types/prettify";
-import { videoIdFromData } from "../utils/video-id";
-import { isRichGridData } from "../youtube-api/guards";
-import { GRID_SELECTOR, RICH_ITEM_SELECTOR, type RichItemElement } from "./mirror/mirror-constants";
-import { videoIdFromRichItem } from "./rich-item";
+} from "../../types/innertube";
+import type { PolymerElement } from "../../types/polymer";
+import type { Prettify } from "../../types/prettify";
+import { videoIdFromData } from "../../utils/video-id";
+import { isRichGridData } from "../../youtube-api/guards";
+import { GRID_SELECTOR, RICH_ITEM_SELECTOR, type RichItemElement } from "../mirror/mirror-constants";
+import { videoIdFromRichItem } from "../rich-item";
+import { newBadgeText } from "./new-badge-text";
 
 // A video the extension slips into the feed while you are reading it wears the same "New" corner marker
 // YouTube puts on a fresh recommendation - the marker is added to the lockup's own overlay list, so the
-// page renders YouTube's badge rather than a lookalike of it.
+// page renders YouTube's badge rather than a lookalike of it, in YouTube's own wording for the
+// viewer's language.
 //
 // The badge means "this arrived while you were watching", so it is dropped the moment the video is
 // opened and lapses on its own ten minutes later. Lapsing is picked up by the next feed poll instead of
@@ -27,21 +29,21 @@ import { videoIdFromRichItem } from "./rich-item";
 // upload sorts ahead of everything the page already had, so the front of the band, up to the first
 // video that was already there, is what "just arrived" means.
 
-const NEW_BADGE_TEXT = "New";
 const NEW_BADGE_LIFETIME_MS = 10 * 60 * 1000;
 
 export const badgeExpiryByVideoId = new Map<string, number>();
 export const seenVideoIds = new Set<string>();
 
 function newBadgeOverlay(): LockupThumbnailOverlay {
+  const text = newBadgeText();
   return {
     thumbnailOverlayBadgeViewModel: {
       thumbnailBadges: [{
         thumbnailBadgeViewModel: {
-          text: NEW_BADGE_TEXT,
+          text,
           badgeStyle: LockupBadgeStyle.Special,
           rendererContext: {
-            accessibilityContext: { label: NEW_BADGE_TEXT }
+            accessibilityContext: { label: text }
           }
         }
       }],
