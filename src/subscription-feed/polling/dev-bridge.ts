@@ -1,4 +1,5 @@
 import { absenceCountByVideoId, GRID_ITEM_SELECTOR, type RichItemElement } from "../dom/mirror/mirror-constants";
+import { badgeExpiryByVideoId, seenVideoIds } from "../dom/new-badge";
 import { thumbnailUrlFromContent } from "../dom/rich-item";
 import { reconcileVisibleThumbnails } from "../dom/update/thumbnail-content-watch";
 import { findThumbnailImgInItem } from "../dom/update/thumbnail-locate";
@@ -38,6 +39,8 @@ interface YtafDebug {
   state: MonitorState;
   context: MonitorContext;
   absenceCountByVideoId: Map<string, number>;
+  badgeExpiryByVideoId: Map<string, number>;
+  seenVideoIds: Set<string>;
   blankReport: () => BlankReportEntry[];
 }
 
@@ -87,6 +90,8 @@ export function installDevBridge(context: MonitorContext) {
     state,
     context,
     absenceCountByVideoId,
+    badgeExpiryByVideoId,
+    seenVideoIds,
     blankReport
   };
 }

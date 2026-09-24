@@ -6,7 +6,37 @@ export enum LockupContentType {
 
 export enum LockupBadgeStyle {
   Live = "THUMBNAIL_OVERLAY_BADGE_STYLE_LIVE",
-  Upcoming = "THUMBNAIL_OVERLAY_BADGE_STYLE_UPCOMING"
+  Upcoming = "THUMBNAIL_OVERLAY_BADGE_STYLE_UPCOMING",
+  Special = "THUMBNAIL_OVERLAY_BADGE_STYLE_SPECIAL"
+}
+
+export enum LockupBadgePosition {
+  TopStart = "THUMBNAIL_OVERLAY_BADGE_POSITION_TOP_START"
+}
+
+export interface LockupThumbnailBadge {
+  thumbnailBadgeViewModel?: {
+    badgeStyle?: LockupBadgeStyle;
+    text?: string;
+    rendererContext?: {
+      accessibilityContext?: { label?: string };
+    };
+  };
+}
+
+// The duration and progress bar ride the bottom overlay; a corner marker like "New" is its own overlay
+// with a position of its own.
+export interface LockupThumbnailOverlay {
+  thumbnailBottomOverlayViewModel?: {
+    badges?: LockupThumbnailBadge[];
+    progressBar?: {
+      thumbnailOverlayProgressBarViewModel?: { startPercent?: number };
+    };
+  };
+  thumbnailOverlayBadgeViewModel?: {
+    thumbnailBadges?: LockupThumbnailBadge[];
+    position?: LockupBadgePosition;
+  };
 }
 
 export interface LockupViewModel {
@@ -22,19 +52,7 @@ export interface LockupViewModel {
           height?: number;
         }>;
       };
-      overlays?: Array<{
-        thumbnailBottomOverlayViewModel?: {
-          badges?: Array<{
-            thumbnailBadgeViewModel?: {
-              badgeStyle?: LockupBadgeStyle;
-              text?: string;
-            };
-          }>;
-          progressBar?: {
-            thumbnailOverlayProgressBarViewModel?: { startPercent?: number };
-          };
-        };
-      }>;
+      overlays?: LockupThumbnailOverlay[];
     };
   };
   metadata?: {

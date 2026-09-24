@@ -11,12 +11,14 @@ type DetectAndApplyChangesParams = Prettify<{
   freshSnapshots: Prettify<VideoSnapshot>[];
   apiContents: Prettify<InnerTubeRichGridItem>[];
   previousSnapshot: Map<string, Prettify<VideoSnapshot>>;
+  isInitialLoad: boolean;
 }>;
 
 export async function detectAndApplyChanges({
   freshSnapshots,
   apiContents,
-  previousSnapshot
+  previousSnapshot,
+  isInitialLoad
 }: DetectAndApplyChangesParams) {
   const freshMap = new Map<string, Prettify<VideoSnapshot>>();
   for (const video of freshSnapshots) {
@@ -46,7 +48,10 @@ export async function detectAndApplyChanges({
     }
   }
 
-  await mirrorFromApi({ apiContents });
+  await mirrorFromApi({
+    apiContents,
+    isInitialLoad
+  });
   cleanOrphanedGridItems();
 
   return {

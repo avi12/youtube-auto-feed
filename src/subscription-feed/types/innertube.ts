@@ -8,12 +8,15 @@ export type {
   ChannelVideoPlayerRenderer,
   ImageSource,
   InnerTubeVideoRenderer,
+  LockupThumbnailBadge,
+  LockupThumbnailOverlay,
   LockupViewModel,
   ShortsLockupViewModel
 } from "./innertube-renderers";
 
 export {
   BadgeStyle,
+  LockupBadgePosition,
   LockupBadgeStyle,
   LockupContentType,
   OverlayStyle

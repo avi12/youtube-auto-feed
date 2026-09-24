@@ -23,7 +23,8 @@ export function createApplyHandlers(context: MonitorContext) {
       const result = await detectAndApplyChanges({
         freshSnapshots: payload.snapshots,
         apiContents: payload.apiContents,
-        previousSnapshot: state.lastSnapshot
+        previousSnapshot: state.lastSnapshot,
+        isInitialLoad
       });
       state.lastSnapshot = result.snapshot;
 

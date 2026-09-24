@@ -69,8 +69,11 @@ export interface InnerTubeVideoRenderer {
 
 export {
   type ImageSource,
+  LockupBadgePosition,
   LockupBadgeStyle,
   LockupContentType,
+  type LockupThumbnailBadge,
+  type LockupThumbnailOverlay,
   type LockupViewModel,
   type ShortsLockupViewModel
 } from "./innertube-lockup";

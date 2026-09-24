@@ -3,6 +3,7 @@ import type { InnerTubeRichGridItem } from "../../types/innertube";
 import type { PolymerElement } from "../../types/polymer";
 import type { Prettify } from "../../types/prettify";
 import { isRichGridData } from "../../youtube-api/guards";
+import { markVideosAsNew, withNewBadges } from "../new-badge";
 import { thumbnailUrlFromRichItem, videoIdFromRichItem } from "../rich-item";
 import { collectInlineVideoIds, composeNewContents, isReferenceEqualArray } from "./mirror-compose";
 import { GRID_SELECTOR } from "./mirror-constants";
@@ -14,9 +15,10 @@ import { awaitNewThumbnailsReady, repaintInsertedThumbnails } from "./mirror-thu
 
 type MirrorFromApiParams = Prettify<{
   apiContents: Prettify<InnerTubeRichGridItem>[];
+  isInitialLoad: boolean;
 }>;
 
-export async function mirrorFromApi({ apiContents }: MirrorFromApiParams) {
+export async function mirrorFromApi({ apiContents, isInitialLoad }: MirrorFromApiParams) {
   const elGrid = document.querySelector<PolymerElement>(GRID_SELECTOR);
   if (!elGrid || !isRichGridData(elGrid.data)) {
     return;
@@ -34,21 +36,36 @@ export async function mirrorFromApi({ apiContents }: MirrorFromApiParams) {
   pruneUnsubscribedShelfVideos(apiContents).catch(() => {});
 
   const previousInlineIds = collectInlineVideoIds(currentContents);
-  const newContents = composeNewContents({
+  const composedContents = composeNewContents({
     apiContents,
     currentContents
   });
-  if (isReferenceEqualArray({
-    left: currentContents,
-    right: newContents
-  })) {
-    return;
-  }
 
   const { newlyInsertedIds, newThumbnailUrls } = collectNewlyInsertedTiles({
-    newContents,
+    newContents: composedContents,
     previousInlineIds
   });
+  // The first pass mirrors the feed the page was served with; nothing in it arrived while the user was
+  // reading, so that pass only records what the feed already held.
+  markVideosAsNew({
+    contents: composedContents,
+    previousInlineIds,
+    isBadgeable: !isInitialLoad
+  });
+
+  const newContents = withNewBadges(composedContents);
+  // A pass that only added or lapsed a badge leaves the band itself untouched, so it skips the entrance
+  // animation, the removal ghosts and the thumbnail wait.
+  if (isReferenceEqualArray({
+    left: currentContents,
+    right: composedContents
+  })) {
+    if (newContents !== currentContents) {
+      elGrid.set("data.contents", newContents);
+    }
+
+    return;
+  }
 
   repaintInsertedThumbnails(newlyInsertedIds).catch(() => {});
 
