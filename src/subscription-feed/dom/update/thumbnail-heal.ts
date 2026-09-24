@@ -1,9 +1,13 @@
-// YouTube publishes some thumbnails under a custom variant path (hq720_custom_1.jpg and friends) that
-// can stop serving while the standard hq720.jpg for the same video keeps working. A tile whose picture
-// loses that race paints blank, and nothing re-requests it, so the blank outlives the outage -
-// re-inserting the tile just repeats the failing request. Repointing a failed load at the standard
-// path heals it immediately. Shorts variants (oar*) are left alone: their frames are vertical, so the
-// 16:9 standard picture would be the wrong shape.
+// YouTube publishes some thumbnails under a variant path (hq720_custom_1.jpg, hqdefault_custom_2.jpg,
+// oar2.jpg and friends) that can stop serving while the family's default picture for the same video
+// keeps working. A tile whose picture loses that race paints blank, and nothing re-requests it, so the
+// blank outlives the outage - re-inserting the tile just repeats the failing request. Repointing a
+// failed load at the family default heals it immediately.
+//
+// The fallback stays inside the variant's own family, so the replacement has the shape the tile was
+// built for: a widescreen variant falls back to hq720.jpg or hqdefault.jpg, a vertical Shorts variant
+// to oardefault.jpg or sardefault.jpg. Each family default is itself exempt, which is what stops a
+// failing fallback from bouncing back into itself.
 //
 // A variant that stopped serving is not a failed load: i.ytimg.com answers it 404 with a decodable
 // 120x90 grey placeholder as the body, so the <img> fires load, not error, and paints that placeholder
@@ -13,43 +17,54 @@
 //
 // Every failure is healed, not just the first one per image: a re-render writes the dead URL from the
 // model back onto the same <img>, and a heal that only fired once would leave the tile blank from then
-// on. The standard path is exempt from healing, which is what stops a failing hq720.jpg from bouncing
-// back into itself - and a just-uploaded video, whose standard path serves the same placeholder until
-// processing finishes, keeps its own URL so the content watch can swap the real picture in later.
+// on. A just-uploaded video, whose family default serves the same placeholder until processing
+// finishes, keeps its own URL so the content watch can swap the real picture in later.
 //
 // A picture that has failed once is remembered, so the next render is redirected before the request is
 // made rather than after it fails. Without that the grid re-requests the same dead URL on every
 // re-render, flashing the tile blank each time while the model keeps handing out the dead address.
 
 const THUMBNAIL_URL_PATTERN = /^https?:\/\/i\.ytimg\.com\/vi\/([^/]+)\/([^?]+)/;
-const STANDARD_THUMBNAIL_FILE = "hq720.jpg";
-const HEALABLE_FILE_PREFIX = "hq720";
 const PLACEHOLDER_THUMBNAIL_WIDTH = 120;
 const PLACEHOLDER_THUMBNAIL_HEIGHT = 90;
+// A variant heals to its own family's default picture, so the replacement keeps the shape the tile was
+// laid out for. The first family whose name the file starts with wins, and a file that already is its
+// family's default is not healable.
+const DEFAULT_FILE_BY_FAMILY = [
+  ["hqdefault", "hqdefault.jpg"],
+  ["hq720", "hq720.jpg"],
+  ["maxresdefault", "hqdefault.jpg"],
+  ["oar", "oardefault.jpg"],
+  ["sar", "sardefault.jpg"]
+] as const;
 
 const deadThumbnailPaths = new Set<string>();
 
-function standardThumbnailUrl(videoId: string) {
-  return `https://i.ytimg.com/vi/${videoId}/${STANDARD_THUMBNAIL_FILE}`;
-}
-
 interface HealableThumbnail {
-  videoId: string;
   pathKey: string;
+  fallbackUrl: string;
 }
 
 function healableThumbnailFrom(src: string): HealableThumbnail | null {
   const match = THUMBNAIL_URL_PATTERN.exec(src);
   const videoId = match?.[1];
   const file = match?.[2];
-  if (!videoId || !file || file === STANDARD_THUMBNAIL_FILE || !file.startsWith(HEALABLE_FILE_PREFIX)) {
+  if (!videoId || !file) {
     return null;
   }
 
-  return {
-    videoId,
-    pathKey: `${videoId}/${file}`
-  };
+  for (const [family, defaultFile] of DEFAULT_FILE_BY_FAMILY) {
+    if (!file.startsWith(family) || file === defaultFile) {
+      continue;
+    }
+
+    return {
+      pathKey: `${videoId}/${file}`,
+      fallbackUrl: `https://i.ytimg.com/vi/${videoId}/${defaultFile}`
+    };
+  }
+
+  return null;
 }
 
 export function repointDeadThumbnail(elImg: HTMLImageElement) {
@@ -59,7 +74,7 @@ export function repointDeadThumbnail(elImg: HTMLImageElement) {
   }
 
   deadThumbnailPaths.add(healable.pathKey);
-  elImg.src = standardThumbnailUrl(healable.videoId);
+  elImg.src = healable.fallbackUrl;
   return true;
 }
 
@@ -97,7 +112,7 @@ function redirectKnownDeadThumbnail(elImg: HTMLImageElement) {
     return;
   }
 
-  elImg.src = standardThumbnailUrl(healable.videoId);
+  elImg.src = healable.fallbackUrl;
 }
 
 export function startThumbnailHealer() {
