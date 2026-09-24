@@ -1,5 +1,6 @@
 import type { PolymerElement } from "../../types/polymer";
 import { isRichGridData, isRichShelfData } from "../../youtube-api/guards";
+import { GRID_SELECTOR } from "../mirror/mirror-constants";
 import { findRichItemIndex } from "../rich-item";
 import { applyRichItemContentUpdate } from "./polymer-renderer-merge";
 import type { ApplyToContainerParams } from "./polymer-sync-types";
@@ -35,7 +36,7 @@ function updateRichItem({ elElement, videoId, rawRenderer, forcePreserveContentI
 }
 
 export function applyToGridModel({ videoId, rawRenderer, forcePreserveContentImage }: ApplyToContainerParams) {
-  const elGrid = document.querySelector<PolymerElement>("ytd-rich-grid-renderer");
+  const elGrid = document.querySelector<PolymerElement>(GRID_SELECTOR);
   if (!elGrid) {
     return;
   }

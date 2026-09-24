@@ -4,6 +4,7 @@ import type { VideoSnapshot } from "../../types/video";
 import { isPolymerElement } from "../../utils/polymer";
 import { isRichShelfRenderer, isShelfRenderer, isVideoRenderer } from "../../youtube-api/guards";
 import { parseRenderer } from "../../youtube-api/parse-video";
+import { RICH_ITEM_SELECTOR } from "../mirror/mirror-constants";
 import { addRichItemToSnapshot } from "./query-snapshot-parse";
 
 export function collectRichShelfVideos(snapshot: Map<string, Prettify<VideoSnapshot>>) {
@@ -14,7 +15,7 @@ export function collectRichShelfVideos(snapshot: Map<string, Prettify<VideoSnaps
 
     const shelfData = elShelf.data;
     const sectionTitle = isRichShelfRenderer(shelfData) ? shelfData.title?.runs?.[0]?.text ?? "" : "";
-    for (const elItem of elShelf.querySelectorAll<HTMLElement>("ytd-rich-item-renderer")) {
+    for (const elItem of elShelf.querySelectorAll<HTMLElement>(RICH_ITEM_SELECTOR)) {
       addRichItemToSnapshot({
         elItem,
         sectionTitle,

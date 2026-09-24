@@ -3,6 +3,7 @@ import type { VideoSnapshot } from "../../types/video";
 import { isPolymerElement } from "../../utils/polymer";
 import { isChannelVideoPlayerRenderer, isVideoRenderer } from "../../youtube-api/guards";
 import { parseChannelVideoPlayer, parseRenderer } from "../../youtube-api/parse-video";
+import { RICH_ITEM_SELECTOR } from "../mirror/mirror-constants";
 import { addRichItemToSnapshot } from "./query-snapshot-parse";
 
 // Reads the metadata each video tile currently shows, document-wide and page-agnostic (grid lockups,
@@ -11,7 +12,7 @@ import { addRichItemToSnapshot } from "./query-snapshot-parse";
 export function readGenericDomSnapshot() {
   const snapshot = new Map<string, Prettify<VideoSnapshot>>();
 
-  for (const elItem of document.querySelectorAll<HTMLElement>("ytd-rich-item-renderer")) {
+  for (const elItem of document.querySelectorAll<HTMLElement>(RICH_ITEM_SELECTOR)) {
     addRichItemToSnapshot({
       elItem,
       sectionTitle: "",

@@ -2,6 +2,7 @@ import type { Prettify } from "../../types/prettify";
 import { isPolymerElement } from "../../utils/polymer";
 import { videoIdFromData } from "../../utils/video-id";
 import { isChannelVideoPlayerRenderer, isVideoRenderer } from "../../youtube-api/guards";
+import { RICH_ITEM_SELECTOR } from "../mirror/mirror-constants";
 
 // Builds a videoId -> elements map in one DOM walk, used by the batched metadata-only poll so many
 // videos share a single traversal.
@@ -25,7 +26,7 @@ function appendToVideoElementMap({ map, videoId, elItem }: AppendToVideoElementM
 export function buildVideoElementMap() {
   const map = new Map<string, HTMLElement[]>();
 
-  for (const elItem of document.querySelectorAll<HTMLElement>("ytd-rich-item-renderer")) {
+  for (const elItem of document.querySelectorAll<HTMLElement>(RICH_ITEM_SELECTOR)) {
     if (!isPolymerElement(elItem)) {
       continue;
     }

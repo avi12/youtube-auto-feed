@@ -4,6 +4,7 @@ import type { PolymerElement } from "../../types/polymer";
 import type { Prettify } from "../../types/prettify";
 import { isLockupViewModel, isRichGridData, isRichShelfData, type RichGridData } from "../../youtube-api/guards";
 import { richItemContentSchema } from "../../youtube-api/schemas";
+import { GRID_SELECTOR } from "../mirror/mirror-constants";
 import { findRichItemIndex } from "../rich-item";
 import { mutateLockupViewModelInPlace } from "./lockup-mutate-in-place";
 
@@ -68,7 +69,7 @@ export function mutateLockupMetadata({ videoId, elItem, incoming, preserveConten
   }
 
   mutateLockupsInContainers({
-    selector: "ytd-rich-grid-renderer",
+    selector: GRID_SELECTOR,
     isUsable: isRichGridData,
     videoId,
     mutateOne

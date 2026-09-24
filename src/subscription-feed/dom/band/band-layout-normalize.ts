@@ -1,6 +1,7 @@
 import type { PolymerElement } from "../../types/polymer";
 import { isRichShelfData } from "../../youtube-api/guards";
 import { richItemDataSchema } from "../../youtube-api/schemas";
+import { RICH_ITEM_SELECTOR } from "../mirror/mirror-constants";
 import { videoIdFromRichItem } from "../rich-item";
 
 function waitForPolymerToFinishRendering() {
@@ -22,7 +23,7 @@ export async function normalizeCollapsedShelfRows() {
 
     await waitForPolymerToFinishRendering();
 
-    const elItems = [...elShelf.querySelectorAll<PolymerElement>("ytd-rich-item-renderer")];
+    const elItems = [...elShelf.querySelectorAll<PolymerElement>(RICH_ITEM_SELECTOR)];
     const visibleItems = elItems.filter(elItem => elItem.offsetWidth > 0);
     if (visibleItems.length === 0) {
       continue;

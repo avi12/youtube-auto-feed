@@ -5,6 +5,7 @@ import type { Prettify } from "../../types/prettify";
 import { isRichGridData } from "../../youtube-api/guards";
 import { thumbnailUrlFromRichItem, videoIdFromRichItem } from "../rich-item";
 import { collectInlineVideoIds, composeNewContents, isReferenceEqualArray } from "./mirror-compose";
+import { GRID_SELECTOR } from "./mirror-constants";
 import { findRemovedViewportTiles } from "./mirror-find-tiles";
 import { setContentsWithFlip } from "./mirror-flip";
 import { createRemovalGhosts } from "./mirror-ghosts";
@@ -16,7 +17,7 @@ type MirrorFromApiParams = Prettify<{
 }>;
 
 export async function mirrorFromApi({ apiContents }: MirrorFromApiParams) {
-  const elGrid = document.querySelector<PolymerElement>("ytd-rich-grid-renderer");
+  const elGrid = document.querySelector<PolymerElement>(GRID_SELECTOR);
   if (!elGrid || !isRichGridData(elGrid.data)) {
     return;
   }

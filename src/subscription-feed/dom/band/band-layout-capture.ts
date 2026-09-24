@@ -2,6 +2,7 @@ import type { InnerTubeRichGridItem } from "../../types/innertube";
 import type { PolymerElement } from "../../types/polymer";
 import type { Prettify } from "../../types/prettify";
 import { isRichGridData } from "../../youtube-api/guards";
+import { GRID_SELECTOR } from "../mirror/mirror-constants";
 import { videoIdFromRichItem } from "../rich-item";
 
 enum BandKind {
@@ -32,7 +33,7 @@ function readTitleOnlyShelfTitle(item: Prettify<InnerTubeRichGridItem>) {
 }
 
 export function captureBandLayout() {
-  const elGrid = document.querySelector<PolymerElement>("ytd-rich-grid-renderer");
+  const elGrid = document.querySelector<PolymerElement>(GRID_SELECTOR);
   if (!elGrid || !isRichGridData(elGrid.data)) {
     return null;
   }

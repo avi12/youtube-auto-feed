@@ -1,3 +1,4 @@
+import { GRID_SELECTOR, RICH_ITEM_SELECTOR } from "./dom/mirror/mirror-constants";
 import type { PolymerElement } from "./types/polymer";
 import { isPolymerElement } from "./utils/polymer";
 import {
@@ -10,7 +11,7 @@ import {
 export function isDomContentReady() {
   const elShelf = document.querySelector<HTMLElement>("ytd-rich-shelf-renderer");
   if (elShelf) {
-    const elItem = elShelf.querySelector<PolymerElement>("ytd-rich-item-renderer");
+    const elItem = elShelf.querySelector<PolymerElement>(RICH_ITEM_SELECTOR);
     const isShelfItemHydrated = !!elItem
       && richItemDataSchema.safeParse(elItem.data).success;
     if (isShelfItemHydrated) {
@@ -30,7 +31,7 @@ export function isDomContentReady() {
     }
   }
 
-  const elGrid = document.querySelector<PolymerElement>("ytd-rich-grid-renderer");
+  const elGrid = document.querySelector<PolymerElement>(GRID_SELECTOR);
   if (elGrid) {
     const gridDataParsed = gridDataSchema.safeParse(elGrid.data);
     if (gridDataParsed.success) {

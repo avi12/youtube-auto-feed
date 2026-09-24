@@ -3,6 +3,7 @@ import type { VideoSnapshot } from "../../types/video";
 import { isPolymerElement } from "../../utils/polymer";
 import { videoIdFromData } from "../../utils/video-id";
 import { isInViewport } from "../animations";
+import { RICH_ITEM_SELECTOR } from "../mirror/mirror-constants";
 import { isThumbnailChanged } from "../rich-item";
 import { applyWithDissolve } from "./dissolve";
 import { changingShortsTextElements, readShortsRenderedText, updateShortsTextFields } from "./text-fields";
@@ -19,7 +20,7 @@ import { crossfadeThumbnail, findThumbnailImgInItem, isTileHovered } from "./thu
 
 function shortsTileElements() {
   const tiles: HTMLElement[] = [];
-  for (const elItem of document.querySelectorAll<HTMLElement>("ytd-rich-item-renderer")) {
+  for (const elItem of document.querySelectorAll<HTMLElement>(RICH_ITEM_SELECTOR)) {
     const isShortsTile = isPolymerElement(elItem)
       && elItem.querySelector("ytm-shorts-lockup-view-model-v2, ytm-shorts-lockup-view-model") !== null;
     if (isShortsTile) {

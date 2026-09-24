@@ -2,7 +2,7 @@ import type { InnerTubeRichGridItem } from "../../types/innertube";
 import type { Prettify } from "../../types/prettify";
 import { flushPolymerRender, isPolymerElement } from "../../utils/polymer";
 import { videoIdFromData } from "../../utils/video-id";
-import { SURVIVOR_SHIFT_MS } from "./mirror-constants";
+import { RICH_ITEM_SELECTOR, SURVIVOR_SHIFT_MS } from "./mirror-constants";
 import { createRemovalGhosts, dissolveRemovalGhosts } from "./mirror-ghosts";
 
 // Animated removal inside a rich shelf. An expanded shelf reflows like the Latest band - survivors
@@ -20,7 +20,6 @@ import { createRemovalGhosts, dissolveRemovalGhosts } from "./mirror-ghosts";
 // rebound layout. Positions are relative to the shelf's own contents box so a concurrent grid reflow
 // moving the whole shelf does not leak into the per-tile deltas.
 
-const SHELF_ITEM_SELECTOR = "ytd-rich-item-renderer";
 const GLIDE_EASING = "cubic-bezier(0.4, 0, 0.2, 1)";
 const MILLISECONDS_PER_FRAME = 1000 / 60;
 const PROMOTION_POLL_FRAMES = 8;
@@ -39,7 +38,7 @@ function isVisibleToUser(elItem: HTMLElement) {
 }
 
 function shelfItems(elShelf: HTMLElement) {
-  return [...elShelf.querySelectorAll<HTMLElement>(SHELF_ITEM_SELECTOR)];
+  return [...elShelf.querySelectorAll<HTMLElement>(RICH_ITEM_SELECTOR)];
 }
 
 function visibleShelfItems(elShelf: HTMLElement) {

@@ -9,7 +9,9 @@ export const THUMBNAIL_STABLE_FRAMES = 5;
 // ~3s at 60fps: how long the entrance animation waits for a new tile's thumbnail to decode before
 // giving up, so slow connections do not animate a blank tile in.
 export const NEW_THUMBNAIL_DECODE_CAP_FRAMES = 180;
-export const GRID_ITEM_SELECTOR = "ytd-rich-grid-renderer > #contents > ytd-rich-item-renderer";
+export const GRID_SELECTOR = "ytd-rich-grid-renderer";
+export const RICH_ITEM_SELECTOR = "ytd-rich-item-renderer";
+export const GRID_ITEM_SELECTOR = `${GRID_SELECTOR} > #contents > ${RICH_ITEM_SELECTOR}`;
 // The API's first-page response is non-deterministic at its tail: the last few videos flip between
 // present and absent across identical fetches. A video dropping there is pagination noise, not a real
 // removal, so a video that is collaborative or sits in the band tail is buffered for this many polls
