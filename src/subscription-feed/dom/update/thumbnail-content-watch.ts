@@ -2,6 +2,7 @@ import type { Prettify } from "../../types/prettify";
 import { isInViewport } from "../animations";
 import { GRID_ITEM_SELECTOR, type RichItemElement } from "../mirror/mirror-constants";
 import { thumbnailUrlFromContent } from "../rich-item";
+import { isDeadThumbnailUrl, repointDeadThumbnail } from "./thumbnail-heal";
 import { findThumbnailImgInItem } from "./thumbnail-locate";
 import { crossfadeThumbnail } from "./thumbnail-swap";
 
@@ -120,7 +121,7 @@ function collectVisibleThumbnails() {
 
     const elImg = findThumbnailImgInItem(elItem);
     const url = elItem.data.content ? thumbnailUrlFromContent(elItem.data.content) : "";
-    if (elImg && url) {
+    if (elImg && url && !isDeadThumbnailUrl(url)) {
       visible.push({
         elImg,
         url
@@ -134,7 +135,7 @@ function collectVisibleThumbnails() {
 // real picture under the same URL. The painted <img> keeps the stale placeholder decode - an <img> never
 // refetches itself and the path-keyed diff treats the URL as unchanged - so it renders far smaller than
 // its tile. That upscaling is the signal to force a fresh fetch past the cache and swap the real picture
-// in once it has grown.
+// in once it has grown, or to give up on a custom variant that has stopped serving altogether.
 const PLACEHOLDER_UPSCALE_FACTOR = 2;
 
 function isPlaceholderThumbnail(elImg: HTMLImageElement) {
@@ -154,7 +155,14 @@ async function decodedWidth(buffer: ArrayBuffer) {
 
 async function healPlaceholderThumbnail({ elImg, url }: VisibleThumbnail) {
   const buffer = await fetchThumbnailBytes(url, true);
-  if (!buffer || await decodedWidth(buffer) <= elImg.naturalWidth) {
+  // The URL stopped serving rather than still being processed, so no amount of re-fetching will grow
+  // this picture: fall back to the standard path and stop asking for the dead one.
+  if (!buffer) {
+    repointDeadThumbnail(elImg);
+    return;
+  }
+
+  if (await decodedWidth(buffer) <= elImg.naturalWidth) {
     return;
   }
 
