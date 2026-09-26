@@ -8,6 +8,7 @@ import {
   isVideoRenderer,
   thumbnailUrlFromShortsLockup
 } from "../youtube-api/guards";
+import { healedThumbnailUrl } from "./update/thumbnail-heal";
 
 export function videoIdFromRichItem(
   contentItem: Prettify<InnerTubeRichGridItem> | Record<string, unknown> | undefined
@@ -51,7 +52,13 @@ export function avatarUrlFromContent(content: Prettify<InnerTubeRichItemContent>
     ?.decoratedAvatarViewModel?.avatar?.avatarViewModel?.image?.sources?.at(-1)?.url ?? "";
 }
 
+// Answers with the healed URL, never the raw model one: every caller paints this or compares it with
+// what is painted, and the healer has already redirected a dead picture on the tile itself.
 export function thumbnailUrlFromContent(content: Prettify<InnerTubeRichItemContent>) {
+  return healedThumbnailUrl(modelThumbnailUrl(content));
+}
+
+function modelThumbnailUrl(content: Prettify<InnerTubeRichItemContent>) {
   const { videoRenderer, lockupViewModel, shortsLockupViewModel } = content;
   if (isVideoRenderer(videoRenderer)) {
     return videoRenderer.thumbnail.thumbnails.at(-1)?.url ?? "";

@@ -23,6 +23,13 @@
 // A picture that has failed once is remembered, so the next render is redirected before the request is
 // made rather than after it fails. Without that the grid re-requests the same dead URL on every
 // re-render, flashing the tile blank each time while the model keeps handing out the dead address.
+//
+// That memo makes `healedThumbnailUrl` the single answer to "which picture does this URL paint", and
+// everything that writes a thumbnail onto a tile has to ask it. A writer that paints the model's raw
+// URL instead fights the healer: the healer's redirect is an attribute write, which wakes the writer's
+// own src observer, which repaints the dead URL, which the healer redirects again. Both sides run at
+// the microtask checkpoint, so that exchange never yields to a frame - the tab freezes and the
+// renderer is killed.
 
 const THUMBNAIL_URL_PATTERN = /^https?:\/\/i\.ytimg\.com\/vi\/([^/]+)\/([^?]+)/;
 const PLACEHOLDER_THUMBNAIL_WIDTH = 120;
@@ -78,9 +85,13 @@ export function repointDeadThumbnail(elImg: HTMLImageElement) {
   return true;
 }
 
-export function isDeadThumbnailUrl(url: string) {
+export function healedThumbnailUrl(url: string) {
   const healable = healableThumbnailFrom(url);
-  return !!healable && deadThumbnailPaths.has(healable.pathKey);
+  if (!healable || !deadThumbnailPaths.has(healable.pathKey)) {
+    return url;
+  }
+
+  return healable.fallbackUrl;
 }
 
 function isPlaceholderDecode(elImg: HTMLImageElement) {
@@ -107,12 +118,13 @@ function healPlaceholderThumbnailPaint(e: Event) {
 }
 
 function redirectKnownDeadThumbnail(elImg: HTMLImageElement) {
-  const healable = healableThumbnailFrom(elImg.getAttribute("src") ?? "");
-  if (!healable || !deadThumbnailPaths.has(healable.pathKey)) {
+  const paintedUrl = elImg.getAttribute("src") ?? "";
+  const healedUrl = healedThumbnailUrl(paintedUrl);
+  if (healedUrl === paintedUrl) {
     return;
   }
 
-  elImg.src = healable.fallbackUrl;
+  elImg.src = healedUrl;
 }
 
 export function startThumbnailHealer() {

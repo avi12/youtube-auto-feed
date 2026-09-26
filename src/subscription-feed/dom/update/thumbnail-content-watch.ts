@@ -2,7 +2,7 @@ import type { Prettify } from "../../types/prettify";
 import { isInViewport } from "../animations";
 import { GRID_ITEM_SELECTOR, type RichItemElement } from "../mirror/mirror-constants";
 import { thumbnailUrlFromContent } from "../rich-item";
-import { isDeadThumbnailUrl, repointDeadThumbnail } from "./thumbnail-heal";
+import { repointDeadThumbnail } from "./thumbnail-heal";
 import { findThumbnailImgInItem } from "./thumbnail-locate";
 import { crossfadeThumbnail } from "./thumbnail-swap";
 
@@ -121,7 +121,7 @@ function collectVisibleThumbnails() {
 
     const elImg = findThumbnailImgInItem(elItem);
     const url = elItem.data.content ? thumbnailUrlFromContent(elItem.data.content) : "";
-    if (elImg && url && !isDeadThumbnailUrl(url)) {
+    if (elImg && url) {
       visible.push({
         elImg,
         url
