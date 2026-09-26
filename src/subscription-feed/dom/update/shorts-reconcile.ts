@@ -7,7 +7,7 @@ import { RICH_ITEM_SELECTOR } from "../mirror/mirror-constants";
 import { isThumbnailChanged } from "../rich-item";
 import { applyWithDissolve } from "./dissolve";
 import { changingShortsTextElements, readShortsRenderedText, updateShortsTextFields } from "./text-fields";
-import { crossfadeThumbnail, findThumbnailImgInItem, isTileHovered } from "./thumbnail";
+import { crossfadeThumbnail, findThumbnailImgInItem, healedThumbnailUrl, isTileHovered } from "./thumbnail";
 
 // A shorts shelf tile renders through a component that never re-reads the grid model, so writing the
 // model leaves the visible title, view count and picture on their old values. The metadata diff cannot
@@ -44,9 +44,10 @@ async function reconcileShortsTile({ elItem, fresh }: ReconcileShortsTileParams)
 
   const elImg = findThumbnailImgInItem(elItem);
   const paintedUrl = elImg?.getAttribute("src") ?? "";
+  const freshThumbnailUrl = healedThumbnailUrl(fresh.thumbnailUrl);
   const isPictureStale = !!elImg && isThumbnailChanged({
     previousUrl: paintedUrl,
-    freshUrl: fresh.thumbnailUrl,
+    freshUrl: freshThumbnailUrl,
     freshStatus: fresh.status
   });
 
@@ -60,7 +61,7 @@ async function reconcileShortsTile({ elItem, fresh }: ReconcileShortsTileParams)
   if (isPictureStale && elImg) {
     await crossfadeThumbnail({
       elImg,
-      src: fresh.thumbnailUrl
+      src: freshThumbnailUrl
     });
   }
 

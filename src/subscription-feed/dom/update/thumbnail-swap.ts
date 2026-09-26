@@ -1,5 +1,6 @@
 import { isAnimationsEnabled } from "../../settings-state";
 import type { Prettify } from "../../types/prettify";
+import { healedThumbnailUrl } from "./thumbnail-heal";
 
 // Swapping a refreshed thumbnail picture in place. YouTube serves the replacement either under a new
 // /vi/ path (a resolution upgrade or an edited custom thumbnail) or, for an A/B variant, under the
@@ -29,7 +30,8 @@ type CrossfadeThumbnailParams = Prettify<{
   src: string;
 }>;
 
-export async function crossfadeThumbnail({ elImg, src }: CrossfadeThumbnailParams) {
+export async function crossfadeThumbnail({ elImg, src: requestedSrc }: CrossfadeThumbnailParams) {
+  const src = healedThumbnailUrl(requestedSrc);
   const elHost = elImg.parentElement;
   const outgoingSrc = elImg.currentSrc || elImg.src;
   const isDecodable = await preloadImage(src);
