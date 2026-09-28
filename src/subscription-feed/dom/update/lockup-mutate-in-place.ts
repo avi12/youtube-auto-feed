@@ -1,4 +1,5 @@
 import type { Prettify } from "../../types/prettify";
+import { contentImageWithPaintedBadge } from "../new-badge/new-badge";
 import { getAvatarImage, LockupPair, mergeContentImagePreservingThumbnail } from "./lockup-merge";
 
 type MutateLockupViewModelInPlaceParams = Prettify<LockupPair & {
@@ -16,12 +17,16 @@ export function mutateLockupViewModelInPlace({
 
   Object.assign(existing, incoming);
 
-  if (preserveContentImage) {
-    existing.contentImage = mergeContentImagePreservingThumbnail({
+  const mergedContentImage = preserveContentImage
+    ? mergeContentImagePreservingThumbnail({
       existing: preservedContentImage,
       incoming: incoming.contentImage
-    });
-  }
+    })
+    : existing.contentImage;
+  existing.contentImage = contentImageWithPaintedBadge({
+    painted: preservedContentImage,
+    contentImage: mergedContentImage
+  });
 
   const isAvatarRestoreNeeded = incomingAvatarImage === undefined
     && existingAvatarImage !== undefined

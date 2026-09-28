@@ -2,11 +2,12 @@ import {
   type InnerTubeRichGridItem,
   LockupBadgePosition,
   LockupBadgeStyle,
-  type LockupThumbnailOverlay
+  type LockupThumbnailOverlay,
+  type LockupViewModel
 } from "../../types/innertube";
 import type { PolymerElement } from "../../types/polymer";
 import type { Prettify } from "../../types/prettify";
-import { videoIdFromData } from "../../utils/video-id";
+import { videoIdFromData, videoIdFromLockup } from "../../utils/video-id";
 import { isRichGridData } from "../../youtube-api/guards";
 import { GRID_SELECTOR, RICH_ITEM_SELECTOR, type RichItemElement } from "../mirror/mirror-constants";
 import { videoIdFromRichItem } from "../rich-item";
@@ -86,42 +87,103 @@ function forgetLapsedBadges() {
   }
 }
 
-type ItemWithOverlaysParams = Prettify<{
-  item: Prettify<InnerTubeRichGridItem>;
-  overlays: LockupThumbnailOverlay[];
-}>;
+type ContentImage = LockupViewModel["contentImage"];
 
-function itemWithOverlays({ item, overlays }: ItemWithOverlaysParams) {
-  const itemCopy = structuredClone(item);
-  const thumbnail = itemCopy.richItemRenderer?.content?.lockupViewModel?.contentImage?.thumbnailViewModel;
-  if (!thumbnail) {
-    return item;
-  }
-
-  thumbnail.overlays = overlays;
-  return itemCopy;
+function isBadgeCarried(contentImage: ContentImage) {
+  return (contentImage?.thumbnailViewModel?.overlays ?? [])
+    .some(overlay => overlay.thumbnailOverlayBadgeViewModel);
 }
 
-function itemWithBadgeState(item: Prettify<InnerTubeRichGridItem>) {
-  const videoId = videoIdFromRichItem(item);
-  const thumbnail = item.richItemRenderer?.content?.lockupViewModel?.contentImage?.thumbnailViewModel;
-  if (!videoId || !thumbnail) {
-    return item;
+type ContentImageWithBadgeParams = Prettify<{
+  contentImage: ContentImage;
+  isBadgeWanted: boolean;
+}>;
+
+// Returns the same contentImage when the badge is already where it is wanted, so an unchanged tile
+// stays reference-equal and nothing re-renders.
+function contentImageWithBadge({ contentImage, isBadgeWanted }: ContentImageWithBadgeParams) {
+  const thumbnail = contentImage?.thumbnailViewModel;
+  if (!thumbnail || isBadgeCarried(contentImage) === isBadgeWanted) {
+    return contentImage;
   }
 
   const overlays = thumbnail.overlays ?? [];
-  const isBadgeRendered = overlays.some(overlay => overlay.thumbnailOverlayBadgeViewModel);
-  const isBadgeWanted = badgeExpiryByVideoId.has(videoId);
-  if (isBadgeRendered === isBadgeWanted) {
+  return {
+    ...contentImage,
+    thumbnailViewModel: {
+      ...thumbnail,
+      overlays: isBadgeWanted
+        ? [...overlays, newBadgeOverlay()]
+        : overlays.filter(overlay => !overlay.thumbnailOverlayBadgeViewModel)
+    }
+  };
+}
+
+type ContentImageWithBadgeStateParams = Prettify<{
+  videoId: string | null;
+  contentImage: ContentImage;
+}>;
+
+// The marked-video map is the single answer to "does this thumbnail wear the badge", and a painter that
+// restamps the tile asks it. A painter that carried the API's own overlays instead would drop the badge
+// out of the model, and the next poll would put it back by restamping the tile again - a restamped tile
+// rebuilds its thumbnail and avatar images, which reads as a flicker every few seconds for as long as
+// the badge lives.
+export function contentImageWithBadgeState({ videoId, contentImage }: ContentImageWithBadgeStateParams) {
+  if (!videoId) {
+    return contentImage;
+  }
+
+  return contentImageWithBadge({
+    contentImage,
+    isBadgeWanted: badgeExpiryByVideoId.has(videoId)
+  });
+}
+
+type ContentImageWithPaintedBadgeParams = Prettify<{
+  painted: ContentImage;
+  contentImage: ContentImage;
+}>;
+
+// A write no element is told about cannot change what the tile paints, so it carries the badge the tile
+// already wears rather than the one the map wants. Dropping a lapsed badge here would settle the model
+// silently and leave the tile wearing it for good, with nothing left to restamp.
+export function contentImageWithPaintedBadge({ painted, contentImage }: ContentImageWithPaintedBadgeParams) {
+  return contentImageWithBadge({
+    contentImage,
+    isBadgeWanted: isBadgeCarried(painted)
+  });
+}
+
+function itemWithBadgeState(item: Prettify<InnerTubeRichGridItem>) {
+  const { richItemRenderer } = item;
+  const content = richItemRenderer?.content;
+  const lockup = content?.lockupViewModel;
+  if (!richItemRenderer || !content || !lockup) {
     return item;
   }
 
-  return itemWithOverlays({
-    item,
-    overlays: isBadgeWanted
-      ? [...overlays, newBadgeOverlay()]
-      : overlays.filter(overlay => !overlay.thumbnailOverlayBadgeViewModel)
+  const contentImage = contentImageWithBadgeState({
+    videoId: videoIdFromLockup(lockup),
+    contentImage: lockup.contentImage
   });
+  if (contentImage === lockup.contentImage) {
+    return item;
+  }
+
+  return {
+    ...item,
+    richItemRenderer: {
+      ...richItemRenderer,
+      content: {
+        ...content,
+        lockupViewModel: {
+          ...lockup,
+          contentImage
+        }
+      }
+    }
+  };
 }
 
 // Returns the same array when no badge moved, so an unchanged feed stays reference-equal and the mirror

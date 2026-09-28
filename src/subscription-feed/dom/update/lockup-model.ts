@@ -1,11 +1,13 @@
 import type { Prettify } from "../../types/prettify";
+import { videoIdFromLockup } from "../../utils/video-id";
+import { contentImageWithBadgeState } from "../new-badge/new-badge";
 import { getAvatarImage, hasSameThumbnail, LockupPair, mergeContentImagePreservingThumbnail } from "./lockup-merge";
 
 export { mutateLockupMetadata } from "./lockup-mutate";
 
 // mergeLockupViewModel preserves already-loaded image bytes (so the <img> doesn't refetch when the
-// URL changes but the picture is the same), and restores the channel avatar when the incoming
-// payload omits it.
+// URL changes but the picture is the same), restores the channel avatar when the incoming payload
+// omits it, and keeps the "New" badge the incoming payload knows nothing about.
 
 function buildPreservedAvatarMetadata({ existing, incoming }: Prettify<LockupPair>) {
   const existingAvatarImage = getAvatarImage(existing);
@@ -37,7 +39,7 @@ export function mergeLockupViewModel({
     existing,
     incoming
   });
-  const contentImage = isThumbnailPreservationNeeded
+  const mergedContentImage = isThumbnailPreservationNeeded
     ? mergeContentImagePreservingThumbnail({
       existing: existing.contentImage,
       incoming: incoming.contentImage
@@ -45,7 +47,10 @@ export function mergeLockupViewModel({
     : incoming.contentImage;
   return {
     ...incoming,
-    contentImage,
+    contentImage: contentImageWithBadgeState({
+      videoId: videoIdFromLockup(incoming),
+      contentImage: mergedContentImage
+    }),
     metadata: buildPreservedAvatarMetadata({
       existing,
       incoming
