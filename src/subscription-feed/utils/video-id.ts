@@ -4,6 +4,11 @@ import { richItemContentSchema } from "../youtube-api/schemas";
 
 const nonEmptyStringSchema = z.string().min(1);
 
+interface LockupIdentity {
+  contentId?: string;
+  videoId?: string;
+}
+
 const dataSchema = z.looseObject({
   content: richItemContentSchema.optional().catch(undefined)
 });
@@ -33,10 +38,16 @@ export function videoIdFromData(data: unknown) {
   }
 
   if (content.lockupViewModel) {
-    return content.lockupViewModel.contentId || nonEmptyStringOrNull(content.lockupViewModel.videoId);
+    return videoIdFromLockup(content.lockupViewModel);
   }
 
   return content.shortsLockupViewModel?.onTap?.innertubeCommand?.reelWatchEndpoint?.videoId || null;
+}
+
+// Some lockup renderers expose videoId directly rather than contentId; either is the id, and this is
+// the one place that rule lives.
+export function videoIdFromLockup({ contentId, videoId }: LockupIdentity) {
+  return contentId || nonEmptyStringOrNull(videoId);
 }
 
 function nonEmptyStringOrNull(value: unknown) {

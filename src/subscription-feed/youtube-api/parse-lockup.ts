@@ -1,6 +1,7 @@
 import type { LockupViewModel } from "../types/innertube";
 import type { Prettify } from "../types/prettify";
 import type { VideoSnapshot } from "../types/video";
+import { videoIdFromLockup } from "../utils/video-id";
 import { statusFromLockup } from "./guards";
 import type { ParseVideoParams } from "./parse-video-params";
 
@@ -44,9 +45,8 @@ function splitLockupMetadata(firstPart: string, secondPart: string) {
 type ParseLockupViewModelParams = Prettify<ParseVideoParams & { lockup: Prettify<LockupViewModel> }>;
 
 export function parseLockupViewModel({ lockup, sectionTitle, bandIndex }: ParseLockupViewModelParams) {
-  const { contentId, contentImage, metadata } = lockup;
-  // Some lockup renderers expose videoId directly rather than contentId; treat either as the id.
-  const videoId = contentId || lockup.videoId;
+  const { contentImage, metadata } = lockup;
+  const videoId = videoIdFromLockup(lockup);
   if (!videoId) {
     return null;
   }
