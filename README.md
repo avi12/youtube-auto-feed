@@ -8,7 +8,7 @@ Made by [Avi](https://avi12.com)
 
 [![Chrome Web Store users](https://img.shields.io/chrome-web-store/users/jcdebdlnakhdinkindpogcehnhggbfad?color=white&label=Chrome%20%2F%20Edge%20users&style=flat-square&logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/jcdebdlnakhdinkindpogcehnhggbfad)  
 [![Firefox Add-on users](https://img.shields.io/amo/users/youtube-auto-feed@avi12.com?color=white&label=Firefox%20users&style=flat-square&logo=firefoxbrowser&logoColor=white)](https://addons.mozilla.org/firefox/addon/youtube-auto-feed@avi12.com)  
-[![Opera Add-ons downloads](https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Faddons.opera.com%2Fextensions%2Fdetails%2Fyoutube-auto-feed%2F&search=Downloads%3C%2Fdt%3E%3Cdd%3E%28%5B0-9%2C%5D%2B%29%3C%2Fdd%3E&replace=%241&color=white&label=Opera%20downloads&style=flat-square&logo=opera&logoColor=white)](https://addons.opera.com/extensions/details/youtube-auto-feed)
+[![Opera Add-ons users](https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Faddons.opera.com%2Fextensions%2Fdetails%2Fyoutube-auto-feed%2F&search=Downloads%3C%2Fdt%3E%3Cdd%3E%28%5B0-9%2C%5D%2B%29%3C%2Fdd%3E&replace=%241&color=white&label=Opera%20users&style=flat-square&logo=opera&logoColor=white)](https://addons.opera.com/extensions/details/youtube-auto-feed)
 
 ## Features
 
