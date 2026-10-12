@@ -1,7 +1,12 @@
 import type { Prettify } from "../../types/prettify";
 import { videoIdFromLockup } from "../../utils/video-id";
 import { contentImageWithBadgeState } from "../new-badge/new-badge";
-import { getAvatarImage, hasSameThumbnail, LockupPair, mergeContentImagePreservingThumbnail } from "./lockup-merge";
+import {
+  getAvatarImage,
+  hasSameThumbnail,
+  type LockupPair,
+  mergeContentImagePreservingThumbnail
+} from "./lockup-merge";
 
 export { mutateLockupMetadata } from "./lockup-mutate";
 

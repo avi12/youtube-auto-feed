@@ -47,7 +47,7 @@ export function mergeBand({
   const mergedBand: Prettify<InnerTubeRichGridItem>[] = [];
 
   for (let iSegment = 0; iSegment <= anchorIds.length; iSegment++) {
-    for (const { videoId, item } of currentSegments[iSegment]) {
+    for (const { videoId, item } of currentSegments[iSegment] ?? []) {
       if (!isDroppedButRetained(videoId)) {
         continue;
       }
@@ -55,7 +55,7 @@ export function mergeBand({
       mergedBand.push(item);
     }
 
-    for (const { videoId, item } of apiSegments[iSegment]) {
+    for (const { videoId, item } of apiSegments[iSegment] ?? []) {
       mergedBand.push(reuseLiveItem(videoId) ?? item);
     }
 
@@ -81,7 +81,7 @@ function splitAtAnchors({ band, anchorIds }: SplitAtAnchorsParams) {
       iAnchor++;
       segments.push([]);
     } else {
-      segments[segments.length - 1].push(entry);
+      segments.at(-1)?.push(entry);
     }
   }
   return segments;

@@ -6,8 +6,7 @@ import type { InlineBandEntry } from "./mirror-band-merge";
 export function extractInlineBand(contents: Prettify<InnerTubeRichGridItem>[]) {
   const band: InlineBandEntry[] = [];
   for (const run of findAllInlineRuns(contents)) {
-    for (let i = run.start; i < run.end; i++) {
-      const item = contents[i];
+    for (const item of contents.slice(run.start, run.end)) {
       const videoId = videoIdFromRichItem(item);
       if (!videoId) {
         continue;

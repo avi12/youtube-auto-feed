@@ -91,7 +91,10 @@ function refreshedDetail({ text, shownVersions, fresh }: RefreshedDetailParams) 
     return text;
   }
 
-  const parts = [[shown.viewCountText, fresh.viewCountText], [shown.publishedTimeText, fresh.publishedTimeText]];
+  const parts = [
+    [shown.viewCountText, fresh.viewCountText],
+    [shown.publishedTimeText, fresh.publishedTimeText]
+  ] as const;
   return parts.reduce((refreshed, [shownPart, freshPart]) => {
     const isPartRefreshable = isPartShown(refreshed, shownPart) && freshPart !== "";
     return isPartRefreshable ? refreshed.replace(shownPart, freshPart) : refreshed;

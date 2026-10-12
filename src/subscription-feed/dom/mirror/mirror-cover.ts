@@ -19,14 +19,14 @@ export function preCoverReflowImages({ newContents, newlyInsertedIds }: PreCover
   const futureItems = newContents.filter(item => !!item.richItemRenderer);
   const elItems = [...document.querySelectorAll<HTMLElement>(GRID_ITEM_SELECTOR)];
   const coverableCount = Math.min(elItems.length, futureItems.length);
-  for (let i = 0; i < coverableCount; i++) {
-    const elItem = elItems[i];
-    const futureContent = futureItems[i].richItemRenderer?.content;
-    if (!isInReflowZone(elItem) || !futureContent) {
+  for (const [i, elItem] of elItems.slice(0, coverableCount).entries()) {
+    const futureItem = futureItems[i];
+    const futureContent = futureItem?.richItemRenderer?.content;
+    if (!futureItem || !futureContent || !isInReflowZone(elItem)) {
       continue;
     }
 
-    const futureVideoId = videoIdFromRichItem(futureItems[i]);
+    const futureVideoId = videoIdFromRichItem(futureItem);
     if (futureVideoId && newlyInsertedIds.has(futureVideoId)) {
       continue;
     }

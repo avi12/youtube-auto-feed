@@ -25,11 +25,12 @@ export async function normalizeCollapsedShelfRows() {
 
     const elItems = [...elShelf.querySelectorAll<PolymerElement>(RICH_ITEM_SELECTOR)];
     const visibleItems = elItems.filter(elItem => elItem.offsetWidth > 0);
-    if (visibleItems.length === 0) {
+    const [elFirstVisibleItem] = visibleItems;
+    if (!elFirstVisibleItem) {
       continue;
     }
 
-    const firstRowTop = Math.round(visibleItems[0].getBoundingClientRect().top);
+    const firstRowTop = Math.round(elFirstVisibleItem.getBoundingClientRect().top);
     const overflowItems = visibleItems.filter(
       elItem => Math.round(elItem.getBoundingClientRect().top) !== firstRowTop
     );

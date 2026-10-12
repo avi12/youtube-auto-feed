@@ -1,6 +1,6 @@
 import type { Prettify } from "../../types/prettify";
 import { contentImageWithPaintedBadge } from "../new-badge/new-badge";
-import { getAvatarImage, LockupPair, mergeContentImagePreservingThumbnail } from "./lockup-merge";
+import { getAvatarImage, type LockupPair, mergeContentImagePreservingThumbnail } from "./lockup-merge";
 
 type MutateLockupViewModelInPlaceParams = Prettify<LockupPair & {
   preserveContentImage: boolean;

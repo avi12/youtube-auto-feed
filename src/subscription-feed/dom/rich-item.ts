@@ -28,7 +28,8 @@ export function channelIdsFromRichItem(item: Prettify<InnerTubeRichGridItem>) {
     return [];
   }
 
-  return [...new Set([...JSON.stringify(lockupViewModel).matchAll(CHANNEL_BROWSE_ID)].map(match => match[1]))];
+  const channelIdMatches = JSON.stringify(lockupViewModel).matchAll(CHANNEL_BROWSE_ID);
+  return [...new Set([...channelIdMatches].flatMap(([, channelId]) => channelId ?? []))];
 }
 
 export function isCollaborativeRichItem(item: Prettify<InnerTubeRichGridItem>) {

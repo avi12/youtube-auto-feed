@@ -52,8 +52,8 @@ type ReflowBandParams = Prettify<{
 
 export function reflowBandIntoRuns({ currentContents, currentRuns, targetBand }: ReflowBandParams) {
   const originalIndexByItem = new Map<Prettify<InnerTubeRichGridItem>, number>();
-  for (let i = 0; i < currentContents.length; i++) {
-    originalIndexByItem.set(currentContents[i], i);
+  for (const [i, item] of currentContents.entries()) {
+    originalIndexByItem.set(item, i);
   }
 
   const result: Prettify<InnerTubeRichGridItem>[] = [];
@@ -67,24 +67,18 @@ export function reflowBandIntoRuns({ currentContents, currentRuns, targetBand }:
   const iLastRun = currentRuns.length - 1;
   let iBand = 0;
   let iRead = 0;
-  for (let iRun = 0; iRun < currentRuns.length; iRun++) {
-    const run = currentRuns[iRun];
-    while (iRead < run.start) {
-      result.push(currentContents[iRead]);
-      iRead++;
-    }
+  for (const [iRun, run] of currentRuns.entries()) {
+    result.push(...currentContents.slice(iRead, run.start));
 
     const isLastRun = iRun === iLastRun;
     const slotCount = isLastRun ? targetBand.length - iBand : run.end - run.start;
-    for (let iSlot = 0; iSlot < slotCount && iBand < targetBand.length; iSlot++, iBand++) {
-      pushBandItem(targetBand[iBand]);
+    for (const item of targetBand.slice(iBand, iBand + slotCount)) {
+      pushBandItem(item);
     }
+    iBand = Math.min(iBand + slotCount, targetBand.length);
     iRead = run.end;
   }
 
-  while (iRead < currentContents.length) {
-    result.push(currentContents[iRead]);
-    iRead++;
-  }
+  result.push(...currentContents.slice(iRead));
   return result;
 }

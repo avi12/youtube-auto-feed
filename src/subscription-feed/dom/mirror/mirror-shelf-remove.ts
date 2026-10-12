@@ -71,9 +71,10 @@ function recordVisiblePositions({ elShelf, elContents }: RecordVisiblePositionsP
 
 function columnSpacing(positions: Map<string, RelativePosition>) {
   const lefts = [...positions.values()].map(position => position.left).sort((left, right) => left - right);
-  for (let i = 1; i < lefts.length; i++) {
-    if (lefts[i] - lefts[i - 1] > 1) {
-      return lefts[i] - lefts[i - 1];
+  for (const [i, left] of lefts.entries()) {
+    const previousLeft = lefts[i - 1];
+    if (previousLeft !== undefined && left - previousLeft > 1) {
+      return left - previousLeft;
     }
   }
   return 0;

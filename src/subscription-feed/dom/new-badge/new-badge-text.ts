@@ -95,6 +95,6 @@ const NEW_BADGE_TEXT_FALLBACK = "New";
 
 export function newBadgeText() {
   const locale = ytcfg?.get("HL") || document.documentElement.lang;
-  const [language] = locale.split("-");
+  const [language = locale] = locale.split("-");
   return NEW_BADGE_TEXT_BY_LOCALE[locale] ?? NEW_BADGE_TEXT_BY_LOCALE[language] ?? NEW_BADGE_TEXT_FALLBACK;
 }

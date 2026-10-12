@@ -4,13 +4,13 @@ import { fetchSubscriptionsBrowse } from "./innertube-browse";
 import { extractApiContents, extractApiSectionOrder, parseApiResponse } from "./parse-response";
 
 function parseInitialData(html: string): unknown {
-  const scriptMatch = /var ytInitialData = (.+?);<\/script>/s.exec(html);
-  if (!scriptMatch) {
+  const initialDataJson = /var ytInitialData = (.+?);<\/script>/s.exec(html)?.[1];
+  if (!initialDataJson) {
     return null;
   }
 
   try {
-    const parsed: unknown = JSON.parse(scriptMatch[1]);
+    const parsed: unknown = JSON.parse(initialDataJson);
     return parsed;
   } catch {
     return null;
