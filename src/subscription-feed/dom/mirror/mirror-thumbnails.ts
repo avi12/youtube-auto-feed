@@ -1,3 +1,4 @@
+import { nextFrame } from "../animations";
 import { avatarUrlFromContent, thumbnailUrlFromContent } from "../rich-item";
 import {
   GRID_ITEM_SELECTOR,
@@ -13,10 +14,6 @@ import { areInsertedTilesPresent } from "./mirror-entrances";
 
 function pathWithoutQuery(url: string) {
   return url.split("?")[0];
-}
-
-function nextFrame() {
-  return new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
 }
 
 // On a slow connection a newly inserted tile would otherwise animate in blank because its thumbnail
@@ -81,13 +78,13 @@ export async function repaintInsertedThumbnails(newlyInsertedIds: Set<string>) {
     await Promise.resolve();
   }
   for (let i = 0; i < REBIND_FRAME_POLL_MAX && !areInsertedTilesPresent(newlyInsertedIds); i++) {
-    await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+    await nextFrame();
   }
 
   let stableFrames = 0;
   for (let i = 0; i < THUMBNAIL_REASSERT_FRAMES_MAX && stableFrames < THUMBNAIL_STABLE_FRAMES; i++) {
     const correctionCount = repaintInlineThumbnails();
     stableFrames = correctionCount === 0 ? stableFrames + 1 : 0;
-    await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+    await nextFrame();
   }
 }

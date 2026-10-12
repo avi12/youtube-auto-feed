@@ -25,6 +25,10 @@ export function triggerAnimation({ elTarget, animationClass }: TriggerAnimationP
   });
 }
 
+export function nextFrame() {
+  return new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
+}
+
 export function isInViewport(element: Element) {
   const { bottom, top } = element.getBoundingClientRect();
   return bottom > 0 && top < innerHeight;

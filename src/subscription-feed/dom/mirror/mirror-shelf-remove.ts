@@ -2,6 +2,7 @@ import type { InnerTubeRichGridItem } from "../../types/innertube";
 import type { Prettify } from "../../types/prettify";
 import { flushPolymerRender, isPolymerElement } from "../../utils/polymer";
 import { videoIdFromData } from "../../utils/video-id";
+import { nextFrame } from "../animations";
 import { RICH_ITEM_SELECTOR, SURVIVOR_SHIFT_MS } from "./mirror-constants";
 import { createRemovalGhosts, dissolveRemovalGhosts } from "./mirror-ghosts";
 
@@ -24,10 +25,6 @@ const GLIDE_EASING = "cubic-bezier(0.4, 0, 0.2, 1)";
 const MILLISECONDS_PER_FRAME = 1000 / 60;
 const PROMOTION_POLL_FRAMES = 8;
 const GLIDE_FRAME_BUFFER = 4;
-
-function nextFrame() {
-  return new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
-}
 
 function shelfItemId(elItem: HTMLElement) {
   return isPolymerElement(elItem) ? videoIdFromData(elItem.data) : null;

@@ -1,4 +1,5 @@
 import { flushPolymerRender, isPolymerElement } from "../../utils/polymer";
+import { nextFrame } from "../animations";
 import { coverBlankImages, observeAndCoverBlankImages } from "./mirror-blank-cover";
 import {
   REBIND_FRAME_POLL_MAX,
@@ -13,10 +14,6 @@ import { animateNewEntrances, areInsertedTilesPresent, hideNewInsertedTiles } fr
 import { clearRemovalGhosts, dissolveRemovalGhosts } from "./mirror-ghosts";
 import { pinSurvivorsToOldRects, releaseSurvivors } from "./mirror-survivors";
 import { repaintInlineThumbnails } from "./mirror-thumbnails";
-
-function nextFrame() {
-  return new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
-}
 
 const MILLISECONDS_PER_FRAME = 16;
 const GLIDE_FRAME_BUFFER = 2;
