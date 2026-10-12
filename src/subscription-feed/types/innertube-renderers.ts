@@ -35,7 +35,7 @@ export interface InnerTubeUpcomingEventData {
   upcomingEventText?: { runs?: Array<{ text: string }> };
 }
 
-interface InnerTubeText {
+export interface InnerTubeText {
   runs?: Array<{ text: string }>;
   simpleText?: string;
 }

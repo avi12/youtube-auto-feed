@@ -7,6 +7,7 @@ import type {
   InnerTubeRichShelfRenderer,
   InnerTubeShelfRenderer,
   InnerTubeVideoRenderer,
+  InnerTubeWatchNextResponse,
   LockupViewModel,
   ShortsLockupViewModel
 } from "../types/innertube";
@@ -20,7 +21,8 @@ import {
   shelfContentSchema,
   shortsOnTapSchema,
   titleSchema,
-  videoRendererSchema
+  videoRendererSchema,
+  watchNextResponseSchema
 } from "./schemas";
 
 export interface RichGridData {
@@ -73,6 +75,10 @@ export function isInnerTubeGuideResponse(value: unknown): value is InnerTubeGuid
   return guideResponseSchema.safeParse(value).success;
 }
 
+export function isInnerTubeWatchNextResponse(value: unknown): value is InnerTubeWatchNextResponse {
+  return watchNextResponseSchema.safeParse(value).success;
+}
+
 export function isRichGridData(value: unknown): value is RichGridData {
   return gridDataSchema.safeParse(value).success;
 }
@@ -92,6 +98,7 @@ export function isShelfRenderer(value: unknown): value is InnerTubeShelfRenderer
 export {
   statusFromLockup,
   statusFromRenderer,
+  textFromInnerTubeText,
   thumbnailUrlFromShortsLockup,
   viewCountFromRenderer
 } from "./renderer-fields";

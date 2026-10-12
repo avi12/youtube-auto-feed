@@ -1,5 +1,6 @@
 // Barrel re-export so importers stay unchanged: leaf renderer schemas live in ./schemas-renderers,
-// the browse envelope and Polymer `.data` schemas in ./schemas-browse.
+// the browse envelope and Polymer `.data` schemas in ./schemas-browse, the watch page's /next payload
+// in ./schemas-watch.
 
 export {
   channelVideoPlayerRendererSchema,
@@ -13,6 +14,8 @@ export {
 } from "./schemas-renderers";
 
 export { guideResponseSchema } from "./schemas-guide";
+
+export { watchNextResponseSchema } from "./schemas-watch";
 
 export {
   browseContentsSchema,

@@ -1,12 +1,14 @@
 // Public InnerTube payload type surface. The video-renderer shapes live in ./innertube-renderers,
-// the shelf/grid/browse envelopes in ./innertube-shelves, and the `ytcfg` client config (with its
-// ambient `declare global`) in ./innertube-client. All are re-exported here so importers stay unchanged.
+// the shelf/grid/browse envelopes in ./innertube-shelves, the watch page's /next payload in
+// ./innertube-watch, and the `ytcfg` client config (with its ambient `declare global`) in
+// ./innertube-client. All are re-exported here so importers stay unchanged.
 
 import "./innertube-client";
 
 export type {
   ChannelVideoPlayerRenderer,
   ImageSource,
+  InnerTubeText,
   InnerTubeVideoRenderer,
   LockupThumbnailBadge,
   LockupThumbnailOverlay,
@@ -21,6 +23,12 @@ export {
   LockupContentType,
   OverlayStyle
 } from "./innertube-renderers";
+
+export type {
+  EndScreenVideoRenderer,
+  InnerTubeWatchNextResponse,
+  WatchNextFeedItem
+} from "./innertube-watch";
 
 export type {
   InnerTubeGuideChannelEntry,

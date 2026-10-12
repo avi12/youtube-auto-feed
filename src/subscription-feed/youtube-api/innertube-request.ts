@@ -10,7 +10,8 @@ import type { Prettify } from "../types/prettify";
 
 export enum InnerTubeEndpoint {
   Browse = "/youtubei/v1/browse?prettyPrint=false",
-  Guide = "/youtubei/v1/guide?prettyPrint=false"
+  Guide = "/youtubei/v1/guide?prettyPrint=false",
+  Next = "/youtubei/v1/next?prettyPrint=false"
 }
 
 const YOUTUBE_ORIGIN = "https://www.youtube.com";

@@ -1,6 +1,7 @@
 import {
   BadgeStyle,
   type ImageSource,
+  type InnerTubeText,
   type InnerTubeVideoRenderer,
   LockupBadgeStyle,
   LockupContentType,
@@ -13,6 +14,11 @@ import { VideoStatus } from "../types/video";
 
 const STREAMED_AGO_TEXT_PREFIX = "streamed";
 const UPCOMING_BADGE_TEXT = "Upcoming";
+
+// The full text of a formatted string: a plain simpleText, or the concatenated runs of a rich one.
+export function textFromInnerTubeText(text: Prettify<InnerTubeText> | undefined) {
+  return text?.simpleText ?? text?.runs?.map(run => run.text).join("") ?? "";
+}
 
 export function viewCountFromRenderer(renderer: Prettify<InnerTubeVideoRenderer>) {
   const { viewCountText, shortViewCountText } = renderer;
