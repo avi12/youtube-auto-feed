@@ -55,6 +55,7 @@ pnpm build:firefox    # Firefox MV3
 pnpm build:opera      # Opera
 
 pnpm zip              # bundle up an uploadable zip for whatever you just built
+pnpm crx              # zip Chrome and pack a signed .crx (key kept in the gitignored keys/)
 ```
 
 ## License

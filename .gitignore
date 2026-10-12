@@ -21,6 +21,8 @@ user-profiles/
 
 # Credentials - never commit
 youtube-auto-feed-drive-upload.json
+# Chrome .crx signing key (scripts/pack-crx.ts) - fixes the extension ID, never commit
+keys/
 *.env
 .env.*
 
