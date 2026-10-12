@@ -85,15 +85,14 @@ export default defineConfig({
   publicDir: "src/public",
   zip: {
     // The source zip exists only so a store reviewer can reproduce the build, so it carries just the
-    // build inputs - package.json, the README, the WXT config and src/. The catch-all "**/*" exclude
-    // below drops everything else (dev scripts, lint configs, generated output, credentials, ...).
+    // build inputs - package.json, the README, the WXT config and src/. Everything else (dev scripts,
+    // lint configs, generated output, credentials, ...) stays out because only these are allowed in.
     includeSources: [
       "package.json",
       "README.md",
       "wxt.config.ts",
       "src/**"
     ],
-    excludeSources: ["**/*"],
     sourcesTemplate: "{{name}}-{{version}}-{{browser}}-source.zip"
   },
   hooks: {
