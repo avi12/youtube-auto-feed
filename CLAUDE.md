@@ -6,6 +6,7 @@ A browser extension that keeps the YouTube subscriptions feed (`/feed/subscripti
   - `src/entrypoints/fetch-interceptor.content.ts` (runAt `document_start`) - mirrors YouTube's own InnerTube `/browse` response for `FEsubscriptions` to the subscriptions-feed monitor over a typed custom-event message channel.
   - `src/entrypoints/main.content/` - everything else. `monitor.ts` owns the polling lifecycle, `api/` parses InnerTube into `VideoSnapshot[]`, `sync.ts` diffs previous vs fresh snapshots into add/remove/reposition/move-to-front/section-move/band-move/metadata-only buckets, `dom/` does Polymer-aware mutations.
 - Polling cadence: 5s full feed, 10s metadata-only. Polling pauses while the tab is hidden.
+- Video pages (`/watch`, `/shorts`) get an opt-in monitor of their own (popup setting, off by default). It never refetches the watch page HTML (that soft-blocks the video); it asks InnerTube `/next` - following the selected related chip and any scrolled pages - and lets YouTube refresh views, likes and date through YouTube's own update command. Switching it on refreshes at once, then every 10s; switching it off stops it.
 
 # Constraints
 - Page is live YouTube. The extension mutates `ytd-rich-grid-renderer.data.contents` through Polymer's `elGrid.set(path, value)`, never through `innerHTML`.

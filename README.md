@@ -16,6 +16,7 @@ Made by [Avi](https://avi12.com)
 - Live status flips (upcoming -> live -> ended) update on the spot
 - Removed videos vanish; edited titles and thumbnails refresh themselves
 - Leaves YouTube's sections exactly how it laid them out
+- Optional "Live video pages": while you watch, the title, view count, subscriber count and the recommended videos (beside the player and on the end screen) keep themselves current, and deleted recommendations slide out
 - Chills out when the tab is hidden, and doesn't collect any of your data
 
 ## How it works

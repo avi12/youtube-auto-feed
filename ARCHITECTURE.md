@@ -16,8 +16,8 @@ The extension runs as three independent contexts on `youtube.com`:
    wraps `fetch` so it can see YouTube's own data without making extra requests.
 2. **The monitor** - the other `MAIN`-world content script. It owns the polling loop and
    every DOM mutation. This is the bulk of the code (`src/subscription-feed/`).
-3. **The popup** - a small Svelte settings UI. Its two toggles (extension on/off,
-   animations on/off) reach the monitor through a settings bridge.
+3. **The popup** - a small Svelte settings UI. Its toggles (extension on/off,
+   animations on/off, live video pages on/off) reach the monitor through a settings bridge.
 
 `MAIN` world matters: the feed is rendered by YouTube's Polymer/Lit components, and the
 extension drives those components directly (their data and methods only exist in the
@@ -78,6 +78,40 @@ flowchart TD
      deletion is confirmed by a 404 from a lightweight oEmbed call. Both verdicts are cached
      and capped per poll. Insertion stays Latest-band only; this step never adds to a shelf.
 
+## Video pages (opt-in)
+
+With "Live video pages" switched on, a watch page (`/watch`) or a Short (`/shorts`) gets its own
+monitor. Switching it on refreshes at once and then every 10 seconds; switching it off - or turning
+the extension off - stops it, and a hidden tab skips its turns.
+
+```mermaid
+flowchart TD
+    tick["every 10s / on switch-on / when the video ends"]
+    tick --> native["YouTube's own update command<br/>views, likes, date"]
+    tick --> next["InnerTube /next<br/>(+ selected chip feed, + scrolled pages)"]
+    next --> header["title, tab title,<br/>subscriber count"]
+    next --> related["related list:<br/>patch tiles, remove deleted"]
+    next --> endscreen["end screen + Up next"]
+    tick --> pictures["picture byte checks<br/>poster before playback, end screen"]
+```
+
+- **The watch page HTML is never refetched** - it carries a player request, and repeating it
+  soft-blocks the video for the account. The page's data comes from `/next`, the call YouTube makes
+  to build the page in the first place.
+- **YouTube renders what it can itself.** View count, likes and date are refreshed by resolving the
+  same update command YouTube polls on its own (its digits roll, the full count shows); the title goes
+  through YouTube's own "update title" action. Only what YouTube cannot redo - related tiles, end
+  screen tiles, the Shorts title - is patched in place, with the same pulse and crossfade as the feed.
+- **The related list follows the screen.** A selected chip replaces the list with its own feed, and
+  scrolling appends pages, so the refresh asks for the chip's feed and as many pages as are shown.
+  Each `/next` answer is a fresh random draw, so a tile is refreshed whenever a draw includes it.
+- **Deleted recommendations leave.** A tile missing from several draws in a row is checked against
+  oEmbed; a 404 dissolves it out while the tiles below glide up. It is also cut from every chip's
+  cached list and pruned from any re-render, so switching chips never brings it back.
+- **The player's own pictures** (the poster before playback, the end-screen suggestions, including
+  the full grid opened with V) keep their URL when a creator replaces a thumbnail, so their bytes are
+  compared with a fresh download and swapped when they differ.
+
 ## Where things live
 
 ```
@@ -99,6 +133,7 @@ src/
                                    prune unsubscribed/deleted shelf videos
       band/                        section + row ("band") layout maths
       update/                      patch a single tile's metadata in place; watch A/B thumbnail swaps
+      video-page/                  the opt-in video page updater: header, related list, end screen
       cleanup/                     remove orphaned / stale grid items
       lazy/                        defer off-viewport changes (animate only what's visible)
       animations.ts, rich-item.ts shared DOM helpers
