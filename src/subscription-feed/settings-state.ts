@@ -22,6 +22,10 @@ export function isAnimationsEnabled() {
   return currentSettings.isAnimationsEnabled;
 }
 
+export function isVideoPageUpdatesEnabled() {
+  return currentSettings.isVideoPageUpdatesEnabled;
+}
+
 export function onSettingsChange(listener: SettingsListener) {
   settingsListeners.add(listener);
 }

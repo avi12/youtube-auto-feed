@@ -33,6 +33,7 @@ interface YtafDebug {
   resumePolling: () => void;
   fetchFreshVideos: (isInitialLoad?: boolean) => Promise<boolean>;
   metadataPoll: () => Promise<void>;
+  videoPagePoll: () => Promise<void>;
   watchThumbnails: () => Promise<void>;
   snapshot: (videoId: string) => Prettify<VideoSnapshot> | undefined;
   inspect: (videoId: string) => VideoInspection;
@@ -84,6 +85,7 @@ export function installDevBridge(context: MonitorContext) {
     resumePolling: context.resumePolling,
     fetchFreshVideos: context.fetchFreshVideos,
     metadataPoll: context.fetchAndApplyMetadataUpdates,
+    videoPagePoll: context.refreshVideoPage,
     watchThumbnails: () => reconcileVisibleThumbnails({ contentHashes: state.thumbnailContentHashes }),
     snapshot: videoId => state.lastSnapshot.get(videoId),
     inspect: videoId => inspectVideo(state, videoId),

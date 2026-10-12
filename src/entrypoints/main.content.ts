@@ -6,7 +6,10 @@ export default defineContentScript({
   world: "MAIN",
   main() {
     const monitor = createSubscriptionMonitor();
-    onSettingsChange(() => monitor.setEnabled(isExtensionEnabled()));
+    onSettingsChange(() => {
+      monitor.setEnabled(isExtensionEnabled());
+      monitor.syncVideoPageMonitor();
+    });
     initSettingsClient();
     document.addEventListener("yt-navigate-finish", monitor.handleNavigation);
     monitor.handleNavigation();

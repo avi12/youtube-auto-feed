@@ -31,6 +31,10 @@
       description="Slide and fade feed changes as they happen"
       label="Animations"
       bind:checked={settings.isAnimationsEnabled} />
+    <Switch
+      description="Refresh the title, subscriber count and recommendations while you watch"
+      label="Live video pages"
+      bind:checked={settings.isVideoPageUpdatesEnabled} />
   </Section>
 
   <Footer />

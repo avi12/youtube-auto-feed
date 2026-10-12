@@ -4,6 +4,7 @@
 
 export {
   channelVideoPlayerRendererSchema,
+  reelWatchEndpointSchema,
   richItemContentSchema,
   richShelfContentsSchema,
   shelfContentSchema,

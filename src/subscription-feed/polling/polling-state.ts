@@ -21,7 +21,7 @@ export const METADATA_POLL_INTERVAL_MS = 10 * 1000;
 export const PENDING_SNAPSHOT_STALE_MS = 5000;
 export const ORPHAN_CLEANUP_INTERVAL_MS = 5000;
 
-export type MonitorMode = "feed" | "light" | null;
+export type MonitorMode = "feed" | "light" | "video" | null;
 
 export interface MonitorState {
   lastSnapshot: Map<string, Prettify<VideoSnapshot>>;
@@ -74,6 +74,10 @@ export interface MonitorContext {
   fetchAndApplyMetadataUpdates: () => Promise<void>;
   fetchAndApplyGenericMetadata: () => Promise<void>;
   initializeGenericPage: () => void;
+  refreshVideoPage: () => Promise<void>;
+  initializeVideoPage: () => void;
+  stopVideoMonitoring: () => void;
+  syncVideoPageMonitor: () => void;
   handleBrowseResponse: (response: unknown) => void;
   handleSubscriptionChange: () => void;
   clearPolling: () => void;

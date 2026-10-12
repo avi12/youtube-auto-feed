@@ -54,3 +54,5 @@ function nonEmptyStringOrNull(value: unknown) {
   const parsed = nonEmptyStringSchema.safeParse(value);
   return parsed.success ? parsed.data : null;
 }
+
+export const WATCH_VIDEO_ID_PARAM = "v";

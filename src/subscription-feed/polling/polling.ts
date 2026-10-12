@@ -9,6 +9,7 @@ import { createGenericPageHandlers } from "./polling-generic";
 import { createLifecycleHandlers } from "./polling-lifecycle";
 import { createScheduleHandlers } from "./polling-schedule";
 import { createMonitorState, type MonitorContext } from "./polling-state";
+import { createVideoPageHandlers } from "./polling-video";
 
 export function createSubscriptionMonitor() {
   const context = { state: createMonitorState() } as MonitorContext;
@@ -18,6 +19,7 @@ export function createSubscriptionMonitor() {
   Object.assign(context, createScheduleHandlers(context));
   Object.assign(context, createBaselineHandlers(context));
   Object.assign(context, createGenericPageHandlers(context));
+  Object.assign(context, createVideoPageHandlers(context));
   Object.assign(context, createLifecycleHandlers(context));
   startThumbnailHealer();
   startNewBadgeDismissal();
@@ -28,6 +30,7 @@ export function createSubscriptionMonitor() {
 
   return {
     handleNavigation: context.handleNavigation,
-    setEnabled: context.setEnabled
+    setEnabled: context.setEnabled,
+    syncVideoPageMonitor: context.syncVideoPageMonitor
   };
 }

@@ -14,3 +14,13 @@ export function isPolymerElement(element: Element): element is PolymerElement {
 export function flushPolymerRender() {
   globalThis.Polymer?.flush?.();
 }
+
+// YouTube's elements route commands and actions (an update endpoint, an "update title" action) to
+// whichever element registered a handler, exactly as when YouTube resolves them from its own responses.
+interface CommandResolverElement extends HTMLElement {
+  resolveCommand(command: object): unknown;
+}
+
+export function isCommandResolver(element: Element): element is CommandResolverElement {
+  return "resolveCommand" in element && typeof element.resolveCommand === "function";
+}

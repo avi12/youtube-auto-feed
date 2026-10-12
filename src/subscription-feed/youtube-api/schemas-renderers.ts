@@ -25,7 +25,7 @@ export const channelVideoPlayerRendererSchema = z.looseObject({
   publishedTimeText: titleSchema.optional()
 });
 
-const reelWatchEndpointSchema = z.looseObject({ videoId: z.string() });
+export const reelWatchEndpointSchema = z.looseObject({ videoId: z.string() });
 
 export const shortsOnTapSchema = z.looseObject({
   innertubeCommand: z.looseObject({

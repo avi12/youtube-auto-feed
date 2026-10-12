@@ -3,7 +3,8 @@ import type { StorageItemKey } from "wxt/utils/storage";
 
 export const feedSettingsSchema = z.object({
   isExtensionEnabled: z.boolean(),
-  isAnimationsEnabled: z.boolean()
+  isAnimationsEnabled: z.boolean(),
+  isVideoPageUpdatesEnabled: z.boolean()
 });
 
 export type FeedSettings = z.infer<typeof feedSettingsSchema>;
@@ -16,7 +17,8 @@ export const SETTING_NAMES = feedSettingsSchema.keyof().options;
 // setting follows the viewer across their browsers.
 export const SETTING_STORAGE_KEYS = {
   isExtensionEnabled: "sync:isExtensionEnabled",
-  isAnimationsEnabled: "local:isAnimationsEnabled"
+  isAnimationsEnabled: "local:isAnimationsEnabled",
+  isVideoPageUpdatesEnabled: "sync:isVideoPageUpdatesEnabled"
 } as const satisfies Record<SettingName, StorageItemKey>;
 
 function prefersReducedMotion() {
@@ -26,7 +28,8 @@ function prefersReducedMotion() {
 export function defaultSettings(): FeedSettings {
   return {
     isExtensionEnabled: true,
-    isAnimationsEnabled: !prefersReducedMotion()
+    isAnimationsEnabled: !prefersReducedMotion(),
+    isVideoPageUpdatesEnabled: false
   };
 }
 

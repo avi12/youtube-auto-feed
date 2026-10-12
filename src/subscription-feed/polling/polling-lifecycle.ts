@@ -26,6 +26,10 @@ export function createLifecycleHandlers(context: MonitorContext) {
   }
 
   function stopMonitoring() {
+    if (state.monitorMode === "video") {
+      context.stopVideoMonitoring();
+    }
+
     state.monitorMode = null;
     resetLazyUpdates();
     document.removeEventListener("visibilitychange", context.handlePageFocus);
@@ -60,9 +64,10 @@ export function createLifecycleHandlers(context: MonitorContext) {
       return;
     }
 
-    // Refetching a watch page every poll gets the video soft-blocked for the session, and the
-    // light updater has no watch-page renderers to reconcile anyway - stay off video pages.
+    // Refetching a watch page every poll gets the video soft-blocked for the session, so the light
+    // updater stays off video pages; the opt-in video monitor reads them from InnerTube instead.
     if (isOnVideoPage()) {
+      context.initializeVideoPage();
       return;
     }
 
