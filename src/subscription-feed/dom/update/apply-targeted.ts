@@ -30,7 +30,9 @@ type ApplyUpdateParams = Prettify<{
   previous?: Prettify<VideoSnapshot>;
 }>;
 
-type IsSwapHeldOffByHoverParams = Prettify<Omit<ApplyUpdateParams, "videoId">>;
+type IsSwapHeldOffByHoverParams = Prettify<Omit<ApplyUpdateParams, "videoId" | "elItem"> & {
+  elItem: HTMLElement;
+}>;
 
 // A hovered tile's thumbnail swap is held off so the hover preview is not disrupted. Callers defer
 // the whole update (instead of applying without the swap), keeping the previous snapshot so the next

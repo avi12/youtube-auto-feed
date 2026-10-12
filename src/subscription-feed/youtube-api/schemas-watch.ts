@@ -1,5 +1,5 @@
 import { z } from "../../shared/zod";
-import { thumbnailSchema, titleSchema } from "./schemas-renderers";
+import { richItemContentSchema, thumbnailSchema, titleSchema } from "./schemas-renderers";
 
 // The watch page's /next payload. The page itself is built from it, so the same shape describes both a
 // fresh fetch and the copy the page keeps on ytd-watch-flexy: the video's own title, the channel row,
@@ -102,4 +102,16 @@ export const watchNextResponseSchema = z.looseObject({
       reloadContinuationItemsCommand: watchNextFeedContinuationSchema.optional()
     })
   ).optional()
+});
+
+// The related list's item section as the page holds it: one lockup (or the scroll continuation) per item.
+export const relatedSectionDataSchema = z.looseObject({ contents: z.array(richItemContentSchema).optional() });
+
+// A chip above the related list. "All" keeps the list the page loaded with as a cache to restore from;
+// every other chip names its own feed with a continuation token.
+export const relatedChipDataSchema = z.looseObject({
+  navigationEndpoint: z.looseObject({
+    continuationCommand: z.looseObject({ token: z.string() }).optional(),
+    relatedChipCommand: relatedSectionDataSchema.optional()
+  }).optional()
 });

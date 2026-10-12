@@ -27,6 +27,8 @@ export {
 export type {
   EndScreenVideoRenderer,
   InnerTubeWatchNextResponse,
+  RelatedChipData,
+  RelatedSectionData,
   WatchNextFeedItem
 } from "./innertube-watch";
 

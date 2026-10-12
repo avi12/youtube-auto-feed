@@ -9,6 +9,8 @@ import type {
   InnerTubeVideoRenderer,
   InnerTubeWatchNextResponse,
   LockupViewModel,
+  RelatedChipData,
+  RelatedSectionData,
   ShortsLockupViewModel
 } from "../types/innertube";
 import {
@@ -16,6 +18,8 @@ import {
   channelVideoPlayerRendererSchema,
   gridDataSchema,
   guideResponseSchema,
+  relatedChipDataSchema,
+  relatedSectionDataSchema,
   richShelfContentsSchema,
   richShelfDataSchema,
   shelfContentSchema,
@@ -77,6 +81,14 @@ export function isInnerTubeGuideResponse(value: unknown): value is InnerTubeGuid
 
 export function isInnerTubeWatchNextResponse(value: unknown): value is InnerTubeWatchNextResponse {
   return watchNextResponseSchema.safeParse(value).success;
+}
+
+export function isRelatedSectionData(value: unknown): value is RelatedSectionData {
+  return relatedSectionDataSchema.safeParse(value).success;
+}
+
+export function isRelatedChipData(value: unknown): value is RelatedChipData {
+  return relatedChipDataSchema.safeParse(value).success;
 }
 
 export function isRichGridData(value: unknown): value is RichGridData {

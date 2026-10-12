@@ -9,7 +9,7 @@ type HasMetadataChangeParams = Prettify<{
   fresh: Prettify<VideoSnapshot>;
 }>;
 
-function hasMetadataChange({ previous, fresh }: HasMetadataChangeParams) {
+export function hasMetadataChange({ previous, fresh }: HasMetadataChangeParams) {
   return previous.title !== fresh.title
     || isThumbnailChanged({
       previousUrl: previous.thumbnailUrl,

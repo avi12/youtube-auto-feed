@@ -56,3 +56,14 @@ function nonEmptyStringOrNull(value: unknown) {
 }
 
 export const WATCH_VIDEO_ID_PARAM = "v";
+const PLAYLIST_PARAM = "list";
+
+// A link to a video, not to a playlist or mix that starts on one.
+export function videoIdFromWatchHref(href: string | undefined) {
+  if (!href) {
+    return null;
+  }
+
+  const { searchParams } = new URL(href, location.origin);
+  return searchParams.has(PLAYLIST_PARAM) ? null : searchParams.get(WATCH_VIDEO_ID_PARAM);
+}
