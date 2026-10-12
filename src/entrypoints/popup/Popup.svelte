@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { IS_ANIMATIONS_ENABLED_KEY, IS_EXTENSION_ENABLED_KEY } from "../../shared/settings";
+  import { type FeedSettings, SETTING_NAMES, SETTING_STORAGE_KEYS } from "../../shared/settings";
   import Footer from "./components/Footer.svelte";
   import Header from "./components/Header.svelte";
   import Section from "./components/Section.svelte";
@@ -7,38 +7,30 @@
   import { storage } from "#imports";
   import { untrack } from "svelte";
 
-  interface Props {
-    isExtensionEnabled: boolean;
-    isAnimationsEnabled: boolean;
-  }
-
-  const preloadedSettings: Props = $props();
+  const preloadedSettings: FeedSettings = $props();
 
   // Props are a one-time preload; untrack so later prop identity churn cannot reset local state.
-  let isExtensionEnabled = $state(untrack(() => preloadedSettings.isExtensionEnabled));
-  let isAnimationsEnabled = $state(untrack(() => preloadedSettings.isAnimationsEnabled));
+  const settings = $state(untrack(() => ({ ...preloadedSettings })));
 
-  $effect(() => {
-    storage.setItem(IS_EXTENSION_ENABLED_KEY, isExtensionEnabled).catch(() => {});
-  });
-
-  $effect(() => {
-    storage.setItem(IS_ANIMATIONS_ENABLED_KEY, isAnimationsEnabled).catch(() => {});
-  });
+  for (const name of SETTING_NAMES) {
+    $effect(() => {
+      storage.setItem(SETTING_STORAGE_KEYS[name], settings[name]).catch(() => {});
+    });
+  }
 </script>
 
-<main style:--ytaf-motion-scale={isAnimationsEnabled ? "1" : "0"} class="app">
+<main style:--ytaf-motion-scale={settings.isAnimationsEnabled ? "1" : "0"} class="app">
   <Header />
 
   <Section label="Settings">
     <Switch
       description="Keep the subscriptions feed updating in real time"
       label="Extension enabled"
-      bind:checked={isExtensionEnabled} />
+      bind:checked={settings.isExtensionEnabled} />
     <Switch
       description="Slide and fade feed changes as they happen"
       label="Animations"
-      bind:checked={isAnimationsEnabled} />
+      bind:checked={settings.isAnimationsEnabled} />
   </Section>
 
   <Footer />

@@ -1,8 +1,9 @@
 import {
   defaultSettings,
   type FeedSettings,
-  IS_ANIMATIONS_ENABLED_KEY,
-  IS_EXTENSION_ENABLED_KEY
+  SETTING_NAMES,
+  SETTING_STORAGE_KEYS,
+  settingChange
 } from "../shared/settings";
 import { settingsMessenger } from "../shared/settings-messaging";
 import { loadStoredSettings } from "../shared/settings-storage";
@@ -36,10 +37,10 @@ export default defineContentScript({
 
     currentSettings = await loadStoredSettings();
 
-    storage.watch<boolean>(IS_EXTENSION_ENABLED_KEY, value =>
-      applySettingChange({ isExtensionEnabled: value ?? defaults.isExtensionEnabled }));
-    storage.watch<boolean>(IS_ANIMATIONS_ENABLED_KEY, value =>
-      applySettingChange({ isAnimationsEnabled: value ?? defaults.isAnimationsEnabled }));
+    for (const name of SETTING_NAMES) {
+      storage.watch<boolean>(SETTING_STORAGE_KEYS[name], value =>
+        applySettingChange(settingChange(name, value ?? defaults[name])));
+    }
     broadcastSettings();
   }
 });
