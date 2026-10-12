@@ -1,8 +1,8 @@
 diff --git a/v4/core/util.js b/v4/core/util.js
-index ab2e47035f615af10c06057c42b88feb633b5366..7795ea761549fb2dc56cb4ad54901bc2170d6cd7 100644
+index b53c7a0..e7d7a90 100644
 --- a/v4/core/util.js
 +++ b/v4/core/util.js
-@@ -148,18 +148,9 @@ export const allowsEval = /* @__PURE__*/ cached(() => {
+@@ -220,18 +220,9 @@ export const allowsEval = /* @__PURE__*/ cached(() => {
      if (globalConfig.jitless) {
          return false;
      }
