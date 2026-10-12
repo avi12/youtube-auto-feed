@@ -4,10 +4,15 @@ import { textFromInnerTubeText } from "../../youtube-api/guards";
 import { fetchWatchNext, type WatchNextSnapshot } from "../../youtube-api/watch-next";
 import { applySubscriberCount, applyWatchTitle, refreshNativeVideoMetadata } from "./current-video";
 import { applyRelatedUpdates, relatedLockupElements, relatedSections, selectedRelatedChipToken } from "./related-list";
+import { pruneDeletedRelated, resetRelatedRemovalTracking } from "./related-removal";
 import { applyShortsTitle } from "./shorts-title";
 
 // One refresh of a video page. A watch page re-reads its header and related list from /next; a Short
 // only has its overlay title to keep current.
+
+export function resetVideoPageTracking() {
+  resetRelatedRemovalTracking();
+}
 
 type RefreshVideoPageParams = Prettify<{ videoId: string }>;
 
@@ -62,7 +67,10 @@ async function refreshWatchPage({ videoId }: RefreshVideoPageParams) {
     applySubscriberCount(subscriberCountText);
   }
 
-  await applyRelatedUpdates(related);
+  await Promise.all([
+    applyRelatedUpdates(related),
+    pruneDeletedRelated(new Set(related.map(fresh => fresh.videoId)))
+  ]);
 }
 
 export async function refreshVideoPage(params: RefreshVideoPageParams) {

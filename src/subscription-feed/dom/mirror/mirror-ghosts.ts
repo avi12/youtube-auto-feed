@@ -21,8 +21,11 @@ export function createRemovalGhosts(elRemovedTiles: HTMLElement[]) {
   return ghosts;
 }
 
+// A grid tile wraps its view-model; a related-list tile is the view-model itself.
 function cloneTileGhost(elTile: HTMLElement) {
-  const elContent = elTile.querySelector<HTMLElement>(GHOST_CLONEABLE_SELECTOR);
+  const elContent = elTile.matches(GHOST_CLONEABLE_SELECTOR)
+    ? elTile
+    : elTile.querySelector<HTMLElement>(GHOST_CLONEABLE_SELECTOR);
   if (!elContent) {
     return null;
   }

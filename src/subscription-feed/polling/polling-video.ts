@@ -1,4 +1,4 @@
-import { refreshVideoPage } from "../dom/video-page";
+import { refreshVideoPage, resetVideoPageTracking } from "../dom/video-page";
 import { isVideoPageUpdatesEnabled } from "../settings-state";
 import { isOnVideoPage, videoIdFromLocation } from "../utils/subscriptions-page";
 import { METADATA_POLL_INTERVAL_MS, type MonitorContext } from "./polling-state";
@@ -53,6 +53,7 @@ export function createVideoPageHandlers(context: MonitorContext) {
 
   function stopVideoMonitoring() {
     document.removeEventListener("visibilitychange", handleVideoPageVisibility);
+    resetVideoPageTracking();
   }
 
   // A video page that just loaded already shows fresh data, so navigation waits a tick before the first
