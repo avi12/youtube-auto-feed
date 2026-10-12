@@ -85,10 +85,14 @@ export default defineConfig({
   publicDir: "src/public",
   zip: {
     // The source zip exists only so a store reviewer can reproduce the build, so it carries just the
-    // build inputs - package.json, the README, the WXT config and src/. Everything else (dev scripts,
-    // lint configs, generated output, credentials, ...) stays out because only these are allowed in.
+    // build inputs - the package manifests with the lockfile and dependency patches, the README, the WXT
+    // config and src/. Everything else (dev scripts, lint configs, generated output, credentials, ...)
+    // stays out because only these are allowed in.
     includeSources: [
       "package.json",
+      "pnpm-lock.yaml",
+      "pnpm-workspace.yaml",
+      "patches/**",
       "README.md",
       "wxt.config.ts",
       "src/**"
