@@ -13,6 +13,15 @@ async function preloadImage(url: string) {
   return elPreloader.decode().then(() => true).catch(() => false);
 }
 
+// The overlay holding the outgoing picture; it removes itself once faded out.
+function createFader(outgoingBackgroundImage: string) {
+  const elFader = document.createElement("div");
+  elFader.className = "ytaf-thumbnail-fader";
+  elFader.style.backgroundImage = outgoingBackgroundImage;
+  elFader.addEventListener("animationend", () => elFader.remove(), { once: true });
+  return elFader;
+}
+
 // Crossfade the fresh picture in with a per-tile overlay rather than a document-level View Transition:
 // only one View Transition runs document-wide, so several thumbnails changing in one pass would abort
 // each other and hard-cut. The overlay holds the outgoing picture and fades out to reveal the fresh
@@ -45,11 +54,7 @@ export async function crossfadeThumbnail({ elImg, src: requestedSrc }: Crossfade
     return true;
   }
 
-  const elFader = document.createElement("div");
-  elFader.className = "ytaf-thumbnail-fader";
-  elFader.style.backgroundImage = `url("${outgoingSrc}")`;
-  elFader.addEventListener("animationend", () => elFader.remove(), { once: true });
-  elHost.append(elFader);
+  elHost.append(createFader(`url("${outgoingSrc}")`));
   elImg.src = src;
   await elImg.decode().catch(() => undefined);
   return true;
@@ -57,4 +62,28 @@ export async function crossfadeThumbnail({ elImg, src: requestedSrc }: Crossfade
 
 export function isTileHovered(elItem: HTMLElement) {
   return elItem.matches(":hover");
+}
+
+// The player paints its own pictures (the poster before playback, the end-screen suggestions) as CSS
+// backgrounds rather than <img>s. Same crossfade, with the fader placed first so the player's own
+// overlays inside the picture (a duration stamp) stay above it.
+type CrossfadeBackgroundImageParams = Prettify<{
+  elImage: HTMLElement;
+  src: string;
+}>;
+
+export async function crossfadeBackgroundImage({ elImage, src: requestedSrc }: CrossfadeBackgroundImageParams) {
+  const src = healedThumbnailUrl(requestedSrc);
+  const isDecodable = await preloadImage(src);
+  if (!isDecodable) {
+    return false;
+  }
+
+  const outgoingBackgroundImage = elImage.style.backgroundImage;
+  if (isAnimationsEnabled() && outgoingBackgroundImage) {
+    elImage.prepend(createFader(outgoingBackgroundImage));
+  }
+
+  elImage.style.backgroundImage = `url("${src}")`;
+  return true;
 }

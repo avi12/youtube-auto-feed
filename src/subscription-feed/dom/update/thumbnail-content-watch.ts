@@ -61,6 +61,24 @@ async function swapToBytes({ elImg, buffer, url }: SwapToBytesParams) {
   URL.revokeObjectURL(objectUrl);
 }
 
+// The bytes a thumbnail URL serves now, when they differ from the copy the browser cached (and painted).
+// The cached copy is read first: a forced reload replaces it, so reading both at once could compare the
+// fresh bytes with themselves. An uncached copy counts as changed - crossfading into an identical picture
+// is visually a no-op, while missing a real change leaves the picture stale.
+export async function fetchChangedThumbnailBytes(url: string) {
+  const paintedBuffer = await fetchThumbnailBytes(url);
+  const freshBuffer = await fetchThumbnailBytes(url, true);
+  if (!freshBuffer) {
+    return null;
+  }
+
+  const [paintedHash, freshHash] = await Promise.all([
+    paintedBuffer ? hashBytes(paintedBuffer) : null,
+    hashBytes(freshBuffer)
+  ]);
+  return !!paintedHash && paintedHash === freshHash ? null : freshBuffer;
+}
+
 // A changed path is certainly a new picture; a re-signed query on the same path may still serve the
 // same one, so the bytes decide. An expired/unfetchable previous URL counts as changed - crossfading
 // into an identical picture is visually a no-op, while skipping a real swap leaves the tile stale.
