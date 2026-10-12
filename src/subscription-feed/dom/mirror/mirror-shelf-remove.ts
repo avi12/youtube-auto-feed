@@ -3,7 +3,7 @@ import type { Prettify } from "../../types/prettify";
 import { flushPolymerRender, isPolymerElement } from "../../utils/polymer";
 import { videoIdFromData } from "../../utils/video-id";
 import { nextFrame } from "../animations";
-import { RICH_ITEM_SELECTOR, SURVIVOR_SHIFT_MS } from "./mirror-constants";
+import { RICH_ITEM_SELECTOR, SURVIVOR_GLIDE_EASING, SURVIVOR_SHIFT_MS } from "./mirror-constants";
 import { createRemovalGhosts, dissolveRemovalGhosts } from "./mirror-ghosts";
 
 // Animated removal inside a rich shelf. An expanded shelf reflows like the Latest band - survivors
@@ -21,7 +21,6 @@ import { createRemovalGhosts, dissolveRemovalGhosts } from "./mirror-ghosts";
 // rebound layout. Positions are relative to the shelf's own contents box so a concurrent grid reflow
 // moving the whole shelf does not leak into the per-tile deltas.
 
-const GLIDE_EASING = "cubic-bezier(0.4, 0, 0.2, 1)";
 const MILLISECONDS_PER_FRAME = 1000 / 60;
 const PROMOTION_POLL_FRAMES = 8;
 const GLIDE_FRAME_BUFFER = 4;
@@ -200,7 +199,7 @@ async function glideNewlyVisible({ elShelf, beforePositions, slideInDistance }: 
 
 function releaseSurvivors(elGliders: HTMLElement[]) {
   for (const elItem of elGliders) {
-    elItem.style.transition = `translate ${SURVIVOR_SHIFT_MS}ms ${GLIDE_EASING}`;
+    elItem.style.transition = `translate ${SURVIVOR_SHIFT_MS}ms ${SURVIVOR_GLIDE_EASING}`;
     elItem.style.translate = "";
     elItem.addEventListener("transitionend", () => {
       elItem.style.transition = "";
@@ -211,8 +210,8 @@ function releaseSurvivors(elGliders: HTMLElement[]) {
 
 function releaseEntrants(elEntrants: HTMLElement[]) {
   for (const elItem of elEntrants) {
-    elItem.style.transition = `translate ${SURVIVOR_SHIFT_MS}ms ${GLIDE_EASING}, `
-      + `opacity ${SURVIVOR_SHIFT_MS}ms ${GLIDE_EASING}`;
+    elItem.style.transition = `translate ${SURVIVOR_SHIFT_MS}ms ${SURVIVOR_GLIDE_EASING}, `
+      + `opacity ${SURVIVOR_SHIFT_MS}ms ${SURVIVOR_GLIDE_EASING}`;
     elItem.style.translate = "";
     elItem.style.opacity = "";
     elItem.addEventListener("transitionend", () => {

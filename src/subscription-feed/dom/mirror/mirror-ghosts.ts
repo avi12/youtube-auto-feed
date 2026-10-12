@@ -1,4 +1,4 @@
-import { SURVIVOR_SHIFT_MS } from "./mirror-constants";
+import { SURVIVOR_GLIDE_EASING, SURVIVOR_SHIFT_MS } from "./mirror-constants";
 import { REMOVAL_GHOST_ATTR, positionRemovalGhost } from "./mirror-ghost-position";
 import { paintGhostThumbnailBackground, thumbnailGhost } from "./mirror-ghost-thumbnails";
 
@@ -51,7 +51,7 @@ function cloneTileGhost(elTile: HTMLElement) {
 export function dissolveRemovalGhosts(ghosts: HTMLElement[]) {
   // Dissolve over the survivor glide with the same easing, so the ghost keeps covering the vacated
   // slot until the neighbour slides into it - a shorter/faster fade leaves a one-frame empty flash.
-  const dissolveCurve = `${SURVIVOR_SHIFT_MS}ms cubic-bezier(0.4, 0, 0.2, 1)`;
+  const dissolveCurve = `${SURVIVOR_SHIFT_MS}ms ${SURVIVOR_GLIDE_EASING}`;
   for (const elGhost of ghosts) {
     elGhost.style.transition = `opacity ${dissolveCurve}, scale ${dissolveCurve}`;
     elGhost.style.opacity = "0";

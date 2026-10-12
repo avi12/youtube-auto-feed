@@ -20,6 +20,7 @@ export const STICKY_DELETE_POLLS = 10;
 // How many trailing band videos count as the noisy pagination tail.
 export const BOUNDARY_TAIL_SIZE = 5;
 export const SURVIVOR_SHIFT_MS = 380;
+export const SURVIVOR_GLIDE_EASING = "cubic-bezier(0.4, 0, 0.2, 1)";
 export const REFLOW_MARGIN_BELOW_PX = 1200;
 export const absenceCountByVideoId = new Map<string, number>();
 

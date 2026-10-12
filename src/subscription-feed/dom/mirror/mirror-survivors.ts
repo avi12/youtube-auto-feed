@@ -1,7 +1,7 @@
 import type { Prettify } from "../../types/prettify";
 import { isPolymerElement } from "../../utils/polymer";
 import { videoIdFromData } from "../../utils/video-id";
-import { GRID_ITEM_SELECTOR, SURVIVOR_SHIFT_MS } from "./mirror-constants";
+import { GRID_ITEM_SELECTOR, SURVIVOR_GLIDE_EASING, SURVIVOR_SHIFT_MS } from "./mirror-constants";
 import { isInReflowZone } from "./mirror-elements";
 
 type PinSurvivorsParams = Prettify<{
@@ -48,7 +48,7 @@ export function releaseSurvivors() {
       continue;
     }
 
-    elItem.style.transition = `translate ${SURVIVOR_SHIFT_MS}ms cubic-bezier(0.4, 0, 0.2, 1)`;
+    elItem.style.transition = `translate ${SURVIVOR_SHIFT_MS}ms ${SURVIVOR_GLIDE_EASING}`;
     elItem.style.translate = "";
     elItem.addEventListener("transitionend", () => {
       elItem.style.transition = "";
