@@ -7,6 +7,7 @@ import { fetchVideoChannel } from "../../youtube-api/oembed";
 import { richShelfDataSchema } from "../../youtube-api/schemas";
 import { resolveSubscribedChannels, type SubscribedChannels } from "../../youtube-api/subscribed-channels";
 import { channelIdsFromRichItem, videoIdFromRichItem } from "../rich-item";
+import { alignOpenMenuToItsVideo } from "./mirror-open-menu";
 import { animateShelfRemoval } from "./mirror-shelf-remove";
 
 // Rich shelves (Most relevant, Shorts) keep their own video copies, so unsubscribing from a channel or a
@@ -184,6 +185,7 @@ function applyShelfRemovals(removableVideoIds: Set<string>) {
 
     if (!isAnimationsEnabled()) {
       elShelf.set("data.contents", retained);
+      alignOpenMenuToItsVideo();
       continue;
     }
 

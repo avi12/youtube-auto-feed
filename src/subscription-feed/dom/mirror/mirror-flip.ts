@@ -12,6 +12,7 @@ import { coverNewlyInsertedTiles } from "./mirror-cover-new";
 import { recordReflowZoneRects } from "./mirror-elements";
 import { animateNewEntrances, areInsertedTilesPresent, hideNewInsertedTiles } from "./mirror-entrances";
 import { clearRemovalGhosts, dissolveRemovalGhosts } from "./mirror-ghosts";
+import { pinOpenMenuToItsVideo, releaseOpenMenu } from "./mirror-open-menu";
 import { pinSurvivorsToOldRects, releaseSurvivors } from "./mirror-survivors";
 import { repaintInlineThumbnails } from "./mirror-thumbnails";
 
@@ -62,10 +63,12 @@ export async function setContentsWithFlip(
     oldRects,
     newlyInsertedIds
   });
+  pinOpenMenuToItsVideo();
   hideNewInsertedTiles(newlyInsertedIds);
   await nextFrame();
 
   releaseSurvivors();
+  releaseOpenMenu().catch(() => {});
   dissolveRemovalGhosts(removalGhosts);
   repaintInlineThumbnails();
   coverBlankImages();

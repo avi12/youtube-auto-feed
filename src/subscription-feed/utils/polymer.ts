@@ -24,3 +24,18 @@ interface CommandResolverElement extends HTMLElement {
 export function isCommandResolver(element: Element): element is CommandResolverElement {
   return "resolveCommand" in element && typeof element.resolveCommand === "function";
 }
+
+// YouTube's popup menus: fixed-position overlays aligned to the element that opened them.
+export interface IronDropdownElement extends HTMLElement {
+  opened: boolean;
+  positionTarget: Element | null;
+  refit(): void;
+  close(): void;
+}
+
+export function isIronDropdown(target: EventTarget | undefined): target is IronDropdownElement {
+  return target instanceof HTMLElement
+    && "positionTarget" in target
+    && "refit" in target && typeof target.refit === "function"
+    && "close" in target && typeof target.close === "function";
+}

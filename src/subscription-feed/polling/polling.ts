@@ -1,4 +1,5 @@
 import { feedMessenger } from "../../shared/feed-messaging";
+import { startOpenMenuTracking } from "../dom/mirror/mirror-open-menu";
 import { startNewBadgeDismissal } from "../dom/new-badge/new-badge";
 import { startThumbnailHealer } from "../dom/update/thumbnail";
 import { installDevBridge } from "./dev-bridge";
@@ -23,6 +24,7 @@ export function createSubscriptionMonitor() {
   Object.assign(context, createLifecycleHandlers(context));
   startThumbnailHealer();
   startNewBadgeDismissal();
+  startOpenMenuTracking();
   installDevBridge(context);
 
   feedMessenger.onMessage("browseResponse", ({ data }) => context.handleBrowseResponse(data));

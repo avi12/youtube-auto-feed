@@ -10,6 +10,7 @@ import { GRID_SELECTOR } from "./mirror-constants";
 import { findRemovedViewportTiles } from "./mirror-find-tiles";
 import { setContentsWithFlip } from "./mirror-flip";
 import { createRemovalGhosts } from "./mirror-ghosts";
+import { alignOpenMenuToItsVideo } from "./mirror-open-menu";
 import { pruneUnsubscribedShelfVideos } from "./mirror-shelf-prune";
 import { awaitNewThumbnailsReady, repaintInsertedThumbnails } from "./mirror-thumbnails";
 
@@ -71,6 +72,7 @@ export async function mirrorFromApi({ apiContents, isInitialLoad }: MirrorFromAp
 
   if (!isAnimationsEnabled()) {
     elGrid.set("data.contents", newContents);
+    alignOpenMenuToItsVideo();
   } else {
     await awaitNewThumbnailsReady(newThumbnailUrls.values());
     const removalGhosts = createRemovalGhosts(findRemovedViewportTiles(newContents));

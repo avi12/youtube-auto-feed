@@ -6,6 +6,7 @@ import { nextFrame } from "../animations";
 import { RICH_ITEM_SELECTOR, SURVIVOR_GLIDE_EASING, SURVIVOR_SHIFT_MS } from "./mirror-constants";
 import { createRemovalGhosts, dissolveRemovalGhosts } from "./mirror-ghosts";
 import { glideToRest, pinAtOffset } from "./mirror-glide";
+import { alignOpenMenuToItsVideo, pinOpenMenuToItsVideo, releaseOpenMenu } from "./mirror-open-menu";
 
 // Animated removal inside a rich shelf. An expanded shelf reflows like the Latest band - survivors
 // glide to their new slots, wrapping rows. A collapsed shelf shows one row and hides the overflow with
@@ -130,6 +131,7 @@ export async function animateShelfRemoval({ elShelf, retained, removedVideoIds }
   // hidden rows or scrolled out of the viewport has nothing the user can see - apply it instantly.
   if (elRemovedTiles.length === 0) {
     elShelf.set("data.contents", retained);
+    alignOpenMenuToItsVideo();
     return;
   }
 
@@ -157,9 +159,11 @@ export async function animateShelfRemoval({ elShelf, retained, removedVideoIds }
     elContents,
     beforePositions
   });
+  pinOpenMenuToItsVideo();
 
   await nextFrame();
   releaseSurvivors(elGliders);
+  releaseOpenMenu().catch(() => {});
   dissolveRemovalGhosts(ghosts);
   await glideNewlyVisible({
     elShelf,
