@@ -1,5 +1,7 @@
+import type { PolymerElement } from "../../types/polymer";
 import { isPolymerElement } from "../../utils/polymer";
 import { videoIdFromData } from "../../utils/video-id";
+import { richShelfDataSchema } from "../../youtube-api/schemas";
 import { GRID_ITEM_SELECTOR, REFLOW_MARGIN_BELOW_PX } from "./mirror-constants";
 
 export function thumbnailContainerInItem(elItem: HTMLElement) {
@@ -58,4 +60,9 @@ export function recordReflowZoneRects() {
     }
   }
   return rects;
+}
+
+export function usableShelves() {
+  return [...document.querySelectorAll<PolymerElement>("ytd-rich-shelf-renderer")]
+    .filter(elShelf => richShelfDataSchema.safeParse(elShelf.data).success);
 }

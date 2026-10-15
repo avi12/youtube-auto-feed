@@ -2,13 +2,17 @@ import type { InnerTubeRichGridItem } from "../../types/innertube";
 import type { Prettify } from "../../types/prettify";
 import { flushPolymerRender, isPolymerElement } from "../../utils/polymer";
 import { videoIdFromData } from "../../utils/video-id";
-import { nextFrame } from "../animations";
+import { isInViewport, nextFrame } from "../animations";
 import { RICH_ITEM_SELECTOR, SURVIVOR_GLIDE_EASING, SURVIVOR_SHIFT_MS } from "./mirror-constants";
+import { playEntrance } from "./mirror-entrances";
 import { createRemovalGhosts, dissolveRemovalGhosts } from "./mirror-ghosts";
 import { glideToRest, pinAtOffset } from "./mirror-glide";
 import { alignOpenMenuToItsVideo, pinOpenMenuToItsVideo, releaseOpenMenu } from "./mirror-open-menu";
 
-// Animated removal inside a rich shelf. An expanded shelf reflows like the Latest band - survivors
+// Animated write inside a rich shelf: videos leave, and videos YouTube Semi-Subscribe lists join. A
+// joining tile scales into its slot like a Latest-band entrance.
+//
+// An expanded shelf reflows like the Latest band - survivors
 // glide to their new slots, wrapping rows. A collapsed shelf shows one row and hides the overflow with
 // display:none, so a removed visible tile leaves a gap: the survivors slide left to fill it and the
 // first previously-hidden tile slides one column behind them into the freed last slot, staying a column
@@ -111,13 +115,29 @@ function pinSurvivors({ elShelf, elContents, beforePositions }: PinSurvivorsPara
   return elGliders;
 }
 
-type AnimateShelfRemovalParams = Prettify<{
+type AnimateShelfWriteParams = Prettify<{
   elShelf: HTMLElement;
-  retained: Prettify<InnerTubeRichGridItem>[];
+  contents: Prettify<InnerTubeRichGridItem>[];
   removedVideoIds: Set<string>;
+  insertedVideoIds: Set<string>;
 }>;
 
-export async function animateShelfRemoval({ elShelf, retained, removedVideoIds }: AnimateShelfRemovalParams) {
+function enterInsertedTiles({ elShelf, insertedVideoIds }: Pick<AnimateShelfWriteParams, "elShelf" | "insertedVideoIds">) {
+  for (const elItem of visibleShelfItems(elShelf)) {
+    const videoId = shelfItemId(elItem);
+    if (videoId && insertedVideoIds.has(videoId)) {
+      elItem.style.opacity = "";
+      playEntrance(elItem);
+    }
+  }
+}
+
+export async function animateShelfWrite({
+  elShelf,
+  contents,
+  removedVideoIds,
+  insertedVideoIds
+}: AnimateShelfWriteParams) {
   const elContents = elShelf.querySelector<HTMLElement>("#contents");
   if (!isPolymerElement(elShelf) || !elContents) {
     return;
@@ -127,10 +147,11 @@ export async function animateShelfRemoval({ elShelf, retained, removedVideoIds }
     const videoId = shelfItemId(elItem);
     return !!videoId && removedVideoIds.has(videoId) && isVisibleToUser(elItem);
   });
-  // Only animate when a removed tile is actually on screen. A removal tucked in a collapsed shelf's
-  // hidden rows or scrolled out of the viewport has nothing the user can see - apply it instantly.
-  if (elRemovedTiles.length === 0) {
-    elShelf.set("data.contents", retained);
+  // Only animate what the user can see. A removal tucked in a collapsed shelf's hidden rows, or a write
+  // to a shelf scrolled out of the viewport, has nothing to show - apply it instantly.
+  const isInsertionVisible = insertedVideoIds.size > 0 && isInViewport(elContents);
+  if (elRemovedTiles.length === 0 && !isInsertionVisible) {
+    elShelf.set("data.contents", contents);
     alignOpenMenuToItsVideo();
     return;
   }
@@ -150,7 +171,7 @@ export async function animateShelfRemoval({ elShelf, retained, removedVideoIds }
   // Write inside a frame, then invert in the microtask that follows (before the browser paints the
   // rebound layout). A synchronous pin does not establish the transition baseline on Firefox.
   await new Promise<void>(resolve => requestAnimationFrame(() => {
-    elShelf.set("data.contents", retained);
+    elShelf.set("data.contents", contents);
     flushPolymerRender();
     resolve();
   }));
@@ -158,6 +179,10 @@ export async function animateShelfRemoval({ elShelf, retained, removedVideoIds }
     elShelf,
     elContents,
     beforePositions
+  });
+  enterInsertedTiles({
+    elShelf,
+    insertedVideoIds
   });
   pinOpenMenuToItsVideo();
 
@@ -168,6 +193,7 @@ export async function animateShelfRemoval({ elShelf, retained, removedVideoIds }
   await glideNewlyVisible({
     elShelf,
     beforePositions,
+    insertedVideoIds,
     slideInDistance
   });
   await clearHiddenOpacity(elShelf);
@@ -176,14 +202,20 @@ export async function animateShelfRemoval({ elShelf, retained, removedVideoIds }
 type GlideNewlyVisibleParams = Prettify<{
   elShelf: HTMLElement;
   beforePositions: Map<string, RelativePosition>;
+  insertedVideoIds: Set<string>;
   slideInDistance: number;
 }>;
 
-async function glideNewlyVisible({ elShelf, beforePositions, slideInDistance }: GlideNewlyVisibleParams) {
+async function glideNewlyVisible({
+  elShelf,
+  beforePositions,
+  insertedVideoIds,
+  slideInDistance
+}: GlideNewlyVisibleParams) {
   for (let iFrame = 0; iFrame < PROMOTION_POLL_FRAMES; iFrame++) {
     const elPromoted = visibleShelfItems(elShelf).filter(elItem => {
       const videoId = shelfItemId(elItem);
-      return !!videoId && !beforePositions.has(videoId);
+      return !!videoId && !beforePositions.has(videoId) && !insertedVideoIds.has(videoId);
     });
     if (elPromoted.length > 0) {
       for (const elItem of elPromoted) {

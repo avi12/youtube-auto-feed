@@ -4,11 +4,11 @@ import type { PolymerElement } from "../../types/polymer";
 import type { Prettify } from "../../types/prettify";
 import { isRichShelfData } from "../../youtube-api/guards";
 import { fetchVideoChannel } from "../../youtube-api/oembed";
-import { richShelfDataSchema } from "../../youtube-api/schemas";
 import { resolveSubscribedChannels, type SubscribedChannels } from "../../youtube-api/subscribed-channels";
 import { channelIdsFromRichItem, videoIdFromRichItem } from "../rich-item";
+import { usableShelves } from "./mirror-elements";
 import { alignOpenMenuToItsVideo } from "./mirror-open-menu";
-import { animateShelfRemoval } from "./mirror-shelf-remove";
+import { animateShelfWrite } from "./mirror-shelf-write";
 
 // Rich shelves (Most relevant, Shorts) keep their own video copies, so unsubscribing from a channel or a
 // video being deleted has to be reconciled here - the inline reflow only touches the Latest band, which
@@ -44,11 +44,6 @@ interface PruneBudget {
 }
 
 const channelByVideoId = new Map<string, CachedVideoChannel>();
-
-function usableShelves() {
-  return [...document.querySelectorAll<PolymerElement>("ytd-rich-shelf-renderer")]
-    .filter(elShelf => richShelfDataSchema.safeParse(elShelf.data).success);
-}
 
 function collectApiVideoIds(apiContents: Prettify<InnerTubeRichGridItem>[]) {
   const videoIds = new Set<string>();
@@ -189,10 +184,11 @@ function applyShelfRemovals(removableVideoIds: Set<string>) {
       continue;
     }
 
-    animateShelfRemoval({
+    animateShelfWrite({
       elShelf,
-      retained,
-      removedVideoIds
+      contents: retained,
+      removedVideoIds,
+      insertedVideoIds: new Set()
     }).catch(() => {});
   }
 }

@@ -23,15 +23,19 @@ export function animateNewEntrances(newlyInsertedIds: Set<string>) {
     elItem.style.opacity = "";
 
     if (isInViewport(elItem)) {
-      // Raise new tiles above the pinned survivors they overlap at the start of the glide.
-      elItem.style.zIndex = "1";
-      elItem.classList.add("ytaf-new");
-      elItem.addEventListener("animationend", () => {
-        elItem.classList.remove("ytaf-new");
-        elItem.style.zIndex = "";
-      }, { once: true });
+      playEntrance(elItem);
     }
   }
+}
+
+// Raises the new tile above the pinned survivors it overlaps at the start of the glide.
+export function playEntrance(elItem: HTMLElement) {
+  elItem.style.zIndex = "1";
+  elItem.classList.add("ytaf-new");
+  elItem.addEventListener("animationend", () => {
+    elItem.classList.remove("ytaf-new");
+    elItem.style.zIndex = "";
+  }, { once: true });
 }
 
 export function hideNewInsertedTiles(newlyInsertedIds: Set<string>) {
