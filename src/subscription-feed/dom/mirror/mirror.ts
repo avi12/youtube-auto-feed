@@ -17,10 +17,11 @@ import { awaitNewThumbnailsReady, repaintInsertedThumbnails } from "./mirror-thu
 
 type MirrorFromApiParams = Prettify<{
   apiContents: Prettify<InnerTubeRichGridItem>[];
+  hiddenVideoIds: Set<string>;
   isInitialLoad: boolean;
 }>;
 
-export async function mirrorFromApi({ apiContents, isInitialLoad }: MirrorFromApiParams) {
+export async function mirrorFromApi({ apiContents, hiddenVideoIds, isInitialLoad }: MirrorFromApiParams) {
   const elGrid = document.querySelector<PolymerElement>(GRID_SELECTOR);
   if (!elGrid || !isRichGridData(elGrid.data)) {
     return;
@@ -35,13 +36,20 @@ export async function mirrorFromApi({ apiContents, isInitialLoad }: MirrorFromAp
   // so reconcile the shelves here. Runs before the unchanged-inline early return so a video that lives
   // only in a shelf is still pruned. Fire-and-forget: it awaits guide and oEmbed lookups, which must
   // not stall the synchronous inline reflow.
-  mirrorSemiSubscribedShelfVideos(apiContents);
+  mirrorSemiSubscribedShelfVideos({
+    apiContents,
+    hiddenVideoIds
+  });
   pruneUnsubscribedShelfVideos(apiContents).catch(() => {});
 
   const previousInlineIds = collectInlineVideoIds(currentContents);
-  const composedContents = composeNewContents({
-    apiContents,
-    currentContents
+  // YouTube Semi-Subscribe hides these on purpose, so they skip the grace a briefly missing video gets.
+  const composedContents = withoutHiddenVideos({
+    contents: composeNewContents({
+      apiContents,
+      currentContents
+    }),
+    hiddenVideoIds
   });
 
   const { newlyInsertedIds, newThumbnailUrls } = collectNewlyInsertedTiles({
@@ -112,4 +120,17 @@ function collectNewlyInsertedTiles({ newContents, previousInlineIds }: CollectNe
     newlyInsertedIds,
     newThumbnailUrls
   };
+}
+
+type WithoutHiddenVideosParams = Prettify<{
+  contents: Prettify<InnerTubeRichGridItem>[];
+  hiddenVideoIds: Set<string>;
+}>;
+
+function withoutHiddenVideos({ contents, hiddenVideoIds }: WithoutHiddenVideosParams) {
+  if (hiddenVideoIds.size === 0) {
+    return contents;
+  }
+
+  return contents.filter(item => !hiddenVideoIds.has(videoIdFromRichItem(item) ?? ""));
 }

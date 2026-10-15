@@ -6,11 +6,13 @@ import { z } from "../shared/zod";
 declare global {
   // Exposed so the CDP test harness can inject browse responses through the interceptor's messenger.
   var __ytafFeedMessenger: typeof feedMessenger | undefined;
-  // Tells YouTube Semi-Subscribe that the shelf mirror keeps the videos it tags, so it may list Shorts.
-  var __ytafHonorsSemiSubTags: boolean | undefined;
+  // The YouTube Semi-Subscribe contract version: 1 keeps the videos it tags, so it may list Shorts; 2 also
+  // removes the videos it names as hidden.
+  var __ytafHonorsSemiSubTags: number | undefined;
 }
 
 const BROWSE_ENDPOINT = "/youtubei/v1/browse";
+const SEMI_SUB_CONTRACT_VERSION = 2;
 const SUBSCRIPTION_ENDPOINT = "/youtubei/v1/subscription/";
 const SUBSCRIPTIONS_BROWSE_ID = "FEsubscriptions";
 
@@ -27,7 +29,7 @@ export default defineContentScript({
   runAt: "document_start",
   main() {
     globalThis.__ytafFeedMessenger = feedMessenger;
-    globalThis.__ytafHonorsSemiSubTags = true;
+    globalThis.__ytafHonorsSemiSubTags = SEMI_SUB_CONTRACT_VERSION;
     const originalFetch = fetch.bind(globalThis);
 
     globalThis.fetch = async (input, init) => {

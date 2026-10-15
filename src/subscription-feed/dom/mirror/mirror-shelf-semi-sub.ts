@@ -12,8 +12,9 @@ import { animateShelfWrite } from "./mirror-shelf-write";
 // YouTube Semi-Subscribe lists videos from channels the viewer is not subscribed to, and owns whether
 // they stay listed. The shelf mirror never adds to a shelf and never trusts absence, so its tagged videos
 // are mirrored here: one joins a shelf when the response lists it there, right after its nearest listed
-// neighbour, and leaves once that same shelf in the response stops listing it. Shelves pair up by title
-// and occurrence, since YouTube may emit a title more than once.
+// neighbour, and leaves once that same shelf in the response stops listing it. It also hides videos of
+// subscribed channels, naming them in the response, and those leave every shelf at once. Shelves pair up
+// by title and occurrence, since YouTube may emit a title more than once.
 
 type RichGridItem = Prettify<InnerTubeRichGridItem>;
 
@@ -83,21 +84,31 @@ function insertionIndex({ contents, apiContents, iApiItem }: InsertionIndexParam
   return 0;
 }
 
+// A shelf the response left out says nothing about the tagged videos in it, but a hidden video goes
+// wherever it is.
 type MergeShelfParams = Prettify<{
   currentContents: RichGridItem[];
-  apiContents: RichGridItem[];
+  apiContents: RichGridItem[] | undefined;
+  hiddenVideoIds: Set<string>;
 }>;
 
-function mergeSemiSubscribedVideos({ currentContents, apiContents }: MergeShelfParams) {
+function mergeSemiSubscribedVideos({ currentContents, apiContents = [], hiddenVideoIds }: MergeShelfParams) {
   const apiVideoIds = new Set(apiContents.map(videoIdFromRichItem));
+  const isShelfInResponse = apiContents.length > 0;
+  function isUnlisted(item: RichGridItem) {
+    const videoId = videoIdFromRichItem(item) ?? "";
+    const isDropped = isShelfInResponse && isSemiSubscribedRichItem(item) && !apiVideoIds.has(videoId);
+    return hiddenVideoIds.has(videoId) || isDropped;
+  }
+
   const removedVideoIds = new Set(currentContents
-    .filter(item => isSemiSubscribedRichItem(item) && !apiVideoIds.has(videoIdFromRichItem(item)))
+    .filter(isUnlisted)
     .flatMap(item => videoIdFromRichItem(item) ?? []));
   let contents = currentContents.filter(item => !removedVideoIds.has(videoIdFromRichItem(item) ?? ""));
   const insertedVideoIds = new Set<string>();
   for (const [iApiItem, apiItem] of apiContents.entries()) {
     const videoId = videoIdFromRichItem(apiItem);
-    const isJoining = !!videoId && isSemiSubscribedRichItem(apiItem) && !containsVideo({
+    const isJoining = !!videoId && isSemiSubscribedRichItem(apiItem) && !hiddenVideoIds.has(videoId) && !containsVideo({
       contents,
       videoId
     });
@@ -139,18 +150,27 @@ function writeShelf({ elShelf, merge }: WriteShelfParams) {
   }).catch(() => {});
 }
 
-export function mirrorSemiSubscribedShelfVideos(apiContents: RichGridItem[]) {
+type MirrorSemiSubscribedShelfVideosParams = Prettify<{
+  apiContents: RichGridItem[];
+  hiddenVideoIds: Set<string>;
+}>;
+
+export function mirrorSemiSubscribedShelfVideos({
+  apiContents,
+  hiddenVideoIds
+}: MirrorSemiSubscribedShelfVideosParams) {
   const apiShelves = apiShelvesByTitle(apiContents);
   for (const [title, elShelves] of domShelvesByTitle()) {
     for (const [iShelf, elShelf] of elShelves.entries()) {
       const apiShelfContents = apiShelves.get(title)?.[iShelf];
-      if (!apiShelfContents || !isRichShelfData(elShelf.data)) {
+      if (!isRichShelfData(elShelf.data)) {
         continue;
       }
 
       const merge = mergeSemiSubscribedVideos({
         currentContents: elShelf.data.contents ?? [],
-        apiContents: apiShelfContents
+        apiContents: apiShelfContents,
+        hiddenVideoIds
       });
       const isChanged = merge.removedVideoIds.size > 0 || merge.insertedVideoIds.size > 0;
       if (isChanged) {

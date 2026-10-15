@@ -2,7 +2,12 @@ import { detectAndApplyChanges } from "../diff";
 import { captureBandLayout, normalizeCollapsedShelfRows } from "../dom/band/band-layout";
 import { isOnSubscriptionsPage } from "../utils/subscriptions-page";
 import { isInnerTubeBrowseResponse } from "../youtube-api/guards";
-import { extractApiContents, extractApiSectionOrder, parseApiResponse } from "../youtube-api/parse-response";
+import {
+  extractApiContents,
+  extractApiSectionOrder,
+  extractHiddenVideoIds,
+  parseApiResponse
+} from "../youtube-api/parse-response";
 import {
   type ApplyChangesParams,
   type MonitorContext,
@@ -23,6 +28,7 @@ export function createApplyHandlers(context: MonitorContext) {
       const result = await detectAndApplyChanges({
         freshSnapshots: payload.snapshots,
         apiContents: payload.apiContents,
+        hiddenVideoIds: payload.hiddenVideoIds,
         previousSnapshot: state.lastSnapshot,
         isInitialLoad
       });
@@ -68,7 +74,8 @@ export function createApplyHandlers(context: MonitorContext) {
     const payload = {
       snapshots,
       sectionOrder: extractApiSectionOrder(response),
-      apiContents: extractApiContents(response)
+      apiContents: extractApiContents(response),
+      hiddenVideoIds: extractHiddenVideoIds(response)
     };
     state.pendingApiSnapshots = payload;
     state.pendingApiSnapshotsTime = Date.now();

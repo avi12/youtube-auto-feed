@@ -10,6 +10,11 @@ export function extractApiContents(data: Prettify<InnerTubeBrowseResponse>): Pre
   return tabContent?.richGridRenderer?.contents ?? [];
 }
 
+export function extractHiddenVideoIds(data: Prettify<InnerTubeBrowseResponse>) {
+  const tabContent = data.contents.twoColumnBrowseResultsRenderer?.tabs?.[0]?.tabRenderer?.content;
+  return new Set(tabContent?.richGridRenderer?.yssHiddenVideoIds);
+}
+
 export function extractApiSectionOrder(data: Prettify<InnerTubeBrowseResponse>) {
   const sectionOrder: string[] = [];
   const seenTitles = new Set<string>();

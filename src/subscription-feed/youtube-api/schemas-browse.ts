@@ -13,7 +13,10 @@ export const browseContentsSchema = z.looseObject({
       z.looseObject({
         tabRenderer: z.looseObject({
           content: z.looseObject({
-            richGridRenderer: z.looseObject({ contents: richGridContentsSchema.optional() }).optional(),
+            richGridRenderer: z.looseObject({
+              contents: richGridContentsSchema.optional(),
+              yssHiddenVideoIds: z.array(z.string()).optional()
+            }).optional(),
             sectionListRenderer: z.looseObject({
               contents: z.array(
                 z.looseObject({

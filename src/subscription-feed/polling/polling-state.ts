@@ -8,6 +8,7 @@ export interface FeedPayload {
   snapshots: VideoSnapshot[];
   sectionOrder: string[];
   apiContents: InnerTubeRichGridItem[];
+  hiddenVideoIds: Set<string>;
 }
 
 export type ApplyChangesParams = Prettify<{

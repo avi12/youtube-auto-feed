@@ -10,6 +10,7 @@ export { applyGenericMetadataUpdates, detectAndApplyMetadataChanges } from "./me
 type DetectAndApplyChangesParams = Prettify<{
   freshSnapshots: Prettify<VideoSnapshot>[];
   apiContents: Prettify<InnerTubeRichGridItem>[];
+  hiddenVideoIds: Set<string>;
   previousSnapshot: Map<string, Prettify<VideoSnapshot>>;
   isInitialLoad: boolean;
 }>;
@@ -17,6 +18,7 @@ type DetectAndApplyChangesParams = Prettify<{
 export async function detectAndApplyChanges({
   freshSnapshots,
   apiContents,
+  hiddenVideoIds,
   previousSnapshot,
   isInitialLoad
 }: DetectAndApplyChangesParams) {
@@ -50,6 +52,7 @@ export async function detectAndApplyChanges({
 
   await mirrorFromApi({
     apiContents,
+    hiddenVideoIds,
     isInitialLoad
   });
   cleanOrphanedGridItems();

@@ -1,7 +1,7 @@
 import { collectAllVideoSnapshots } from "./collect-all-videos";
 import { isInnerTubeBrowseResponse } from "./guards";
 import { fetchSubscriptionsBrowse } from "./innertube-browse";
-import { extractApiContents, extractApiSectionOrder, parseApiResponse } from "./parse-response";
+import { extractApiContents, extractApiSectionOrder, extractHiddenVideoIds, parseApiResponse } from "./parse-response";
 
 function parseInitialData(html: string): unknown {
   const initialDataJson = /var ytInitialData = (.+?);<\/script>/s.exec(html)?.[1];
@@ -41,7 +41,8 @@ function toBrowseResult(browseData: unknown) {
   return {
     snapshots,
     sectionOrder: extractApiSectionOrder(browseData),
-    apiContents: extractApiContents(browseData)
+    apiContents: extractApiContents(browseData),
+    hiddenVideoIds: extractHiddenVideoIds(browseData)
   };
 }
 

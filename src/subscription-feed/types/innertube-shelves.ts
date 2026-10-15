@@ -83,7 +83,11 @@ export interface InnerTubeBrowseResponse {
       tabs: Array<{
         tabRenderer: {
           content: {
-            richGridRenderer?: { contents: InnerTubeRichGridItem[] };
+            richGridRenderer?: {
+              contents: InnerTubeRichGridItem[];
+              // Set by YouTube Semi-Subscribe: the videos it hides, left out of the contents
+              yssHiddenVideoIds?: string[];
+            };
             sectionListRenderer?: { contents: Array<{
               itemSectionRenderer?: { contents: Array<{ shelfRenderer?: InnerTubeShelfRenderer }> };
             }>; };
