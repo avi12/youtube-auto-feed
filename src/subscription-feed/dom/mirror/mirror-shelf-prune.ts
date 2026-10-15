@@ -5,7 +5,7 @@ import type { Prettify } from "../../types/prettify";
 import { isRichShelfData } from "../../youtube-api/guards";
 import { fetchVideoChannel } from "../../youtube-api/oembed";
 import { resolveSubscribedChannels, type SubscribedChannels } from "../../youtube-api/subscribed-channels";
-import { channelIdsFromRichItem, videoIdFromRichItem } from "../rich-item";
+import { channelIdsFromRichItem, isSemiSubscribedRichItem, videoIdFromRichItem } from "../rich-item";
 import { usableShelves } from "./mirror-elements";
 import { alignOpenMenuToItsVideo } from "./mirror-open-menu";
 import { animateShelfWrite } from "./mirror-shelf-write";
@@ -78,7 +78,7 @@ function collectShelfVideos({ elShelves, apiVideoIds }: CollectShelfVideosParams
 
     for (const item of elShelf.data.contents ?? []) {
       const videoId = videoIdFromRichItem(item);
-      if (videoId && !seen.has(videoId)) {
+      if (videoId && !seen.has(videoId) && !isSemiSubscribedRichItem(item)) {
         seen.add(videoId);
         shelfVideos.push({
           videoId,
@@ -167,7 +167,7 @@ function applyShelfRemovals(removableVideoIds: Set<string>) {
     const removedVideoIds = new Set<string>();
     const retained = contents.filter(item => {
       const videoId = videoIdFromRichItem(item);
-      const isRemoved = !!videoId && removableVideoIds.has(videoId);
+      const isRemoved = !!videoId && removableVideoIds.has(videoId) && !isSemiSubscribedRichItem(item);
       if (isRemoved) {
         removedVideoIds.add(videoId);
       }

@@ -12,6 +12,7 @@ import { setContentsWithFlip } from "./mirror-flip";
 import { createRemovalGhosts } from "./mirror-ghosts";
 import { alignOpenMenuToItsVideo } from "./mirror-open-menu";
 import { pruneUnsubscribedShelfVideos } from "./mirror-shelf-prune";
+import { mirrorSemiSubscribedShelfVideos } from "./mirror-shelf-semi-sub";
 import { awaitNewThumbnailsReady, repaintInsertedThumbnails } from "./mirror-thumbnails";
 
 type MirrorFromApiParams = Prettify<{
@@ -34,6 +35,7 @@ export async function mirrorFromApi({ apiContents, isInitialLoad }: MirrorFromAp
   // so reconcile the shelves here. Runs before the unchanged-inline early return so a video that lives
   // only in a shelf is still pruned. Fire-and-forget: it awaits guide and oEmbed lookups, which must
   // not stall the synchronous inline reflow.
+  mirrorSemiSubscribedShelfVideos(apiContents);
   pruneUnsubscribedShelfVideos(apiContents).catch(() => {});
 
   const previousInlineIds = collectInlineVideoIds(currentContents);

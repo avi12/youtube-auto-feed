@@ -3,7 +3,8 @@ import {
   richGridContentsSchema,
   richItemContentSchema,
   richShelfContentsSchema,
-  shelfRendererInnerSchema
+  shelfRendererInnerSchema,
+  titleSchema
 } from "./schemas-renderers";
 
 export const browseContentsSchema = z.looseObject({
@@ -36,6 +37,7 @@ export const richItemDataSchema = z.looseObject({ content: richItemContentSchema
 export const gridVideoDataSchema = z.looseObject({ videoId: z.string().optional() });
 
 export const richShelfDataSchema = z.looseObject({
+  title: titleSchema.optional(),
   isExpanded: z.boolean().optional(),
   contents: richShelfContentsSchema.optional()
 });

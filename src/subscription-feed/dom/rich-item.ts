@@ -16,6 +16,12 @@ export function videoIdFromRichItem(
   return videoIdFromData(contentItem?.richItemRenderer);
 }
 
+// YouTube Semi-Subscribe lists these and owns whether they stay listed, so they never go through the
+// subscription prune.
+export function isSemiSubscribedRichItem(item: Prettify<InnerTubeRichGridItem>) {
+  return item.richItemRenderer?.yssSemiSubscribed === true;
+}
+
 const CHANNEL_BROWSE_ID = /"browseEndpoint":\{"browseId":"(UC[\w-]{22})"/g;
 
 // A lockup links its uploader - and a collaborative (multi-channel) lockup links every collaborator -

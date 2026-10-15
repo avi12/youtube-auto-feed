@@ -46,7 +46,10 @@ export const richItemContentSchema = z.looseObject({
   shortsLockupViewModel: z.looseObject({ onTap: shortsOnTapSchema.optional() }).optional()
 });
 
-const richItemRendererSchema = z.looseObject({ content: richItemContentSchema.optional() });
+const richItemRendererSchema = z.looseObject({
+  content: richItemContentSchema.optional(),
+  yssSemiSubscribed: z.boolean().optional()
+});
 
 export const richShelfContentsSchema = z.array(
   z.looseObject({ richItemRenderer: richItemRendererSchema.optional() })

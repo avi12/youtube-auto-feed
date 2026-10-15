@@ -68,6 +68,8 @@ export interface InnerTubeRichGridItem {
   richItemRenderer?: {
     content: InnerTubeRichItemContent;
     trackingParams?: string;
+    // Set by YouTube Semi-Subscribe on the videos it lists from channels the viewer is not subscribed to
+    yssSemiSubscribed?: boolean;
     onFocusEffect?: unknown;
     rowIndex?: number;
     colIndex?: number;

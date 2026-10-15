@@ -6,6 +6,7 @@ import type {
   InnerTubeRichGridItem,
   InnerTubeRichShelfRenderer,
   InnerTubeShelfRenderer,
+  InnerTubeText,
   InnerTubeVideoRenderer,
   InnerTubeWatchNextResponse,
   LockupViewModel,
@@ -34,6 +35,7 @@ export interface RichGridData {
 }
 
 export interface RichShelfData {
+  title?: InnerTubeText;
   isExpanded?: boolean;
   contents?: InnerTubeRichGridItem[];
 }
