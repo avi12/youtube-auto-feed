@@ -5,6 +5,7 @@ import { videoIdFromData } from "../../utils/video-id";
 import { nextFrame } from "../animations";
 import { RICH_ITEM_SELECTOR, SURVIVOR_GLIDE_EASING, SURVIVOR_SHIFT_MS } from "./mirror-constants";
 import { createRemovalGhosts, dissolveRemovalGhosts } from "./mirror-ghosts";
+import { glideToRest, pinAtOffset } from "./mirror-glide";
 
 // Animated removal inside a rich shelf. An expanded shelf reflows like the Latest band - survivors
 // glide to their new slots, wrapping rows. A collapsed shelf shows one row and hides the overflow with
@@ -97,12 +98,12 @@ function pinSurvivors({ elShelf, elContents, beforePositions }: PinSurvivorsPara
     }
 
     const rect = elItem.getBoundingClientRect();
-    const deltaX = before.left - (rect.left - contentsRect.left);
-    const deltaY = before.top - (rect.top - contentsRect.top);
-    const isMoved = Math.abs(deltaX) >= 1 || Math.abs(deltaY) >= 1;
-    if (isMoved) {
-      elItem.style.transition = "none";
-      elItem.style.translate = `${deltaX}px ${deltaY}px`;
+    const isPinned = pinAtOffset({
+      elGlider: elItem,
+      deltaX: before.left - (rect.left - contentsRect.left),
+      deltaY: before.top - (rect.top - contentsRect.top)
+    });
+    if (isPinned) {
       elGliders.push(elItem);
     }
   }
@@ -200,12 +201,7 @@ async function glideNewlyVisible({ elShelf, beforePositions, slideInDistance }: 
 
 function releaseSurvivors(elGliders: HTMLElement[]) {
   for (const elItem of elGliders) {
-    elItem.style.transition = `translate ${SURVIVOR_SHIFT_MS}ms ${SURVIVOR_GLIDE_EASING}`;
-    elItem.style.translate = "";
-    elItem.addEventListener("transitionend", () => {
-      elItem.style.transition = "";
-      elItem.style.translate = "";
-    }, { once: true });
+    glideToRest(elItem);
   }
 }
 

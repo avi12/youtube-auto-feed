@@ -6,8 +6,8 @@ import { videoIdFromLockup } from "../../utils/video-id";
 import { isLockupViewModel } from "../../youtube-api/guards";
 import { fetchVideoChannel } from "../../youtube-api/oembed";
 import { isInViewport, nextFrame } from "../animations";
-import { SURVIVOR_GLIDE_EASING, SURVIVOR_SHIFT_MS } from "../mirror/mirror-constants";
 import { createRemovalGhosts, dissolveRemovalGhosts } from "../mirror/mirror-ghosts";
+import { glideToRest, pinAtOffset } from "../mirror/mirror-glide";
 import {
   readRelatedTiles,
   relatedChips,
@@ -158,24 +158,21 @@ function glideSurvivors(survivorRects: Map<HTMLElement, DOMRect>) {
   const elGliders: HTMLElement[] = [];
   for (const [elLockup, before] of survivorRects) {
     const after = elLockup.getBoundingClientRect();
-    const deltaX = before.left - after.left;
-    const deltaY = before.top - after.top;
-    if (Math.abs(deltaX) < 1 && Math.abs(deltaY) < 1) {
-      continue;
+    const isPinned = pinAtOffset({
+      elGlider: elLockup,
+      deltaX: before.left - after.left,
+      deltaY: before.top - after.top
+    });
+    if (isPinned) {
+      elGliders.push(elLockup);
     }
-
-    elLockup.style.transition = "none";
-    elLockup.style.translate = `${deltaX}px ${deltaY}px`;
-    elGliders.push(elLockup);
   }
   return elGliders;
 }
 
 function releaseGliders(elGliders: HTMLElement[]) {
   for (const elGlider of elGliders) {
-    elGlider.style.transition = `translate ${SURVIVOR_SHIFT_MS}ms ${SURVIVOR_GLIDE_EASING}`;
-    elGlider.style.translate = "";
-    elGlider.addEventListener("transitionend", () => elGlider.style.removeProperty("transition"), { once: true });
+    glideToRest(elGlider);
   }
 }
 
