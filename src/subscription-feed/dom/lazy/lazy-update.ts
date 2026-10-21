@@ -12,12 +12,15 @@ type ScheduleLazyUpdateParams = Prettify<{
 
 export function scheduleLazyUpdate({ videoId, fresh, previous, elItemHint }: ScheduleLazyUpdateParams) {
   const existingPending = pendingUpdates.get(videoId);
+  const elItems = existingPending?.elItems ?? new Set<HTMLElement>();
   pendingUpdates.set(videoId, {
     fresh,
-    previous: existingPending?.previous ?? previous
+    previous: existingPending?.previous ?? previous,
+    elItems
   });
   const observer = ensureObserver();
   for (const elItem of elItemHint ? [elItemHint] : findItemElements(videoId)) {
+    elItems.add(elItem);
     observer.observe(elItem);
   }
 }

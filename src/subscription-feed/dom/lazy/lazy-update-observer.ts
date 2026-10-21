@@ -11,6 +11,7 @@ const LAZY_UPDATE_ROOT_MARGIN_PX = 300;
 export const pendingUpdates = new Map<string, {
   fresh: Prettify<VideoSnapshot>;
   previous?: Prettify<VideoSnapshot>;
+  elItems: Set<HTMLElement>;
 }>();
 
 type ApplyEntry = {
@@ -70,15 +71,19 @@ export function ensureObserver() {
       }
 
       const pending = pendingUpdates.get(videoId);
-      const isAlreadyConsumedByDuplicate = !pending;
-      if (isAlreadyConsumedByDuplicate) {
-        intersectionObserver?.unobserve(elItem);
+      intersectionObserver?.unobserve(elItem);
+
+      if (!pending) {
         continue;
       }
 
-      const { fresh, previous } = pending;
-      pendingUpdates.delete(videoId);
-      intersectionObserver?.unobserve(elItem);
+      const { fresh, previous, elItems } = pending;
+      elItems.delete(elItem);
+
+      if (elItems.size === 0) {
+        pendingUpdates.delete(videoId);
+      }
+
       pendingApplyBatch.push({
         videoId,
         elItem,
