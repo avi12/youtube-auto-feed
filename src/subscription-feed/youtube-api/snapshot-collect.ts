@@ -16,6 +16,33 @@ interface CollectSnapshotParams extends AnyRendererParams {
   seenVideoIds: Set<string>;
 }
 
+function furthestWatchProgress(first: VideoSnapshot["watchProgressPercent"], second: VideoSnapshot["watchProgressPercent"]) {
+  if (first === null || second === null) {
+    return first ?? second;
+  }
+
+  return Math.max(first, second);
+}
+
+// A video listed in two bands (Latest and a shelf) can report different progress per copy, and
+// YouTube serves the stale one first as often as not. The kept snapshot speaks for every tile of
+// the video, so it takes the furthest progress any copy reports.
+function mergeDuplicateWatchProgress({ snapshots, duplicate }: {
+  snapshots: VideoSnapshot[];
+  duplicate: VideoSnapshot;
+}) {
+  const iKept = snapshots.findIndex(({ videoId }) => videoId === duplicate.videoId);
+  const kept = snapshots[iKept];
+  if (!kept) {
+    return;
+  }
+
+  snapshots[iKept] = {
+    ...kept,
+    watchProgressPercent: furthestWatchProgress(kept.watchProgressPercent, duplicate.watchProgressPercent)
+  };
+}
+
 function parseAnyRenderer({ sectionTitle, bandIndex, renderer, lockup, shortsLockup }: Prettify<AnyRendererParams>) {
   if (renderer) {
     return parseRenderer({
@@ -60,8 +87,15 @@ export function collectSnapshot({
     lockup,
     shortsLockup
   });
-  const isFreshSnapshot = !!snapshot && !seenVideoIds.has(snapshot.videoId);
-  if (!isFreshSnapshot) {
+  if (!snapshot) {
+    return;
+  }
+
+  if (seenVideoIds.has(snapshot.videoId)) {
+    mergeDuplicateWatchProgress({
+      snapshots,
+      duplicate: snapshot
+    });
     return;
   }
 
