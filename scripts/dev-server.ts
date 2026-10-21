@@ -577,7 +577,8 @@ async function launchChromium(spec: BrowserSpec & { vendor: ChromiumVendor }): P
 
   const sharedArgs = [
     `--remote-debugging-port=${cdpPort}`,
-    "--disable-blink-features=AutomationControlled"
+    "--disable-blink-features=AutomationControlled",
+    "--mute-audio"
   ];
   if (spec.withExtension) {
     const runner = await webExtRun.cmd.run({
