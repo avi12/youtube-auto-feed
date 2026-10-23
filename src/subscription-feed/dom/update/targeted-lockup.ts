@@ -5,7 +5,7 @@ import { rebuildPolymerRenderer } from "./polymer-rebuild";
 import { applyAnimatedLockupChanges } from "./targeted-lockup-animated";
 import { applyStaticLockupChanges } from "./targeted-lockup-static";
 import type { TargetedUpdateParams } from "./targeted-types";
-import { changingLockupTextElements, collectLockupTextElements } from "./text-fields";
+import { changingLockupTextElements, collectLockupTextElements, isLockupMetadataShapeMatching } from "./text-fields";
 import { crossfadeChangedThumbnail, findThumbnailImg } from "./thumbnail";
 
 type ApplyTargetedLockupUpdateParams = Prettify<TargetedUpdateParams & {
@@ -20,6 +20,18 @@ export async function applyTargetedLockupUpdate({
   fresh
 }: ApplyTargetedLockupUpdateParams) {
   const refs = collectLockupTextElements(elLockup);
+  if (!isLockupMetadataShapeMatching({
+    refs,
+    fresh
+  })) {
+    rebuildPolymerRenderer({
+      videoId,
+      elItem,
+      rawRenderer: fresh.rawRenderer
+    });
+    return;
+  }
+
   const textElements = changingLockupTextElements({
     refs,
     fresh

@@ -2,7 +2,13 @@ import { readGenericDomSnapshot } from "../dom/query/query";
 import { isThumbnailChanged, isThumbnailUrlRotated } from "../dom/rich-item";
 import { batchUpdateVideosInDom, reconcileShortsMetadata } from "../dom/update";
 import type { Prettify } from "../types/prettify";
-import type { VideoSnapshot } from "../types/video";
+import type { MetadataPart, VideoSnapshot } from "../types/video";
+
+function isMetadataPartsChanged(previousParts: MetadataPart[], freshParts: MetadataPart[]) {
+  return previousParts.length !== freshParts.length
+    || freshParts.some(({ text, accessibilityLabel }, i) =>
+      previousParts[i]?.text !== text || previousParts[i]?.accessibilityLabel !== accessibilityLabel);
+}
 
 type HasMetadataChangeParams = Prettify<{
   previous: Prettify<VideoSnapshot>;
@@ -24,6 +30,7 @@ export function hasMetadataChange({ previous, fresh }: HasMetadataChangeParams) 
     || previous.status !== fresh.status
     || previous.viewCountText !== fresh.viewCountText
     || previous.publishedTimeText !== fresh.publishedTimeText
+    || isMetadataPartsChanged(previous.metadataParts, fresh.metadataParts)
     || previous.isChannelLive !== fresh.isChannelLive
     || previous.watchProgressPercent !== fresh.watchProgressPercent;
 }

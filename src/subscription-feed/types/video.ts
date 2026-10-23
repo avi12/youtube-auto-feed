@@ -10,6 +10,11 @@ export enum VideoStatus {
   Short = "short"
 }
 
+export interface MetadataPart {
+  text: string;
+  accessibilityLabel: string;
+}
+
 export interface VideoSnapshot {
   videoId: string;
   title: string;
@@ -17,6 +22,9 @@ export interface VideoSnapshot {
   status: VideoStatus;
   viewCountText: string;
   publishedTimeText: string;
+  // A lockup's metadata parts (channel, views, date, or whatever YouTube shows) in reading order,
+  // mirrored without interpreting which part is which; empty for other renderer shapes.
+  metadataParts: MetadataPart[];
   isChannelLive: boolean;
   watchProgressPercent: number | null;
   // "" = Latest band (inline grid); otherwise a named shelf ("Shorts", "Most relevant", etc.).

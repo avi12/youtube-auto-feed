@@ -30,8 +30,37 @@ interface LockupTextChange {
   fresh: VideoSnapshot;
 }
 
+// The painted spans mirror the parts one to one, so part N is written into span N without knowing
+// what it says. A different count means YouTube changed the layout, which only a re-render can follow.
+export function isLockupMetadataShapeMatching({ refs, fresh }: Prettify<LockupTextChange>) {
+  return refs.elMetadataParts.length === fresh.metadataParts.length;
+}
+
+function pairMetadataParts({ refs, fresh }: Prettify<LockupTextChange>) {
+  if (!isLockupMetadataShapeMatching({
+    refs,
+    fresh
+  })) {
+    return [];
+  }
+
+  return refs.elMetadataParts.flatMap((elPart, i) => {
+    const part = fresh.metadataParts[i];
+    return part ? [{
+      elPart,
+      part
+    }] : [];
+  });
+}
+
+// A part's text sits in its innermost element; a channel byline nests it in a link that must survive.
+function innermostElement(elNode: Element): Element {
+  const elOnlyChild = elNode.childElementCount === 1 ? elNode.firstElementChild : null;
+  return elOnlyChild ? innermostElement(elOnlyChild) : elNode;
+}
+
 export function applyLockupTextChanges({ refs, fresh }: Prettify<LockupTextChange>) {
-  const { elTitle, elHeading, elTitleLink, elView, elTime } = refs;
+  const { elTitle, elHeading, elTitleLink } = refs;
   const existingTitle = elTitle?.textContent ?? "";
   setNodeTextIfChanged({
     elNode: elTitle,
@@ -51,39 +80,37 @@ export function applyLockupTextChanges({ refs, fresh }: Prettify<LockupTextChang
     elTitleLink?.setAttribute("aria-label", newAriaLabel);
   }
 
-  // Never blank a real view count / published time with an empty parse (e.g. a renderer shape this
-  // build does not fully model), matching the title guard above.
-  if (fresh.viewCountText !== "") {
+  for (const { elPart, part } of pairMetadataParts({
+    refs,
+    fresh
+  })) {
     setNodeTextIfChanged({
-      elNode: elView,
-      newText: fresh.viewCountText
+      elNode: innermostElement(elPart),
+      newText: part.text
     });
-  }
-
-  if (fresh.publishedTimeText !== "") {
-    setNodeTextIfChanged({
-      elNode: elTime,
-      newText: fresh.publishedTimeText
+    setAttributeIfChanged({
+      elNode: elPart,
+      name: "aria-label",
+      value: part.accessibilityLabel
     });
   }
 }
 
 export function changingLockupTextElements({ refs, fresh }: Prettify<LockupTextChange>) {
   const elements: HTMLElement[] = [];
-  const { elTitle, elView, elTime } = refs;
+  const { elTitle } = refs;
   const isTitleChanging = !!elTitle && elTitle.textContent !== fresh.title && fresh.title !== "";
   if (isTitleChanging) {
     elements.push(elTitle);
   }
 
-  const isViewChanging = !!elView && fresh.viewCountText !== "" && elView.textContent !== fresh.viewCountText;
-  if (isViewChanging) {
-    elements.push(elView);
-  }
-
-  const isTimeChanging = !!elTime && fresh.publishedTimeText !== "" && elTime.textContent !== fresh.publishedTimeText;
-  if (isTimeChanging) {
-    elements.push(elTime);
+  for (const { elPart, part } of pairMetadataParts({
+    refs,
+    fresh
+  })) {
+    if (innermostElement(elPart).textContent !== part.text) {
+      elements.push(elPart);
+    }
   }
 
   return elements;

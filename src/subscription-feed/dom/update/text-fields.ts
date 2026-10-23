@@ -4,7 +4,11 @@
 // change so the dissolve wrapper knows what to animate.
 
 export { collectLockupTextElements } from "./text-fields-lockup-elements";
-export { applyLockupTextChanges, changingLockupTextElements } from "./text-fields-lockup-apply";
+export {
+  applyLockupTextChanges,
+  changingLockupTextElements,
+  isLockupMetadataShapeMatching
+} from "./text-fields-lockup-apply";
 export {
   changingLegacyTextElements,
   changingShortsTextElements,

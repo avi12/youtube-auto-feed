@@ -39,6 +39,11 @@ export interface LockupThumbnailOverlay {
   };
 }
 
+interface LockupMetadataPart {
+  text?: { content?: string };
+  accessibilityLabel?: string;
+}
+
 export interface LockupViewModel {
   contentId: string;
   videoId?: string;
@@ -59,9 +64,7 @@ export interface LockupViewModel {
     lockupMetadataViewModel?: {
       title?: { content?: string };
       metadata?: {
-        contentMetadataViewModel?: { metadataRows?: Array<{ metadataParts?: Array<{
-          text?: { content?: string };
-        }>; }>; };
+        contentMetadataViewModel?: { metadataRows?: Array<{ metadataParts?: LockupMetadataPart[] }> };
       };
       image?: {
         decoratedAvatarViewModel?: {
