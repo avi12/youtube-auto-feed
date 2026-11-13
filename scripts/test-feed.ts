@@ -2,11 +2,11 @@
  * CDP test harness for youtube-auto-feed extension.
  *
  * Tests:
- *   1. Baseline integrity — video SET matches API (order intentionally ignored: the
+ *   1. Baseline integrity - video SET matches API (order intentionally ignored: the
  *      polled InnerTube API is non-deterministic while the page-load response is not)
- *   2. New video detection — removes a video from DOM, waits for next poll to re-add it
- *   3. Upcoming → Live transition — video gains LIVE badge → moves to front of its band
- *   4. Layout reordering — dispatches browse responses with existing sections in every
+ *   2. New video detection - removes a video from DOM, waits for next poll to re-add it
+ *   3. Upcoming → Live transition - video gains LIVE badge → moves to front of its band
+ *   4. Layout reordering - dispatches browse responses with existing sections in every
  *      meaningful permutation; verifies the extension reorders the DOM immediately
  *
  * Usage:
@@ -39,13 +39,19 @@ interface CdpMsg {
   };
 }
 
-async function fetchTargets(): Promise<CdpTarget[]> {
+const SECTION_RULE_WIDTH = 52;
+const SUMMARY_RULE_WIDTH = 54;
+const TRANSITION_WAIT_MS = 800;
+const LAYOUT_SETTLE_MS = 2000;
+
+async function fetchTargets() {
   const raw: unknown = await (await fetch(`http://localhost:${CDP_PORT}/json`)).json();
   if (!Array.isArray(raw)) {
     return [];
   }
 
-  return raw;
+  const targets: CdpTarget[] = raw;
+  return targets;
 }
 
 function openCdp(wsUrl: string) {
@@ -58,7 +64,7 @@ function openCdp(wsUrl: string) {
     pending.delete(msg.id);
   });
   const ready = new Promise<void>(resolve => socket.addEventListener("open", () => resolve(), { once: true }));
-  async function evalAsync<T>(expressionFn: string): Promise<T> {
+  async function evalAsync<T>(expressionFn: string) {
     await ready;
     const id = seq++;
     return new Promise<T>(resolve => {
@@ -96,7 +102,7 @@ interface Result {
   detail: string;
 }
 const results: Result[] = [];
-function pass(name: string, detail = "") {
+function pass({ name, detail = "" }: { name: string; detail?: string }) {
   results.push({
     name,
     pass: true,
@@ -104,19 +110,19 @@ function pass(name: string, detail = "") {
   });
   console.log(`  ✅ PASS  ${name}${detail ? `  (${detail})` : ""}`);
 }
-function fail(name: string, detail: string) {
+function fail({ name, detail }: { name: string; detail: string }) {
   results.push({
     name,
     pass: false,
     detail
   });
-  console.log(`  ❌ FAIL  ${name}  — ${detail}`);
+  console.log(`  ❌ FAIL  ${name}  - ${detail}`);
 }
-function skip(name: string, reason: string) {
-  console.log(`  ⏭  SKIP  ${name}  — ${reason}`);
+function skip({ name, reason }: { name: string; reason: string }) {
+  console.log(`  ⏭  SKIP  ${name}  - ${reason}`);
 }
 function section(title: string) {
-  console.log(`\n─── ${title} ${"─".repeat(Math.max(0, 52 - title.length))}`);
+  console.log(`\n─── ${title} ${"─".repeat(Math.max(0, SECTION_RULE_WIDTH - title.length))}`);
 }
 
 // ── Page-context types shared in evals ──────────────────────────────────────
@@ -132,7 +138,7 @@ interface Viewport {
 
 // Reads band structure from the extension-managed DOM.
 // Inline items may use content.lockupViewModel with videoRenderer-shaped data
-// (has videoId, not contentId) — falls back to lockupViewModel.videoId for those.
+// (has videoId, not contentId) - falls back to lockupViewModel.videoId for those.
 const PARSE_BANDS = `() => {
   const elGrid = document.querySelector("ytd-rich-grid-renderer");
   if (!elGrid?.data?.contents) return [];
@@ -199,7 +205,7 @@ function buildBrowsePayload(contents: BrowseContentItem[]) {
   };
 }
 
-async function dispatch(cdp: Cdp, payload: BrowsePayload) {
+async function dispatch({ cdp, payload }: { cdp: Cdp; payload: BrowsePayload }) {
   await cdp.evalAsync<void>(
     `() => window.__ytafFeedMessenger?.sendMessage("browseResponse", ${JSON.stringify(payload)})`
   );
@@ -216,7 +222,10 @@ async function testNewVideoDetection(cdp: Cdp) {
   const inlineBand = bands.find(band => band.title === "");
   const targetId = inlineBand?.videoIds[0];
   if (!targetId) {
-    skip("New video detection", "No inline videos in current layout");
+    skip({
+      name: "New video detection",
+      reason: "No inline videos in current layout"
+    });
     return;
   }
 
@@ -238,7 +247,10 @@ async function testNewVideoDetection(cdp: Cdp) {
   }`
   );
   if (!removed) {
-    fail("New video detection", `Could not remove ${targetId} from DOM`);
+    fail({
+      name: "New video detection",
+      detail: `Could not remove ${targetId} from DOM`
+    });
     return;
   }
 
@@ -258,14 +270,20 @@ async function testNewVideoDetection(cdp: Cdp) {
   }`
   );
   if (!isBack) {
-    fail("New video detection", `${targetId} not re-added after ${POLL_WAIT_MS}ms`);
+    fail({
+      name: "New video detection",
+      detail: `${targetId} not re-added after ${POLL_WAIT_MS}ms`
+    });
     return;
   }
 
   const bandsAfter = await cdp.evalAsync<Band[]>(PARSE_BANDS);
   const inlineAfter = bandsAfter.find(band => band.title === "");
   const pos = inlineAfter?.videoIds.indexOf(targetId) ?? -1;
-  pass("New video detection", `${targetId} re-detected at inline[${pos}]`);
+  pass({
+    name: "New video detection",
+    detail: `${targetId} re-detected at inline[${pos}]`
+  });
 }
 
 // ── Test 3: Upcoming → Live transition ───────────────────────────────────────
@@ -283,7 +301,10 @@ async function testLiveTransition(cdp: Cdp) {
   // Use the 3rd inline video so it's clearly not already at front
   const guineaPigId = inlineBand?.videoIds[2];
   if (!guineaPigId) {
-    skip("Upcoming→Live transition", "Fewer than 3 inline videos");
+    skip({
+      name: "Upcoming→Live transition",
+      reason: "Fewer than 3 inline videos"
+    });
     return;
   }
 
@@ -329,19 +350,31 @@ async function testLiveTransition(cdp: Cdp) {
   await cdp.evalAsync<void>(`() => window.__ytafDebug?.pausePolling?.()`);
 
   // ── Step A: dispatch "upcoming" status for guinea pig ──────────────────────
-  await dispatch(cdp, buildBrowsePayload(buildInlineContents("upcoming")));
+  await dispatch({
+    cdp,
+    payload: buildBrowsePayload(buildInlineContents("upcoming"))
+  });
 
-  // ── Step B: dispatch "live" — extension should detect the transition ────────
-  await dispatch(cdp, buildBrowsePayload(buildInlineContents("live")));
-  await delay(800); // extra wait for view transition animation
+  // ── Step B: dispatch "live" - extension should detect the transition ────────
+  await dispatch({
+    cdp,
+    payload: buildBrowsePayload(buildInlineContents("live"))
+  });
+  await delay(TRANSITION_WAIT_MS); // extra wait for view transition animation
 
   const bandsAfter = await cdp.evalAsync<Band[]>(PARSE_BANDS);
   const inlineAfter = bandsAfter.find(band => band.title === "");
   const posAfter = inlineAfter?.videoIds.indexOf(guineaPigId) ?? -1;
   if (posAfter === 0) {
-    pass("Upcoming→Live transition", `${guineaPigId} moved to inline[0]`);
+    pass({
+      name: "Upcoming→Live transition",
+      detail: `${guineaPigId} moved to inline[0]`
+    });
   } else {
-    fail("Upcoming→Live transition", `${guineaPigId} at inline[${posAfter}], expected [0]`);
+    fail({
+      name: "Upcoming→Live transition",
+      detail: `${guineaPigId} at inline[${posAfter}], expected [0]`
+    });
   }
 
   // ── 3b: Verify live badge is in the Polymer model ─────────────────────────
@@ -371,9 +404,15 @@ async function testLiveTransition(cdp: Cdp) {
   }`
   );
   if (hasLiveBadge) {
-    pass("Channel live badge in Polymer model", `${guineaPigId} carries LIVE badge`);
+    pass({
+      name: "Channel live badge in Polymer model",
+      detail: `${guineaPigId} carries LIVE badge`
+    });
   } else {
-    fail("Channel live badge in Polymer model", `${guineaPigId} missing LIVE badge in DOM data`);
+    fail({
+      name: "Channel live badge in Polymer model",
+      detail: `${guineaPigId} missing LIVE badge in DOM data`
+    });
   }
 
   await cdp.evalAsync<void>(`() => window.__ytafDebug?.resumePolling?.()`);
@@ -387,7 +426,7 @@ async function testLiveTransition(cdp: Cdp) {
 // Using synthetic payloads (rather than raw DOM data) avoids the DOM-specific
 // lockupViewModel.videoId format that parseApiResponse cannot parse.
 
-function permutations<T>(arr: T[]): T[][] {
+function permutations<T>(arr: T[]) {
   if (arr.length <= 1) {
     return [arr];
   }
@@ -407,7 +446,7 @@ function buildMinimalVideoRenderer(videoId: string) {
   };
 }
 
-function buildSectionContents(title: string, videoIds: string[]) {
+function buildSectionContents({ title, videoIds }: { title: string; videoIds: string[] }) {
   return {
     richSectionRenderer: {
       content: {
@@ -446,7 +485,10 @@ async function testLayoutReordering(cdp: Cdp) {
   const namedBands = bands.filter(band => band.title !== "");
   const inlineBand = bands.find(band => band.title === "");
   if (namedBands.length === 0) {
-    skip("Layout reordering", "No named sections found — inline-only layout");
+    skip({
+      name: "Layout reordering",
+      reason: "No named sections found - inline-only layout"
+    });
     return;
   }
 
@@ -455,14 +497,19 @@ async function testLayoutReordering(cdp: Cdp) {
 
   // Include ALL current inline video IDs so pendingRemovals never accumulates across
   // the 6+ sequential dispatches (each absent video needs 3 dispatches to be confirmed
-  // absent and actually removed from the DOM — omitting the full inline set would
+  // absent and actually removed from the DOM - omitting the full inline set would
   // cause spurious removals by dispatch 3+).
   const sampledInlineIds = inlineBand?.videoIds ?? [];
 
-  function buildPayloadContents(perm: Band[]): BrowseContentItem[] {
+  function buildPayloadContents(perm: Band[]) {
     const contents: BrowseContentItem[] = [];
     for (let i = 0; i < perm.length; i++) {
-      contents.push(buildSectionContents(perm[i].title, perm[i].videoIds));
+      contents.push(
+        buildSectionContents({
+          title: perm[i].title,
+          videoIds: perm[i].videoIds
+        })
+      );
 
       if (i === 0) {
         for (const id of sampledInlineIds) {
@@ -484,23 +531,32 @@ async function testLayoutReordering(cdp: Cdp) {
 
     testedNames.add(layoutName);
 
-    await dispatch(cdp, buildBrowsePayload(buildPayloadContents(perm)));
+    await dispatch({
+      cdp,
+      payload: buildBrowsePayload(buildPayloadContents(perm))
+    });
 
     const resultBands = await cdp.evalAsync<Band[]>(PARSE_BANDS);
     const actualSectionTitles = resultBands.filter(band => band.title !== "").map(band => band.title);
     const expectedSectionTitles = perm.map(band => band.title);
     if (JSON.stringify(actualSectionTitles) === JSON.stringify(expectedSectionTitles)) {
-      pass(`Layout: ${layoutName}`, `sections in DOM: [${actualSectionTitles.join(", ")}]`);
+      pass({
+        name: `Layout: ${layoutName}`,
+        detail: `sections in DOM: [${actualSectionTitles.join(", ")}]`
+      });
     } else {
-      fail(
-        `Layout: ${layoutName}`,
-        `expected [${expectedSectionTitles.join(", ")}] got [${actualSectionTitles.join(", ")}]`
-      );
+      fail({
+        name: `Layout: ${layoutName}`,
+        detail: `expected [${expectedSectionTitles.join(", ")}] got [${actualSectionTitles.join(", ")}]`
+      });
     }
   }
 
   // Restore original section order
-  await dispatch(cdp, buildBrowsePayload(buildPayloadContents(namedBands)));
+  await dispatch({
+    cdp,
+    payload: buildBrowsePayload(buildPayloadContents(namedBands))
+  });
   await cdp.evalAsync<void>(`() => window.__ytafDebug?.resumePolling?.()`);
 }
 
@@ -524,7 +580,7 @@ console.log(`  Viewport: ${viewport.width}×${viewport.height} (${viewportLabel}
 
 await testNewVideoDetection(cdp);
 await testLiveTransition(cdp);
-await delay(2_000);
+await delay(LAYOUT_SETTLE_MS);
 await testLayoutReordering(cdp);
 
 cdp.close();
@@ -532,9 +588,9 @@ cdp.close();
 // ── Summary ──────────────────────────────────────────────────────────────────
 const passed = results.filter(entry => entry.pass).length;
 const failed = results.filter(entry => !entry.pass).length;
-console.log(`\n${"═".repeat(54)}`);
+console.log(`\n${"═".repeat(SUMMARY_RULE_WIDTH)}`);
 console.log(`  Results (${viewportLabel}, ${viewport.width}×${viewport.height})`);
-console.log(`${"═".repeat(54)}`);
+console.log(`${"═".repeat(SUMMARY_RULE_WIDTH)}`);
 console.log(`  Total: ${results.length}  |  ✅ ${passed}  |  ❌ ${failed}`);
 
 if (failed > 0) {

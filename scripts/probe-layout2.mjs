@@ -5,8 +5,11 @@
 import net from "net";
 
 const FF_PORT = parseInt(process.argv[2] ?? "56517", 10);
+const POLL_FIRST_MS = 300;
+const POLL_RETRY_MS = 200;
+const TIMEOUT_MS = 40000;
 
-const probeJs = `
+const PROBE_JS = `
 (async () => {
   const elGrid = document.querySelector('ytd-rich-grid-renderer');
   if (!elGrid?.data?.contents?.length) { window.__r = JSON.stringify({ error: 'no grid' }); return; }
@@ -97,10 +100,13 @@ const probeJs = `
 `;
 
 console.log("Firefox layout probe...");
-const result = await evalDirectAsync(FF_PORT, probeJs);
+const result = await evalDirectAsync({
+  port: FF_PORT,
+  code: PROBE_JS
+});
 console.log(JSON.stringify(result, null, 2));
 
-function evalDirectAsync(port, code) {
+function evalDirectAsync({ port, code }) {
   return new Promise((resolve, reject) => {
     const socket = net.createConnection({
       port,
@@ -152,6 +158,14 @@ function evalDirectAsync(port, code) {
 
       return null;
     }
+    function finish(raw) {
+      socket.destroy();
+      try {
+        resolve(JSON.parse(raw));
+      } catch {
+        resolve(raw);
+      }
+    }
     function poll() {
       send({
         to: consoleActor,
@@ -200,21 +214,16 @@ function evalDirectAsync(port, code) {
       if (pkt.type === "evaluationResult") {
         if (phase === "running") {
           phase = "polling";
-          setTimeout(poll, 300);
+          setTimeout(poll, POLL_FIRST_MS);
           return;
         }
 
         if (phase === "polling") {
           const raw = values(pkt.result);
           if (raw) {
-            socket.destroy();
-            try {
-              resolve(JSON.parse(raw));
-            } catch (_) {
-              resolve(raw);
-            }
+            finish(raw);
           } else {
-            setTimeout(poll, 200);
+            setTimeout(poll, POLL_RETRY_MS);
           }
         }
       }
@@ -229,6 +238,6 @@ function evalDirectAsync(port, code) {
     setTimeout(() => {
       socket.destroy();
       reject(new Error("Timeout"));
-    }, 40000);
+    }, TIMEOUT_MS);
   });
 }

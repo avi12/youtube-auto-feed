@@ -1,4 +1,7 @@
 await (async () => {
+  const HEX_RADIX = 16;
+  const MAX_PAGES = 8;
+  const TOKEN_HEAD_LENGTH = 20;
   const YOUTUBE_ORIGIN = "https://www.youtube.com";
   async function sapisidHashHeader() {
     const textValue = document.cookie.match(/(?:^|;\s*)(?:SAPISID|__Secure-3PAPISID)=([^;]+)/)?.[1];
@@ -11,7 +14,7 @@ await (async () => {
       "SHA-1",
       new TextEncoder().encode(`${time} ${textValue} ${YOUTUBE_ORIGIN}`)
     );
-    return `SAPISIDHASH ${time}_${[...new Uint8Array(data)].map(buffer => buffer.toString(16).padStart(2, "0")).join("")}`;
+    return `SAPISIDHASH ${time}_${[...new Uint8Array(data)].map(buffer => buffer.toString(HEX_RADIX).padStart(2, "0")).join("")}`;
   }
   async function innertubePost(payload) {
     const key = ytcfg?.get("INNERTUBE_API_KEY");
@@ -40,7 +43,7 @@ await (async () => {
   }
 
   // find tokens that sit inside a continuationItemRenderer (the real "load more" tokens)
-  function findContinuationItemTokens(node, acc) {
+  function findContinuationItemTokens({ node, acc }) {
     if (!node || typeof node !== "object") {
       return acc;
     }
@@ -52,10 +55,19 @@ await (async () => {
       }
     }
 
-    for (const keyValue in node) {
-      findContinuationItemTokens(node[keyValue], acc);
+    for (const keyValue of Object.keys(node)) {
+      findContinuationItemTokens({
+        node: node[keyValue],
+        acc
+      });
     }
     return acc;
+  }
+  function listItemTokens(node) {
+    return findContinuationItemTokens({
+      node,
+      acc: []
+    });
   }
   function ucIn(obj) {
     return new Set([...JSON.stringify(obj).matchAll(/"channelId":"(UC[\w-]{22})"/g)].map(message => message[1]));
@@ -72,11 +84,11 @@ await (async () => {
 
   const all = new Set(ucIn(initial));
   const startCount = all.size;
-  const itemTokens = findContinuationItemTokens(initial, []);
+  const itemTokens = listItemTokens(initial);
   const pages = [];
   let token = itemTokens[0];
   const seenTokens = new Set();
-  for (let part = 0; token && !seenTokens.has(token) && part < 8; part++) {
+  for (let part = 0; token && !seenTokens.has(token) && part < MAX_PAGES; part++) {
     seenTokens.add(token);
     const resp = await innertubePost({ continuation: token });
     if (!resp) {
@@ -91,13 +103,13 @@ await (async () => {
     for (const id of ucIn(resp)) {
       all.add(id);
     }
-    const nextTokens = findContinuationItemTokens(resp, []);
+    const nextTokens = listItemTokens(resp);
     pages.push({
       page: part,
-      tokenHead: token.slice(0, 20),
+      tokenHead: token.slice(0, TOKEN_HEAD_LENGTH),
       newUc: all.size - before,
       total: all.size,
-      nextTokenHead: nextTokens[0]?.slice(0, 20) ?? null
+      nextTokenHead: nextTokens[0]?.slice(0, TOKEN_HEAD_LENGTH) ?? null
     });
     token = nextTokens[0];
   }
@@ -105,7 +117,7 @@ await (async () => {
   return {
     initialUc: startCount,
     continuationItemTokenCount: itemTokens.length,
-    continuationItemTokenHeads: itemTokens.map(timeValue => timeValue.slice(0, 20)),
+    continuationItemTokenHeads: itemTokens.map(timeValue => timeValue.slice(0, TOKEN_HEAD_LENGTH)),
     finalTotalUc: all.size,
     pages
   };

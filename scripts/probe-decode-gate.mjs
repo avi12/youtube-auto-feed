@@ -5,8 +5,11 @@
 import net from "net";
 
 const FF_PORT = parseInt(process.argv[2] ?? "56517", 10);
+const POLL_FIRST_MS = 200;
+const POLL_RETRY_MS = 150;
+const TIMEOUT_MS = 30000;
 
-const js = `
+const PROBE_JS = `
 (async () => {
   const img0 = document.querySelector('ytd-rich-grid-renderer img[src*="i.ytimg.com"], ytd-rich-grid-renderer img[src*="ggpht"], ytd-rich-grid-renderer img');
   const baseUrl = [...document.querySelectorAll('ytd-rich-grid-renderer img')].map(i => i.src).find(s => s && s.includes('ytimg.com'));
@@ -45,10 +48,13 @@ const js = `
 "ok"
 `;
 
-const result = await evalDirectAsync(FF_PORT, js);
+const result = await evalDirectAsync({
+  port: FF_PORT,
+  code: PROBE_JS
+});
 console.log(JSON.stringify(result, null, 2));
 
-function evalDirectAsync(port, code) {
+function evalDirectAsync({ port, code }) {
   return new Promise((resolve, reject) => {
     const socket = net.createConnection({
       port,
@@ -100,6 +106,14 @@ function evalDirectAsync(port, code) {
 
       return null;
     }
+    function finish(raw) {
+      socket.destroy();
+      try {
+        resolve(JSON.parse(raw));
+      } catch {
+        resolve(raw);
+      }
+    }
     function poll() {
       send({
         to: consoleActor,
@@ -148,21 +162,16 @@ function evalDirectAsync(port, code) {
       if (pkt.type === "evaluationResult") {
         if (phase === "running") {
           phase = "polling";
-          setTimeout(poll, 200);
+          setTimeout(poll, POLL_FIRST_MS);
           return;
         }
 
         if (phase === "polling") {
           const raw = values(pkt.result);
           if (raw) {
-            socket.destroy();
-            try {
-              resolve(JSON.parse(raw));
-            } catch (_) {
-              resolve(raw);
-            }
+            finish(raw);
           } else {
-            setTimeout(poll, 150);
+            setTimeout(poll, POLL_RETRY_MS);
           }
         }
       }
@@ -177,6 +186,6 @@ function evalDirectAsync(port, code) {
     setTimeout(() => {
       socket.destroy();
       reject(new Error("Timeout"));
-    }, 30000);
+    }, TIMEOUT_MS);
   });
 }

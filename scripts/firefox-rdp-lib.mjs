@@ -4,7 +4,10 @@
  */
 import net from "net";
 
-export function evalInFirefox(port, jsCode, { urlFragment = "youtube.com", timeoutMs = 20000 } = {}) {
+const DEFAULT_TIMEOUT_MS = 20000;
+const POLL_INTERVAL_MS = 150;
+
+export function evalInFirefox({ port, jsCode, urlFragment = "youtube.com", timeoutMs = DEFAULT_TIMEOUT_MS }) {
   return new Promise((resolve, reject) => {
     const socket = net.createConnection({
       port,
@@ -102,13 +105,9 @@ export function evalInFirefox(port, jsCode, { urlFragment = "youtube.com", timeo
           const raw = extractStringResult(pkt.result);
           if (raw) {
             socket.destroy();
-            try {
-              resolve(JSON.parse(raw));
-            } catch (_) {
-              resolve(raw);
-            }
+            resolve(parseResult(raw));
           } else {
-            setTimeout(pollForResult, 150);
+            setTimeout(pollForResult, POLL_INTERVAL_MS);
           }
         }
       }
@@ -145,4 +144,12 @@ export function evalInFirefox(port, jsCode, { urlFragment = "youtube.com", timeo
       reject(new Error("Timeout"));
     }, timeoutMs);
   });
+}
+
+function parseResult(raw) {
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return raw;
+  }
 }

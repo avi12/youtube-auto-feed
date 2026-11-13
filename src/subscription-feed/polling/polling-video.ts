@@ -3,7 +3,7 @@ import { isMainPlayerVideo, refreshVideoPage, resetVideoPageTracking } from "@/s
 import { isVideoPageUpdatesEnabled } from "@/subscription-feed/settings-state";
 import { isOnVideoPage, videoIdFromLocation } from "@/subscription-feed/utils/subscriptions-page";
 
-import { METADATA_POLL_INTERVAL_MS, type HandlerDeps } from "./polling-state";
+import { type HandlerDeps, METADATA_POLL_INTERVAL_MS } from "./polling-state";
 
 // The opt-in video page monitor (/watch and /shorts). It runs while the viewer has it switched on and
 // the extension is enabled: switching it on refreshes at once and then every 10s, switching it off stops
@@ -11,7 +11,6 @@ import { METADATA_POLL_INTERVAL_MS, type HandlerDeps } from "./polling-state";
 // the tab coming back into view. While the tab is hidden, ticks are skipped.
 
 export function createVideoPageHandlers({ state, getContext }: HandlerDeps) {
-
   function isVideoPageMonitorWanted() {
     return isOnVideoPage() && state.isEnabled && isVideoPageUpdatesEnabled();
   }

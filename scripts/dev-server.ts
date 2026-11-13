@@ -116,7 +116,12 @@ logStream.write(
   `\n========== session start ${new Date().toISOString()} pid=${process.pid} node=${process.version} ==========\n`
 );
 
-function writeToLog(prefix: string, args: unknown[]) {
+const KILL_TIMEOUT_MS = 5000;
+const MANIFEST_VERSION = 3;
+const TIME_SLICE_START = 11;
+const TIME_SLICE_END = 23;
+
+function writeToLog({ prefix, args }: { prefix: string; args: unknown[] }) {
   logStream.write(`[${new Date().toISOString()}] [${prefix}] ${format(...args)}\n`);
 }
 
@@ -125,17 +130,26 @@ const originalConsoleWarn = console.warn.bind(console);
 const originalConsoleError = console.error.bind(console);
 
 console.log = (...args: unknown[]) => {
-  writeToLog("log", args);
+  writeToLog({
+    prefix: "log",
+    args
+  });
   originalConsoleLog(...args);
 };
 
 console.warn = (...args: unknown[]) => {
-  writeToLog("warn", args);
+  writeToLog({
+    prefix: "warn",
+    args
+  });
   originalConsoleWarn(...args);
 };
 
 console.error = (...args: unknown[]) => {
-  writeToLog("error", args);
+  writeToLog({
+    prefix: "error",
+    args
+  });
   originalConsoleError(...args);
 };
 
@@ -189,7 +203,7 @@ function chromiumSourceUserDataDir(vendor: ChromiumVendor) {
   return map[vendor][platform()];
 }
 
-function setupChromiumProfile(profileDirectory: string, vendor: ChromiumVendor) {
+function setupChromiumProfile({ profileDirectory, vendor }: { profileDirectory: string; vendor: ChromiumVendor }) {
   const sentinel = join(profileDirectory, "Default", ".seeded");
   if (existsSync(sentinel)) {
     return;
@@ -295,7 +309,7 @@ function setupFirefoxProfile() {
   return FIREFOX_PROFILE_DIR;
 }
 
-function killProcessesByProfileDir(processName: string, profileDir: string) {
+function killProcessesByProfileDir({ processName, profileDir }: { processName: string; profileDir: string }) {
   if (platform() !== "win32") {
     return;
   }
@@ -309,24 +323,33 @@ Get-CimInstance Win32_Process -Filter "name='${processName}'" |
   spawnSync("powershell", ["-NoProfile", "-NonInteractive", "-Command", "-"], {
     input: script,
     stdio: ["pipe", "ignore", "ignore"],
-    timeout: 5000
+    timeout: KILL_TIMEOUT_MS
   });
 }
 
 function killExistingFirefoxInstances() {
-  killProcessesByProfileDir("firefox.exe", FIREFOX_PROFILE_DIR);
+  killProcessesByProfileDir({
+    processName: "firefox.exe",
+    profileDir: FIREFOX_PROFILE_DIR
+  });
 }
 
 function sweepRemainingBrowsers() {
   for (const spec of browserSpecs) {
     if (spec.vendor === "firefox") {
-      killProcessesByProfileDir("firefox.exe", FIREFOX_PROFILE_DIR);
+      killProcessesByProfileDir({
+        processName: "firefox.exe",
+        profileDir: FIREFOX_PROFILE_DIR
+      });
       continue;
     }
 
     const { profileDir } = CHROMIUM_CONFIG[spec.vendor];
     const processName = spec.vendor === "edge" ? "msedge.exe" : "chrome.exe";
-    killProcessesByProfileDir(processName, profileDir);
+    killProcessesByProfileDir({
+      processName,
+      profileDir
+    });
   }
 }
 
@@ -393,7 +416,15 @@ interface CdpTarget {
   webSocketDebuggerUrl?: string;
 }
 
-function sendCdpCommand(webSocketUrl: string, method: string, params: Record<string, unknown> = {}) {
+function sendCdpCommand({
+  webSocketUrl,
+  method,
+  params = {}
+}: {
+  webSocketUrl: string;
+  method: string;
+  params?: Record<string, unknown>;
+}) {
   return new Promise<void>(resolvePromise => {
     const websocket = new WebSocket(webSocketUrl);
     let isSettled = false;
@@ -445,7 +476,10 @@ async function reloadYouTubeTabsAt(cdpPort: number) {
         continue;
       }
 
-      await sendCdpCommand(target.webSocketDebuggerUrl, "Page.reload");
+      await sendCdpCommand({
+        webSocketUrl: target.webSocketDebuggerUrl,
+        method: "Page.reload"
+      });
     }
   } catch {
     // CDP HTTP endpoint not available
@@ -503,7 +537,7 @@ async function waitForCdpReady(cdpPort: number) {
 
 type ExtensionFormat = "chromium" | "firefox";
 
-function neededFormats(specs: BrowserSpec[]): ExtensionFormat[] {
+function neededFormats(specs: BrowserSpec[]) {
   const formats: ExtensionFormat[] = [];
   if (specs.some(spec => spec.withExtension && isChromiumVendor(spec.vendor))) {
     formats.push("chromium");
@@ -520,7 +554,7 @@ async function buildExtension(format: ExtensionFormat) {
   await build({
     root: PROJECT_ROOT,
     browser: format === "firefox" ? "firefox" : "chrome",
-    manifestVersion: 3,
+    manifestVersion: MANIFEST_VERSION,
     vite: () => ({
       build: {
         sourcemap: true
@@ -542,7 +576,13 @@ async function buildNeededFormats(formats: ExtensionFormat[]) {
 
 // ── Debounce ─────────────────────────────────────────────────────────────────
 
-function debounce<T extends unknown[]>(callback: (...args: T) => void | Promise<void>, delayMs: number) {
+function debounce<T extends unknown[]>({
+  callback,
+  delayMs
+}: {
+  callback: (...args: T) => void | Promise<void>;
+  delayMs: number;
+}) {
   let timer: ReturnType<typeof setTimeout> | null = null;
   return (...args: T) => {
     if (timer !== null) {
@@ -580,10 +620,13 @@ interface BrowserHandle {
   shutdown: () => Promise<void>;
 }
 
-async function launchChromium(spec: BrowserSpec & { vendor: ChromiumVendor }): Promise<BrowserHandle> {
+async function launchChromium(spec: BrowserSpec & { vendor: ChromiumVendor }) {
   const { profileDir, cdpPort } = CHROMIUM_CONFIG[spec.vendor];
   const binary = chromiumBinaryPath(spec.vendor);
-  setupChromiumProfile(profileDir, spec.vendor);
+  setupChromiumProfile({
+    profileDirectory: profileDir,
+    vendor: spec.vendor
+  });
 
   const sharedArgs = [
     `--remote-debugging-port=${cdpPort}`,
@@ -635,7 +678,7 @@ async function launchChromium(spec: BrowserSpec & { vendor: ChromiumVendor }): P
   };
 }
 
-async function launchFirefox(spec: BrowserSpec): Promise<BrowserHandle> {
+async function launchFirefox(spec: BrowserSpec) {
   killExistingFirefoxInstances();
   const profileDirectory = setupFirefoxProfile();
   if (spec.withExtension) {
@@ -689,23 +732,29 @@ async function launchBrowser(spec: BrowserSpec) {
 // ── Main ────────────────────────────────────────────────────────────────────
 
 function timestamp() {
-  return new Date().toISOString().slice(11, 23);
+  return new Date().toISOString().slice(TIME_SLICE_START, TIME_SLICE_END);
 }
 
 function log(message: string) {
   console.log(`[${timestamp()}] ${message}`);
 }
 
-function logError(message: string, error: unknown) {
+function logError({ message, error }: { message: string; error: unknown }) {
   console.error(`[${timestamp()}] ${message}`, error);
 }
 
 process.on("uncaughtException", error => {
-  logError("uncaughtException", error);
+  logError({
+    message: "uncaughtException",
+    error
+  });
 });
 
 process.on("unhandledRejection", reason => {
-  logError("unhandledRejection", reason);
+  logError({
+    message: "unhandledRejection",
+    error: reason
+  });
 });
 
 process.on("exit", code => {
@@ -741,7 +790,10 @@ async function main() {
       handles.push(await launchBrowser(spec));
       log(`${spec.vendor} launch complete.`);
     } catch (error) {
-      logError(`Failed to launch ${spec.vendor}:`, error);
+      logError({
+        message: `Failed to launch ${spec.vendor}:`,
+        error
+      });
       throw error;
     }
   }
@@ -755,39 +807,56 @@ async function main() {
     interval: 500
   });
 
-  watcher.on("error", error => logError("chokidar error:", error));
+  watcher.on("error", error =>
+    logError({
+      message: "chokidar error:",
+      error
+    })
+  );
   watcher.on("ready", () => log("chokidar ready."));
 
-  const onFileChange = debounce(async (_event: string, filePath: string) => {
-    log(`\nChange detected: ${filePath}`);
-    log("Rebuilding...");
-    try {
-      await buildNeededFormats(formats);
-      log("Build complete. Reloading extensions...");
-      for (const handle of handles) {
-        try {
-          await handle.reloadExtension();
-          log(`${handle.spec.vendor}: extension reloaded.`);
-        } catch (error) {
-          logError(`${handle.spec.vendor}: reloadExtension failed:`, error);
+  const onFileChange = debounce({
+    async callback(_event: string, filePath: string) {
+      log(`\nChange detected: ${filePath}`);
+      log("Rebuilding...");
+      try {
+        await buildNeededFormats(formats);
+        log("Build complete. Reloading extensions...");
+        for (const handle of handles) {
+          try {
+            await handle.reloadExtension();
+            log(`${handle.spec.vendor}: extension reloaded.`);
+          } catch (error) {
+            logError({
+              message: `${handle.spec.vendor}: reloadExtension failed:`,
+              error
+            });
+          }
         }
-      }
 
-      log("Reloading tabs...");
-      for (const handle of handles) {
-        try {
-          await handle.reloadTabs();
-          log(`${handle.spec.vendor}: tabs reloaded.`);
-        } catch (error) {
-          logError(`${handle.spec.vendor}: reloadTabs failed:`, error);
+        log("Reloading tabs...");
+        for (const handle of handles) {
+          try {
+            await handle.reloadTabs();
+            log(`${handle.spec.vendor}: tabs reloaded.`);
+          } catch (error) {
+            logError({
+              message: `${handle.spec.vendor}: reloadTabs failed:`,
+              error
+            });
+          }
         }
-      }
 
-      log(`Rebuild cycle finished at ${new Date().toLocaleTimeString()}`);
-    } catch (error) {
-      logError("Rebuild failed:", error);
-    }
-  }, REBUILD_DEBOUNCE_MS);
+        log(`Rebuild cycle finished at ${new Date().toLocaleTimeString()}`);
+      } catch (error) {
+        logError({
+          message: "Rebuild failed:",
+          error
+        });
+      }
+    },
+    delayMs: REBUILD_DEBOUNCE_MS
+  });
 
   watcher.on("all", (event, filePath) => onFileChange(event, filePath));
 
@@ -804,7 +873,10 @@ async function main() {
       await watcher.close();
       log("watcher closed.");
     } catch (error) {
-      logError("watcher.close failed:", error);
+      logError({
+        message: "watcher.close failed:",
+        error
+      });
     }
 
     for (const handle of handles) {
@@ -812,7 +884,10 @@ async function main() {
         await handle.shutdown();
         log(`${handle.spec.vendor}: shutdown complete.`);
       } catch (error) {
-        logError(`${handle.spec.vendor}: shutdown failed:`, error);
+        logError({
+          message: `${handle.spec.vendor}: shutdown failed:`,
+          error
+        });
       }
     }
 
@@ -834,6 +909,9 @@ async function main() {
 }
 
 main().catch(error => {
-  logError("Fatal in main():", error);
+  logError({
+    message: "Fatal in main():",
+    error
+  });
   process.exit(1);
 });

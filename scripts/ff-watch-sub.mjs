@@ -1,3 +1,5 @@
+const BYTES_PER_KB = 1024;
+const ENTITY_PREVIEW_COUNT = 6;
 await (async () => {
   async function watchSub(videoId) {
     const res = await fetch(`/watch?v=${videoId}`, { credentials: "include" });
@@ -6,11 +8,11 @@ await (async () => {
     let parsed = null;
     try {
       parsed = JSON.parse(data ?? "{}");
-    } catch (error) {
+    } catch {
       return {
         videoId,
         parseError: true,
-        sizeKB: Math.round(html.length / 1024)
+        sizeKB: Math.round(html.length / BYTES_PER_KB)
       };
     }
     const entities = [];
@@ -30,28 +32,30 @@ await (async () => {
         let channel = null;
         try {
           channel = (atob(count.subscriptionStateEntity.key).match(/UC[\w-]{22}/) ?? [])[0] ?? null;
-        } catch (errorValue) {}
+        } catch {
+          channel = null;
+        }
         entities.push({
           channel,
           subscribed: count.subscriptionStateEntity.subscribed
         });
       }
 
-      for (const keyValue in count) {
+      for (const keyValue of Object.keys(count)) {
         walk(count[keyValue]);
       }
     })(parsed);
     return {
       videoId,
       httpOk: res.ok,
-      sizeKB: Math.round(html.length / 1024),
+      sizeKB: Math.round(html.length / BYTES_PER_KB),
       dataFound: !!data,
       entityCount: entities.length,
-      entities: entities.slice(0, 6)
+      entities: entities.slice(0, ENTITY_PREVIEW_COUNT)
     };
   }
   return {
-    grizzy_expectTrue: await watchSub("_rTtgK2YKSs"),
-    collab_expectFalse: await watchSub("iRgin1tWIT8")
+    grizzyExpectTrue: await watchSub("_rTtgK2YKSs"),
+    collabExpectFalse: await watchSub("iRgin1tWIT8")
   };
 })();

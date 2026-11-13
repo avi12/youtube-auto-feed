@@ -35,7 +35,15 @@ async function getYouTubeTarget(port: number) {
   );
 }
 
-function sendCommand<T>(webSocketUrl: string, method: string, params: Record<string, unknown> = {}) {
+function sendCommand<T>({
+  webSocketUrl,
+  method,
+  params = {}
+}: {
+  webSocketUrl: string;
+  method: string;
+  params?: Record<string, unknown>;
+}) {
   return new Promise<T>((resolvePromise, reject) => {
     const socket = new WebSocket(webSocketUrl);
     socket.onopen = () =>
@@ -64,13 +72,17 @@ function sendCommand<T>(webSocketUrl: string, method: string, params: Record<str
   });
 }
 
-async function evaluate<T>(webSocketUrl: string, expression: string) {
+async function evaluate<T>({ webSocketUrl, expression }: { webSocketUrl: string; expression: string }) {
   const result = await sendCommand<{
     result: { value: T };
-  }>(webSocketUrl, "Runtime.evaluate", {
-    expression,
-    returnByValue: true,
-    awaitPromise: true
+  }>({
+    webSocketUrl,
+    method: "Runtime.evaluate",
+    params: {
+      expression,
+      returnByValue: true,
+      awaitPromise: true
+    }
   });
   return result.result.value;
 }
@@ -127,15 +139,22 @@ const SNAPSHOT_EXPRESSION = `(() => {
   return { url: location.href, bands, contentsLength: contents.length, hasExtension: !!globalThis.__ytafDebug };
 })()`;
 
-async function snapshot(port: number, label: string) {
+async function snapshot({ port, label }: { port: number; label: string }) {
   const target = await getYouTubeTarget(port);
   if (!target?.webSocketDebuggerUrl) {
     throw new Error(`${label}: no YouTube tab on port ${port}`);
   }
 
-  const snap = await evaluate<PageSnapshot>(target.webSocketDebuggerUrl, SNAPSHOT_EXPRESSION);
-  const shot = await sendCommand<{ data: string }>(target.webSocketDebuggerUrl, "Page.captureScreenshot", {
-    format: "png"
+  const snap = await evaluate<PageSnapshot>({
+    webSocketUrl: target.webSocketDebuggerUrl,
+    expression: SNAPSHOT_EXPRESSION
+  });
+  const shot = await sendCommand<{ data: string }>({
+    webSocketUrl: target.webSocketDebuggerUrl,
+    method: "Page.captureScreenshot",
+    params: {
+      format: "png"
+    }
   });
   return {
     snap,
@@ -154,7 +173,7 @@ function foldByHeader(snap: PageSnapshot) {
   return map;
 }
 
-function report(edge: PageSnapshot, chrome: PageSnapshot) {
+function report({ edge, chrome }: { edge: PageSnapshot; chrome: PageSnapshot }) {
   console.log(`Edge   (ext=${edge.hasExtension}) contents=${edge.contentsLength} url=${edge.url}`);
   console.log(`Chrome (ext=${chrome.hasExtension}) contents=${chrome.contentsLength} url=${chrome.url}`);
   console.log("\n=== Section order ===");
@@ -181,11 +200,11 @@ function report(edge: PageSnapshot, chrome: PageSnapshot) {
     );
 
     if (edgeOnly.length) {
-      console.log(`    edge-only (kept after YouTube dropped — OK): ${edgeOnly.join(", ")}`);
+      console.log(`    edge-only (kept after YouTube dropped - OK): ${edgeOnly.join(", ")}`);
     }
 
     if (chromeOnly.length) {
-      console.log(`    chrome-only (YouTube shows, Edge missing — BUG candidate): ${chromeOnly.join(", ")}`);
+      console.log(`    chrome-only (YouTube shows, Edge missing - BUG candidate): ${chromeOnly.join(", ")}`);
       hasBug = true;
     }
   }
@@ -196,8 +215,14 @@ function report(edge: PageSnapshot, chrome: PageSnapshot) {
 const outDir = resolve(import.meta.dirname, "..", "tmp", "compare");
 mkdirSync(outDir, { recursive: true });
 
-const edge = await snapshot(9232, "Edge");
-const chrome = await snapshot(9233, "Chrome");
+const edge = await snapshot({
+  port: 9232,
+  label: "Edge"
+});
+const chrome = await snapshot({
+  port: 9233,
+  label: "Chrome"
+});
 
 const stamp = new Date().toISOString().replace(/[:.]/g, "-");
 const edgePath = resolve(outDir, `edge-${stamp}.png`);
@@ -205,5 +230,8 @@ const chromePath = resolve(outDir, `chrome-${stamp}.png`);
 writeFileSync(edgePath, Buffer.from(edge.screenshot, "base64"));
 writeFileSync(chromePath, Buffer.from(chrome.screenshot, "base64"));
 
-report(edge.snap, chrome.snap);
+report({
+  edge: edge.snap,
+  chrome: chrome.snap
+});
 console.log(`\nScreenshots:\n  Edge:   ${edgePath}\n  Chrome: ${chromePath}`);

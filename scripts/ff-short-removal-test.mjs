@@ -6,10 +6,13 @@ await (async () => {
     return { error: "no shorts shelf" };
   }
 
-  const idOf = item =>
-    item?.richItemRenderer?.content?.shortsLockupViewModel?.onTap?.innertubeCommand?.reelWatchEndpoint?.videoId ??
-    item?.richItemRenderer?.content?.lockupViewModel?.contentId ??
-    null;
+  function idOf(item) {
+    return (
+      item?.richItemRenderer?.content?.shortsLockupViewModel?.onTap?.innertubeCommand?.reelWatchEndpoint?.videoId ??
+      item?.richItemRenderer?.content?.lockupViewModel?.contentId ??
+      null
+    );
+  }
   const contents = elShelf.data.contents ?? [];
   const before = contents.map(idOf);
   // target a VISIBLE rendered short tile

@@ -5,8 +5,11 @@
 import net from "net";
 
 const FF_PORT = parseInt(process.argv[2] ?? "56517", 10);
+const FIRST_POLL_DELAY_MS = 300;
+const POLL_DELAY_MS = 200;
+const TIMEOUT_MS = 40000;
 
-const probeCode = `
+const PROBE_CODE = `
 (async () => {
   const elGrid = document.querySelector('ytd-rich-grid-renderer');
   if (!elGrid?.data?.contents?.length) { window.__r = JSON.stringify({ error: 'no grid' }); return; }
@@ -104,10 +107,21 @@ const probeCode = `
 `;
 
 console.log("Running Firefox probe...");
-const ffResult = await evalDirectAsync(FF_PORT, probeCode);
+const ffResult = await evalDirectAsync({
+  port: FF_PORT,
+  code: PROBE_CODE
+});
 console.log("Firefox:", JSON.stringify(ffResult, null, 2));
 
-function evalDirectAsync(port, code) {
+function parseOrRaw(raw) {
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return raw;
+  }
+}
+
+function evalDirectAsync({ port, code }) {
   return new Promise((resolve, reject) => {
     const socket = net.createConnection({
       port,
@@ -214,7 +228,7 @@ function evalDirectAsync(port, code) {
       if (pkt.type === "evaluationResult") {
         if (phase === "running") {
           phase = "polling";
-          setTimeout(poll, 300);
+          setTimeout(poll, FIRST_POLL_DELAY_MS);
           return;
         }
 
@@ -222,13 +236,9 @@ function evalDirectAsync(port, code) {
           const raw = extractString(pkt.result);
           if (raw) {
             socket.destroy();
-            try {
-              resolve(JSON.parse(raw));
-            } catch (_) {
-              resolve(raw);
-            }
+            resolve(parseOrRaw(raw));
           } else {
-            setTimeout(poll, 200);
+            setTimeout(poll, POLL_DELAY_MS);
           }
         }
       }
@@ -244,6 +254,6 @@ function evalDirectAsync(port, code) {
     setTimeout(() => {
       socket.destroy();
       reject(new Error("Timeout"));
-    }, 40000);
+    }, TIMEOUT_MS);
   });
 }

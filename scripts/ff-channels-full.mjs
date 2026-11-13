@@ -1,4 +1,5 @@
 await (async () => {
+  const HEX_RADIX = 16;
   const YOUTUBE_ORIGIN = "https://www.youtube.com";
   async function sapisidHashHeader() {
     const textValue = document.cookie.match(/(?:^|;\s*)(?:SAPISID|__Secure-3PAPISID)=([^;]+)/)?.[1];
@@ -11,9 +12,9 @@ await (async () => {
       "SHA-1",
       new TextEncoder().encode(`${time} ${textValue} ${YOUTUBE_ORIGIN}`)
     );
-    return `SAPISIDHASH ${time}_${[...new Uint8Array(data)].map(buffer => buffer.toString(16).padStart(2, "0")).join("")}`;
+    return `SAPISIDHASH ${time}_${[...new Uint8Array(data)].map(buffer => buffer.toString(HEX_RADIX).padStart(2, "0")).join("")}`;
   }
-  async function innertubePost(endpoint, payload) {
+  async function innertubePost({ endpoint, payload }) {
     const key = ytcfg?.get("INNERTUBE_API_KEY");
     const char = ytcfg?.get("INNERTUBE_CONTEXT");
     if (!key || !char) {
@@ -49,7 +50,7 @@ await (async () => {
   const CONTINUATION = /"continuationCommand":\{"token":"([^"]+)"/;
   const PAGE_CAP = 8;
 
-  function readKeys(text, into) {
+  function readKeys({ text, into }) {
     for (const message of text.matchAll(CHANNEL_ID)) {
       into.add(message[1]);
     }
@@ -62,13 +63,21 @@ await (async () => {
   const initialData =
     (await (await fetch("/feed/channels", { credentials: "include" })).text()).match(INITIAL_DATA)?.[1] ?? "";
   const keys = new Set();
-  readKeys(initialData, keys);
+  readKeys({
+    text: initialData,
+    into: keys
+  });
   const initialCount = keys.size;
 
   const pageSizes = [];
   let token = initialData.match(CONTINUATION)?.[1];
   for (let page = 0; token && page < PAGE_CAP; page++) {
-    const continuation = await innertubePost("browse", { continuation: token });
+    const continuation = await innertubePost({
+      endpoint: "browse",
+      payload: {
+        continuation: token
+      }
+    });
     if (!continuation) {
       pageSizes.push("null-response");
       break;
@@ -76,10 +85,14 @@ await (async () => {
 
     const before = keys.size;
     const text = JSON.stringify(continuation);
-    readKeys(text, keys);
+    readKeys({
+      text,
+      into: keys
+    });
     pageSizes.push(keys.size - before);
     const next = text.match(CONTINUATION)?.[1];
-    token = next && next !== token && keys.size > before ? next : undefined;
+    const isNewPage = next && next !== token && keys.size > before;
+    token = isNewPage ? next : undefined;
   }
 
   const ucCount = [...keys].filter(keyValue => keyValue.startsWith("UC")).length;

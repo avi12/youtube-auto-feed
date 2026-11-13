@@ -1,3 +1,6 @@
+const HTTP_NOT_FOUND = 404;
+const CHECK_BUDGET = 16;
+const SHELF_SLICE_END = 8;
 await (async () => {
   const INITIAL_DATA = /ytInitialData\s*=\s*(\{.+?\})\s*;\s*<\/script>/s;
   const chText = await (await fetch("/feed/channels", { credentials: "include" })).text();
@@ -15,7 +18,7 @@ await (async () => {
     const result = await fetch(
       `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`
     ).catch(() => null);
-    if (result?.status === 404) {
+    if (result?.status === HTTP_NOT_FOUND) {
       return {
         handle: null,
         isAvailable: false
@@ -28,17 +31,20 @@ await (async () => {
       isAvailable: true
     };
   }
-  async function isRemovable(video, subscribedKeys, budget) {
+  async function isRemovable({ video, subscribedKeys, budget }) {
     let channelKeys = video.lockupChannelIds;
     let isAvailable = true;
     if (channelKeys.length === 0 || video.isAbsent) {
-      if (budget.checks >= 16) {
+      if (budget.checks >= CHECK_BUDGET) {
         return false;
       }
 
       budget.checks++;
       const res = await fetchVideoChannel(video.videoId);
-      channelKeys = channelKeys.length > 0 ? channelKeys : res.handle ? [res.handle] : [];
+      if (channelKeys.length === 0 && res.handle) {
+        channelKeys = [res.handle];
+      }
+
       isAvailable = res.isAvailable;
     }
 
@@ -60,7 +66,7 @@ await (async () => {
       continue;
     }
 
-    for (const sub of (shelf.contents ?? []).slice(0, 8)) {
+    for (const sub of (shelf.contents ?? []).slice(0, SHELF_SLICE_END)) {
       const lvm = sub?.richItemRenderer?.content?.lockupViewModel;
       const shorts = sub?.richItemRenderer?.content?.shortsLockupViewModel;
       const vid = lvm?.contentId ?? shorts?.onTap?.innertubeCommand?.reelWatchEndpoint?.videoId;
@@ -92,7 +98,11 @@ await (async () => {
       id: value.videoId,
       shelf: value.shelf,
       kind: value.kind,
-      removable: await isRemovable(value, keys, budget)
+      removable: await isRemovable({
+        video: value,
+        subscribedKeys: keys,
+        budget
+      })
     }))
   );
 
@@ -105,22 +115,26 @@ await (async () => {
   if (firstShort) {
     removalCases.push({
       label: `short ${firstShort.videoId} (${resolvedHandle}) unsubscribed`,
-      removable: await isRemovable(firstShort, simKeys, budget2),
+      removable: await isRemovable({
+        video: firstShort,
+        subscribedKeys: simKeys,
+        budget: budget2
+      }),
       expect: true
     });
   }
 
   removalCases.push({
     label: "deleted id (404)",
-    removable: await isRemovable(
-      {
+    removable: await isRemovable({
+      video: {
         videoId: "ZZprobeZZ00",
         lockupChannelIds: [],
         isAbsent: true
       },
-      keys,
-      budget2
-    ),
+      subscribedKeys: keys,
+      budget: budget2
+    }),
     expect: true
   });
 

@@ -10,7 +10,6 @@ import { invalidateSubscriptionCache } from "@/subscription-feed/youtube-api/sub
 import { type HandlerDeps, preloadSnapshotThumbnails } from "./polling-state";
 
 export function createFetchHandlers({ state, getContext }: HandlerDeps) {
-
   async function fetchFreshVideos(isInitialLoad = false) {
     const isPollEligible = isOnSubscriptionsPage() && state.isDomReady && state.isEnabled;
     if (!isPollEligible) {

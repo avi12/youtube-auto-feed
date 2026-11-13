@@ -3,10 +3,9 @@ import { cleanOrphanedGridItems } from "@/subscription-feed/dom/cleanup/orphan-c
 import { resetLazyUpdates } from "@/subscription-feed/dom/lazy/lazy-update";
 import { isOnSubscriptionsPage, isOnVideoPage } from "@/subscription-feed/utils/subscriptions-page";
 
-import { METADATA_POLL_INTERVAL_MS, type HandlerDeps, ORPHAN_CLEANUP_INTERVAL_MS } from "./polling-state";
+import { type HandlerDeps, METADATA_POLL_INTERVAL_MS, ORPHAN_CLEANUP_INTERVAL_MS } from "./polling-state";
 
 export function createLifecycleHandlers({ state, getContext }: HandlerDeps) {
-
   function startMonitoring() {
     document.addEventListener("visibilitychange", getContext().handlePageFocus);
     state.cancelBroadcastListener = ytafChannel.onMessage({
@@ -15,7 +14,9 @@ export function createLifecycleHandlers({ state, getContext }: HandlerDeps) {
     });
     getContext().restartPolling();
     state.metadataPollingTimer = setInterval(() => {
-      getContext().fetchAndApplyMetadataUpdates().catch(() => {});
+      getContext()
+        .fetchAndApplyMetadataUpdates()
+        .catch(() => {});
     }, METADATA_POLL_INTERVAL_MS);
     state.orphanCleanupTimer = setInterval(() => {
       const isCleanableNow = state.isDomReady && !state.isApplyingChanges && state.isEnabled;

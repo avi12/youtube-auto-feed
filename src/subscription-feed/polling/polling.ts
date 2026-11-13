@@ -15,7 +15,10 @@ import { createVideoPageHandlers } from "./polling-video";
 
 export function createSubscriptionMonitor() {
   const state = createMonitorState();
-  const deps = { state, getContext: () => context };
+  const deps = {
+    state,
+    getContext: () => context
+  };
   const context: MonitorContext = {
     state,
     ...createApplyHandlers(deps),

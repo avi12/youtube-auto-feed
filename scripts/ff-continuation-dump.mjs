@@ -1,4 +1,9 @@
 await (async () => {
+  const HEX_RADIX = 16;
+  const TOKEN_HEAD_SHORT = 30;
+  const TOKEN_HEAD_LONG = 40;
+  const SAMPLE_LENGTH = 260;
+  const HEAD_LENGTH = 400;
   const YOUTUBE_ORIGIN = "https://www.youtube.com";
   async function sapisidHashHeader() {
     const textValue = document.cookie.match(/(?:^|;\s*)(?:SAPISID|__Secure-3PAPISID)=([^;]+)/)?.[1];
@@ -11,9 +16,9 @@ await (async () => {
       "SHA-1",
       new TextEncoder().encode(`${time} ${textValue} ${YOUTUBE_ORIGIN}`)
     );
-    return `SAPISIDHASH ${time}_${[...new Uint8Array(data)].map(buffer => buffer.toString(16).padStart(2, "0")).join("")}`;
+    return `SAPISIDHASH ${time}_${[...new Uint8Array(data)].map(buffer => buffer.toString(HEX_RADIX).padStart(2, "0")).join("")}`;
   }
-  async function innertubePost(endpoint, payload) {
+  async function innertubePost({ endpoint, payload }) {
     const key = ytcfg?.get("INNERTUBE_API_KEY");
     const char = ytcfg?.get("INNERTUBE_CONTEXT");
     if (!key || !char) {
@@ -52,29 +57,34 @@ await (async () => {
     return { error: "no token in initial" };
   }
 
-  const cont = await innertubePost("browse", { continuation: token });
+  const cont = await innertubePost({
+    endpoint: "browse",
+    payload: {
+      continuation: token
+    }
+  });
   if (!cont) {
     return {
       error: "null continuation response",
-      tokenHead: token.slice(0, 30)
+      tokenHead: token.slice(0, TOKEN_HEAD_SHORT)
     };
   }
 
   const text = JSON.stringify(cont);
 
   return {
-    tokenHead: token.slice(0, 40),
+    tokenHead: token.slice(0, TOKEN_HEAD_LONG),
     topLevelKeys: Object.keys(cont),
     responseLength: text.length,
-    occ_channelRenderer: (text.match(/"channelRenderer"/g) ?? []).length,
-    occ_channelId_UC: (text.match(/"channelId":"UC[\w-]{22}"/g) ?? []).length,
-    occ_strictRegex: (text.match(/"channelRenderer":\{"channelId":"UC[\w-]{22}"/g) ?? []).length,
-    occ_canonicalHandle: (text.match(/"canonicalBaseUrl":"\/@[\w.-]+"/g) ?? []).length,
-    occ_continuationItems: (text.match(/"continuationItems"/g) ?? []).length,
-    occ_appendAction: (text.match(/"appendContinuationItemsAction"/g) ?? []).length,
+    occChannelRenderer: (text.match(/"channelRenderer"/g) ?? []).length,
+    occChannelIdUc: (text.match(/"channelId":"UC[\w-]{22}"/g) ?? []).length,
+    occStrictRegex: (text.match(/"channelRenderer":\{"channelId":"UC[\w-]{22}"/g) ?? []).length,
+    occCanonicalHandle: (text.match(/"canonicalBaseUrl":"\/@[\w.-]+"/g) ?? []).length,
+    occContinuationItems: (text.match(/"continuationItems"/g) ?? []).length,
+    occAppendAction: (text.match(/"appendContinuationItemsAction"/g) ?? []).length,
     sampleAroundChannelRenderer: text.includes('"channelRenderer"')
-      ? text.slice(text.indexOf('"channelRenderer"'), text.indexOf('"channelRenderer"') + 260)
+      ? text.slice(text.indexOf('"channelRenderer"'), text.indexOf('"channelRenderer"') + SAMPLE_LENGTH)
       : null,
-    head: text.slice(0, 400)
+    head: text.slice(0, HEAD_LENGTH)
   };
 })();

@@ -1,4 +1,7 @@
 await (async () => {
+  const HEX_RADIX = 16;
+  const MAX_TOKENS = 6;
+  const TOKEN_HEAD_LENGTH = 24;
   const YOUTUBE_ORIGIN = "https://www.youtube.com";
   async function sapisidHashHeader() {
     const textValue = document.cookie.match(/(?:^|;\s*)(?:SAPISID|__Secure-3PAPISID)=([^;]+)/)?.[1];
@@ -11,9 +14,9 @@ await (async () => {
       "SHA-1",
       new TextEncoder().encode(`${time} ${textValue} ${YOUTUBE_ORIGIN}`)
     );
-    return `SAPISIDHASH ${time}_${[...new Uint8Array(data)].map(buffer => buffer.toString(16).padStart(2, "0")).join("")}`;
+    return `SAPISIDHASH ${time}_${[...new Uint8Array(data)].map(buffer => buffer.toString(HEX_RADIX).padStart(2, "0")).join("")}`;
   }
-  async function innertubePost(endpoint, payload) {
+  async function innertubePost({ endpoint, payload }) {
     const key = ytcfg?.get("INNERTUBE_API_KEY");
     const char = ytcfg?.get("INNERTUBE_CONTEXT");
     if (!key || !char) {
@@ -42,9 +45,12 @@ await (async () => {
     }).catch(() => null);
     return result?.ok ? result.json().catch(() => null) : null;
   }
-  const ucIn = text => new Set([...text.matchAll(/"channelId":"(UC[\w-]{22})"/g)].map(message => message[1]));
-  const browseUcIn = text =>
-    new Set([...text.matchAll(/"browseId":"(UC[\w-]{22})"/g)].map(messageValue => messageValue[1]));
+  function ucIn(text) {
+    return new Set([...text.matchAll(/"channelId":"(UC[\w-]{22})"/g)].map(message => message[1]));
+  }
+  function browseUcIn(text) {
+    return new Set([...text.matchAll(/"browseId":"(UC[\w-]{22})"/g)].map(messageValue => messageValue[1]));
+  }
 
   const INITIAL_DATA = /ytInitialData\s*=\s*(\{.+?\})\s*;\s*<\/script>/s;
   const initialData =
@@ -60,20 +66,28 @@ await (async () => {
     )
   ];
   const tokenResults = [];
-  for (const token of tokens.slice(0, 6)) {
-    const cont = await innertubePost("browse", { continuation: token });
+  for (const token of tokens.slice(0, MAX_TOKENS)) {
+    const cont = await innertubePost({
+      endpoint: "browse",
+      payload: {
+        continuation: token
+      }
+    });
     const text = cont ? JSON.stringify(cont) : "";
     const contextValue = ucIn(text);
     const newUc = [...contextValue].filter(id => !initialUc.has(id)).length;
     tokenResults.push({
-      tokenHead: token.slice(0, 24),
+      tokenHead: token.slice(0, TOKEN_HEAD_LENGTH),
       totalUc: contextValue.size,
       newUc
     });
   }
 
   // (2) guide endpoint (sidebar subscriptions)
-  const guide = await innertubePost("guide", {});
+  const guide = await innertubePost({
+    endpoint: "guide",
+    payload: {}
+  });
   const guideText = guide ? JSON.stringify(guide) : "";
   const guideBrowseUc = browseUcIn(guideText);
   const guideHandles = new Set(

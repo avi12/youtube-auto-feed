@@ -1,4 +1,7 @@
 await (async () => {
+  const HEX_RADIX = 16;
+  const WIDE_POINTS = 2000;
+  const TALL_POINTS = 6000;
   const YOUTUBE_ORIGIN = "https://www.youtube.com";
   async function sapisidHashHeader() {
     const text = document.cookie.match(/(?:^|;\s*)(?:SAPISID|__Secure-3PAPISID)=([^;]+)/)?.[1];
@@ -8,7 +11,7 @@ await (async () => {
 
     const time = Math.floor(Date.now() / 1000);
     const data = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(`${time} ${text} ${YOUTUBE_ORIGIN}`));
-    return `SAPISIDHASH ${time}_${[...new Uint8Array(data)].map(buffer => buffer.toString(16).padStart(2, "0")).join("")}`;
+    return `SAPISIDHASH ${time}_${[...new Uint8Array(data)].map(buffer => buffer.toString(HEX_RADIX).padStart(2, "0")).join("")}`;
   }
   const auth = await sapisidHashHeader();
   const key = ytcfg.get("INNERTUBE_API_KEY");
@@ -60,17 +63,17 @@ await (async () => {
 
   return {
     baseline: await browseFEchannels({}),
-    windowWidth2000: await browseFEchannels({ windowWidthPoints: 2000 }),
+    windowWidth2000: await browseFEchannels({ windowWidthPoints: WIDE_POINTS }),
     screenPoints: await browseFEchannels({
-      screenWidthPoints: 2000,
-      screenHeightPoints: 6000,
+      screenWidthPoints: WIDE_POINTS,
+      screenHeightPoints: TALL_POINTS,
       screenPixelDensity: 1,
       screenDensityFloat: 1
     }),
     combined: await browseFEchannels({
-      windowWidthPoints: 2000,
-      screenWidthPoints: 2000,
-      screenHeightPoints: 6000,
+      windowWidthPoints: WIDE_POINTS,
+      screenWidthPoints: WIDE_POINTS,
+      screenHeightPoints: TALL_POINTS,
       screenPixelDensity: 1,
       screenDensityFloat: 1,
       memoryTotalKbytes: "8000000"

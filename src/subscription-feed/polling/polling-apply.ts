@@ -17,7 +17,6 @@ import {
 } from "./polling-state";
 
 export function createApplyHandlers({ state }: HandlerDeps) {
-
   async function applyChanges({ payload, isInitialLoad = false }: ApplyChangesParams) {
     if (state.isApplyingChanges) {
       return false;

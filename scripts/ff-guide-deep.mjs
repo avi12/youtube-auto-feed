@@ -1,4 +1,5 @@
 await (async () => {
+  const HEX_RADIX = 16;
   const YOUTUBE_ORIGIN = "https://www.youtube.com";
   async function sapisidHashHeader() {
     const text = document.cookie.match(/(?:^|;\s*)(?:SAPISID|__Secure-3PAPISID)=([^;]+)/)?.[1];
@@ -8,9 +9,9 @@ await (async () => {
 
     const time = Math.floor(Date.now() / 1000);
     const data = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(`${time} ${text} ${YOUTUBE_ORIGIN}`));
-    return `SAPISIDHASH ${time}_${[...new Uint8Array(data)].map(buffer => buffer.toString(16).padStart(2, "0")).join("")}`;
+    return `SAPISIDHASH ${time}_${[...new Uint8Array(data)].map(buffer => buffer.toString(HEX_RADIX).padStart(2, "0")).join("")}`;
   }
-  async function call(endpoint, payload) {
+  async function call({ endpoint, payload }) {
     const key = ytcfg.get("INNERTUBE_API_KEY"),
       char = ytcfg.get("INNERTUBE_CONTEXT");
     const first = await sapisidHashHeader();
@@ -36,16 +37,18 @@ await (async () => {
     return result?.ok ? result.json().catch(() => null) : null;
   }
 
-  const guide = await call("guide", {});
+  const guide = await call({
+    endpoint: "guide",
+    payload: {}
+  });
   if (!guide) {
     return { error: "guide null" };
   }
 
   let countEntry = 0,
     countCollapsible = 0,
-    expanderItems = 0,
-    sectionTitle = null;
-  let collapsibleHasContinuation = false,
+    expanderItems = 0;
+  let hasCollapsibleContinuation = false,
     formResponseToken = null;
   (function walk(count) {
     if (!count || typeof count !== "object") {
@@ -57,10 +60,6 @@ await (async () => {
         walk(x);
       }
       return;
-    }
-
-    if (count.guideSubscriptionsSectionRenderer) {
-      sectionTitle = "found-subscriptions-section";
     }
 
     if (count.guideEntryRenderer) {
@@ -76,12 +75,12 @@ await (async () => {
 
       const tok = JSON.stringify(count.guideCollapsibleEntryRenderer).match(/"token":"([^"]+)"/);
       if (tok) {
-        collapsibleHasContinuation = true;
+        hasCollapsibleContinuation = true;
         formResponseToken = tok[1];
       }
     }
 
-    for (const keyValue in count) {
+    for (const keyValue of Object.keys(count)) {
       walk(count[keyValue]);
     }
   })(guide);
@@ -93,8 +92,18 @@ await (async () => {
   let afterContinuation = null;
   if (formResponseToken) {
     const more =
-      (await call("guide", { continuation: formResponseToken })) ??
-      (await call("browse", { continuation: formResponseToken }));
+      (await call({
+        endpoint: "guide",
+        payload: {
+          continuation: formResponseToken
+        }
+      })) ??
+      (await call({
+        endpoint: "browse",
+        payload: {
+          continuation: formResponseToken
+        }
+      }));
     if (more) {
       const moreUc = new Set(
         [...JSON.stringify(more).matchAll(/"browseId":"(UC[\w-]{22})"/g)].map(messageValue => messageValue[1])
@@ -113,7 +122,7 @@ await (async () => {
     collapsibleRenderers: countCollapsible,
     expandableItemsInline: expanderItems,
     distinctBrowseUcInGuide: allBrowseUc.size,
-    collapsibleHasContinuation,
+    hasCollapsibleContinuation,
     afterContinuation
   };
 })();

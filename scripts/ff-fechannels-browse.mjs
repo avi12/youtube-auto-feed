@@ -1,4 +1,6 @@
 await (async () => {
+  const HEX_RADIX = 16;
+  const MAX_PAGES = 8;
   const YOUTUBE_ORIGIN = "https://www.youtube.com";
   async function sapisidHashHeader() {
     const text = document.cookie.match(/(?:^|;\s*)(?:SAPISID|__Secure-3PAPISID)=([^;]+)/)?.[1];
@@ -8,7 +10,7 @@ await (async () => {
 
     const time = Math.floor(Date.now() / 1000);
     const data = await crypto.subtle.digest("SHA-1", new TextEncoder().encode(`${time} ${text} ${YOUTUBE_ORIGIN}`));
-    return `SAPISIDHASH ${time}_${[...new Uint8Array(data)].map(buffer => buffer.toString(16).padStart(2, "0")).join("")}`;
+    return `SAPISIDHASH ${time}_${[...new Uint8Array(data)].map(buffer => buffer.toString(HEX_RADIX).padStart(2, "0")).join("")}`;
   }
   async function browse(payload) {
     const key = ytcfg?.get("INNERTUBE_API_KEY");
@@ -35,7 +37,7 @@ await (async () => {
     }).catch(() => null);
     return resultValue?.ok ? resultValue.json().catch(() => null) : null;
   }
-  function findContinuationTokens(node, acc) {
+  function findContinuationTokens({ node, acc }) {
     if (!node || typeof node !== "object") {
       return acc;
     }
@@ -44,13 +46,23 @@ await (async () => {
       acc.push(node.continuationItemRenderer.continuationEndpoint.continuationCommand.token);
     }
 
-    for (const keyValue in node) {
-      findContinuationTokens(node[keyValue], acc);
+    for (const keyValue of Object.keys(node)) {
+      findContinuationTokens({
+        node: node[keyValue],
+        acc
+      });
     }
     return acc;
   }
-  const ucIn = obj =>
-    new Set([...JSON.stringify(obj).matchAll(/"channelId":"(UC[\w-]{22})"/g)].map(message => message[1]));
+  function listContinuationTokens(node) {
+    return findContinuationTokens({
+      node,
+      acc: []
+    });
+  }
+  function ucIn(obj) {
+    return new Set([...JSON.stringify(obj).matchAll(/"channelId":"(UC[\w-]{22})"/g)].map(message => message[1]));
+  }
 
   const first = await browse({ browseId: "FEchannels" });
   if (!first) {
@@ -59,12 +71,12 @@ await (async () => {
 
   const all = new Set(ucIn(first));
   const firstCount = all.size;
-  const firstHasContinuationItem = findContinuationTokens(first, []).length;
+  const firstHasContinuationItem = listContinuationTokens(first).length;
 
   const pages = [];
-  let token = findContinuationTokens(first, [])[0];
+  let token = listContinuationTokens(first)[0];
   const seen = new Set();
-  for (let part = 0; token && !seen.has(token) && part < 8; part++) {
+  for (let part = 0; token && !seen.has(token) && part < MAX_PAGES; part++) {
     seen.add(token);
     const resp = await browse({ continuation: token });
     if (!resp) {
@@ -79,7 +91,7 @@ await (async () => {
     for (const id of ucIn(resp)) {
       all.add(id);
     }
-    const next = findContinuationTokens(resp, [])[0];
+    const next = listContinuationTokens(resp)[0];
     pages.push({
       page: part,
       newUc: all.size - before,

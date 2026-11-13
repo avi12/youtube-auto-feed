@@ -8,11 +8,14 @@ await (async () => {
   const bands = [];
   let currentSection = "";
   let currentInlineIds = null;
-  const idOf = i =>
-    i?.richItemRenderer?.content?.videoRenderer?.videoId ??
-    i?.richItemRenderer?.content?.lockupViewModel?.contentId ??
-    i?.richItemRenderer?.content?.lockupViewModel?.videoId ??
-    i?.richItemRenderer?.content?.shortsLockupViewModel?.onTap?.innertubeCommand?.reelWatchEndpoint?.videoId;
+  function idOf(i) {
+    return (
+      i?.richItemRenderer?.content?.videoRenderer?.videoId ??
+      i?.richItemRenderer?.content?.lockupViewModel?.contentId ??
+      i?.richItemRenderer?.content?.lockupViewModel?.videoId ??
+      i?.richItemRenderer?.content?.shortsLockupViewModel?.onTap?.innertubeCommand?.reelWatchEndpoint?.videoId
+    );
+  }
   for (const item of contents) {
     const inlineId = idOf(item);
     if (inlineId) {

@@ -5,7 +5,6 @@ import { isDomContentReady } from "@/subscription-feed/readiness";
 import { type HandlerDeps, PENDING_SNAPSHOT_STALE_MS, rebuildBaselineFromDom } from "./polling-state";
 
 export function createBaselineHandlers({ state, getContext }: HandlerDeps) {
-
   async function applyDomBaseline() {
     state.isDomReady = true;
     state.pageLoadTime = Date.now();

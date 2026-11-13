@@ -1,4 +1,5 @@
 await (async () => {
+  const FETCH_SOURCE_HEAD_LENGTH = 120;
   const fetchSource = globalThis.fetch.toString();
   const isFetchPatched = !fetchSource.includes("[native code]");
   const hasInterceptorMarker = typeof globalThis.__ytafFeedMessenger !== "undefined";
@@ -13,7 +14,7 @@ await (async () => {
   return {
     isFetchPatched,
     hasInterceptorMarker,
-    fetchSourceHead: fetchSource.slice(0, 120),
+    fetchSourceHead: fetchSource.slice(0, FETCH_SOURCE_HEAD_LENGTH),
     feedChannelsUcCountNow: ucNow.size
   };
 })();
