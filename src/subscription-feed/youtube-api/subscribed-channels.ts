@@ -39,9 +39,8 @@ export function invalidateSubscriptionCache() {
 }
 
 function channelEntries(response: InnerTubeGuideResponse) {
-  const subscriptionsSection = response.items?.find(
-    item => item.guideSubscriptionsSectionRenderer
-  )?.guideSubscriptionsSectionRenderer;
+  const sectionItem = response.items?.find(item => item.guideSubscriptionsSectionRenderer);
+  const subscriptionsSection = sectionItem?.guideSubscriptionsSectionRenderer;
   return (subscriptionsSection?.items ?? []).flatMap(item => [
     item.guideEntryRenderer,
     ...(item.guideCollapsibleEntryRenderer?.expandableItems ?? []).map(expandable => expandable.guideEntryRenderer)

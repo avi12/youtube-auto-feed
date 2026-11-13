@@ -148,3 +148,8 @@ Compare output band-by-band: same section names, same counts, Chrome's IDs prese
 
 - Strings: use enums; if no enum fits, use a descriptive `SCREAMING_SNAKE_CASE` constant
 - Numbers: use a descriptive `SCREAMING_SNAKE_CASE` constant
+
+## Lint exemptions
+
+- `src/subscription-feed/polling/polling.ts` may use a type assertion: `createSubscriptionMonitor` builds the `MonitorContext` in stages, each handler factory adding its methods to the same object, so the empty-methods object is asserted once
+- `__ytafFeedMessenger`, `__ytafHonorsSemiSubTags`, `__ytafDebug` and `__YTAF_DEBUG__` are read by other worlds (semi-sub, the dev server) under those exact names, so they are `allowedNames` in `.oxlintrc.json`
