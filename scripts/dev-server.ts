@@ -12,10 +12,10 @@
  *   pnpm exec tsx scripts/dev-server.ts --firefox.no-extension - Firefox (no extension)
  */
 
-import { spawn, spawnSync, type ChildProcess } from "node:child_process";
-import { createWriteStream, existsSync, cpSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { type ChildProcess, spawn, spawnSync } from "node:child_process";
+import { cpSync, createWriteStream, existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir, platform } from "node:os";
-import { resolve, join, dirname, isAbsolute } from "node:path";
+import { dirname, isAbsolute, join, resolve } from "node:path";
 import { format, parseArgs } from "node:util";
 
 import chokidar from "chokidar";
@@ -425,8 +425,8 @@ function sendCdpCommand(webSocketUrl: string, method: string, params: Record<str
         })
       );
     };
-    websocket.onmessage = e => {
-      const data = JSON.parse(String(e.data));
+    websocket.onmessage = errorValue => {
+      const data = JSON.parse(String(errorValue.data));
       if (data.id === 1) {
         settle();
       }
@@ -522,9 +522,13 @@ async function buildExtension(format: ExtensionFormat) {
     browser: format === "firefox" ? "firefox" : "chrome",
     manifestVersion: 3,
     vite: () => ({
-      build: { sourcemap: true },
+      build: {
+        sourcemap: true
+      },
       // Enables the __ytafDebug inspection bridge in dev-server builds (stripped from store builds).
-      define: { __YTAF_DEBUG__: "true" }
+      define: {
+        __YTAF_DEBUG__: "true"
+      }
     })
   });
 }

@@ -18,16 +18,35 @@ socket.addEventListener("message", ({ data }) => {
 });
 const send = (method, params = {}) => {
   const id = nextId++;
-  socket.send(JSON.stringify({ id, method, params }));
+  socket.send(
+    JSON.stringify({
+      id,
+      method,
+      params
+    })
+  );
   return new Promise(resolve => pending.set(id, resolve));
 };
 const evaluate = async expression => {
-  const { result } = await send("Runtime.evaluate", { expression, awaitPromise: true, returnByValue: true });
-  if (result?.exceptionDetails) throw new Error(result.exceptionDetails.exception?.description ?? "eval failed");
+  const { result } = await send("Runtime.evaluate", {
+    expression,
+    awaitPromise: true,
+    returnByValue: true
+  });
+  if (result?.exceptionDetails) {
+    throw new Error(result.exceptionDetails.exception?.description ?? "eval failed");
+  }
+
   return result?.result?.value;
 };
-const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
-const setWidth = width => send("Emulation.setDeviceMetricsOverride", { width, height: HEIGHT, deviceScaleFactor: 0, mobile: false });
+const sleep = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
+const setWidth = width =>
+  send("Emulation.setDeviceMetricsOverride", {
+    width,
+    height: HEIGHT,
+    deviceScaleFactor: 0,
+    mobile: false
+  });
 
 const HELPERS = `
   const tiles = () => [...document.querySelectorAll('ytd-rich-grid-renderer > #contents > ytd-rich-item-renderer')];
@@ -38,14 +57,25 @@ const HELPERS = `
 `;
 
 async function closeMenus() {
-  await send("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
-  await send("Input.dispatchKeyEvent", { type: "keyUp", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
+  await send("Input.dispatchKeyEvent", {
+    type: "keyDown",
+    key: "Escape",
+    code: "Escape",
+    windowsVirtualKeyCode: 27
+  });
+  await send("Input.dispatchKeyEvent", {
+    type: "keyUp",
+    key: "Escape",
+    code: "Escape",
+    windowsVirtualKeyCode: 27
+  });
   await sleep(300);
 }
 
 // Drops the first Latest video so the next fetch re-inserts it and every tile after it shifts one slot.
 async function dropFirstVideo() {
-  return evaluate(`(async () => { ${HELPERS}
+  return evaluate(
+    `(async () => { ${HELPERS}
     scrollTo(0, 0);
     const elGrid = document.querySelector('ytd-rich-grid-renderer');
     const full = [...elGrid.data.contents];
@@ -53,16 +83,25 @@ async function dropFirstVideo() {
     elGrid.set('data.contents', full.filter((_, j) => j !== i));
     await new Promise(r => setTimeout(r, 600));
     return tiles().slice(0, 3).map(idOf);
-  })()`);
+  })()`
+  );
 }
 
 async function clickMenuOfTile(iTile) {
-  const point = await evaluate(`(() => { ${HELPERS}
+  const point = await evaluate(
+    `(() => { ${HELPERS}
     const r = tiles()[${iTile}].querySelector('button').getBoundingClientRect();
     return { x: r.left + r.width / 2, y: r.top + r.height / 2, id: idOf(tiles()[${iTile}]) };
-  })()`);
+  })()`
+  );
   for (const type of ["mouseMoved", "mousePressed", "mouseReleased"]) {
-    await send("Input.dispatchMouseEvent", { type, x: point.x, y: point.y, button: "left", clickCount: 1 });
+    await send("Input.dispatchMouseEvent", {
+      type,
+      x: point.x,
+      y: point.y,
+      button: "left",
+      clickCount: 1
+    });
   }
   await sleep(500);
   return point.id;
@@ -70,7 +109,8 @@ async function clickMenuOfTile(iTile) {
 
 // Settled menu position vs where YouTube's own refit puts it right now (the refit is idempotent with a live anchor).
 async function verdict() {
-  return evaluate(`(() => { ${HELPERS}
+  return evaluate(
+    `(() => { ${HELPERS}
     const d = openDropdown();
     if (!d) return { opened: false };
     const settled = rectOf(d);
@@ -78,11 +118,13 @@ async function verdict() {
     const fresh = rectOf(d);
     const anchorTile = d.positionTarget?.closest?.('ytd-rich-item-renderer');
     return { opened: true, settled, fresh, isExact: settled.join() === fresh.join(), anchorVideo: idOf(anchorTile), leftovers: { translate: d.style.translate, transition: d.style.transition } };
-  })()`);
+  })()`
+  );
 }
 
 async function startSampling() {
-  await evaluate(`(() => { ${HELPERS}
+  await evaluate(
+    `(() => { ${HELPERS}
     const d = openDropdown();
     const video = idOf(d.positionTarget.closest('ytd-rich-item-renderer'));
     const probe = globalThis.__menuProbe = { glideStart: null, frames: [], done: false };
@@ -97,15 +139,26 @@ async function startSampling() {
       probe.done = true;
     })();
     globalThis.__ytafDebug.fetchFreshVideos().catch(() => {});
-  })()`);
+  })()`
+  );
 }
 
 async function finishSampling() {
-  while (!(await evaluate("globalThis.__menuProbe.done"))) await sleep(100);
+  while (!(await evaluate("globalThis.__menuProbe.done"))) {
+    await sleep(100);
+  }
   const probe = await evaluate("globalThis.__menuProbe");
   // Horizontal gap between the menu and the nearer edge of its button, per frame: 0 means lined up with it.
-  const gaps = probe.frames.filter(f => f.btn).map(f => Math.min(Math.abs(f.menu[0] - f.btn[0]), Math.abs(f.menu[2] - f.btn[2])));
-  return { maxGap: Math.max(...gaps), framesOff: gaps.filter(gap => gap > 2).length, frames: probe.frames.length };
+  const gaps = probe.frames
+    .filter(file => file.btn)
+    .map(fileValue =>
+      Math.min(Math.abs(fileValue.menu[0] - fileValue.btn[0]), Math.abs(fileValue.menu[2] - fileValue.btn[2]))
+    );
+  return {
+    maxGap: Math.max(...gaps),
+    framesOff: gaps.filter(gap => gap > 2).length,
+    frames: probe.frames.length
+  };
 }
 
 const results = {};
@@ -118,7 +171,10 @@ await closeMenus();
 await dropFirstVideo();
 results.pushVideo = await clickMenuOfTile(1);
 await startSampling();
-results.push = { ...(await finishSampling()), ...(await verdict()) };
+results.push = {
+  ...(await finishSampling()),
+  ...(await verdict())
+};
 
 // 2. Same push with a resize 100ms into the glide.
 await closeMenus();
@@ -127,30 +183,41 @@ await sleep(500);
 await dropFirstVideo();
 await clickMenuOfTile(1);
 await startSampling();
-while (!(await evaluate("globalThis.__menuProbe.glideStart !== null"))) await sleep(5);
+while (!(await evaluate("globalThis.__menuProbe.glideStart !== null"))) {
+  await sleep(5);
+}
 await sleep(100);
 await setWidth(RESIZED_WIDTH);
-results.resizeMidGlide = { ...(await finishSampling()), ...(await verdict()) };
+results.resizeMidGlide = {
+  ...(await finishSampling()),
+  ...(await verdict())
+};
 
 // 3. A metadata write re-renders the menu's tile (stale anchor), then the window resizes.
 await closeMenus();
 await setWidth(BASE_WIDTH);
 await sleep(500);
 await clickMenuOfTile(1);
-await evaluate(`(async () => { ${HELPERS}
+await evaluate(
+  `(async () => { ${HELPERS}
   const tile = openDropdown().positionTarget.closest('ytd-rich-item-renderer');
   const data = tile.data;
   tile.set('data', { ...data, content: { ...data.content, lockupViewModel: structuredClone(data.content.lockupViewModel) } });
   await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-})()`);
-results.staleAnchorBeforeResize = await evaluate(`(() => { ${HELPERS} return openDropdown().positionTarget.isConnected; })()`);
+})()`
+);
+results.staleAnchorBeforeResize = await evaluate(
+  `(() => { ${HELPERS} return openDropdown().positionTarget.isConnected; })()`
+);
 await setWidth(RESIZED_WIDTH);
 await sleep(600);
-results.staleAnchorResize = await evaluate(`(() => { ${HELPERS}
+results.staleAnchorResize = await evaluate(
+  `(() => { ${HELPERS}
   const d = openDropdown();
   const tile = tiles()[1];
   return { menu: rectOf(d), btn: rectOf(tile.querySelector('button')) };
-})()`);
+})()`
+);
 
 await closeMenus();
 await send("Emulation.clearDeviceMetricsOverride");

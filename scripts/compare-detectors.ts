@@ -4,7 +4,7 @@
  * Chrome = ground truth (no extension); Edge = extension under test.
  */
 
-import { writeFileSync, mkdirSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 interface CdpTarget {
@@ -46,8 +46,8 @@ function sendCommand<T>(webSocketUrl: string, method: string, params: Record<str
           params
         })
       );
-    socket.onmessage = e => {
-      const { id, error, result } = JSON.parse(String(e.data));
+    socket.onmessage = errorValue => {
+      const { id, error, result } = JSON.parse(String(errorValue.data));
       if (id !== 1) {
         return;
       }

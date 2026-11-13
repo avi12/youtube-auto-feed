@@ -187,7 +187,9 @@ function buildBrowsePayload(contents: BrowseContentItem[]) {
           {
             tabRenderer: {
               content: {
-                richGridRenderer: { contents }
+                richGridRenderer: {
+                  contents
+                }
               }
             }
           }
@@ -305,14 +307,18 @@ async function testLiveTransition(cdp: Cdp) {
               ],
               thumbnailOverlays: [
                 {
-                  thumbnailOverlayTimeStatusRenderer: { style: guineaPigBadge === "upcoming" ? "UPCOMING" : "LIVE" }
+                  thumbnailOverlayTimeStatusRenderer: {
+                    style: guineaPigBadge === "upcoming" ? "UPCOMING" : "LIVE"
+                  }
                 }
               ]
             }
           : baseRenderer;
       return {
         richItemRenderer: {
-          content: { videoRenderer: renderer }
+          content: {
+            videoRenderer: renderer
+          }
         }
       };
     });
@@ -392,8 +398,12 @@ function permutations<T>(arr: T[]): T[][] {
 function buildMinimalVideoRenderer(videoId: string) {
   return {
     videoId,
-    title: { runs: [{ text: "dummy" }] },
-    thumbnail: { thumbnails: [{ url: "https://i.ytimg.com" }] }
+    title: {
+      runs: [{ text: "dummy" }]
+    },
+    thumbnail: {
+      thumbnails: [{ url: "https://i.ytimg.com" }]
+    }
   };
 }
 
@@ -402,10 +412,14 @@ function buildSectionContents(title: string, videoIds: string[]) {
     richSectionRenderer: {
       content: {
         richShelfRenderer: {
-          title: { runs: [{ text: title }] },
+          title: {
+            runs: [{ text: title }]
+          },
           contents: videoIds.map(id => ({
             richItemRenderer: {
-              content: { videoRenderer: buildMinimalVideoRenderer(id) }
+              content: {
+                videoRenderer: buildMinimalVideoRenderer(id)
+              }
             }
           }))
         }
@@ -417,7 +431,9 @@ function buildSectionContents(title: string, videoIds: string[]) {
 function buildInlineItem(videoId: string) {
   return {
     richItemRenderer: {
-      content: { videoRenderer: buildMinimalVideoRenderer(videoId) }
+      content: {
+        videoRenderer: buildMinimalVideoRenderer(videoId)
+      }
     }
   };
 }

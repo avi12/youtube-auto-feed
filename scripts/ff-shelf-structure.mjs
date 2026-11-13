@@ -1,5 +1,5 @@
-(() => {
-  return [...document.querySelectorAll("ytd-rich-shelf-renderer")].map(elShelf => {
+(() =>
+  [...document.querySelectorAll("ytd-rich-shelf-renderer")].map(elShelf => {
     const title = elShelf.data?.title?.runs?.[0]?.text ?? "?";
     const elContents = elShelf.querySelector("#contents");
     const richItems = elShelf.querySelectorAll("ytd-rich-item-renderer");
@@ -20,5 +20,4 @@
       // does #contents contain the rich items, or are they elsewhere?
       itemsInsideHashContents: elContents ? elContents.querySelectorAll("ytd-rich-item-renderer").length : null
     };
-  });
-})()
+  }))();

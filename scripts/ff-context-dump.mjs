@@ -1,14 +1,14 @@
 (() => {
-  const c = ytcfg?.get("INNERTUBE_CONTEXT")?.client ?? {};
+  const char = ytcfg?.get("INNERTUBE_CONTEXT")?.client ?? {};
   return {
-    screenWidthPoints: c.screenWidthPoints,
-    screenHeightPoints: c.screenHeightPoints,
-    screenPixelDensity: c.screenPixelDensity,
-    screenDensityFloat: c.screenDensityFloat,
-    utcOffsetMinutes: c.utcOffsetMinutes,
-    clientName: c.clientName,
-    clientVersion: c.clientVersion,
-    platform: c.platform,
-    allClientKeys: Object.keys(c)
+    screenWidthPoints: char.screenWidthPoints,
+    screenHeightPoints: char.screenHeightPoints,
+    screenPixelDensity: char.screenPixelDensity,
+    screenDensityFloat: char.screenDensityFloat,
+    utcOffsetMinutes: char.utcOffsetMinutes,
+    clientName: char.clientName,
+    clientVersion: char.clientVersion,
+    platform: char.platform,
+    allClientKeys: Object.keys(char)
   };
-})()
+})();

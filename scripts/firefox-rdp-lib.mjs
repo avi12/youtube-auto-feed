@@ -6,7 +6,10 @@ import net from "net";
 
 export function evalInFirefox(port, jsCode, { urlFragment = "youtube.com", timeoutMs = 20000 } = {}) {
   return new Promise((resolve, reject) => {
-    const socket = net.createConnection({ port, host: "127.0.0.1" });
+    const socket = net.createConnection({
+      port,
+      host: "127.0.0.1"
+    });
     let rawBuf = Buffer.alloc(0);
     let consoleActor = null;
     let phase = "init";
@@ -18,7 +21,11 @@ export function evalInFirefox(port, jsCode, { urlFragment = "youtube.com", timeo
     }
 
     function sendEval(text) {
-      send({ to: consoleActor, type: "evaluateJSAsync", text });
+      send({
+        to: consoleActor,
+        type: "evaluateJSAsync",
+        text
+      });
     }
 
     function readPackets() {
@@ -26,31 +33,56 @@ export function evalInFirefox(port, jsCode, { urlFragment = "youtube.com", timeo
       while (true) {
         const str = rawBuf.toString("utf8");
         const colon = str.indexOf(":");
-        if (colon === -1) break;
+        if (colon === -1) {
+          break;
+        }
+
         const len = parseInt(str.slice(0, colon), 10);
-        if (isNaN(len)) { rawBuf = Buffer.from(str.slice(colon + 1), "utf8"); continue; }
+        if (isNaN(len)) {
+          rawBuf = Buffer.from(str.slice(colon + 1), "utf8");
+          continue;
+        }
+
         const bodyBuf = Buffer.from(str.slice(colon + 1), "utf8");
-        if (bodyBuf.byteLength < len) break;
+        if (bodyBuf.byteLength < len) {
+          break;
+        }
+
         const msgBuf = bodyBuf.slice(0, len);
         rawBuf = bodyBuf.slice(len);
-        try { pkts.push(JSON.parse(msgBuf.toString("utf8"))); } catch (_) {}
+        try {
+          pkts.push(JSON.parse(msgBuf.toString("utf8")));
+        } catch (_) {}
       }
       return pkts;
     }
 
     function handle(pkt) {
-      if (pkt.error) { socket.destroy(); reject(new Error(`RDP error: ${pkt.error} - ${pkt.message}`)); return; }
+      if (pkt.error) {
+        socket.destroy();
+        reject(new Error(`RDP error: ${pkt.error} - ${pkt.message}`));
+        return;
+      }
+
       if (phase === "init" && pkt.applicationType) {
         phase = "listing";
-        send({ to: "root", type: "listTabs" });
+        send({
+          to: "root",
+          type: "listTabs"
+        });
         return;
       }
+
       if (phase === "listing" && pkt.tabs) {
         phase = "targeting";
-        const tab = pkt.tabs.find(t => t.url?.includes(urlFragment)) ?? pkt.tabs[0];
-        send({ to: tab.actor, type: "getTarget" });
+        const tab = pkt.tabs.find(time => time.url?.includes(urlFragment)) ?? pkt.tabs[0];
+        send({
+          to: tab.actor,
+          type: "getTarget"
+        });
         return;
       }
+
       if (phase === "targeting" && pkt.frame?.consoleActor) {
         phase = "running";
         consoleActor = pkt.frame.consoleActor;
@@ -58,13 +90,23 @@ export function evalInFirefox(port, jsCode, { urlFragment = "youtube.com", timeo
         sendEval(wrapped);
         return;
       }
+
       if (pkt.type === "evaluationResult") {
-        if (phase === "running") { phase = "polling"; pollForResult(); return; }
+        if (phase === "running") {
+          phase = "polling";
+          pollForResult();
+          return;
+        }
+
         if (phase === "polling") {
           const raw = extractStringResult(pkt.result);
           if (raw) {
             socket.destroy();
-            try { resolve(JSON.parse(raw)); } catch (_) { resolve(raw); }
+            try {
+              resolve(JSON.parse(raw));
+            } catch (_) {
+              resolve(raw);
+            }
           } else {
             setTimeout(pollForResult, 150);
           }
@@ -77,19 +119,30 @@ export function evalInFirefox(port, jsCode, { urlFragment = "youtube.com", timeo
     }
 
     function extractStringResult(result) {
-      if (typeof result === "string" && result !== "" && result !== "ok") return result;
-      if (result && typeof result === "object") {
-        const v = result.value ?? result.displayString ?? "";
-        if (typeof v === "string" && v !== "" && v !== "ok") return v;
+      if (typeof result === "string" && result !== "" && result !== "ok") {
+        return result;
       }
+
+      if (result && typeof result === "object") {
+        const valueValue = result.value ?? result.displayString ?? "";
+        if (typeof valueValue === "string" && valueValue !== "" && valueValue !== "ok") {
+          return valueValue;
+        }
+      }
+
       return null;
     }
 
     socket.on("data", chunk => {
       rawBuf = Buffer.concat([rawBuf, chunk]);
-      for (const pkt of readPackets()) handle(pkt);
+      for (const pkt of readPackets()) {
+        handle(pkt);
+      }
     });
     socket.on("error", reject);
-    setTimeout(() => { socket.destroy(); reject(new Error("Timeout")); }, timeoutMs);
+    setTimeout(() => {
+      socket.destroy();
+      reject(new Error("Timeout"));
+    }, timeoutMs);
   });
 }

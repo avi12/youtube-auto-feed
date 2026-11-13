@@ -8,7 +8,7 @@ await (async () => {
   const raw = await res.text();
   const initialData = raw.match(INITIAL_DATA)?.[1] ?? "";
 
-  const countIn = (text, re) => [...new Set([...text.matchAll(re)].map(m => m[1]))].length;
+  const countIn = (text, regex) => new Set([...text.matchAll(regex)].map(message => message[1])).size;
 
   // also try a GREEDY extraction to compare
   const GREEDY = /ytInitialData\s*=\s*(\{[\s\S]+\})\s*;\s*<\/script>/;
@@ -27,4 +27,4 @@ await (async () => {
     continuationInInitialData: !!initialData.match(CONTINUATION),
     continuationInRaw: !!raw.match(CONTINUATION)
   };
-})()
+})();

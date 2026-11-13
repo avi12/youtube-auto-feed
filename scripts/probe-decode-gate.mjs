@@ -50,25 +50,133 @@ console.log(JSON.stringify(result, null, 2));
 
 function evalDirectAsync(port, code) {
   return new Promise((resolve, reject) => {
-    const socket = net.createConnection({ port, host: "127.0.0.1" });
+    const socket = net.createConnection({
+      port,
+      host: "127.0.0.1"
+    });
     let rawBuf = Buffer.alloc(0);
-    let consoleActor = null, phase = "init";
-    function send(obj) { const j = JSON.stringify(obj); const b = Buffer.from(j); socket.write(`${b.byteLength}:${j}`); }
-    function rp() { const p = []; while (true) { const s = rawBuf.toString("utf8"), c = s.indexOf(":"); if (c === -1) break; const len = parseInt(s.slice(0, c), 10); if (isNaN(len)) { rawBuf = Buffer.from(s.slice(c + 1)); continue; } const body = Buffer.from(s.slice(c + 1)); if (body.byteLength < len) break; rawBuf = body.slice(len); try { p.push(JSON.parse(body.slice(0, len).toString())); } catch (_) {} } return p; }
-    function xs(r) { if (typeof r === "string" && r && r !== "ok") return r; if (r?.value && typeof r.value === "string" && r.value !== "ok") return r.value; return null; }
-    function poll() { send({ to: consoleActor, type: "evaluateJSAsync", text: "window.__r || ''" }); }
+    let consoleActor = null,
+      phase = "init";
+    function send(obj) {
+      const j = JSON.stringify(obj);
+      const buffer = Buffer.from(j);
+      socket.write(`${buffer.byteLength}:${j}`);
+    }
+    function readPackets() {
+      const part = [];
+      while (true) {
+        const textValue = rawBuf.toString("utf8"),
+          char = textValue.indexOf(":");
+        if (char === -1) {
+          break;
+        }
+
+        const len = parseInt(textValue.slice(0, char), 10);
+        if (isNaN(len)) {
+          rawBuf = Buffer.from(textValue.slice(char + 1));
+          continue;
+        }
+
+        const body = Buffer.from(textValue.slice(char + 1));
+        if (body.byteLength < len) {
+          break;
+        }
+
+        rawBuf = body.slice(len);
+        try {
+          part.push(JSON.parse(body.slice(0, len).toString()));
+        } catch (_) {}
+      }
+      return part;
+    }
+    function values(resultValue) {
+      if (typeof resultValue === "string" && resultValue && resultValue !== "ok") {
+        return resultValue;
+      }
+
+      if (resultValue?.value && typeof resultValue.value === "string" && resultValue.value !== "ok") {
+        return resultValue.value;
+      }
+
+      return null;
+    }
+    function poll() {
+      send({
+        to: consoleActor,
+        type: "evaluateJSAsync",
+        text: "window.__r || ''"
+      });
+    }
     function handle(pkt) {
-      if (pkt.error) { socket.destroy(); reject(new Error(pkt.error)); return; }
-      if (phase === "init" && pkt.applicationType) { phase = "listing"; send({ to: "root", type: "listTabs" }); return; }
-      if (phase === "listing" && pkt.tabs) { phase = "targeting"; const t = pkt.tabs.find(t => t.url?.includes("youtube.com/feed/subscriptions")) ?? pkt.tabs[0]; send({ to: t.actor, type: "getTarget" }); return; }
-      if (phase === "targeting" && pkt.frame?.consoleActor) { phase = "running"; consoleActor = pkt.frame.consoleActor; send({ to: consoleActor, type: "evaluateJSAsync", text: `window.__r = undefined; ${code}` }); return; }
+      if (pkt.error) {
+        socket.destroy();
+        reject(new Error(pkt.error));
+        return;
+      }
+
+      if (phase === "init" && pkt.applicationType) {
+        phase = "listing";
+        send({
+          to: "root",
+          type: "listTabs"
+        });
+        return;
+      }
+
+      if (phase === "listing" && pkt.tabs) {
+        phase = "targeting";
+        const time =
+          pkt.tabs.find(timeValue => timeValue.url?.includes("youtube.com/feed/subscriptions")) ?? pkt.tabs[0];
+        send({
+          to: time.actor,
+          type: "getTarget"
+        });
+        return;
+      }
+
+      if (phase === "targeting" && pkt.frame?.consoleActor) {
+        phase = "running";
+        consoleActor = pkt.frame.consoleActor;
+        send({
+          to: consoleActor,
+          type: "evaluateJSAsync",
+          text: `window.__r = undefined; ${code}`
+        });
+        return;
+      }
+
       if (pkt.type === "evaluationResult") {
-        if (phase === "running") { phase = "polling"; setTimeout(poll, 200); return; }
-        if (phase === "polling") { const raw = xs(pkt.result); if (raw) { socket.destroy(); try { resolve(JSON.parse(raw)); } catch (_) { resolve(raw); } } else setTimeout(poll, 150); }
+        if (phase === "running") {
+          phase = "polling";
+          setTimeout(poll, 200);
+          return;
+        }
+
+        if (phase === "polling") {
+          const raw = values(pkt.result);
+          if (raw) {
+            socket.destroy();
+            try {
+              resolve(JSON.parse(raw));
+            } catch (_) {
+              resolve(raw);
+            }
+          } else {
+            setTimeout(poll, 150);
+          }
+        }
       }
     }
-    socket.on("data", chunk => { rawBuf = Buffer.concat([rawBuf, chunk]); for (const p of rp()) handle(p); });
+    socket.on("data", chunk => {
+      rawBuf = Buffer.concat([rawBuf, chunk]);
+      for (const partValue of readPackets()) {
+        handle(partValue);
+      }
+    });
     socket.on("error", reject);
-    setTimeout(() => { socket.destroy(); reject(new Error("Timeout")); }, 30000);
+    setTimeout(() => {
+      socket.destroy();
+      reject(new Error("Timeout"));
+    }, 30000);
   });
 }
