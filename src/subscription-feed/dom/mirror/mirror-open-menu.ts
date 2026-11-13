@@ -32,7 +32,11 @@ let isFollowingThroughResize = false;
 
 function recordOpenedMenu(e: Event) {
   const [elDropdown] = e.composedPath();
-  if (!isIronDropdown(elDropdown) || !elDropdown.positionTarget) {
+  if (!isIronDropdown(elDropdown)) {
+    return;
+  }
+
+  if (!elDropdown.positionTarget) {
     return;
   }
 
@@ -57,7 +61,11 @@ function recordOpenedMenu(e: Event) {
 // The dropdown is shared by every popup, so it is still this menu only while it is aligned where it was left.
 // Switched off, the extension leaves the feed and its menus alone.
 function trackedOpenMenu() {
-  if (!openMenu || !isExtensionEnabled()) {
+  if (!openMenu) {
+    return null;
+  }
+
+  if (!isExtensionEnabled()) {
     return null;
   }
 

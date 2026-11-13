@@ -35,7 +35,8 @@ export function applyRichItemContentUpdate({
   }
 
   const existingLockup = existing?.lockupViewModel;
-  if (isLockupViewModel(rawRenderer) || existingLockup !== undefined) {
+  const hasLockupSource = isLockupViewModel(rawRenderer) || existingLockup !== undefined;
+  if (hasLockupSource) {
     const merged =
       isLockupViewModel(rawRenderer) && isLockupViewModel(existingLockup)
         ? mergeLockupViewModel({
@@ -48,7 +49,8 @@ export function applyRichItemContentUpdate({
     return;
   }
 
-  if (isShortsLockupViewModel(rawRenderer) || existing?.shortsLockupViewModel !== undefined) {
+  const hasShortsSource = isShortsLockupViewModel(rawRenderer) || existing?.shortsLockupViewModel !== undefined;
+  if (hasShortsSource) {
     elElement.set(`${basePath}.shortsLockupViewModel`, rawRenderer);
     return;
   }

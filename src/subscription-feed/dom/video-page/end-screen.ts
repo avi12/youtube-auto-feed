@@ -129,7 +129,8 @@ async function refreshEndScreenTile({ elTile, layout, shownVersions, fresh }: Re
       shownVersions,
       fresh
     });
-    if (elDetail && refreshed !== text) {
+    const isTextChanged = elDetail && refreshed !== text;
+    if (isTextChanged) {
       textChanges.set(elDetail, refreshed);
     }
   }

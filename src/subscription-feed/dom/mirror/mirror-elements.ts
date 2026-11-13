@@ -51,7 +51,8 @@ export function isInReflowZone(elItem: HTMLElement) {
 export function recordReflowZoneRects() {
   const rects = new Map<string, DOMRect>();
   for (const elItem of document.querySelectorAll<HTMLElement>(GRID_ITEM_SELECTOR)) {
-    if (!isInReflowZone(elItem) || !isPolymerElement(elItem)) {
+    const isNotMirrorable = !isInReflowZone(elItem) || !isPolymerElement(elItem);
+    if (isNotMirrorable) {
       continue;
     }
 

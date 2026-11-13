@@ -13,11 +13,13 @@ type UpdateRichItemParams = ApplyToContainerParams & {
 };
 
 function updateRichItem({ elElement, videoId, rawRenderer, forcePreserveContentImage }: UpdateRichItemParams) {
-  if (!isRichGridData(elElement.data) && !isRichShelfData(elElement.data)) {
+  const { data } = elElement;
+  const isRichData = isRichGridData(data) || isRichShelfData(data);
+  if (!isRichData) {
     return;
   }
 
-  const { contents = [] } = elElement.data;
+  const { contents = [] } = data;
   const iItem = findRichItemIndex({
     contents,
     videoId

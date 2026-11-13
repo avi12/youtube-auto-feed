@@ -49,7 +49,8 @@ export function hideNewInsertedTiles(newlyInsertedIds: Set<string>) {
   }
 
   for (const elItem of document.querySelectorAll<HTMLElement>(GRID_ITEM_SELECTOR)) {
-    if (!isInViewport(elItem) || !isPolymerElement(elItem)) {
+    const isNotEntrance = !isInViewport(elItem) || !isPolymerElement(elItem);
+    if (isNotEntrance) {
       continue;
     }
 

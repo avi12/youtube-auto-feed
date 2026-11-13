@@ -23,7 +23,8 @@ export function preCoverReflowImages({ newContents, newlyInsertedIds }: PreCover
   for (const [i, elItem] of elItems.slice(0, coverableCount).entries()) {
     const futureItem = futureItems[i];
     const futureContent = futureItem?.richItemRenderer?.content;
-    if (!futureItem || !futureContent || !isInReflowZone(elItem)) {
+    const isNotCoverable = !futureItem || !futureContent || !isInReflowZone(elItem);
+    if (isNotCoverable) {
       continue;
     }
 

@@ -39,9 +39,11 @@ export function applyPolymerUpdate({ elItem, rawRenderer }: ApplyPolymerUpdatePa
     return;
   }
 
-  if (isLockupViewModel(content.lockupViewModel) && isLockupViewModel(rawRenderer)) {
+  const { lockupViewModel: existingLockup } = content;
+  const isLockupPair = isLockupViewModel(existingLockup) && isLockupViewModel(rawRenderer);
+  if (isLockupPair) {
     const merged = mergeLockupViewModel({
-      existing: content.lockupViewModel,
+      existing: existingLockup,
       incoming: rawRenderer
     });
     const elLockup = elItem.querySelector<HTMLElement>("yt-lockup-view-model");

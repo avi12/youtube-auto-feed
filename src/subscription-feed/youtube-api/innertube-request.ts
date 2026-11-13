@@ -20,7 +20,8 @@ const APISID_COOKIE_NAMES = ["SAPISID", "__Secure-3PAPISID", "__Secure-1PAPISID"
 function readCookie(name: string) {
   for (const entry of document.cookie.split(";")) {
     const separator = entry.indexOf("=");
-    if (separator !== -1 && entry.slice(0, separator).trim() === name) {
+    const isMatchingEntry = separator !== -1 && entry.slice(0, separator).trim() === name;
+    if (isMatchingEntry) {
       return entry.slice(separator + 1);
     }
   }

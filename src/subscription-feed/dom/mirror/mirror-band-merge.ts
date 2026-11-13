@@ -77,7 +77,8 @@ function splitAtAnchors({ band, anchorIds }: SplitAtAnchorsParams) {
   const segments: InlineBandEntry[][] = [[]];
   let iAnchor = 0;
   for (const entry of band) {
-    if (iAnchor < anchorIds.length && entry.videoId === anchorIds[iAnchor]) {
+    const isAnchorEntry = iAnchor < anchorIds.length && entry.videoId === anchorIds[iAnchor];
+    if (isAnchorEntry) {
       iAnchor++;
       segments.push([]);
     } else {

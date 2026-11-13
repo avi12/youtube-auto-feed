@@ -61,7 +61,8 @@ function healableThumbnailFrom(src: string): HealableThumbnail | null {
   }
 
   for (const [family, defaultFile] of DEFAULT_FILE_BY_FAMILY) {
-    if (!file.startsWith(family) || file === defaultFile) {
+    const isNotHealableFile = !file.startsWith(family) || file === defaultFile;
+    if (isNotHealableFile) {
       continue;
     }
 
@@ -109,7 +110,8 @@ function healFailedThumbnail(e: Event) {
 
 function healPlaceholderThumbnailPaint(e: Event) {
   const elImg = e.target;
-  if (!(elImg instanceof HTMLImageElement) || !isPlaceholderDecode(elImg)) {
+  const isNotPlaceholder = !(elImg instanceof HTMLImageElement) || !isPlaceholderDecode(elImg);
+  if (isNotPlaceholder) {
     return;
   }
 

@@ -52,7 +52,8 @@ export async function crossfadeThumbnail({ elImg, src: requestedSrc }: Crossfade
     return false;
   }
 
-  if (!isAnimationsEnabled() || !elHost || !outgoingSrc) {
+  const isSwapImpossible = !isAnimationsEnabled() || !elHost || !outgoingSrc;
+  if (isSwapImpossible) {
     elImg.src = src;
     await elImg.decode().catch(() => undefined);
     return true;
@@ -84,7 +85,8 @@ export async function crossfadeBackgroundImage({ elImage, src: requestedSrc }: C
   }
 
   const outgoingBackgroundImage = elImage.style.backgroundImage;
-  if (isAnimationsEnabled() && outgoingBackgroundImage) {
+  const isOutgoingAnimated = isAnimationsEnabled() && outgoingBackgroundImage;
+  if (isOutgoingAnimated) {
     elImage.prepend(createFader(outgoingBackgroundImage));
   }
 

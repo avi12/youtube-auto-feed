@@ -23,7 +23,11 @@ export function readGenericDomSnapshot() {
   }
 
   for (const elItem of document.querySelectorAll<HTMLElement>("ytd-grid-video-renderer")) {
-    if (!isPolymerElement(elItem) || !isVideoRenderer(elItem.data)) {
+    if (!isPolymerElement(elItem)) {
+      continue;
+    }
+
+    if (!isVideoRenderer(elItem.data)) {
       continue;
     }
 
@@ -38,7 +42,11 @@ export function readGenericDomSnapshot() {
   }
 
   for (const elTrailer of document.querySelectorAll<HTMLElement>("ytd-channel-video-player-renderer")) {
-    if (!isPolymerElement(elTrailer) || !isChannelVideoPlayerRenderer(elTrailer.data)) {
+    if (!isPolymerElement(elTrailer)) {
+      continue;
+    }
+
+    if (!isChannelVideoPlayerRenderer(elTrailer.data)) {
       continue;
     }
 

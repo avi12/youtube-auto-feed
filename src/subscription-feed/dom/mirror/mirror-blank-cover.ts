@@ -8,7 +8,8 @@ import { repaintInlineThumbnails } from "./mirror-thumbnails";
 
 export function coverBlankImages() {
   for (const elItem of document.querySelectorAll<RichItemElement>(GRID_ITEM_SELECTOR)) {
-    if (!isInReflowZone(elItem) || !isPolymerElement(elItem)) {
+    const isNotBlankable = !isInReflowZone(elItem) || !isPolymerElement(elItem);
+    if (isNotBlankable) {
       continue;
     }
 

@@ -86,7 +86,8 @@ function collectShelfVideos({ elShelves, apiVideoIds }: CollectShelfVideosParams
 
     for (const item of elShelf.data.contents ?? []) {
       const videoId = videoIdFromRichItem(item);
-      if (videoId && !seen.has(videoId) && !isSemiSubscribedRichItem(item)) {
+      const isNewVideo = videoId && !seen.has(videoId) && !isSemiSubscribedRichItem(item);
+      if (isNewVideo) {
         seen.add(videoId);
         shelfVideos.push({
           videoId,

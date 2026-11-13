@@ -20,7 +20,8 @@ export function coverNewlyInsertedTiles({ newlyInsertedIds, newThumbnailUrls }: 
   }
 
   for (const elItem of document.querySelectorAll<HTMLElement>(GRID_ITEM_SELECTOR)) {
-    if (!isInViewport(elItem) || !isPolymerElement(elItem)) {
+    const isNotCoverCandidate = !isInViewport(elItem) || !isPolymerElement(elItem);
+    if (isNotCoverCandidate) {
       continue;
     }
 

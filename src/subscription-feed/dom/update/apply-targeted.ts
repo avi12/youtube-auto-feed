@@ -41,7 +41,8 @@ type IsSwapHeldOffByHoverParams = Prettify<
 // the whole update (instead of applying without the swap), keeping the previous snapshot so the next
 // poll retries and the swap crossfades in once the pointer leaves.
 export function isSwapHeldOffByHover({ elItem, fresh, previous }: IsSwapHeldOffByHoverParams) {
-  if (!previous || !isTileHovered(elItem)) {
+  const isNotTargetable = !previous || !isTileHovered(elItem);
+  if (isNotTargetable) {
     return false;
   }
 

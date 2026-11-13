@@ -91,7 +91,8 @@ async function refreshSubscribedChannels() {
 }
 
 export async function resolveSubscribedChannels() {
-  if (cachedChannels && cachedUntil > Date.now()) {
+  const isChannelCacheFresh = cachedChannels && cachedUntil > Date.now();
+  if (isChannelCacheFresh) {
     return cachedChannels;
   }
 

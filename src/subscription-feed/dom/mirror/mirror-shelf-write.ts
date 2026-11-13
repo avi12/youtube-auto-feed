@@ -143,7 +143,8 @@ export async function animateShelfWrite({
   insertedVideoIds
 }: AnimateShelfWriteParams) {
   const elContents = elShelf.querySelector<HTMLElement>("#contents");
-  if (!isPolymerElement(elShelf) || !elContents) {
+  const isShelfUnwritable = !isPolymerElement(elShelf) || !elContents;
+  if (isShelfUnwritable) {
     return;
   }
 

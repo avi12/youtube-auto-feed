@@ -13,7 +13,8 @@ type PinSurvivorsParams = Prettify<{
 
 export function pinSurvivorsToOldRects({ oldRects, newlyInsertedIds }: PinSurvivorsParams) {
   for (const elItem of document.querySelectorAll<HTMLElement>(GRID_ITEM_SELECTOR)) {
-    if (!isInReflowZone(elItem) || !isPolymerElement(elItem)) {
+    const isNotSurvivor = !isInReflowZone(elItem) || !isPolymerElement(elItem);
+    if (isNotSurvivor) {
       continue;
     }
 

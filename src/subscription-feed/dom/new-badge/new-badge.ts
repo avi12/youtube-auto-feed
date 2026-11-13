@@ -111,7 +111,8 @@ type ContentImageWithBadgeParams = Prettify<{
 // stays reference-equal and nothing re-renders.
 function contentImageWithBadge({ contentImage, isBadgeWanted }: ContentImageWithBadgeParams) {
   const thumbnail = contentImage?.thumbnailViewModel;
-  if (!thumbnail || isBadgeCarried(contentImage) === isBadgeWanted) {
+  const isBadgeCorrect = !thumbnail || isBadgeCarried(contentImage) === isBadgeWanted;
+  if (isBadgeCorrect) {
     return contentImage;
   }
 
