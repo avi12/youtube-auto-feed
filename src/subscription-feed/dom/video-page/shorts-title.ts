@@ -1,8 +1,13 @@
 import { z } from "@/shared/zod";
+import {
+  applyWithDissolve,
+  setAttributeIfChanged,
+  setNodeTextIfChanged
+} from "@/subscription-feed/dom/update/dissolve";
 import type { Prettify } from "@/subscription-feed/types/prettify";
 import { isPolymerElement } from "@/subscription-feed/utils/polymer";
 import { reelWatchEndpointSchema } from "@/subscription-feed/youtube-api/schemas";
-import { applyWithDissolve, setAttributeIfChanged, setNodeTextIfChanged } from "@/subscription-feed/dom/update/dissolve";
+
 import { updatePageTitle } from "./current-video";
 
 // A Short's overlay title is a view model that does not re-render from new data, so its text node and

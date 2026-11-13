@@ -1,4 +1,10 @@
 import {
+  GRID_SELECTOR,
+  RICH_ITEM_SELECTOR,
+  type RichItemElement
+} from "@/subscription-feed/dom/mirror/mirror-constants";
+import { videoIdFromRichItem } from "@/subscription-feed/dom/rich-item";
+import {
   type InnerTubeRichGridItem,
   LockupBadgePosition,
   LockupBadgeStyle,
@@ -9,8 +15,7 @@ import type { PolymerElement } from "@/subscription-feed/types/polymer";
 import type { Prettify } from "@/subscription-feed/types/prettify";
 import { videoIdFromData, videoIdFromLockup } from "@/subscription-feed/utils/video-id";
 import { isRichGridData } from "@/subscription-feed/youtube-api/guards";
-import { GRID_SELECTOR, RICH_ITEM_SELECTOR, type RichItemElement } from "@/subscription-feed/dom/mirror/mirror-constants";
-import { videoIdFromRichItem } from "@/subscription-feed/dom/rich-item";
+
 import { newBadgeText } from "./new-badge-text";
 
 // A video the extension slips into the feed while you are reading it wears the same "New" corner marker

@@ -90,7 +90,7 @@ export interface InnerTubeBrowseResponse {
             };
             sectionListRenderer?: {
               contents: {
-                itemSectionRenderer?: { contents: Array<{ shelfRenderer?: InnerTubeShelfRenderer }> };
+                itemSectionRenderer?: { contents: { shelfRenderer?: InnerTubeShelfRenderer }[] };
               }[];
             };
           };

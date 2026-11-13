@@ -8,6 +8,7 @@ import type { PolymerElement } from "@/subscription-feed/types/polymer";
 import type { Prettify } from "@/subscription-feed/types/prettify";
 import { isLockupViewModel, isShortsLockupViewModel } from "@/subscription-feed/youtube-api/guards";
 import { richItemContentSchema } from "@/subscription-feed/youtube-api/schemas";
+
 import { mergeLockupViewModel } from "./lockup-model";
 import { buildMergedVideoRenderer } from "./merged-video-renderer";
 

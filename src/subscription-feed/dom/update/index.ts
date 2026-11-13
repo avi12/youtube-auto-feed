@@ -1,9 +1,10 @@
+import { isInViewport } from "@/subscription-feed/dom/animations";
+import { scheduleLazyUpdate } from "@/subscription-feed/dom/lazy/lazy-update";
 import type { PolymerElement } from "@/subscription-feed/types/polymer";
 import type { Prettify } from "@/subscription-feed/types/prettify";
 import type { VideoSnapshot } from "@/subscription-feed/types/video";
 import { isPolymerElement } from "@/subscription-feed/utils/polymer";
-import { isInViewport } from "@/subscription-feed/dom/animations";
-import { scheduleLazyUpdate } from "@/subscription-feed/dom/lazy/lazy-update";
+
 import { applyUpdate, isSwapHeldOffByHover } from "./apply-targeted";
 import { buildVideoElementMap } from "./video-element-map";
 

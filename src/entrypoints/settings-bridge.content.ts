@@ -1,5 +1,4 @@
 import { storage } from "#imports";
-
 import {
   defaultSettings,
   type FeedSettings,

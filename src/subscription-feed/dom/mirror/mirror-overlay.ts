@@ -1,4 +1,5 @@
 import type { Prettify } from "@/subscription-feed/types/prettify";
+
 import { thumbnailImgsInItem } from "./mirror-elements";
 
 type DropOverlayWhenThumbnailLoadsParams = Prettify<{

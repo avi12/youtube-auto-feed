@@ -1,8 +1,9 @@
+import { GRID_SELECTOR } from "@/subscription-feed/dom/mirror/mirror-constants";
 import type { InnerTubeRichGridItem } from "@/subscription-feed/types/innertube";
 import type { PolymerElement } from "@/subscription-feed/types/polymer";
 import type { Prettify } from "@/subscription-feed/types/prettify";
 import { isRichGridData } from "@/subscription-feed/youtube-api/guards";
-import { GRID_SELECTOR } from "@/subscription-feed/dom/mirror/mirror-constants";
+
 import { pruneOrphanedDomItems } from "./orphan-cleanup-dom";
 import { collectGridModelIds, filterMisplacedAndDuplicates } from "./orphan-cleanup-grid";
 

@@ -1,4 +1,5 @@
 import type { Prettify } from "@/subscription-feed/types/prettify";
+
 import { SURVIVOR_GLIDE_EASING, SURVIVOR_SHIFT_MS } from "./mirror-constants";
 
 const MIN_GLIDE_PX = 1;

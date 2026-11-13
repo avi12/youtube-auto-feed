@@ -1,6 +1,7 @@
 import type { InnerTubeBrowseResponse, InnerTubeRichGridItem } from "@/subscription-feed/types/innertube";
 import type { Prettify } from "@/subscription-feed/types/prettify";
 import type { VideoSnapshot } from "@/subscription-feed/types/video";
+
 import { collectRichSectionSnapshots, collectSectionListSnapshots } from "./section-snapshots";
 import { type AnyRendererParams, collectSnapshot } from "./snapshot-collect";
 

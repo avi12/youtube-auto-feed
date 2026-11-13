@@ -1,5 +1,6 @@
-import type { Prettify } from "@/subscription-feed/types/prettify";
 import { isThumbnailChanged, isThumbnailUrlRotated } from "@/subscription-feed/dom/rich-item";
+import type { Prettify } from "@/subscription-feed/types/prettify";
+
 import { applyWithDissolve } from "./dissolve";
 import { syncGridModelItem } from "./polymer-model";
 import { rebuildPolymerRenderer } from "./polymer-rebuild";

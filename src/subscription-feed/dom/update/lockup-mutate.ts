@@ -1,11 +1,17 @@
 import { z } from "@/shared/zod";
+import { GRID_SELECTOR } from "@/subscription-feed/dom/mirror/mirror-constants";
+import { findRichItemIndex } from "@/subscription-feed/dom/rich-item";
 import type { LockupViewModel } from "@/subscription-feed/types/innertube";
 import type { PolymerElement } from "@/subscription-feed/types/polymer";
 import type { Prettify } from "@/subscription-feed/types/prettify";
-import { isLockupViewModel, isRichGridData, isRichShelfData, type RichGridData } from "@/subscription-feed/youtube-api/guards";
+import {
+  isLockupViewModel,
+  isRichGridData,
+  isRichShelfData,
+  type RichGridData
+} from "@/subscription-feed/youtube-api/guards";
 import { richItemContentSchema } from "@/subscription-feed/youtube-api/schemas";
-import { GRID_SELECTOR } from "@/subscription-feed/dom/mirror/mirror-constants";
-import { findRichItemIndex } from "@/subscription-feed/dom/rich-item";
+
 import { mutateLockupViewModelInPlace } from "./lockup-mutate-in-place";
 
 // mutateLockupMetadata walks every location where the lockup lives: the element's own data, the

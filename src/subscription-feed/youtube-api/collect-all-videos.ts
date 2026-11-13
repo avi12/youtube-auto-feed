@@ -1,5 +1,6 @@
 import type { Prettify } from "@/subscription-feed/types/prettify";
 import type { VideoSnapshot } from "@/subscription-feed/types/video";
+
 import { isChannelVideoPlayerRenderer, isLockupViewModel, isShortsLockupViewModel, isVideoRenderer } from "./guards";
 import {
   parseChannelVideoPlayer,

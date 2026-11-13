@@ -1,8 +1,12 @@
 import { applyGenericMetadataUpdates, detectAndApplyMetadataChanges } from "@/subscription-feed/diff";
-import { reconcileVisibleThumbnails, THUMBNAIL_WATCH_INTERVAL_MS } from "@/subscription-feed/dom/update/thumbnail-content-watch";
+import {
+  reconcileVisibleThumbnails,
+  THUMBNAIL_WATCH_INTERVAL_MS
+} from "@/subscription-feed/dom/update/thumbnail-content-watch";
 import { isOnSubscriptionsPage } from "@/subscription-feed/utils/subscriptions-page";
 import { fetchInitialVideos, fetchPageVideos } from "@/subscription-feed/youtube-api/fetch";
 import { invalidateSubscriptionCache } from "@/subscription-feed/youtube-api/subscribed-channels";
+
 import { type MonitorContext, preloadSnapshotThumbnails } from "./polling-state";
 
 export function createFetchHandlers(context: MonitorContext) {

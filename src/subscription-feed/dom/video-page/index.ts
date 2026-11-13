@@ -3,6 +3,7 @@ import { isOnShortsPage, videoIdFromLocation } from "@/subscription-feed/utils/s
 import { textFromInnerTubeText } from "@/subscription-feed/youtube-api/guards";
 import type { EndScreenVideo } from "@/subscription-feed/youtube-api/parse-watch-next";
 import { fetchWatchNext, type WatchNextSnapshot } from "@/subscription-feed/youtube-api/watch-next";
+
 import { applySubscriberCount, applyWatchTitle, refreshNativeVideoMetadata } from "./current-video";
 import { applyEndScreenUpdates, refreshEndScreenPictures, resetEndScreenTracking } from "./end-screen";
 import { isPlayerInMode, PlayerMode, refreshUnstartedPlayerThumbnail } from "./player-pictures";

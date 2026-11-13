@@ -1,8 +1,9 @@
+import { applyWithDissolve, setNodeTextIfChanged } from "@/subscription-feed/dom/update/dissolve";
+import { crossfadeBackgroundImage } from "@/subscription-feed/dom/update/thumbnail";
 import type { Prettify } from "@/subscription-feed/types/prettify";
 import { videoIdFromWatchHref } from "@/subscription-feed/utils/video-id";
 import { type EndScreenVideo, endScreenVideosFromWatchNext } from "@/subscription-feed/youtube-api/parse-watch-next";
-import { applyWithDissolve, setNodeTextIfChanged } from "@/subscription-feed/dom/update/dissolve";
-import { crossfadeBackgroundImage } from "@/subscription-feed/dom/update/thumbnail";
+
 import { pageWatchNext } from "./current-video";
 import { findPlayer, paintedBackgroundUrl, refreshPlayerPicture } from "./player-pictures";
 

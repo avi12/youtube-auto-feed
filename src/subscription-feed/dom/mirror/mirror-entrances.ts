@@ -1,6 +1,7 @@
+import { isInViewport } from "@/subscription-feed/dom/animations";
 import { isPolymerElement } from "@/subscription-feed/utils/polymer";
 import { videoIdFromData } from "@/subscription-feed/utils/video-id";
-import { isInViewport } from "@/subscription-feed/dom/animations";
+
 import { GRID_ITEM_SELECTOR } from "./mirror-constants";
 import { findNewlyInsertedElements } from "./mirror-find-tiles";
 

@@ -1,5 +1,6 @@
 import { isAnimationsEnabled } from "@/subscription-feed/settings-state";
 import type { Prettify } from "@/subscription-feed/types/prettify";
+
 import { healedThumbnailUrl } from "./thumbnail-heal";
 
 // Swapping a refreshed thumbnail picture in place. YouTube serves the replacement either under a new

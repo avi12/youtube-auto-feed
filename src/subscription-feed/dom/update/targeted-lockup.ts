@@ -1,6 +1,7 @@
+import { isThumbnailChanged, isThumbnailUrlRotated } from "@/subscription-feed/dom/rich-item";
 import type { Prettify } from "@/subscription-feed/types/prettify";
 import { isLockupViewModel } from "@/subscription-feed/youtube-api/guards";
-import { isThumbnailChanged, isThumbnailUrlRotated } from "@/subscription-feed/dom/rich-item";
+
 import { rebuildPolymerRenderer } from "./polymer-rebuild";
 import { applyAnimatedLockupChanges } from "./targeted-lockup-animated";
 import { applyStaticLockupChanges } from "./targeted-lockup-static";

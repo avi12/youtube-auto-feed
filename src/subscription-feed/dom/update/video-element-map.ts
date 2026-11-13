@@ -1,8 +1,8 @@
+import { RICH_ITEM_SELECTOR } from "@/subscription-feed/dom/mirror/mirror-constants";
 import type { Prettify } from "@/subscription-feed/types/prettify";
 import { isPolymerElement } from "@/subscription-feed/utils/polymer";
 import { videoIdFromData } from "@/subscription-feed/utils/video-id";
 import { isChannelVideoPlayerRenderer, isVideoRenderer } from "@/subscription-feed/youtube-api/guards";
-import { RICH_ITEM_SELECTOR } from "@/subscription-feed/dom/mirror/mirror-constants";
 
 // Builds a videoId -> elements map in one DOM walk, used by the batched metadata-only poll so many
 // videos share a single traversal.

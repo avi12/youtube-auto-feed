@@ -16,7 +16,7 @@ export interface InnerTubeGuideResponse {
       items?: {
         guideEntryRenderer?: InnerTubeGuideChannelEntry;
         guideCollapsibleEntryRenderer?: {
-          expandableItems?: Array<{ guideEntryRenderer?: InnerTubeGuideChannelEntry }>;
+          expandableItems?: { guideEntryRenderer?: InnerTubeGuideChannelEntry }[];
         };
       }[];
     };

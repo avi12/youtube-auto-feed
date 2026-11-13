@@ -1,5 +1,6 @@
 import type { Prettify } from "@/subscription-feed/types/prettify";
 import type { VideoSnapshot } from "@/subscription-feed/types/video";
+
 import { collectLegacyShelfVideos, collectRichShelfVideos } from "./query-snapshot-collectors";
 import { collectFallbackGridVideos, collectInlineGridVideos } from "./query-snapshot-grid-collectors";
 

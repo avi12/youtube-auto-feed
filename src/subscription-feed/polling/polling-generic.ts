@@ -1,4 +1,5 @@
 import { isGenericContentReady } from "@/subscription-feed/readiness";
+
 import { METADATA_POLL_INTERVAL_MS, type MonitorContext } from "./polling-state";
 
 // Light monitor for every non-subscription page: just the 10s metadata reconcile + thumbnail watch

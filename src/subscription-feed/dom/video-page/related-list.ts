@@ -1,4 +1,18 @@
 import { hasMetadataChange } from "@/subscription-feed/diff/metadata-diff";
+import { isThumbnailChanged, isThumbnailUrlRotated } from "@/subscription-feed/dom/rich-item";
+import { isSwapHeldOffByHover } from "@/subscription-feed/dom/update/apply-targeted";
+import { applyWithDissolve } from "@/subscription-feed/dom/update/dissolve";
+import { mutateLockupViewModelInPlace } from "@/subscription-feed/dom/update/lockup-mutate-in-place";
+import {
+  applyLockupTextChanges,
+  changingLockupTextElements,
+  collectLockupTextElements
+} from "@/subscription-feed/dom/update/text-fields";
+import {
+  applyProgressBarUpdate,
+  crossfadeChangedThumbnail,
+  findThumbnailImg
+} from "@/subscription-feed/dom/update/thumbnail";
 import type { LockupViewModel, RelatedChipData } from "@/subscription-feed/types/innertube";
 import type { PolymerElement } from "@/subscription-feed/types/polymer";
 import type { Prettify } from "@/subscription-feed/types/prettify";
@@ -7,12 +21,6 @@ import { isPolymerElement } from "@/subscription-feed/utils/polymer";
 import { videoIdFromLockup, videoIdFromWatchHref } from "@/subscription-feed/utils/video-id";
 import { isLockupViewModel, isRelatedChipData, isRelatedSectionData } from "@/subscription-feed/youtube-api/guards";
 import { parseLockupViewModel } from "@/subscription-feed/youtube-api/parse-lockup";
-import { isThumbnailChanged, isThumbnailUrlRotated } from "@/subscription-feed/dom/rich-item";
-import { isSwapHeldOffByHover } from "@/subscription-feed/dom/update/apply-targeted";
-import { applyWithDissolve } from "@/subscription-feed/dom/update/dissolve";
-import { mutateLockupViewModelInPlace } from "@/subscription-feed/dom/update/lockup-mutate-in-place";
-import { applyLockupTextChanges, changingLockupTextElements, collectLockupTextElements } from "@/subscription-feed/dom/update/text-fields";
-import { applyProgressBarUpdate, crossfadeChangedThumbnail, findThumbnailImg } from "@/subscription-feed/dom/update/thumbnail";
 
 // The related list beside (or below) the player. It is an item section whose model holds one lockup
 // per video, rendered as bare yt-lockup-view-model elements with no data of their own, so a tile is

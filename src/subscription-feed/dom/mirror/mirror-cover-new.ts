@@ -1,7 +1,8 @@
+import { isInViewport } from "@/subscription-feed/dom/animations";
 import type { Prettify } from "@/subscription-feed/types/prettify";
 import { isPolymerElement } from "@/subscription-feed/utils/polymer";
 import { videoIdFromData } from "@/subscription-feed/utils/video-id";
-import { isInViewport } from "@/subscription-feed/dom/animations";
+
 import { GRID_ITEM_SELECTOR } from "./mirror-constants";
 import { thumbnailContainerInItem } from "./mirror-elements";
 import { addCoverOverlay, dropOverlayWhenThumbnailLoads, prepareCoverHost } from "./mirror-overlay";

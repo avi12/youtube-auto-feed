@@ -1,6 +1,7 @@
+import { avatarUrlFromContent, thumbnailUrlFromContent } from "@/subscription-feed/dom/rich-item";
 import type { Prettify } from "@/subscription-feed/types/prettify";
 import { isPolymerElement } from "@/subscription-feed/utils/polymer";
-import { avatarUrlFromContent, thumbnailUrlFromContent } from "@/subscription-feed/dom/rich-item";
+
 import { GRID_ITEM_SELECTOR, type RichItemElement } from "./mirror-constants";
 import { avatarImgInItem, isInReflowZone, thumbnailImgsInItem } from "./mirror-elements";
 import { repaintInlineThumbnails } from "./mirror-thumbnails";

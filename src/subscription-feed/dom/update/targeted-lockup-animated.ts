@@ -1,5 +1,6 @@
 import type { PolymerElement } from "@/subscription-feed/types/polymer";
 import type { VideoSnapshot } from "@/subscription-feed/types/video";
+
 import { applyWithDissolve } from "./dissolve";
 import { mutateLockupMetadata } from "./lockup-model";
 import { rebuildPolymerRenderer } from "./polymer-rebuild";

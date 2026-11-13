@@ -1,3 +1,6 @@
+import { isInViewport, nextFrame } from "@/subscription-feed/dom/animations";
+import { createRemovalGhosts, dissolveRemovalGhosts } from "@/subscription-feed/dom/mirror/mirror-ghosts";
+import { glideToRest, pinAtOffset } from "@/subscription-feed/dom/mirror/mirror-glide";
 import { isAnimationsEnabled } from "@/subscription-feed/settings-state";
 import type { RelatedSectionData } from "@/subscription-feed/types/innertube";
 import type { PolymerElement } from "@/subscription-feed/types/polymer";
@@ -5,9 +8,7 @@ import type { Prettify } from "@/subscription-feed/types/prettify";
 import { videoIdFromLockup } from "@/subscription-feed/utils/video-id";
 import { isLockupViewModel } from "@/subscription-feed/youtube-api/guards";
 import { fetchVideoChannel } from "@/subscription-feed/youtube-api/oembed";
-import { isInViewport, nextFrame } from "@/subscription-feed/dom/animations";
-import { createRemovalGhosts, dissolveRemovalGhosts } from "@/subscription-feed/dom/mirror/mirror-ghosts";
-import { glideToRest, pinAtOffset } from "@/subscription-feed/dom/mirror/mirror-glide";
+
 import {
   readRelatedTiles,
   relatedChips,

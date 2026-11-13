@@ -8,6 +8,7 @@
 
 import type { Prettify } from "@/subscription-feed/types/prettify";
 import type { VideoSnapshot } from "@/subscription-feed/types/video";
+
 import { isInnerTubeWatchNextResponse } from "./guards";
 import { InnerTubeEndpoint, postInnerTube } from "./innertube-request";
 import {

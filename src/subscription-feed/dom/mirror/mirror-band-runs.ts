@@ -1,6 +1,7 @@
+import { videoIdFromRichItem } from "@/subscription-feed/dom/rich-item";
 import type { InnerTubeRichGridItem } from "@/subscription-feed/types/innertube";
 import type { Prettify } from "@/subscription-feed/types/prettify";
-import { videoIdFromRichItem } from "@/subscription-feed/dom/rich-item";
+
 import type { InlineBandEntry } from "./mirror-band-merge";
 
 export function extractInlineBand(contents: Prettify<InnerTubeRichGridItem>[]) {

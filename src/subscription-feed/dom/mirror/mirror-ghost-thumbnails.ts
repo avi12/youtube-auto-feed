@@ -1,4 +1,5 @@
 import type { Prettify } from "@/subscription-feed/types/prettify";
+
 import { thumbnailContainerInItem, thumbnailImgsInItem } from "./mirror-elements";
 import { positionRemovalGhost } from "./mirror-ghost-position";
 

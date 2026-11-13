@@ -8,6 +8,7 @@ import {
   isVideoRenderer,
   thumbnailUrlFromShortsLockup
 } from "@/subscription-feed/youtube-api/guards";
+
 import { healedThumbnailUrl } from "./update/thumbnail-heal";
 
 export function videoIdFromRichItem(

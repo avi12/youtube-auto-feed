@@ -1,11 +1,11 @@
 import { z } from "@/shared/zod";
+import { triggerAnimation } from "@/subscription-feed/dom/animations";
 import type { InnerTubeText } from "@/subscription-feed/types/innertube";
 import type { Prettify } from "@/subscription-feed/types/prettify";
 import { isCommandResolver, isPolymerElement } from "@/subscription-feed/utils/polymer";
 import { isInnerTubeWatchNextResponse, textFromInnerTubeText } from "@/subscription-feed/youtube-api/guards";
 import { currentVideoFromWatchNext } from "@/subscription-feed/youtube-api/parse-watch-next";
 import { titleSchema } from "@/subscription-feed/youtube-api/schemas";
-import { triggerAnimation } from "@/subscription-feed/dom/animations";
 
 // The watch page's own header: title, channel row, view count, likes and date. Each is changed the way
 // YouTube changes it itself, so the page renders the new value with its own components - the view

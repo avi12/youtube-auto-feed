@@ -1,8 +1,9 @@
+import { isInViewport, nextFrame } from "@/subscription-feed/dom/animations";
 import { isExtensionEnabled } from "@/subscription-feed/settings-state";
 import type { Prettify } from "@/subscription-feed/types/prettify";
 import { type IronDropdownElement, isIronDropdown } from "@/subscription-feed/utils/polymer";
 import { videoIdFromData } from "@/subscription-feed/utils/video-id";
-import { isInViewport, nextFrame } from "@/subscription-feed/dom/animations";
+
 import { RICH_ITEM_SELECTOR, type RichItemElement } from "./mirror-constants";
 import { glideToRest, isInGlide, pinAtOffset, waitForGlide } from "./mirror-glide";
 

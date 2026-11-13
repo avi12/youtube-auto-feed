@@ -3,6 +3,7 @@ import { mirrorFromApi } from "@/subscription-feed/dom/mirror/mirror";
 import type { InnerTubeRichGridItem } from "@/subscription-feed/types/innertube";
 import type { Prettify } from "@/subscription-feed/types/prettify";
 import type { VideoSnapshot } from "@/subscription-feed/types/video";
+
 import { detectAndApplyMetadataChanges, withStickyWatchProgress } from "./metadata-diff";
 
 export { applyGenericMetadataUpdates, detectAndApplyMetadataChanges } from "./metadata-diff";

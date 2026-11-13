@@ -2,7 +2,11 @@ import type { Prettify } from "@/subscription-feed/types/prettify";
 import type { VideoSnapshot } from "@/subscription-feed/types/video";
 import { isPolymerElement } from "@/subscription-feed/utils/polymer";
 import { isLockupViewModel, isShortsLockupViewModel, isVideoRenderer } from "@/subscription-feed/youtube-api/guards";
-import { parseLockupViewModel, parseRenderer, parseShortsLockupViewModel } from "@/subscription-feed/youtube-api/parse-video";
+import {
+  parseLockupViewModel,
+  parseRenderer,
+  parseShortsLockupViewModel
+} from "@/subscription-feed/youtube-api/parse-video";
 import { richItemDataSchema } from "@/subscription-feed/youtube-api/schemas";
 
 interface SectionContext {

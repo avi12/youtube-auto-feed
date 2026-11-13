@@ -1,8 +1,9 @@
+import { isInViewport, nextFrame } from "@/subscription-feed/dom/animations";
 import type { InnerTubeRichGridItem } from "@/subscription-feed/types/innertube";
 import type { Prettify } from "@/subscription-feed/types/prettify";
 import { flushPolymerRender, isPolymerElement } from "@/subscription-feed/utils/polymer";
 import { videoIdFromData } from "@/subscription-feed/utils/video-id";
-import { isInViewport, nextFrame } from "@/subscription-feed/dom/animations";
+
 import { RICH_ITEM_SELECTOR, SURVIVOR_GLIDE_EASING, SURVIVOR_SHIFT_MS } from "./mirror-constants";
 import { playEntrance } from "./mirror-entrances";
 import { createRemovalGhosts, dissolveRemovalGhosts } from "./mirror-ghosts";
