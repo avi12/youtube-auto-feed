@@ -1,7 +1,7 @@
-import type { PolymerElement } from "../../types/polymer";
-import { isRichGridData, isRichShelfData } from "../../youtube-api/guards";
-import { GRID_SELECTOR } from "../mirror/mirror-constants";
-import { findRichItemIndex } from "../rich-item";
+import type { PolymerElement } from "@/subscription-feed/types/polymer";
+import { isRichGridData, isRichShelfData } from "@/subscription-feed/youtube-api/guards";
+import { GRID_SELECTOR } from "@/subscription-feed/dom/mirror/mirror-constants";
+import { findRichItemIndex } from "@/subscription-feed/dom/rich-item";
 import { applyRichItemContentUpdate } from "./polymer-renderer-merge";
 import type { ApplyToContainerParams } from "./polymer-sync-types";
 

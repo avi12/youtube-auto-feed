@@ -1,6 +1,6 @@
-import { z } from "../../shared/zod";
-import { isVideoRenderer } from "../youtube-api/guards";
-import { richItemContentSchema } from "../youtube-api/schemas";
+import { z } from "@/shared/zod";
+import { isVideoRenderer } from "@/subscription-feed/youtube-api/guards";
+import { richItemContentSchema } from "@/subscription-feed/youtube-api/schemas";
 
 const nonEmptyStringSchema = z.string().min(1);
 

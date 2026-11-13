@@ -1,6 +1,6 @@
-import type { InnerTubeRichGridItem } from "../../types/innertube";
-import type { PolymerElement } from "../../types/polymer";
-import type { Prettify } from "../../types/prettify";
+import type { InnerTubeRichGridItem } from "@/subscription-feed/types/innertube";
+import type { PolymerElement } from "@/subscription-feed/types/polymer";
+import type { Prettify } from "@/subscription-feed/types/prettify";
 
 export const REBIND_MICROTASK_POLL_MAX = 20;
 export const REBIND_FRAME_POLL_MAX = 10;

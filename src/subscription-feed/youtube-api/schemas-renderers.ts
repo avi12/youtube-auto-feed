@@ -1,4 +1,4 @@
-import { z } from "../../shared/zod";
+import { z } from "@/shared/zod";
 
 // Zod mirrors of the InnerTube renderer shapes. Fields are optional and looseObject passes unmodelled
 // siblings through; the discriminating fields stay required only in the guard schemas in guards.ts.

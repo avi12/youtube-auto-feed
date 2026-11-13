@@ -1,8 +1,8 @@
-import type { PolymerElement } from "../../types/polymer";
-import type { Prettify } from "../../types/prettify";
-import { videoIdFromData } from "../../utils/video-id";
-import { isVideoRenderer } from "../../youtube-api/guards";
-import { RICH_ITEM_SELECTOR } from "../mirror/mirror-constants";
+import type { PolymerElement } from "@/subscription-feed/types/polymer";
+import type { Prettify } from "@/subscription-feed/types/prettify";
+import { videoIdFromData } from "@/subscription-feed/utils/video-id";
+import { isVideoRenderer } from "@/subscription-feed/youtube-api/guards";
+import { RICH_ITEM_SELECTOR } from "@/subscription-feed/dom/mirror/mirror-constants";
 
 type ElementMatchesVideoIdParams = Prettify<{
   elItem: PolymerElement;

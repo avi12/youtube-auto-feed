@@ -1,8 +1,8 @@
-import { readGenericDomSnapshot } from "../dom/query/query";
-import { isThumbnailChanged, isThumbnailUrlRotated } from "../dom/rich-item";
-import { batchUpdateVideosInDom, reconcileShortsMetadata } from "../dom/update";
-import type { Prettify } from "../types/prettify";
-import type { MetadataPart, VideoSnapshot } from "../types/video";
+import { readGenericDomSnapshot } from "@/subscription-feed/dom/query/query";
+import { isThumbnailChanged, isThumbnailUrlRotated } from "@/subscription-feed/dom/rich-item";
+import { batchUpdateVideosInDom, reconcileShortsMetadata } from "@/subscription-feed/dom/update";
+import type { Prettify } from "@/subscription-feed/types/prettify";
+import type { MetadataPart, VideoSnapshot } from "@/subscription-feed/types/video";
 
 function isMetadataPartsChanged(previousParts: MetadataPart[], freshParts: MetadataPart[]) {
   return (

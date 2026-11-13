@@ -1,10 +1,10 @@
-import { isAnimationsEnabled } from "../../settings-state";
-import type { InnerTubeRichGridItem } from "../../types/innertube";
-import type { PolymerElement } from "../../types/polymer";
-import type { Prettify } from "../../types/prettify";
-import { isRichGridData } from "../../youtube-api/guards";
-import { markVideosAsNew, withNewBadges } from "../new-badge/new-badge";
-import { thumbnailUrlFromRichItem, videoIdFromRichItem } from "../rich-item";
+import { isAnimationsEnabled } from "@/subscription-feed/settings-state";
+import type { InnerTubeRichGridItem } from "@/subscription-feed/types/innertube";
+import type { PolymerElement } from "@/subscription-feed/types/polymer";
+import type { Prettify } from "@/subscription-feed/types/prettify";
+import { isRichGridData } from "@/subscription-feed/youtube-api/guards";
+import { markVideosAsNew, withNewBadges } from "@/subscription-feed/dom/new-badge/new-badge";
+import { thumbnailUrlFromRichItem, videoIdFromRichItem } from "@/subscription-feed/dom/rich-item";
 import { collectInlineVideoIds, composeNewContents, isReferenceEqualArray } from "./mirror-compose";
 import { GRID_SELECTOR } from "./mirror-constants";
 import { findRemovedViewportTiles } from "./mirror-find-tiles";

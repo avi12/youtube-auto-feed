@@ -1,13 +1,13 @@
-import { detectAndApplyChanges } from "../diff";
-import { captureBandLayout, normalizeCollapsedShelfRows } from "../dom/band/band-layout";
-import { isOnSubscriptionsPage } from "../utils/subscriptions-page";
-import { isInnerTubeBrowseResponse } from "../youtube-api/guards";
+import { detectAndApplyChanges } from "@/subscription-feed/diff";
+import { captureBandLayout, normalizeCollapsedShelfRows } from "@/subscription-feed/dom/band/band-layout";
+import { isOnSubscriptionsPage } from "@/subscription-feed/utils/subscriptions-page";
+import { isInnerTubeBrowseResponse } from "@/subscription-feed/youtube-api/guards";
 import {
   extractApiContents,
   extractApiSectionOrder,
   extractHiddenVideoIds,
   parseApiResponse
-} from "../youtube-api/parse-response";
+} from "@/subscription-feed/youtube-api/parse-response";
 import {
   type ApplyChangesParams,
   type MonitorContext,

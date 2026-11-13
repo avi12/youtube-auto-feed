@@ -1,6 +1,6 @@
-import type { EndScreenVideoRenderer, InnerTubeWatchNextResponse, WatchNextFeedItem } from "../types/innertube";
-import type { Prettify } from "../types/prettify";
-import type { VideoSnapshot } from "../types/video";
+import type { EndScreenVideoRenderer, InnerTubeWatchNextResponse, WatchNextFeedItem } from "@/subscription-feed/types/innertube";
+import type { Prettify } from "@/subscription-feed/types/prettify";
+import type { VideoSnapshot } from "@/subscription-feed/types/video";
 import { collectAllVideoSnapshots } from "./collect-all-videos";
 import { textFromInnerTubeText } from "./renderer-fields";
 

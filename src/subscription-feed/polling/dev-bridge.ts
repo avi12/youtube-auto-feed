@@ -1,11 +1,11 @@
-import { absenceCountByVideoId, GRID_ITEM_SELECTOR, type RichItemElement } from "../dom/mirror/mirror-constants";
-import { badgeExpiryByVideoId, seenVideoIds } from "../dom/new-badge/new-badge";
-import { thumbnailUrlFromContent } from "../dom/rich-item";
-import { reconcileVisibleThumbnails } from "../dom/update/thumbnail-content-watch";
-import { findThumbnailImgInItem } from "../dom/update/thumbnail-locate";
-import type { Prettify } from "../types/prettify";
-import type { VideoSnapshot } from "../types/video";
-import { videoIdFromData } from "../utils/video-id";
+import { absenceCountByVideoId, GRID_ITEM_SELECTOR, type RichItemElement } from "@/subscription-feed/dom/mirror/mirror-constants";
+import { badgeExpiryByVideoId, seenVideoIds } from "@/subscription-feed/dom/new-badge/new-badge";
+import { thumbnailUrlFromContent } from "@/subscription-feed/dom/rich-item";
+import { reconcileVisibleThumbnails } from "@/subscription-feed/dom/update/thumbnail-content-watch";
+import { findThumbnailImgInItem } from "@/subscription-feed/dom/update/thumbnail-locate";
+import type { Prettify } from "@/subscription-feed/types/prettify";
+import type { VideoSnapshot } from "@/subscription-feed/types/video";
+import { videoIdFromData } from "@/subscription-feed/utils/video-id";
 import { type BlankReportEntry, startBlankThumbnailDetector } from "./blank-detector";
 import type { MonitorContext, MonitorState } from "./polling-state";
 

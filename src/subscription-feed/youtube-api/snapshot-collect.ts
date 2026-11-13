@@ -1,6 +1,6 @@
-import type { InnerTubeVideoRenderer, LockupViewModel, ShortsLockupViewModel } from "../types/innertube";
-import type { Prettify } from "../types/prettify";
-import type { VideoSnapshot } from "../types/video";
+import type { InnerTubeVideoRenderer, LockupViewModel, ShortsLockupViewModel } from "@/subscription-feed/types/innertube";
+import type { Prettify } from "@/subscription-feed/types/prettify";
+import type { VideoSnapshot } from "@/subscription-feed/types/video";
 import { parseLockupViewModel, parseRenderer, parseShortsLockupViewModel } from "./parse-video";
 
 export interface AnyRendererParams {

@@ -1,5 +1,5 @@
-import { isAnimationsEnabled } from "../settings-state";
-import type { Prettify } from "../types/prettify";
+import { isAnimationsEnabled } from "@/subscription-feed/settings-state";
+import type { Prettify } from "@/subscription-feed/types/prettify";
 
 const animationClasses = ["ytaf-new", "ytaf-updated"] as const;
 type AnimationClass = (typeof animationClasses)[number];

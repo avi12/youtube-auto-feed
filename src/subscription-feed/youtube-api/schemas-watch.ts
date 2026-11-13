@@ -1,4 +1,4 @@
-import { z } from "../../shared/zod";
+import { z } from "@/shared/zod";
 import { richItemContentSchema, thumbnailSchema, titleSchema } from "./schemas-renderers";
 
 // The watch page's /next payload. The page itself is built from it, so the same shape describes both a

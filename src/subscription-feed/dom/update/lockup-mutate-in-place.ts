@@ -1,5 +1,5 @@
-import type { Prettify } from "../../types/prettify";
-import { contentImageWithPaintedBadge } from "../new-badge/new-badge";
+import type { Prettify } from "@/subscription-feed/types/prettify";
+import { contentImageWithPaintedBadge } from "@/subscription-feed/dom/new-badge/new-badge";
 import { getAvatarImage, type LockupPair, mergeContentImagePreservingThumbnail } from "./lockup-merge";
 
 type MutateLockupViewModelInPlaceParams = Prettify<

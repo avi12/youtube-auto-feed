@@ -5,8 +5,8 @@
 // channels - rather than failing outright. The marker header keeps the fetch interceptor from
 // mirroring these calls back to the monitor as if YouTube had made them.
 
-import { OWN_REQUEST_MARKER_HEADER } from "../../shared/own-request";
-import type { Prettify } from "../types/prettify";
+import { OWN_REQUEST_MARKER_HEADER } from "@/shared/own-request";
+import type { Prettify } from "@/subscription-feed/types/prettify";
 
 export enum InnerTubeEndpoint {
   Browse = "/youtubei/v1/browse?prettyPrint=false",

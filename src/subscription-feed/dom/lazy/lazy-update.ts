@@ -1,6 +1,6 @@
-import type { Prettify } from "../../types/prettify";
-import type { VideoSnapshot } from "../../types/video";
-import { findItemElements } from "../query/query";
+import type { Prettify } from "@/subscription-feed/types/prettify";
+import type { VideoSnapshot } from "@/subscription-feed/types/video";
+import { findItemElements } from "@/subscription-feed/dom/query/query";
 import { ensureObserver, pendingUpdates, resetObserverState } from "./lazy-update-observer";
 
 type ScheduleLazyUpdateParams = Prettify<{

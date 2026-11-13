@@ -1,4 +1,4 @@
-import { z } from "../../shared/zod";
+import { z } from "@/shared/zod";
 import type {
   ChannelVideoPlayerRenderer,
   InnerTubeBrowseResponse,
@@ -13,7 +13,7 @@ import type {
   RelatedChipData,
   RelatedSectionData,
   ShortsLockupViewModel
-} from "../types/innertube";
+} from "@/subscription-feed/types/innertube";
 import {
   browseContentsSchema,
   channelVideoPlayerRendererSchema,

@@ -1,8 +1,8 @@
-import type { InnerTubeVideoRenderer } from "../../types/innertube";
-import type { PolymerElement } from "../../types/polymer";
-import type { Prettify } from "../../types/prettify";
-import { isShelfRenderer } from "../../youtube-api/guards";
-import { richShelfDataSchema } from "../../youtube-api/schemas";
+import type { InnerTubeVideoRenderer } from "@/subscription-feed/types/innertube";
+import type { PolymerElement } from "@/subscription-feed/types/polymer";
+import type { Prettify } from "@/subscription-feed/types/prettify";
+import { isShelfRenderer } from "@/subscription-feed/youtube-api/guards";
+import { richShelfDataSchema } from "@/subscription-feed/youtube-api/schemas";
 import { buildMergedVideoRenderer } from "./merged-video-renderer";
 import type { ApplyToContainerParams } from "./polymer-sync-types";
 

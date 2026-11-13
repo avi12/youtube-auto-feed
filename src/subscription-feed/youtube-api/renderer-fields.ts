@@ -8,9 +8,9 @@ import {
   type LockupViewModel,
   OverlayStyle,
   type ShortsLockupViewModel
-} from "../types/innertube";
-import type { Prettify } from "../types/prettify";
-import { VideoStatus } from "../types/video";
+} from "@/subscription-feed/types/innertube";
+import type { Prettify } from "@/subscription-feed/types/prettify";
+import { VideoStatus } from "@/subscription-feed/types/video";
 
 const STREAMED_AGO_TEXT_PREFIX = "streamed";
 const UPCOMING_BADGE_TEXT = "Upcoming";

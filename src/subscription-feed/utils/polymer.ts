@@ -1,4 +1,4 @@
-import type { PolymerElement } from "../types/polymer";
+import type { PolymerElement } from "@/subscription-feed/types/polymer";
 
 declare global {
   var Polymer:

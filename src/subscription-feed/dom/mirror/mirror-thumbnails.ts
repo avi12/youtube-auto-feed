@@ -1,5 +1,5 @@
-import { nextFrame } from "../animations";
-import { avatarUrlFromContent, thumbnailUrlFromContent } from "../rich-item";
+import { nextFrame } from "@/subscription-feed/dom/animations";
+import { avatarUrlFromContent, thumbnailUrlFromContent } from "@/subscription-feed/dom/rich-item";
 import {
   GRID_ITEM_SELECTOR,
   NEW_THUMBNAIL_DECODE_CAP_FRAMES,

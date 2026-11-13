@@ -1,6 +1,6 @@
-import type { InnerTubeVideoRenderer, LockupViewModel, ShortsLockupViewModel } from "../../types/innertube";
-import type { PolymerElement } from "../../types/polymer";
-import type { Prettify } from "../../types/prettify";
+import type { InnerTubeVideoRenderer, LockupViewModel, ShortsLockupViewModel } from "@/subscription-feed/types/innertube";
+import type { PolymerElement } from "@/subscription-feed/types/polymer";
+import type { Prettify } from "@/subscription-feed/types/prettify";
 import { applyPolymerUpdate, syncGridModelItem } from "./polymer-model";
 
 // Full rebuild: refresh the bound element, then every other model copy of the same video.

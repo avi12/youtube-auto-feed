@@ -1,5 +1,5 @@
-import { createSubscriptionMonitor } from "../subscription-feed";
-import { initSettingsClient, isExtensionEnabled, onSettingsChange } from "../subscription-feed/settings-state";
+import { createSubscriptionMonitor } from "@/subscription-feed";
+import { initSettingsClient, isExtensionEnabled, onSettingsChange } from "@/subscription-feed/settings-state";
 
 export default defineContentScript({
   matches: ["https://www.youtube.com/*"],

@@ -1,5 +1,5 @@
-import type { Prettify } from "../../types/prettify";
-import type { VideoSnapshot } from "../../types/video";
+import type { Prettify } from "@/subscription-feed/types/prettify";
+import type { VideoSnapshot } from "@/subscription-feed/types/video";
 import { applyWithDissolve, setNodeTextIfChanged } from "./dissolve";
 
 // The channel-page trailer (ytd-channel-video-player-renderer) renders its own title and a

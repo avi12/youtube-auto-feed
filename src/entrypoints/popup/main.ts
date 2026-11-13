@@ -1,6 +1,6 @@
 import { mount } from "svelte";
 
-import { loadStoredSettings } from "../../shared/settings-storage";
+import { loadStoredSettings } from "@/shared/settings-storage";
 import Popup from "./Popup.svelte";
 
 import "./popup.css";

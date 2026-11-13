@@ -1,8 +1,8 @@
-import { isInViewport } from "../dom/animations";
-import { GRID_ITEM_SELECTOR, type RichItemElement } from "../dom/mirror/mirror-constants";
-import { thumbnailUrlFromContent } from "../dom/rich-item";
-import { findThumbnailImgInItem } from "../dom/update/thumbnail-locate";
-import { videoIdFromData } from "../utils/video-id";
+import { isInViewport } from "@/subscription-feed/dom/animations";
+import { GRID_ITEM_SELECTOR, type RichItemElement } from "@/subscription-feed/dom/mirror/mirror-constants";
+import { thumbnailUrlFromContent } from "@/subscription-feed/dom/rich-item";
+import { findThumbnailImgInItem } from "@/subscription-feed/dom/update/thumbnail-locate";
+import { videoIdFromData } from "@/subscription-feed/utils/video-id";
 
 // Dev-only watchdog for the "updated thumbnail flashes blank" report. Every scan it inspects each
 // in-viewport tile: a painted <img> that has gone empty or decodes to zero width is blank. A blank

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { type FeedSettings, SETTING_NAMES, SETTING_STORAGE_KEYS } from "../../shared/settings";
+  import { type FeedSettings, SETTING_NAMES, SETTING_STORAGE_KEYS } from "@/shared/settings";
   import Footer from "./components/Footer.svelte";
   import Header from "./components/Header.svelte";
   import Section from "./components/Section.svelte";

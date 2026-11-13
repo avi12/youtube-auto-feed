@@ -1,9 +1,9 @@
-import { z } from "../../../shared/zod";
-import type { InnerTubeVideoRenderer, LockupViewModel, ShortsLockupViewModel } from "../../types/innertube";
-import type { PolymerElement } from "../../types/polymer";
-import type { Prettify } from "../../types/prettify";
-import { isLockupViewModel, isShortsLockupViewModel } from "../../youtube-api/guards";
-import { richItemContentSchema } from "../../youtube-api/schemas";
+import { z } from "@/shared/zod";
+import type { InnerTubeVideoRenderer, LockupViewModel, ShortsLockupViewModel } from "@/subscription-feed/types/innertube";
+import type { PolymerElement } from "@/subscription-feed/types/polymer";
+import type { Prettify } from "@/subscription-feed/types/prettify";
+import { isLockupViewModel, isShortsLockupViewModel } from "@/subscription-feed/youtube-api/guards";
+import { richItemContentSchema } from "@/subscription-feed/youtube-api/schemas";
 import { mergeLockupViewModel } from "./lockup-model";
 
 export { syncGridModelItem } from "./polymer-sync-model";

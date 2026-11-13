@@ -1,4 +1,4 @@
-import type { Prettify } from "../../types/prettify";
+import type { Prettify } from "@/subscription-feed/types/prettify";
 
 // Locating the thumbnail <img> across shadow-DOM lockups and legacy markup, plus the watch-progress
 // bar, which lives in the same shadow tree.

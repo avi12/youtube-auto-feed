@@ -1,11 +1,11 @@
-import type { z } from "../../shared/zod";
+import type { z } from "@/shared/zod";
 import type {
   endScreenVideoRendererSchema,
   relatedChipDataSchema,
   relatedSectionDataSchema,
   watchNextFeedItemSchema,
   watchNextResponseSchema
-} from "../youtube-api/schemas-watch";
+} from "@/subscription-feed/youtube-api/schemas-watch";
 
 // The /next payload is modelled once, as Zod schemas; these types are read straight off them.
 

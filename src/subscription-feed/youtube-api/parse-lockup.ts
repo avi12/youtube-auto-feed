@@ -1,7 +1,7 @@
-import type { LockupViewModel } from "../types/innertube";
-import type { Prettify } from "../types/prettify";
-import type { VideoSnapshot } from "../types/video";
-import { videoIdFromLockup } from "../utils/video-id";
+import type { LockupViewModel } from "@/subscription-feed/types/innertube";
+import type { Prettify } from "@/subscription-feed/types/prettify";
+import type { VideoSnapshot } from "@/subscription-feed/types/video";
+import { videoIdFromLockup } from "@/subscription-feed/utils/video-id";
 import { statusFromLockup } from "./guards";
 import type { ParseVideoParams } from "./parse-video-params";
 

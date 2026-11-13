@@ -1,5 +1,5 @@
-import { defaultSettings, type FeedSettings, feedSettingsSchema } from "../shared/settings";
-import { settingsMessenger } from "../shared/settings-messaging";
+import { defaultSettings, type FeedSettings, feedSettingsSchema } from "@/shared/settings";
+import { settingsMessenger } from "@/shared/settings-messaging";
 
 type SettingsListener = (settings: FeedSettings) => void;
 

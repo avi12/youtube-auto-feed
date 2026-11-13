@@ -1,7 +1,7 @@
-import { ytafChannel } from "../../shared/messaging";
-import { cleanOrphanedGridItems } from "../dom/cleanup/orphan-cleanup";
-import { resetLazyUpdates } from "../dom/lazy/lazy-update";
-import { isOnSubscriptionsPage, isOnVideoPage } from "../utils/subscriptions-page";
+import { ytafChannel } from "@/shared/messaging";
+import { cleanOrphanedGridItems } from "@/subscription-feed/dom/cleanup/orphan-cleanup";
+import { resetLazyUpdates } from "@/subscription-feed/dom/lazy/lazy-update";
+import { isOnSubscriptionsPage, isOnVideoPage } from "@/subscription-feed/utils/subscriptions-page";
 import { METADATA_POLL_INTERVAL_MS, type MonitorContext, ORPHAN_CLEANUP_INTERVAL_MS } from "./polling-state";
 
 export function createLifecycleHandlers(context: MonitorContext) {

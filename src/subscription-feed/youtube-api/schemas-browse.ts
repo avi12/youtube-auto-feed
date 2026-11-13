@@ -1,4 +1,4 @@
-import { z } from "../../shared/zod";
+import { z } from "@/shared/zod";
 import {
   richGridContentsSchema,
   richItemContentSchema,

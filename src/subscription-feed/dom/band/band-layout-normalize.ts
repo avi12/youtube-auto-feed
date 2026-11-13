@@ -1,8 +1,8 @@
-import type { PolymerElement } from "../../types/polymer";
-import { isRichShelfData } from "../../youtube-api/guards";
-import { richItemDataSchema } from "../../youtube-api/schemas";
-import { RICH_ITEM_SELECTOR } from "../mirror/mirror-constants";
-import { videoIdFromRichItem } from "../rich-item";
+import type { PolymerElement } from "@/subscription-feed/types/polymer";
+import { isRichShelfData } from "@/subscription-feed/youtube-api/guards";
+import { richItemDataSchema } from "@/subscription-feed/youtube-api/schemas";
+import { RICH_ITEM_SELECTOR } from "@/subscription-feed/dom/mirror/mirror-constants";
+import { videoIdFromRichItem } from "@/subscription-feed/dom/rich-item";
 
 function waitForPolymerToFinishRendering() {
   return new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));

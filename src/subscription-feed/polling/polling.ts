@@ -1,7 +1,7 @@
-import { feedMessenger } from "../../shared/feed-messaging";
-import { startOpenMenuTracking } from "../dom/mirror/mirror-open-menu";
-import { startNewBadgeDismissal } from "../dom/new-badge/new-badge";
-import { startThumbnailHealer } from "../dom/update/thumbnail";
+import { feedMessenger } from "@/shared/feed-messaging";
+import { startOpenMenuTracking } from "@/subscription-feed/dom/mirror/mirror-open-menu";
+import { startNewBadgeDismissal } from "@/subscription-feed/dom/new-badge/new-badge";
+import { startThumbnailHealer } from "@/subscription-feed/dom/update/thumbnail";
 import { installDevBridge } from "./dev-bridge";
 import { createApplyHandlers } from "./polling-apply";
 import { createBaselineHandlers } from "./polling-baseline";

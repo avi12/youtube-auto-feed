@@ -1,4 +1,4 @@
-import { z } from "../../shared/zod";
+import { z } from "@/shared/zod";
 
 const guideChannelEntrySchema = z.looseObject({
   navigationEndpoint: z

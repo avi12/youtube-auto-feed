@@ -1,9 +1,9 @@
-import { z } from "../../../shared/zod";
-import type { PolymerElement } from "../../types/polymer";
-import type { Prettify } from "../../types/prettify";
-import type { VideoSnapshot } from "../../types/video";
-import { richItemContentSchema } from "../../youtube-api/schemas";
-import { isThumbnailChanged, isThumbnailUrlRotated } from "../rich-item";
+import { z } from "@/shared/zod";
+import type { PolymerElement } from "@/subscription-feed/types/polymer";
+import type { Prettify } from "@/subscription-feed/types/prettify";
+import type { VideoSnapshot } from "@/subscription-feed/types/video";
+import { richItemContentSchema } from "@/subscription-feed/youtube-api/schemas";
+import { isThumbnailChanged, isThumbnailUrlRotated } from "@/subscription-feed/dom/rich-item";
 import { rebuildPolymerRenderer } from "./polymer-rebuild";
 import { applyTargetedGenericUpdate } from "./targeted-generic";
 import { applyTargetedLockupUpdate } from "./targeted-lockup";

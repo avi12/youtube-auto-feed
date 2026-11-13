@@ -1,10 +1,10 @@
-import { isAnimationsEnabled } from "../../settings-state";
-import type { InnerTubeRichGridItem } from "../../types/innertube";
-import type { PolymerElement } from "../../types/polymer";
-import type { Prettify } from "../../types/prettify";
-import { isRichShelfData } from "../../youtube-api/guards";
-import { textFromInnerTubeText } from "../../youtube-api/renderer-fields";
-import { isSemiSubscribedRichItem, videoIdFromRichItem } from "../rich-item";
+import { isAnimationsEnabled } from "@/subscription-feed/settings-state";
+import type { InnerTubeRichGridItem } from "@/subscription-feed/types/innertube";
+import type { PolymerElement } from "@/subscription-feed/types/polymer";
+import type { Prettify } from "@/subscription-feed/types/prettify";
+import { isRichShelfData } from "@/subscription-feed/youtube-api/guards";
+import { textFromInnerTubeText } from "@/subscription-feed/youtube-api/renderer-fields";
+import { isSemiSubscribedRichItem, videoIdFromRichItem } from "@/subscription-feed/dom/rich-item";
 import { usableShelves } from "./mirror-elements";
 import { alignOpenMenuToItsVideo } from "./mirror-open-menu";
 import { animateShelfWrite } from "./mirror-shelf-write";

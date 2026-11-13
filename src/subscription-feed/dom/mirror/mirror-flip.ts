@@ -1,5 +1,5 @@
-import { flushPolymerRender, isPolymerElement } from "../../utils/polymer";
-import { nextFrame } from "../animations";
+import { flushPolymerRender, isPolymerElement } from "@/subscription-feed/utils/polymer";
+import { nextFrame } from "@/subscription-feed/dom/animations";
 import { coverBlankImages, observeAndCoverBlankImages } from "./mirror-blank-cover";
 import {
   REBIND_FRAME_POLL_MAX,

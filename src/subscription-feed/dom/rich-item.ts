@@ -1,13 +1,13 @@
-import type { InnerTubeRichGridItem, InnerTubeRichItemContent } from "../types/innertube";
-import type { Prettify } from "../types/prettify";
-import { VideoStatus } from "../types/video";
-import { videoIdFromData } from "../utils/video-id";
+import type { InnerTubeRichGridItem, InnerTubeRichItemContent } from "@/subscription-feed/types/innertube";
+import type { Prettify } from "@/subscription-feed/types/prettify";
+import { VideoStatus } from "@/subscription-feed/types/video";
+import { videoIdFromData } from "@/subscription-feed/utils/video-id";
 import {
   isLockupViewModel,
   isShortsLockupViewModel,
   isVideoRenderer,
   thumbnailUrlFromShortsLockup
-} from "../youtube-api/guards";
+} from "@/subscription-feed/youtube-api/guards";
 import { healedThumbnailUrl } from "./update/thumbnail-heal";
 
 export function videoIdFromRichItem(

@@ -1,4 +1,4 @@
-import { crossfadeBackgroundImage, fetchChangedThumbnailBytes } from "../update/thumbnail";
+import { crossfadeBackgroundImage, fetchChangedThumbnailBytes } from "@/subscription-feed/dom/update/thumbnail";
 
 // The player paints its pictures - the poster shown before playback starts, the suggestions on its end
 // screen - as CSS backgrounds under URLs that never change when a creator replaces the thumbnail. So the

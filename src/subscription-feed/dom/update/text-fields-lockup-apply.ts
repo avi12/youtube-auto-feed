@@ -1,5 +1,5 @@
-import type { Prettify } from "../../types/prettify";
-import type { VideoSnapshot } from "../../types/video";
+import type { Prettify } from "@/subscription-feed/types/prettify";
+import type { VideoSnapshot } from "@/subscription-feed/types/video";
 import { setAttributeIfChanged, setNodeTextIfChanged } from "./dissolve";
 import type { LockupTextElements } from "./text-fields-lockup-elements";
 

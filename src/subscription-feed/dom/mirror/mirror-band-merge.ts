@@ -1,5 +1,5 @@
-import type { InnerTubeRichGridItem } from "../../types/innertube";
-import type { Prettify } from "../../types/prettify";
+import type { InnerTubeRichGridItem } from "@/subscription-feed/types/innertube";
+import type { Prettify } from "@/subscription-feed/types/prettify";
 
 export interface InlineBandEntry {
   videoId: string;

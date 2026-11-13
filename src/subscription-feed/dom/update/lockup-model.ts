@@ -1,6 +1,6 @@
-import type { Prettify } from "../../types/prettify";
-import { videoIdFromLockup } from "../../utils/video-id";
-import { contentImageWithBadgeState } from "../new-badge/new-badge";
+import type { Prettify } from "@/subscription-feed/types/prettify";
+import { videoIdFromLockup } from "@/subscription-feed/utils/video-id";
+import { contentImageWithBadgeState } from "@/subscription-feed/dom/new-badge/new-badge";
 import {
   getAvatarImage,
   hasSameThumbnail,

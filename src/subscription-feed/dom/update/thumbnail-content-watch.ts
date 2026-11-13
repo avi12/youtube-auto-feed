@@ -1,7 +1,7 @@
-import type { Prettify } from "../../types/prettify";
-import { isInViewport } from "../animations";
-import { GRID_ITEM_SELECTOR, type RichItemElement } from "../mirror/mirror-constants";
-import { thumbnailUrlFromContent } from "../rich-item";
+import type { Prettify } from "@/subscription-feed/types/prettify";
+import { isInViewport } from "@/subscription-feed/dom/animations";
+import { GRID_ITEM_SELECTOR, type RichItemElement } from "@/subscription-feed/dom/mirror/mirror-constants";
+import { thumbnailUrlFromContent } from "@/subscription-feed/dom/rich-item";
 import { repointDeadThumbnail } from "./thumbnail-heal";
 import { findThumbnailImgInItem } from "./thumbnail-locate";
 import { crossfadeThumbnail } from "./thumbnail-swap";

@@ -1,7 +1,7 @@
-import { feedMessenger } from "../shared/feed-messaging";
-import { ytafChannel } from "../shared/messaging";
-import { OWN_REQUEST_MARKER_HEADER } from "../shared/own-request";
-import { z } from "../shared/zod";
+import { feedMessenger } from "@/shared/feed-messaging";
+import { ytafChannel } from "@/shared/messaging";
+import { OWN_REQUEST_MARKER_HEADER } from "@/shared/own-request";
+import { z } from "@/shared/zod";
 
 declare global {
   // Exposed so the CDP test harness can inject browse responses through the interceptor's messenger.

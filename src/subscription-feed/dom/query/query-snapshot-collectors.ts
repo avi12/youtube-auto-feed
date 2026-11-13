@@ -1,10 +1,10 @@
-import type { PolymerElement } from "../../types/polymer";
-import type { Prettify } from "../../types/prettify";
-import type { VideoSnapshot } from "../../types/video";
-import { isPolymerElement } from "../../utils/polymer";
-import { isRichShelfRenderer, isShelfRenderer, isVideoRenderer } from "../../youtube-api/guards";
-import { parseRenderer } from "../../youtube-api/parse-video";
-import { RICH_ITEM_SELECTOR } from "../mirror/mirror-constants";
+import type { PolymerElement } from "@/subscription-feed/types/polymer";
+import type { Prettify } from "@/subscription-feed/types/prettify";
+import type { VideoSnapshot } from "@/subscription-feed/types/video";
+import { isPolymerElement } from "@/subscription-feed/utils/polymer";
+import { isRichShelfRenderer, isShelfRenderer, isVideoRenderer } from "@/subscription-feed/youtube-api/guards";
+import { parseRenderer } from "@/subscription-feed/youtube-api/parse-video";
+import { RICH_ITEM_SELECTOR } from "@/subscription-feed/dom/mirror/mirror-constants";
 import { addRichItemToSnapshot } from "./query-snapshot-parse";
 
 export function collectRichShelfVideos(snapshot: Map<string, Prettify<VideoSnapshot>>) {

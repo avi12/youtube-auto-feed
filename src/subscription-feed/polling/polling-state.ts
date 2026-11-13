@@ -1,8 +1,8 @@
-import { type BandLayout, captureBandLayout } from "../dom/band/band-layout";
-import { readDomSnapshot } from "../dom/query/query";
-import type { InnerTubeRichGridItem } from "../types/innertube";
-import type { Prettify } from "../types/prettify";
-import type { VideoSnapshot } from "../types/video";
+import { type BandLayout, captureBandLayout } from "@/subscription-feed/dom/band/band-layout";
+import { readDomSnapshot } from "@/subscription-feed/dom/query/query";
+import type { InnerTubeRichGridItem } from "@/subscription-feed/types/innertube";
+import type { Prettify } from "@/subscription-feed/types/prettify";
+import type { VideoSnapshot } from "@/subscription-feed/types/video";
 
 export interface FeedPayload {
   snapshots: VideoSnapshot[];

@@ -1,8 +1,8 @@
-import { z } from "../../../shared/zod";
-import type { InnerTubeVideoRenderer, LockupViewModel, ShortsLockupViewModel } from "../../types/innertube";
-import type { Prettify } from "../../types/prettify";
-import { isVideoRenderer } from "../../youtube-api/guards";
-import { thumbnailSchema } from "../../youtube-api/schemas";
+import { z } from "@/shared/zod";
+import type { InnerTubeVideoRenderer, LockupViewModel, ShortsLockupViewModel } from "@/subscription-feed/types/innertube";
+import type { Prettify } from "@/subscription-feed/types/prettify";
+import { isVideoRenderer } from "@/subscription-feed/youtube-api/guards";
+import { thumbnailSchema } from "@/subscription-feed/youtube-api/schemas";
 
 const rendererThumbnailSchema = z.looseObject({ thumbnails: z.array(thumbnailSchema) });
 

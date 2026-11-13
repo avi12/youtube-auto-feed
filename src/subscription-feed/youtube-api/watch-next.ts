@@ -6,8 +6,8 @@
 // list with that chip's own feed, and scrolling appends pages to it, so the first page is the chip's
 // feed when one is picked and further pages are walked until they cover as many pages as are shown.
 
-import type { Prettify } from "../types/prettify";
-import type { VideoSnapshot } from "../types/video";
+import type { Prettify } from "@/subscription-feed/types/prettify";
+import type { VideoSnapshot } from "@/subscription-feed/types/video";
 import { isInnerTubeWatchNextResponse } from "./guards";
 import { InnerTubeEndpoint, postInnerTube } from "./innertube-request";
 import {

@@ -1,4 +1,4 @@
-import type { Prettify } from "../../types/prettify";
+import type { Prettify } from "@/subscription-feed/types/prettify";
 
 export const REMOVAL_GHOST_ATTR = "data-ytaf-removal-ghost";
 

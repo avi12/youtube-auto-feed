@@ -6,9 +6,9 @@ import {
   SETTING_NAMES,
   SETTING_STORAGE_KEYS,
   settingChange
-} from "../shared/settings";
-import { settingsMessenger } from "../shared/settings-messaging";
-import { loadStoredSettings } from "../shared/settings-storage";
+} from "@/shared/settings";
+import { settingsMessenger } from "@/shared/settings-messaging";
+import { loadStoredSettings } from "@/shared/settings-storage";
 
 // ISOLATED-world bridge: the only context with browser.storage access. It answers MAIN's startup
 // "getSettings" pull and broadcasts every change so the MAIN-world mirror stays in sync.

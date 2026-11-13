@@ -1,5 +1,5 @@
-import type { Prettify } from "../../types/prettify";
-import { triggerAnimation } from "../animations";
+import type { Prettify } from "@/subscription-feed/types/prettify";
+import { triggerAnimation } from "@/subscription-feed/dom/animations";
 
 // Per-element pulse instead of a document-level view transition: a page-wide transition leaves every
 // tile un-hittable for its duration (pointer hit-testing falls through to <html>), and these edits fire

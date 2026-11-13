@@ -1,10 +1,10 @@
-import type { Prettify } from "../../types/prettify";
-import type { VideoSnapshot } from "../../types/video";
-import { isPolymerElement } from "../../utils/polymer";
-import { videoIdFromData } from "../../utils/video-id";
-import { isInViewport } from "../animations";
-import { RICH_ITEM_SELECTOR } from "../mirror/mirror-constants";
-import { isThumbnailChanged } from "../rich-item";
+import type { Prettify } from "@/subscription-feed/types/prettify";
+import type { VideoSnapshot } from "@/subscription-feed/types/video";
+import { isPolymerElement } from "@/subscription-feed/utils/polymer";
+import { videoIdFromData } from "@/subscription-feed/utils/video-id";
+import { isInViewport } from "@/subscription-feed/dom/animations";
+import { RICH_ITEM_SELECTOR } from "@/subscription-feed/dom/mirror/mirror-constants";
+import { isThumbnailChanged } from "@/subscription-feed/dom/rich-item";
 import { applyWithDissolve } from "./dissolve";
 import { changingShortsTextElements, readShortsRenderedText, updateShortsTextFields } from "./text-fields";
 import { crossfadeThumbnail, findThumbnailImgInItem, healedThumbnailUrl, isTileHovered } from "./thumbnail";

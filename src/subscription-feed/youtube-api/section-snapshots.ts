@@ -1,5 +1,5 @@
-import type { InnerTubeBrowseResponse, InnerTubeRichGridItem } from "../types/innertube";
-import type { Prettify } from "../types/prettify";
+import type { InnerTubeBrowseResponse, InnerTubeRichGridItem } from "@/subscription-feed/types/innertube";
+import type { Prettify } from "@/subscription-feed/types/prettify";
 import type { AnyRendererParams } from "./snapshot-collect";
 
 type PushSnapshot = (params: Prettify<AnyRendererParams>) => void;

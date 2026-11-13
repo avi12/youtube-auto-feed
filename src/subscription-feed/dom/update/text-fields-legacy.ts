@@ -1,5 +1,5 @@
-import type { Prettify } from "../../types/prettify";
-import type { VideoSnapshot } from "../../types/video";
+import type { Prettify } from "@/subscription-feed/types/prettify";
+import type { VideoSnapshot } from "@/subscription-feed/types/video";
 import { setAttributeIfChanged, setNodeTextIfChanged } from "./dissolve";
 
 // In-place text edits for the shorts (shorts shelf lockup) and legacy (videoRenderer) renderer

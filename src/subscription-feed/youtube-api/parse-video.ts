@@ -1,6 +1,6 @@
-import type { ChannelVideoPlayerRenderer, InnerTubeVideoRenderer, ShortsLockupViewModel } from "../types/innertube";
-import type { Prettify } from "../types/prettify";
-import { type VideoSnapshot, VideoStatus } from "../types/video";
+import type { ChannelVideoPlayerRenderer, InnerTubeVideoRenderer, ShortsLockupViewModel } from "@/subscription-feed/types/innertube";
+import type { Prettify } from "@/subscription-feed/types/prettify";
+import { type VideoSnapshot, VideoStatus } from "@/subscription-feed/types/video";
 import { statusFromRenderer, thumbnailUrlFromShortsLockup, viewCountFromRenderer } from "./guards";
 import type { ParseVideoParams } from "./parse-video-params";
 

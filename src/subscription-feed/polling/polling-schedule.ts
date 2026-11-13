@@ -1,4 +1,4 @@
-import { isOnSubscriptionsPage } from "../utils/subscriptions-page";
+import { isOnSubscriptionsPage } from "@/subscription-feed/utils/subscriptions-page";
 import { INITIAL_POLL_DELAY_MS, type MonitorContext, POLL_INTERVAL_MS } from "./polling-state";
 
 export function createScheduleHandlers(context: MonitorContext) {

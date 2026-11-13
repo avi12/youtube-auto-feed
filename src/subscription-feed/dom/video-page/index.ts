@@ -1,8 +1,8 @@
-import type { Prettify } from "../../types/prettify";
-import { isOnShortsPage, videoIdFromLocation } from "../../utils/subscriptions-page";
-import { textFromInnerTubeText } from "../../youtube-api/guards";
-import type { EndScreenVideo } from "../../youtube-api/parse-watch-next";
-import { fetchWatchNext, type WatchNextSnapshot } from "../../youtube-api/watch-next";
+import type { Prettify } from "@/subscription-feed/types/prettify";
+import { isOnShortsPage, videoIdFromLocation } from "@/subscription-feed/utils/subscriptions-page";
+import { textFromInnerTubeText } from "@/subscription-feed/youtube-api/guards";
+import type { EndScreenVideo } from "@/subscription-feed/youtube-api/parse-watch-next";
+import { fetchWatchNext, type WatchNextSnapshot } from "@/subscription-feed/youtube-api/watch-next";
 import { applySubscriberCount, applyWatchTitle, refreshNativeVideoMetadata } from "./current-video";
 import { applyEndScreenUpdates, refreshEndScreenPictures, resetEndScreenTracking } from "./end-screen";
 import { isPlayerInMode, PlayerMode, refreshUnstartedPlayerThumbnail } from "./player-pictures";

@@ -1,5 +1,5 @@
-import type { LockupViewModel } from "../../types/innertube";
-import type { Prettify } from "../../types/prettify";
+import type { LockupViewModel } from "@/subscription-feed/types/innertube";
+import type { Prettify } from "@/subscription-feed/types/prettify";
 
 // The full URL (including the sqp/rs query) is the thumbnail identity key. The query, not the path,
 // changes when a creator swaps the thumbnail; a path-only key would treat the new image as identical

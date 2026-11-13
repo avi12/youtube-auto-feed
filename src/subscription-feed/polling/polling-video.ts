@@ -1,7 +1,7 @@
-import { THUMBNAIL_WATCH_INTERVAL_MS } from "../dom/update/thumbnail-content-watch";
-import { isMainPlayerVideo, refreshVideoPage, resetVideoPageTracking } from "../dom/video-page";
-import { isVideoPageUpdatesEnabled } from "../settings-state";
-import { isOnVideoPage, videoIdFromLocation } from "../utils/subscriptions-page";
+import { THUMBNAIL_WATCH_INTERVAL_MS } from "@/subscription-feed/dom/update/thumbnail-content-watch";
+import { isMainPlayerVideo, refreshVideoPage, resetVideoPageTracking } from "@/subscription-feed/dom/video-page";
+import { isVideoPageUpdatesEnabled } from "@/subscription-feed/settings-state";
+import { isOnVideoPage, videoIdFromLocation } from "@/subscription-feed/utils/subscriptions-page";
 import { METADATA_POLL_INTERVAL_MS, type MonitorContext } from "./polling-state";
 
 // The opt-in video page monitor (/watch and /shorts). It runs while the viewer has it switched on and

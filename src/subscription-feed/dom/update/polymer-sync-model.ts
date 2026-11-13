@@ -1,5 +1,5 @@
-import type { InnerTubeVideoRenderer, LockupViewModel, ShortsLockupViewModel } from "../../types/innertube";
-import type { Prettify } from "../../types/prettify";
+import type { InnerTubeVideoRenderer, LockupViewModel, ShortsLockupViewModel } from "@/subscription-feed/types/innertube";
+import type { Prettify } from "@/subscription-feed/types/prettify";
 import { applyToGridModel, applyToLegacyShelfModels, applyToRichShelfModels } from "./polymer-sync-appliers";
 
 // Update every model position (grid root, rich shelves, legacy shelves) so all DOM copies refresh.

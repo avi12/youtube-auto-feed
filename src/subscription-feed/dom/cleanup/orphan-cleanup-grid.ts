@@ -1,7 +1,7 @@
-import type { PolymerElement } from "../../types/polymer";
-import type { Prettify } from "../../types/prettify";
-import { isRichGridData } from "../../youtube-api/guards";
-import { videoIdFromRichItem } from "../rich-item";
+import type { PolymerElement } from "@/subscription-feed/types/polymer";
+import type { Prettify } from "@/subscription-feed/types/prettify";
+import { isRichGridData } from "@/subscription-feed/youtube-api/guards";
+import { videoIdFromRichItem } from "@/subscription-feed/dom/rich-item";
 
 export function collectGridModelIds(elGrid: PolymerElement) {
   if (!isRichGridData(elGrid.data)) {
