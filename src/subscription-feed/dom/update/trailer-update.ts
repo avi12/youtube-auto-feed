@@ -21,14 +21,14 @@ export function applyTrailerUpdate({ elTrailer, fresh }: ApplyTrailerUpdateParam
   const [elViews, elPublished] = metaItems;
 
   const changed: HTMLElement[] = [];
-  function noteChange(elNode: HTMLElement | null | undefined, text: string) {
+  function noteChange({ elNode, text }: { elNode: HTMLElement | null | undefined; text: string }) {
     if (elNode && text !== "" && elNode.textContent !== text) {
       changed.push(elNode);
     }
   }
-  noteChange(elTitle, fresh.title);
-  noteChange(elViews, fresh.viewCountText);
-  noteChange(elPublished, fresh.publishedTimeText);
+  noteChange({ elNode: elTitle, text: fresh.title });
+  noteChange({ elNode: elViews, text: fresh.viewCountText });
+  noteChange({ elNode: elPublished, text: fresh.publishedTimeText });
 
   if (changed.length === 0) {
     return;

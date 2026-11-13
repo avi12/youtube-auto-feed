@@ -30,8 +30,8 @@ type OpenMenu = Prettify<{
 let openMenu: OpenMenu | null = null;
 let isFollowingThroughResize = false;
 
-function recordOpenedMenu(e: Event) {
-  const [elDropdown] = e.composedPath();
+function recordOpenedMenu(event: Event) {
+  const [elDropdown] = event.composedPath();
   if (!isIronDropdown(elDropdown)) {
     return;
   }
@@ -73,7 +73,7 @@ function trackedOpenMenu() {
   return elDropdown.opened && elDropdown.positionTarget === elAnchor ? openMenu : null;
 }
 
-function distanceBetweenCenters(left: DOMRect, right: DOMRect) {
+function distanceBetweenCenters({ left, right }: { left: DOMRect; right: DOMRect }) {
   return Math.hypot(
     left.left + left.width / 2 - (right.left + right.width / 2),
     left.top + left.height / 2 - (right.top + right.height / 2)
@@ -102,7 +102,7 @@ function findMenuTarget({ menu, menuRect }: FindMenuTargetParams) {
         elCandidate => videoIdFromData(elCandidate.data) === videoId
       );
   function distanceFromMenu({ elButton }: MenuTarget) {
-    return distanceBetweenCenters(elButton.getBoundingClientRect(), menuRect);
+    return distanceBetweenCenters({ left: elButton.getBoundingClientRect(), right: menuRect });
   }
 
   const [nearest] = elCandidates

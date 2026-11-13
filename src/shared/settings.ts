@@ -34,8 +34,8 @@ export function defaultSettings() {
   };
 }
 
-export function settingChange(name: SettingName, value: boolean) {
+export function settingChange({ name, isEnabled }: { name: SettingName; isEnabled: boolean }) {
   const change: Partial<FeedSettings> = {};
-  change[name] = value;
+  change[name] = isEnabled;
   return change;
 }

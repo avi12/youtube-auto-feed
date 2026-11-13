@@ -21,10 +21,13 @@ interface CollectSnapshotParams extends AnyRendererParams {
   seenVideoIds: Set<string>;
 }
 
-function furthestWatchProgress(
-  first: VideoSnapshot["watchProgressPercent"],
-  second: VideoSnapshot["watchProgressPercent"]
-) {
+function furthestWatchProgress({
+  first,
+  second
+}: {
+  first: VideoSnapshot["watchProgressPercent"];
+  second: VideoSnapshot["watchProgressPercent"];
+}) {
   if (first === null || second === null) {
     return first ?? second;
   }
@@ -50,7 +53,7 @@ function mergeDuplicateWatchProgress({
 
   snapshots[iKept] = {
     ...kept,
-    watchProgressPercent: furthestWatchProgress(kept.watchProgressPercent, duplicate.watchProgressPercent)
+    watchProgressPercent: furthestWatchProgress({ first: kept.watchProgressPercent, second: duplicate.watchProgressPercent })
   };
 }
 

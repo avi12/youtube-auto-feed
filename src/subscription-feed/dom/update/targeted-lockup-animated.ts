@@ -65,7 +65,7 @@ export function applyAnimatedLockupChanges({
       videoId,
       elItem,
       rawRenderer: freshRawRenderer,
-      forcePreserveContentImage: !isThumbnailSwapping
+      isContentImagePreserveForced: !isThumbnailSwapping
     });
   }
 }

@@ -75,7 +75,7 @@ export function applyUpdate({ videoId, elItem, fresh, previous }: ApplyUpdatePar
       videoId,
       elItem,
       rawRenderer,
-      forcePreserveContentImage: isOnlyChannelLiveFlip
+      isContentImagePreserveForced: isOnlyChannelLiveFlip
     });
     return;
   }

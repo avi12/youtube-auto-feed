@@ -39,7 +39,7 @@ export default defineContentScript({
 
     for (const name of SETTING_NAMES) {
       storage.watch<boolean>(SETTING_STORAGE_KEYS[name], value =>
-        applySettingChange(settingChange(name, value ?? defaults[name]))
+        applySettingChange(settingChange({ name, isEnabled: value ?? defaults[name] }))
       );
     }
     broadcastSettings();

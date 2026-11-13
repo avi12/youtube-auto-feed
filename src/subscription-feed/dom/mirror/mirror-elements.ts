@@ -32,12 +32,9 @@ export function thumbnailImgsInItem(elItem: HTMLElement) {
       for (const elImg of containerRoot.querySelectorAll<HTMLImageElement>("img")) {
         elImgs.push(elImg);
       }
-      for (const elYtImage of containerRoot.querySelectorAll<HTMLElement>("yt-image")) {
-        const elImg = elYtImage.shadowRoot?.querySelector<HTMLImageElement>("img");
-        if (elImg) {
-          elImgs.push(elImg);
-        }
-      }
+      const elYtImages = [...containerRoot.querySelectorAll<HTMLElement>("yt-image")];
+      const elInnerImgs = elYtImages.map(elYtImage => elYtImage.shadowRoot?.querySelector<HTMLImageElement>("img"));
+      elImgs.push(...elInnerImgs.filter(elImg => elImg != null));
     }
   }
   return elImgs;

@@ -1,4 +1,3 @@
-import type { Prettify } from "@/subscription-feed/types/prettify";
 
 const TITLE_SELECTOR_LOCKUP = ".ytLockupMetadataViewModelTitle span.ytAttributedStringHost";
 const TITLE_HEADING_SELECTOR_LOCKUP = ".ytLockupMetadataViewModelHeadingReset";

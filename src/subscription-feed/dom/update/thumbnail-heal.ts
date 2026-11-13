@@ -47,10 +47,6 @@ const DEFAULT_FILE_BY_FAMILY = [
 
 const deadThumbnailPaths = new Set<string>();
 
-interface HealableThumbnail {
-  pathKey: string;
-  fallbackUrl: string;
-}
 
 function healableThumbnailFrom(src: string) {
   const match = THUMBNAIL_URL_PATTERN.exec(src);
@@ -99,8 +95,8 @@ function isPlaceholderDecode(elImg: HTMLImageElement) {
   return elImg.naturalWidth === PLACEHOLDER_THUMBNAIL_WIDTH && elImg.naturalHeight === PLACEHOLDER_THUMBNAIL_HEIGHT;
 }
 
-function healFailedThumbnail(e: Event) {
-  const elImg = e.target;
+function healFailedThumbnail(event: Event) {
+  const elImg = event.target;
   if (!(elImg instanceof HTMLImageElement)) {
     return;
   }
@@ -108,8 +104,8 @@ function healFailedThumbnail(e: Event) {
   repointDeadThumbnail(elImg);
 }
 
-function healPlaceholderThumbnailPaint(e: Event) {
-  const elImg = e.target;
+function healPlaceholderThumbnailPaint(event: Event) {
+  const elImg = event.target;
   const isNotPlaceholder = !(elImg instanceof HTMLImageElement) || !isPlaceholderDecode(elImg);
   if (isNotPlaceholder) {
     return;

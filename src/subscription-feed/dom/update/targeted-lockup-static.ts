@@ -46,7 +46,7 @@ export function applyStaticLockupChanges({
       videoId,
       elItem,
       rawRenderer: freshRawRenderer,
-      forcePreserveContentImage: true
+      isContentImagePreserveForced: true
     });
   }
 }

@@ -1,11 +1,29 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "extends": ["./node_modules/oxlint-config-avi12/wxt.json", "./node_modules/oxlint-plugin-naming/preset.json"],
+  "extends": [
+    "./node_modules/oxlint-config-avi12/wxt.json",
+    "./node_modules/oxlint-plugin-naming/preset.json"
+  ],
   "rules": {
     "naming/convention": [
       "error",
       {
-        "presets": ["webextension-manifest", "webextension-messages", "hook-names"]
+        "presets": [
+          "webextension-manifest",
+          "webextension-messages",
+          "hook-names"
+        ],
+        "allowedNames": [
+          {
+            "reason": "Cross-world globals and the build-time define the dev server and the semi-sub companion read by these exact names",
+            "names": [
+              "__ytafFeedMessenger",
+              "__ytafHonorsSemiSubTags",
+              "__ytafDebug",
+              "__YTAF_DEBUG__"
+            ]
+          }
+        ]
       }
     ]
   },
@@ -18,5 +36,15 @@
     "screenshots/**",
     "scripts/**",
     "patches/**"
+  ],
+  "overrides": [
+    {
+      "files": [
+        "src/subscription-feed/polling/polling.ts"
+      ],
+      "rules": {
+        "typescript/consistent-type-assertions": "off"
+      }
+    }
   ]
 }

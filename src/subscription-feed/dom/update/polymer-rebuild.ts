@@ -13,14 +13,14 @@ type RebuildPolymerRendererParams = Prettify<{
   videoId: string;
   elItem: Prettify<PolymerElement>;
   rawRenderer: Prettify<InnerTubeVideoRenderer> | Prettify<LockupViewModel> | Prettify<ShortsLockupViewModel>;
-  forcePreserveContentImage?: boolean;
+  isContentImagePreserveForced?: boolean;
 }>;
 
 export function rebuildPolymerRenderer({
   videoId,
   elItem,
   rawRenderer,
-  forcePreserveContentImage = false
+  isContentImagePreserveForced = false
 }: RebuildPolymerRendererParams) {
   applyPolymerUpdate({
     elItem,
@@ -29,6 +29,6 @@ export function rebuildPolymerRenderer({
   syncGridModelItem({
     videoId,
     rawRenderer,
-    forcePreserveContentImage
+    isContentImagePreserveForced
   });
 }

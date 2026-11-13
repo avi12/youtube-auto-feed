@@ -29,35 +29,40 @@ function findMatchingRendererKey({ item, videoId }: FindMatchingRendererKeyParam
   return null;
 }
 
-export function applyToLegacyShelfModels({ videoId, rawRenderer, forcePreserveContentImage }: ApplyToContainerParams) {
+function matchingShelfEntries({ shelfData, videoId }: { shelfData: PolymerElement["data"]; videoId: string }) {
+  const shelfContent = isShelfRenderer(shelfData) ? shelfData.content : undefined;
+  const entries = [];
+  for (const listKey of ["horizontalListRenderer", "gridRenderer"] as const) {
+    const { items = [] } = shelfContent?.[listKey] ?? {};
+    for (const [iItem, item] of items.entries()) {
+      const rendererKey = findMatchingRendererKey({
+        item,
+        videoId
+      });
+      if (rendererKey) {
+        entries.push({ listKey, iItem, item, rendererKey });
+      }
+    }
+  }
+  return entries;
+}
+
+export function applyToLegacyShelfModels({ videoId, rawRenderer, isContentImagePreserveForced }: ApplyToContainerParams) {
   for (const elShelf of document.querySelectorAll<PolymerElement>("ytd-shelf-renderer")) {
     const isLegacyShelfUsable = richShelfDataSchema.safeParse(elShelf.data).success;
     if (!isLegacyShelfUsable) {
       continue;
     }
 
-    const shelfData = elShelf.data;
-    const shelfContent = isShelfRenderer(shelfData) ? shelfData.content : undefined;
-    for (const listKey of ["horizontalListRenderer", "gridRenderer"] as const) {
-      const { items = [] } = shelfContent?.[listKey] ?? {};
-      for (const [iItem, item] of items.entries()) {
-        const rendererKey = findMatchingRendererKey({
-          item,
-          videoId
-        });
-        if (!rendererKey) {
-          continue;
-        }
-
-        elShelf.set(
-          `data.content.${listKey}.items.${iItem}.${rendererKey}`,
-          buildMergedVideoRenderer({
-            existing: item[rendererKey] ?? null,
-            incoming: rawRenderer,
-            forcePreserveContentImage
-          })
-        );
-      }
+    for (const { listKey, iItem, item, rendererKey } of matchingShelfEntries({ shelfData: elShelf.data, videoId })) {
+      elShelf.set(
+        `data.content.${listKey}.items.${iItem}.${rendererKey}`,
+        buildMergedVideoRenderer({
+          existing: item[rendererKey] ?? null,
+          incoming: rawRenderer,
+          isContentImagePreserveForced
+        })
+      );
     }
   }
 }

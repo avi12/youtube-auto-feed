@@ -47,6 +47,10 @@ function decodeThumbnail(url: string) {
   return img.decode().catch(() => {});
 }
 
+function staleThumbnailImgs({ elItem, thumbnailUrl }: { elItem: RichItemElement; thumbnailUrl: string }) {
+  return thumbnailImgsInItem(elItem).filter(elImg => pathWithoutQuery(elImg.src) !== pathWithoutQuery(thumbnailUrl));
+}
+
 export function repaintInlineThumbnails() {
   let correctionCount = 0;
   for (const elItem of document.querySelectorAll<RichItemElement>(GRID_ITEM_SELECTOR)) {
@@ -54,11 +58,9 @@ export function repaintInlineThumbnails() {
 
     const thumbnailUrl = thumbnailUrlFromContent(content);
     if (thumbnailUrl) {
-      for (const elImg of thumbnailImgsInItem(elItem)) {
-        if (pathWithoutQuery(elImg.src) !== pathWithoutQuery(thumbnailUrl)) {
-          elImg.src = thumbnailUrl;
-          correctionCount++;
-        }
+      for (const elImg of staleThumbnailImgs({ elItem, thumbnailUrl })) {
+        elImg.src = thumbnailUrl;
+        correctionCount++;
       }
     }
 

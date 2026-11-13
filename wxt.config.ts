@@ -49,7 +49,7 @@ function buildInstructionsFor(browser: string) {
   return null;
 }
 
-async function injectBuildInstructions(zipPath: string, content: string) {
+async function injectBuildInstructions({ zipPath, content }: { zipPath: string; content: string }) {
   const entries = unzipSync(await readFile(zipPath));
   entries["BUILD.md"] = strToU8(content);
   await writeFile(zipPath, zipSync(entries));
@@ -112,7 +112,7 @@ export default defineConfig({
       // store reviewer can reproduce the build from this zip.
       const buildInstructions = buildInstructionsFor(browser);
       if (buildInstructions) {
-        await injectBuildInstructions(sourcesZipPath, buildInstructions);
+        await injectBuildInstructions({ zipPath: sourcesZipPath, content: buildInstructions });
       }
     }
   },

@@ -10,5 +10,5 @@ type RawRenderer = Prettify<InnerTubeVideoRenderer> | Prettify<LockupViewModel> 
 export type ApplyToContainerParams = Prettify<{
   videoId: string;
   rawRenderer: RawRenderer;
-  forcePreserveContentImage: boolean;
+  isContentImagePreserveForced: boolean;
 }>;

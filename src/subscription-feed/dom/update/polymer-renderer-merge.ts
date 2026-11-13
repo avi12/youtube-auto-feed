@@ -17,7 +17,7 @@ type ApplyRichItemContentUpdateParams = Prettify<{
   basePath: string;
   existingContent: Prettify<InnerTubeRichItemContent> | Record<string, unknown>;
   rawRenderer: Prettify<InnerTubeVideoRenderer> | Prettify<LockupViewModel> | Prettify<ShortsLockupViewModel>;
-  forcePreserveContentImage: boolean;
+  isContentImagePreserveForced: boolean;
 }>;
 
 export function applyRichItemContentUpdate({
@@ -25,7 +25,7 @@ export function applyRichItemContentUpdate({
   basePath,
   existingContent,
   rawRenderer,
-  forcePreserveContentImage
+  isContentImagePreserveForced
 }: ApplyRichItemContentUpdateParams) {
   const parsedExisting = richItemContentSchema.safeParse(existingContent);
   const existing = parsedExisting.success ? parsedExisting.data : null;
@@ -43,7 +43,7 @@ export function applyRichItemContentUpdate({
         ? mergeLockupViewModel({
             existing: existingLockup,
             incoming: rawRenderer,
-            forcePreserveContentImage
+            isContentImagePreserveForced
           })
         : rawRenderer;
     elElement.set(`${basePath}.lockupViewModel`, merged);
@@ -63,7 +63,7 @@ export function applyRichItemContentUpdate({
       buildMergedVideoRenderer({
         existing: existingGridVideoRenderer,
         incoming: rawRenderer,
-        forcePreserveContentImage
+        isContentImagePreserveForced
       })
     );
     return;
@@ -74,7 +74,7 @@ export function applyRichItemContentUpdate({
     buildMergedVideoRenderer({
       existing: existing?.videoRenderer ?? null,
       incoming: rawRenderer,
-      forcePreserveContentImage
+      isContentImagePreserveForced
     })
   );
 }

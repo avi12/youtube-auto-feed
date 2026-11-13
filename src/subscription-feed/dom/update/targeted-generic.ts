@@ -32,17 +32,17 @@ export async function applyTargetedGenericUpdate({
         elItem,
         fresh
       });
-  const applyText = isShorts
-    ? () =>
-        updateShortsTextFields({
+  function applyText() {
+    return isShorts
+      ? updateShortsTextFields({
           elItem,
           fresh
         })
-    : () =>
-        updateLegacyRendererTextFields({
+      : updateLegacyRendererTextFields({
           elItem,
           fresh
         });
+  }
 
   const isThumbnailChanging = isThumbnailChanged({
     previousUrl: previous.thumbnailUrl,
@@ -87,7 +87,7 @@ export async function applyTargetedGenericUpdate({
       syncGridModelItem({
         videoId,
         rawRenderer,
-        forcePreserveContentImage: !isThumbnailSwapping
+        isContentImagePreserveForced: !isThumbnailSwapping
       });
     }
   });

@@ -11,27 +11,27 @@ import { applyToGridModel, applyToLegacyShelfModels, applyToRichShelfModels } fr
 type SyncGridModelItemParams = Prettify<{
   videoId: string;
   rawRenderer: Prettify<InnerTubeVideoRenderer> | Prettify<LockupViewModel> | Prettify<ShortsLockupViewModel>;
-  forcePreserveContentImage?: boolean;
+  isContentImagePreserveForced?: boolean;
 }>;
 
 export function syncGridModelItem({
   videoId,
   rawRenderer,
-  forcePreserveContentImage = false
+  isContentImagePreserveForced = false
 }: SyncGridModelItemParams) {
   applyToGridModel({
     videoId,
     rawRenderer,
-    forcePreserveContentImage
+    isContentImagePreserveForced
   });
   applyToRichShelfModels({
     videoId,
     rawRenderer,
-    forcePreserveContentImage
+    isContentImagePreserveForced
   });
   applyToLegacyShelfModels({
     videoId,
     rawRenderer,
-    forcePreserveContentImage
+    isContentImagePreserveForced
   });
 }

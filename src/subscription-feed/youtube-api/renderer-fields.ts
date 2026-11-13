@@ -62,7 +62,7 @@ export function thumbnailUrlFromShortsLockup({ thumbnail, thumbnailViewModel }: 
   const sources = thumbnail?.sources ?? thumbnailViewModel?.thumbnailViewModel?.image?.sources ?? [];
   let largest: Prettify<ImageSource> | null = null;
   for (const source of sources) {
-    const isBestLarger = largest !== null && imageSourceArea(largest) > imageSourceArea(source);
+    const isBestLarger: boolean = largest !== null && imageSourceArea(largest) > imageSourceArea(source);
     largest = isBestLarger ? largest : source;
   }
   return largest?.url ?? "";

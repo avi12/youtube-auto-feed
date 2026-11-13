@@ -1,4 +1,4 @@
-import type { InnerTubeBrowseResponse, InnerTubeRichGridItem } from "@/subscription-feed/types/innertube";
+import type { InnerTubeBrowseResponse } from "@/subscription-feed/types/innertube";
 import type { Prettify } from "@/subscription-feed/types/prettify";
 import type { VideoSnapshot } from "@/subscription-feed/types/video";
 

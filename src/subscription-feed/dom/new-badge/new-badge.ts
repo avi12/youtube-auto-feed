@@ -8,7 +8,6 @@ import {
   type InnerTubeRichGridItem,
   LockupBadgePosition,
   LockupBadgeStyle,
-  type LockupThumbnailOverlay,
   type LockupViewModel
 } from "@/subscription-feed/types/innertube";
 import type { PolymerElement } from "@/subscription-feed/types/polymer";
@@ -217,8 +216,8 @@ function repaintNewBadges() {
   }
 }
 
-function dismissBadgeOfPressedVideo(e: Event) {
-  const elTarget = e.target;
+function dismissBadgeOfPressedVideo(event: Event) {
+  const elTarget = event.target;
   if (!(elTarget instanceof Element)) {
     return;
   }

@@ -70,5 +70,5 @@ interface YouTubeInnertubeConfig {
 }
 
 declare global {
-  const ytcfg: { get<K extends keyof YouTubeInnertubeConfig>(key: K): YouTubeInnertubeConfig[K] } | undefined;
+  const ytcfg: { get<T extends keyof YouTubeInnertubeConfig>(key: T): YouTubeInnertubeConfig[T] } | undefined;
 }

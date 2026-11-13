@@ -75,7 +75,7 @@ function readEndScreenTiles() {
   return tiles;
 }
 
-function isPartShown(text: string, part: string) {
+function isPartShown({ text, part }: { text: string; part: string }) {
   return part !== "" && text.includes(part);
 }
 
@@ -87,7 +87,7 @@ type RefreshedDetailParams = Prettify<{
 
 function refreshedDetail({ text, shownVersions, fresh }: RefreshedDetailParams) {
   const shown = shownVersions.find(
-    version => isPartShown(text, version.viewCountText) || isPartShown(text, version.publishedTimeText)
+    version => isPartShown({ text: text, part: version.viewCountText }) || isPartShown({ text: text, part: version.publishedTimeText })
   );
   if (!shown) {
     return text;
@@ -99,7 +99,7 @@ function refreshedDetail({ text, shownVersions, fresh }: RefreshedDetailParams) 
   ] as const;
   let refreshed = text;
   for (const [shownPart, freshPart] of parts) {
-    const isPartRefreshable = isPartShown(refreshed, shownPart) && freshPart !== "";
+    const isPartRefreshable = isPartShown({ text: refreshed, part: shownPart }) && freshPart !== "";
     refreshed = isPartRefreshable ? refreshed.replace(shownPart, freshPart) : refreshed;
   }
 

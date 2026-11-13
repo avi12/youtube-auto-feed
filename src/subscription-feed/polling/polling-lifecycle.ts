@@ -76,12 +76,12 @@ export function createLifecycleHandlers(context: MonitorContext) {
     context.initializeGenericPage();
   }
 
-  function setEnabled(enabled: boolean) {
-    if (enabled === state.isEnabled) {
+  function setEnabled(isNowEnabled: boolean) {
+    if (isNowEnabled === state.isEnabled) {
       return;
     }
 
-    state.isEnabled = enabled;
+    state.isEnabled = isNowEnabled;
 
     const isFeedActive = isOnSubscriptionsPage() && state.isDomReady;
     if (!isFeedActive) {

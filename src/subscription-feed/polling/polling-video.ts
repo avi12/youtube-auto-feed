@@ -45,8 +45,8 @@ export function createVideoPageHandlers(context: MonitorContext) {
     }
   }
 
-  function handleVideoEnded(e: Event) {
-    if (!isMainPlayerVideo(e.target)) {
+  function handleVideoEnded(event: Event) {
+    if (!isMainPlayerVideo(event.target)) {
       return;
     }
 

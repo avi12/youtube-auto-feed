@@ -12,7 +12,7 @@ type UpdateRichItemParams = ApplyToContainerParams & {
   elElement: PolymerElement;
 };
 
-function updateRichItem({ elElement, videoId, rawRenderer, forcePreserveContentImage }: UpdateRichItemParams) {
+function updateRichItem({ elElement, videoId, rawRenderer, isContentImagePreserveForced }: UpdateRichItemParams) {
   const { data } = elElement;
   const isRichData = isRichGridData(data) || isRichShelfData(data);
   if (!isRichData) {
@@ -34,11 +34,11 @@ function updateRichItem({ elElement, videoId, rawRenderer, forcePreserveContentI
     basePath: `data.contents.${iItem}.richItemRenderer.content`,
     existingContent,
     rawRenderer,
-    forcePreserveContentImage
+    isContentImagePreserveForced
   });
 }
 
-export function applyToGridModel({ videoId, rawRenderer, forcePreserveContentImage }: ApplyToContainerParams) {
+export function applyToGridModel({ videoId, rawRenderer, isContentImagePreserveForced }: ApplyToContainerParams) {
   const elGrid = document.querySelector<PolymerElement>(GRID_SELECTOR);
   if (!elGrid) {
     return;
@@ -48,17 +48,17 @@ export function applyToGridModel({ videoId, rawRenderer, forcePreserveContentIma
     elElement: elGrid,
     videoId,
     rawRenderer,
-    forcePreserveContentImage
+    isContentImagePreserveForced
   });
 }
 
-export function applyToRichShelfModels({ videoId, rawRenderer, forcePreserveContentImage }: ApplyToContainerParams) {
+export function applyToRichShelfModels({ videoId, rawRenderer, isContentImagePreserveForced }: ApplyToContainerParams) {
   for (const elShelf of document.querySelectorAll<PolymerElement>("ytd-rich-shelf-renderer")) {
     updateRichItem({
       elElement: elShelf,
       videoId,
       rawRenderer,
-      forcePreserveContentImage
+      isContentImagePreserveForced
     });
   }
 }

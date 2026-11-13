@@ -34,17 +34,17 @@ function buildPreservedAvatarMetadata({ existing, incoming }: Prettify<LockupPai
 
 type MergeLockupViewModelParams = Prettify<
   LockupPair & {
-    forcePreserveContentImage?: boolean;
+    isContentImagePreserveForced?: boolean;
   }
 >;
 
 export function mergeLockupViewModel({
   existing,
   incoming,
-  forcePreserveContentImage = false
+  isContentImagePreserveForced = false
 }: MergeLockupViewModelParams) {
   const isThumbnailPreservationNeeded =
-    forcePreserveContentImage ||
+    isContentImagePreserveForced ||
     hasSameThumbnail({
       existing,
       incoming

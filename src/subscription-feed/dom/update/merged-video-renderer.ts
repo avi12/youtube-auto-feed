@@ -17,15 +17,15 @@ function isRendererThumbnail(value: unknown): value is InnerTubeVideoRenderer["t
 type BuildMergedVideoRendererParams = Prettify<{
   existing: Prettify<InnerTubeVideoRenderer> | Record<string, unknown> | null;
   incoming: Prettify<InnerTubeVideoRenderer> | Prettify<LockupViewModel> | Prettify<ShortsLockupViewModel>;
-  forcePreserveContentImage: boolean;
+  isContentImagePreserveForced: boolean;
 }>;
 
 export function buildMergedVideoRenderer({
   existing,
   incoming,
-  forcePreserveContentImage
+  isContentImagePreserveForced
 }: BuildMergedVideoRendererParams) {
-  const isMergeable = forcePreserveContentImage && existing !== null && isVideoRenderer(incoming);
+  const isMergeable = isContentImagePreserveForced && existing !== null && isVideoRenderer(incoming);
   if (!isMergeable) {
     return incoming;
   }
