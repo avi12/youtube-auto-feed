@@ -20,9 +20,7 @@ type InnerTubeClientFormFactor =
   | "LARGE_FORM_FACTOR"
   | "AUTOMOTIVE_FORM_FACTOR";
 
-type InnerTubeUserInterfaceTheme =
-  | "USER_INTERFACE_THEME_DARK"
-  | "USER_INTERFACE_THEME_LIGHT";
+type InnerTubeUserInterfaceTheme = "USER_INTERFACE_THEME_DARK" | "USER_INTERFACE_THEME_LIGHT";
 
 interface InnerTubeContext {
   client: {

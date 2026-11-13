@@ -23,21 +23,13 @@ export function textFromInnerTubeText(text: Prettify<InnerTubeText> | undefined)
 export function viewCountFromRenderer(renderer: Prettify<InnerTubeVideoRenderer>) {
   const { viewCountText, shortViewCountText } = renderer;
   const { simpleText, runs } = viewCountText ?? {};
-  return simpleText
-    ?? runs?.map(({ text }) => text).join("")
-    ?? shortViewCountText?.simpleText
-    ?? "";
+  return simpleText ?? runs?.map(({ text }) => text).join("") ?? shortViewCountText?.simpleText ?? "";
 }
 
 export function statusFromRenderer(renderer: Prettify<InnerTubeVideoRenderer>) {
-  const {
-    badges, thumbnailOverlays, navigationEndpoint, upcomingEventData, publishedTimeText
-  } = renderer;
-  const badgeStyle = badges
-    ?.find(badge => badge.metadataBadgeRenderer)
-    ?.metadataBadgeRenderer?.style;
-  const overlayStyle = thumbnailOverlays
-    ?.find(overlay => overlay.thumbnailOverlayTimeStatusRenderer)
+  const { badges, thumbnailOverlays, navigationEndpoint, upcomingEventData, publishedTimeText } = renderer;
+  const badgeStyle = badges?.find(badge => badge.metadataBadgeRenderer)?.metadataBadgeRenderer?.style;
+  const overlayStyle = thumbnailOverlays?.find(overlay => overlay.thumbnailOverlayTimeStatusRenderer)
     ?.thumbnailOverlayTimeStatusRenderer?.style;
   const isLive = badgeStyle === BadgeStyle.LiveNow || overlayStyle === OverlayStyle.Live;
   if (isLive) {
@@ -46,9 +38,8 @@ export function statusFromRenderer(renderer: Prettify<InnerTubeVideoRenderer>) {
 
   // "Streamed X ago" lands before YouTube clears upcomingEventData, so this text overrides the stale upcoming signal.
   const isStreamedAgo = publishedTimeText?.simpleText?.toLowerCase().startsWith(STREAMED_AGO_TEXT_PREFIX) ?? false;
-  const isUpcomingSignalPresent = badgeStyle === BadgeStyle.Upcoming
-    || overlayStyle === OverlayStyle.Upcoming
-    || upcomingEventData !== undefined;
+  const isUpcomingSignalPresent =
+    badgeStyle === BadgeStyle.Upcoming || overlayStyle === OverlayStyle.Upcoming || upcomingEventData !== undefined;
   const isUpcoming = !isStreamedAgo && isUpcomingSignalPresent;
   if (isUpcoming) {
     return VideoStatus.Upcoming;

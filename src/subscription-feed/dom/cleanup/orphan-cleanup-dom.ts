@@ -9,7 +9,9 @@ type PruneOrphanedDomItemsParams = Prettify<{
 
 export function pruneOrphanedDomItems({ elGridContents, standaloneModelIds }: PruneOrphanedDomItemsParams) {
   const seenDomIds = new Set<string>();
-  for (const elChild of elGridContents.querySelectorAll<HTMLElement>(":scope > ytd-rich-item-renderer, :scope > ytd-rich-section-renderer")) {
+  for (const elChild of elGridContents.querySelectorAll<HTMLElement>(
+    ":scope > ytd-rich-item-renderer, :scope > ytd-rich-section-renderer"
+  )) {
     if (elChild.tagName !== "YTD-RICH-ITEM-RENDERER" || !isPolymerElement(elChild)) {
       continue;
     }

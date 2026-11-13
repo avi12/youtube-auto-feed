@@ -1,6 +1,6 @@
 import type { Prettify } from "../../types/prettify";
 import { videoIdFromWatchHref } from "../../utils/video-id";
-import { endScreenVideosFromWatchNext, type EndScreenVideo } from "../../youtube-api/parse-watch-next";
+import { type EndScreenVideo, endScreenVideosFromWatchNext } from "../../youtube-api/parse-watch-next";
 import { applyWithDissolve, setNodeTextIfChanged } from "../update/dissolve";
 import { crossfadeBackgroundImage } from "../update/thumbnail";
 import { pageWatchNext } from "./current-video";
@@ -85,8 +85,9 @@ type RefreshedDetailParams = Prettify<{
 }>;
 
 function refreshedDetail({ text, shownVersions, fresh }: RefreshedDetailParams) {
-  const shown = shownVersions.find(version =>
-    isPartShown(text, version.viewCountText) || isPartShown(text, version.publishedTimeText));
+  const shown = shownVersions.find(
+    version => isPartShown(text, version.viewCountText) || isPartShown(text, version.publishedTimeText)
+  );
   if (!shown) {
     return text;
   }
@@ -105,10 +106,12 @@ function pathOf(url: string) {
   return new URL(url, location.origin).pathname;
 }
 
-type RefreshEndScreenTileParams = Prettify<EndScreenTile & {
-  shownVersions: Prettify<EndScreenVideo>[];
-  fresh: Prettify<EndScreenVideo>;
-}>;
+type RefreshEndScreenTileParams = Prettify<
+  EndScreenTile & {
+    shownVersions: Prettify<EndScreenVideo>[];
+    fresh: Prettify<EndScreenVideo>;
+  }
+>;
 
 async function refreshEndScreenTile({ elTile, layout, shownVersions, fresh }: RefreshEndScreenTileParams) {
   const textChanges = new Map<HTMLElement, string>();
@@ -143,8 +146,8 @@ async function refreshEndScreenTile({ elTile, layout, shownVersions, fresh }: Re
   });
 
   const elImage = elTile.querySelector<HTMLElement>(layout.imageSelector);
-  const isPictureMoved = !!elImage && fresh.thumbnailUrl !== ""
-    && pathOf(paintedBackgroundUrl(elImage)) !== pathOf(fresh.thumbnailUrl);
+  const isPictureMoved =
+    !!elImage && fresh.thumbnailUrl !== "" && pathOf(paintedBackgroundUrl(elImage)) !== pathOf(fresh.thumbnailUrl);
   if (elImage && isPictureMoved) {
     await crossfadeBackgroundImage({
       elImage,
@@ -163,8 +166,9 @@ export async function applyEndScreenUpdates(freshVideos: Map<string, Prettify<En
       continue;
     }
 
-    const shownVersions = [paintedByVideoId.get(tile.videoId), pageVideos.get(tile.videoId)]
-      .filter(version => version !== undefined);
+    const shownVersions = [paintedByVideoId.get(tile.videoId), pageVideos.get(tile.videoId)].filter(
+      version => version !== undefined
+    );
     refreshes.push(
       refreshEndScreenTile({
         ...tile,

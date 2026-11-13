@@ -59,8 +59,8 @@ function collectProbeCandidates(freshVideoIds: Set<string>) {
 
     const absentPolls = (absentPollsByVideoId.get(videoId) ?? 0) + 1;
     absentPollsByVideoId.set(videoId, absentPolls);
-    const isProbeDue = absentPolls >= ABSENT_POLLS_BEFORE_PROBE
-      && (availableUntilByVideoId.get(videoId) ?? 0) <= Date.now();
+    const isProbeDue =
+      absentPolls >= ABSENT_POLLS_BEFORE_PROBE && (availableUntilByVideoId.get(videoId) ?? 0) <= Date.now();
     if (isProbeDue) {
       candidates.push(videoId);
     }
@@ -188,9 +188,11 @@ async function removeFromSection({ elSection, removedVideoIds }: SectionRemovalP
     return;
   }
 
-  const survivorRects = new Map(elLockups
-    .filter(elLockup => !elRemoved.includes(elLockup))
-    .map(elLockup => [elLockup, elLockup.getBoundingClientRect()]));
+  const survivorRects = new Map(
+    elLockups
+      .filter(elLockup => !elRemoved.includes(elLockup))
+      .map(elLockup => [elLockup, elLockup.getBoundingClientRect()])
+  );
   const ghosts = createRemovalGhosts(elRemoved);
   spliceRemovedItems({
     elSection,
@@ -215,10 +217,12 @@ export async function pruneDeletedRelated(freshVideoIds: Set<string>) {
   // A list restored from a chip cache is that very array, so the live section goes first, through
   // Polymer: cutting the cache first would drop the item under the renderer and leave its tile painted.
   await Promise.all(
-    relatedSections().map(elSection => removeFromSection({
-      elSection,
-      removedVideoIds
-    }))
+    relatedSections().map(elSection =>
+      removeFromSection({
+        elSection,
+        removedVideoIds
+      })
+    )
   );
   cutFromChipCaches(removedVideoIds);
   observeRestores();

@@ -16,7 +16,10 @@ interface CollectSnapshotParams extends AnyRendererParams {
   seenVideoIds: Set<string>;
 }
 
-function furthestWatchProgress(first: VideoSnapshot["watchProgressPercent"], second: VideoSnapshot["watchProgressPercent"]) {
+function furthestWatchProgress(
+  first: VideoSnapshot["watchProgressPercent"],
+  second: VideoSnapshot["watchProgressPercent"]
+) {
   if (first === null || second === null) {
     return first ?? second;
   }
@@ -27,7 +30,10 @@ function furthestWatchProgress(first: VideoSnapshot["watchProgressPercent"], sec
 // A video listed in two bands (Latest and a shelf) can report different progress per copy, and
 // YouTube serves the stale one first as often as not. The kept snapshot speaks for every tile of
 // the video, so it takes the furthest progress any copy reports.
-function mergeDuplicateWatchProgress({ snapshots, duplicate }: {
+function mergeDuplicateWatchProgress({
+  snapshots,
+  duplicate
+}: {
   snapshots: VideoSnapshot[];
   duplicate: VideoSnapshot;
 }) {

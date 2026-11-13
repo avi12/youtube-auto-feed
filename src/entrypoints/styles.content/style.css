@@ -18,9 +18,15 @@
 }
 
 @keyframes ytaf-pulse {
-  0%{ opacity: 100%; }
-  50%{ opacity: 60%; }
-  100%{ opacity: 100%; }
+  0% {
+    opacity: 100%;
+  }
+  50% {
+    opacity: 60%;
+  }
+  100% {
+    opacity: 100%;
+  }
 }
 
 .ytaf-updated {
@@ -28,8 +34,12 @@
 }
 
 @keyframes ytaf-thumbnail-crossfade {
-  from{ opacity: 100%; }
-  to{ opacity: 0%; }
+  from {
+    opacity: 100%;
+  }
+  to {
+    opacity: 0%;
+  }
 }
 
 /* A per-tile overlay holding the outgoing thumbnail, faded out to reveal the fresh picture beneath.

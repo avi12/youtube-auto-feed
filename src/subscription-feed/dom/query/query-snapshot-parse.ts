@@ -10,9 +10,11 @@ interface SectionContext {
   bandIndex: number;
 }
 
-type ParseRichItemRendererParams = Prettify<SectionContext & {
-  rawRenderer: Record<string, unknown> | null;
-}>;
+type ParseRichItemRendererParams = Prettify<
+  SectionContext & {
+    rawRenderer: Record<string, unknown> | null;
+  }
+>;
 
 function parseRichItemRenderer({ rawRenderer, sectionTitle, bandIndex }: ParseRichItemRendererParams) {
   if (isVideoRenderer(rawRenderer)) {
@@ -42,10 +44,12 @@ function parseRichItemRenderer({ rawRenderer, sectionTitle, bandIndex }: ParseRi
   return null;
 }
 
-type AddRichItemToSnapshotParams = Prettify<SectionContext & {
-  elItem: Element;
-  snapshot: Map<string, Prettify<VideoSnapshot>>;
-}>;
+type AddRichItemToSnapshotParams = Prettify<
+  SectionContext & {
+    elItem: Element;
+    snapshot: Map<string, Prettify<VideoSnapshot>>;
+  }
+>;
 
 export function addRichItemToSnapshot({ elItem, sectionTitle, bandIndex, snapshot }: AddRichItemToSnapshotParams) {
   if (!isPolymerElement(elItem)) {
@@ -58,12 +62,13 @@ export function addRichItemToSnapshot({ elItem, sectionTitle, bandIndex, snapsho
     return;
   }
 
-  const rawRenderer = content.videoRenderer
-    ?? content.gridVideoRenderer
-    ?? content.richGridMediaRenderer?.content?.videoRenderer
-    ?? content.lockupViewModel
-    ?? content.shortsLockupViewModel
-    ?? null;
+  const rawRenderer =
+    content.videoRenderer ??
+    content.gridVideoRenderer ??
+    content.richGridMediaRenderer?.content?.videoRenderer ??
+    content.lockupViewModel ??
+    content.shortsLockupViewModel ??
+    null;
   const videoSnapshot = parseRichItemRenderer({
     rawRenderer,
     sectionTitle,

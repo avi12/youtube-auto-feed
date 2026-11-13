@@ -33,11 +33,8 @@ export function createFetchHandlers(context: MonitorContext) {
   }
 
   async function fetchAndApplyMetadataUpdates() {
-    const isMetadataPollEligible = isOnSubscriptionsPage()
-      && state.isDomReady
-      && state.isEnabled
-      && !state.isApplyingChanges
-      && !document.hidden;
+    const isMetadataPollEligible =
+      isOnSubscriptionsPage() && state.isDomReady && state.isEnabled && !state.isApplyingChanges && !document.hidden;
     if (!isMetadataPollEligible) {
       return;
     }
@@ -67,11 +64,8 @@ export function createFetchHandlers(context: MonitorContext) {
   // The page-agnostic pass for every non-subscription page. Re-fetches the current page's HTML, deep-
   // collects its videos, and reconciles each tile (and the channel trailer) toward the fresh data.
   async function fetchAndApplyGenericMetadata() {
-    const isGenericPollEligible = !isOnSubscriptionsPage()
-      && state.isDomReady
-      && state.isEnabled
-      && !state.isApplyingChanges
-      && !document.hidden;
+    const isGenericPollEligible =
+      !isOnSubscriptionsPage() && state.isDomReady && state.isEnabled && !state.isApplyingChanges && !document.hidden;
     if (!isGenericPollEligible) {
       return;
     }

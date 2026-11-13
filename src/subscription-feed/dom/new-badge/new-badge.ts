@@ -39,15 +39,19 @@ function newBadgeOverlay(): LockupThumbnailOverlay {
   const text = newBadgeText();
   return {
     thumbnailOverlayBadgeViewModel: {
-      thumbnailBadges: [{
-        thumbnailBadgeViewModel: {
-          text,
-          badgeStyle: LockupBadgeStyle.Special,
-          rendererContext: {
-            accessibilityContext: { label: text }
+      thumbnailBadges: [
+        {
+          thumbnailBadgeViewModel: {
+            text,
+            badgeStyle: LockupBadgeStyle.Special,
+            rendererContext: {
+              accessibilityContext: {
+                label: text
+              }
+            }
           }
         }
-      }],
+      ],
       position: LockupBadgePosition.TopStart
     }
   };
@@ -90,8 +94,7 @@ function forgetLapsedBadges() {
 type ContentImage = LockupViewModel["contentImage"];
 
 function isBadgeCarried(contentImage: ContentImage) {
-  return (contentImage?.thumbnailViewModel?.overlays ?? [])
-    .some(overlay => overlay.thumbnailOverlayBadgeViewModel);
+  return (contentImage?.thumbnailViewModel?.overlays ?? []).some(overlay => overlay.thumbnailOverlayBadgeViewModel);
 }
 
 type ContentImageWithBadgeParams = Prettify<{

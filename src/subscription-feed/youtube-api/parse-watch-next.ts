@@ -9,13 +9,16 @@ import { textFromInnerTubeText } from "./renderer-fields";
 
 const WATCH_NEXT_FEED_TARGET_ID = "watch-next-feed";
 
-export type EndScreenVideo = Pick<VideoSnapshot, "videoId" | "title" | "viewCountText" | "publishedTimeText" | "thumbnailUrl">;
+export type EndScreenVideo = Pick<
+  VideoSnapshot,
+  "videoId" | "title" | "viewCountText" | "publishedTimeText" | "thumbnailUrl"
+>;
 
 export function currentVideoFromWatchNext(response: Prettify<InnerTubeWatchNextResponse>) {
   const contents = response.contents?.twoColumnWatchNextResults?.results?.results?.contents ?? [];
   const primaryInfo = contents.find(content => content.videoPrimaryInfoRenderer)?.videoPrimaryInfoRenderer;
-  const owner = contents.find(content => content.videoSecondaryInfoRenderer)
-    ?.videoSecondaryInfoRenderer?.owner?.videoOwnerRenderer;
+  const owner = contents.find(content => content.videoSecondaryInfoRenderer)?.videoSecondaryInfoRenderer?.owner
+    ?.videoOwnerRenderer;
   return {
     videoId: response.currentVideoEndpoint?.watchEndpoint?.videoId ?? "",
     title: primaryInfo?.title,
@@ -25,7 +28,7 @@ export function currentVideoFromWatchNext(response: Prettify<InnerTubeWatchNextR
 }
 
 function relatedContinuationToken(items: Prettify<WatchNextFeedItem>[]) {
-  const leaves = items.flatMap(item => [item, ...item.itemSectionRenderer?.contents ?? []]);
+  const leaves = items.flatMap(item => [item, ...(item.itemSectionRenderer?.contents ?? [])]);
   for (const leaf of leaves) {
     const token = leaf.continuationItemRenderer?.continuationEndpoint?.continuationCommand?.token;
     if (token) {
@@ -53,15 +56,17 @@ export function relatedPageFromContinuation(response: Prettify<InnerTubeWatchNex
   const items = (response.onResponseReceivedEndpoints ?? []).flatMap(endpoint => {
     const continuation = endpoint.reloadContinuationItemsCommand ?? endpoint.appendContinuationItemsAction;
     const isRelatedFeed = continuation?.targetId === WATCH_NEXT_FEED_TARGET_ID;
-    return isRelatedFeed ? continuation.continuationItems ?? [] : [];
+    return isRelatedFeed ? (continuation.continuationItems ?? []) : [];
   });
   return toRelatedPage(items);
 }
 
-type EndScreenVideoFields = Prettify<Pick<EndScreenVideoRenderer, "title" | "shortViewCountText" | "publishedTimeText"> & {
-  videoId: string;
-  thumbnails: Array<{ url: string }> | undefined;
-}>;
+type EndScreenVideoFields = Prettify<
+  Pick<EndScreenVideoRenderer, "title" | "shortViewCountText" | "publishedTimeText"> & {
+    videoId: string;
+    thumbnails: { url: string }[] | undefined;
+  }
+>;
 
 function toEndScreenVideo({ videoId, title, shortViewCountText, publishedTimeText, thumbnails }: EndScreenVideoFields) {
   return {
@@ -80,7 +85,8 @@ export function endScreenVideosFromWatchNext(response: Prettify<InnerTubeWatchNe
   for (const { endScreenVideoRenderer } of endScreen?.watchNextEndScreenRenderer?.results ?? []) {
     if (endScreenVideoRenderer) {
       videos.set(
-        endScreenVideoRenderer.videoId, toEndScreenVideo({
+        endScreenVideoRenderer.videoId,
+        toEndScreenVideo({
           ...endScreenVideoRenderer,
           thumbnails: endScreenVideoRenderer.thumbnail?.thumbnails
         })
@@ -92,7 +98,8 @@ export function endScreenVideosFromWatchNext(response: Prettify<InnerTubeWatchNe
   const autoplayVideoId = autoplayRenderer?.videoId;
   if (autoplayVideoId && !videos.has(autoplayVideoId)) {
     videos.set(
-      autoplayVideoId, toEndScreenVideo({
+      autoplayVideoId,
+      toEndScreenVideo({
         videoId: autoplayVideoId,
         title: autoplayRenderer.videoTitle,
         shortViewCountText: autoplayRenderer.shortViewCountText,

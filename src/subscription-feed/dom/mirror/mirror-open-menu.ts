@@ -1,6 +1,6 @@
 import { isExtensionEnabled } from "../../settings-state";
 import type { Prettify } from "../../types/prettify";
-import { isIronDropdown, type IronDropdownElement } from "../../utils/polymer";
+import { type IronDropdownElement, isIronDropdown } from "../../utils/polymer";
 import { videoIdFromData } from "../../utils/video-id";
 import { isInViewport, nextFrame } from "../animations";
 import { RICH_ITEM_SELECTOR, type RichItemElement } from "./mirror-constants";
@@ -89,18 +89,20 @@ function findMenuTarget({ menu, menuRect }: FindMenuTargetParams) {
   const isItemShowingVideo = elItem.isConnected && videoIdFromData(elItem.data) === videoId;
   const elCandidates = isItemShowingVideo
     ? [elItem]
-    : [...document.querySelectorAll<RichItemElement>(RICH_ITEM_SELECTOR)]
-      .filter(elCandidate => videoIdFromData(elCandidate.data) === videoId);
+    : [...document.querySelectorAll<RichItemElement>(RICH_ITEM_SELECTOR)].filter(
+        elCandidate => videoIdFromData(elCandidate.data) === videoId
+      );
   function distanceFromMenu({ elButton }: MenuTarget) {
     return distanceBetweenCenters(elButton.getBoundingClientRect(), menuRect);
   }
 
   const [nearest] = elCandidates
-    .flatMap(elCandidate => [...elCandidate.querySelectorAll<HTMLElement>(buttonSelector)]
-      .map(elButton => ({
+    .flatMap(elCandidate =>
+      [...elCandidate.querySelectorAll<HTMLElement>(buttonSelector)].map(elButton => ({
         elButton,
         elItem: elCandidate
-      })))
+      }))
+    )
     .sort((left, right) => distanceFromMenu(left) - distanceFromMenu(right));
   return nearest ?? null;
 }
@@ -152,10 +154,12 @@ function followMenuVideo() {
     menu,
     menuRect
   });
-  const isOnScreen = !!target && atRest({
-    elItem: target.elItem,
-    measure: () => isInViewport(target.elButton)
-  });
+  const isOnScreen =
+    !!target &&
+    atRest({
+      elItem: target.elItem,
+      measure: () => isInViewport(target.elButton)
+    });
   if (!target || !isOnScreen) {
     elDropdown.close();
     return null;
@@ -163,10 +167,11 @@ function followMenuVideo() {
 
   atRest({
     elItem: target.elItem,
-    measure: () => lineUpMenu({
-      menu,
-      target
-    })
+    measure: () =>
+      lineUpMenu({
+        menu,
+        target
+      })
   });
   const realignedRect = elDropdown.getBoundingClientRect();
   return {

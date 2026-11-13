@@ -29,22 +29,23 @@ interface PageSnapshot {
 async function getYouTubeTarget(port: number) {
   const response = await fetch(`http://localhost:${port}/json`);
   const targets: CdpTarget[] = await response.json();
-  return targets.find(({ type, url, webSocketDebuggerUrl }) =>
-    type === "page"
-    && url.includes("youtube.com/feed/subscriptions")
-    && webSocketDebuggerUrl);
+  return targets.find(
+    ({ type, url, webSocketDebuggerUrl }) =>
+      type === "page" && url.includes("youtube.com/feed/subscriptions") && webSocketDebuggerUrl
+  );
 }
 
 function sendCommand<T>(webSocketUrl: string, method: string, params: Record<string, unknown> = {}) {
   return new Promise<T>((resolvePromise, reject) => {
     const socket = new WebSocket(webSocketUrl);
-    socket.onopen = () => socket.send(
-      JSON.stringify({
-        id: 1,
-        method,
-        params
-      })
-    );
+    socket.onopen = () =>
+      socket.send(
+        JSON.stringify({
+          id: 1,
+          method,
+          params
+        })
+      );
     socket.onmessage = e => {
       const { id, error, result } = JSON.parse(String(e.data));
       if (id !== 1) {
@@ -133,7 +134,9 @@ async function snapshot(port: number, label: string) {
   }
 
   const snap = await evaluate<PageSnapshot>(target.webSocketDebuggerUrl, SNAPSHOT_EXPRESSION);
-  const shot = await sendCommand<{ data: string }>(target.webSocketDebuggerUrl, "Page.captureScreenshot", { format: "png" });
+  const shot = await sendCommand<{ data: string }>(target.webSocketDebuggerUrl, "Page.captureScreenshot", {
+    format: "png"
+  });
   return {
     snap,
     screenshot: shot.data
@@ -155,8 +158,12 @@ function report(edge: PageSnapshot, chrome: PageSnapshot) {
   console.log(`Edge   (ext=${edge.hasExtension}) contents=${edge.contentsLength} url=${edge.url}`);
   console.log(`Chrome (ext=${chrome.hasExtension}) contents=${chrome.contentsLength} url=${chrome.url}`);
   console.log("\n=== Section order ===");
-  console.log(`Edge:   ${edge.bands.map(band => `${band.header ?? "<inline>"}[${band.kind}](${band.videoIds.length})`).join(" -> ")}`);
-  console.log(`Chrome: ${chrome.bands.map(band => `${band.header ?? "<inline>"}[${band.kind}](${band.videoIds.length})`).join(" -> ")}`);
+  console.log(
+    `Edge:   ${edge.bands.map(band => `${band.header ?? "<inline>"}[${band.kind}](${band.videoIds.length})`).join(" -> ")}`
+  );
+  console.log(
+    `Chrome: ${chrome.bands.map(band => `${band.header ?? "<inline>"}[${band.kind}](${band.videoIds.length})`).join(" -> ")}`
+  );
 
   console.log("\n=== Folded diff (inline bands merged per header) ===");
   const edgeMap = foldByHeader(edge);
@@ -169,7 +176,9 @@ function report(edge: PageSnapshot, chrome: PageSnapshot) {
     const chromeSet = new Set(chromeIds);
     const edgeOnly = edgeIds.filter(id => !chromeSet.has(id));
     const chromeOnly = chromeIds.filter(id => !edgeSet.has(id));
-    console.log(`  [${header}] edge=${edgeIds.length} chrome=${chromeIds.length} common=${edgeIds.filter(id => chromeSet.has(id)).length} edge-only=${edgeOnly.length} chrome-only=${chromeOnly.length}`);
+    console.log(
+      `  [${header}] edge=${edgeIds.length} chrome=${chromeIds.length} common=${edgeIds.filter(id => chromeSet.has(id)).length} edge-only=${edgeOnly.length} chrome-only=${chromeOnly.length}`
+    );
 
     if (edgeOnly.length) {
       console.log(`    edge-only (kept after YouTube dropped — OK): ${edgeOnly.join(", ")}`);

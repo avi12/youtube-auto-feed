@@ -7,9 +7,7 @@ import type { ParseVideoParams } from "./parse-video-params";
 type ParseRendererParams = Prettify<ParseVideoParams & { renderer: Prettify<InnerTubeVideoRenderer> }>;
 
 export function parseRenderer({ renderer, sectionTitle, bandIndex }: ParseRendererParams) {
-  const {
-    videoId, title, thumbnail, publishedTimeText
-  } = renderer;
+  const { videoId, title, thumbnail, publishedTimeText } = renderer;
   if (videoId === "") {
     return null;
   }
@@ -33,9 +31,11 @@ export function parseRenderer({ renderer, sectionTitle, bandIndex }: ParseRender
 
 type ParseShortsLockupViewModelParams = Prettify<ParseVideoParams & { shortsLockup: Prettify<ShortsLockupViewModel> }>;
 
-export function parseShortsLockupViewModel(
-  { shortsLockup, sectionTitle, bandIndex }: ParseShortsLockupViewModelParams
-) {
+export function parseShortsLockupViewModel({
+  shortsLockup,
+  sectionTitle,
+  bandIndex
+}: ParseShortsLockupViewModelParams) {
   const { onTap, overlayMetadata, accessibilityText = "" } = shortsLockup;
   const { videoId = "" } = onTap?.innertubeCommand?.reelWatchEndpoint ?? {};
   if (videoId === "") {

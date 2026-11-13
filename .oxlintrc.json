@@ -9,5 +9,14 @@
       }
     ]
   },
-  "ignorePatterns": ["node_modules/**", ".output/**", ".wxt/**", "user-profiles/**", "tmp/**", "screenshots/**", "scripts/**", "patches/**"]
+  "ignorePatterns": [
+    "node_modules/**",
+    ".output/**",
+    ".wxt/**",
+    "user-profiles/**",
+    "tmp/**",
+    "screenshots/**",
+    "scripts/**",
+    "patches/**"
+  ]
 }

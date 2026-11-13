@@ -67,10 +67,12 @@ export async function mirrorFromApi({ apiContents, hiddenVideoIds, isInitialLoad
   const newContents = withNewBadges(composedContents);
   // A pass that only added or lapsed a badge leaves the band itself untouched, so it skips the entrance
   // animation, the removal ghosts and the thumbnail wait.
-  if (isReferenceEqualArray({
-    left: currentContents,
-    right: composedContents
-  })) {
+  if (
+    isReferenceEqualArray({
+      left: currentContents,
+      right: composedContents
+    })
+  ) {
     if (newContents !== currentContents) {
       elGrid.set("data.contents", newContents);
     }

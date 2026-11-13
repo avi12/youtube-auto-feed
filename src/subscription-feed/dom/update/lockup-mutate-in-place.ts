@@ -2,9 +2,11 @@ import type { Prettify } from "../../types/prettify";
 import { contentImageWithPaintedBadge } from "../new-badge/new-badge";
 import { getAvatarImage, type LockupPair, mergeContentImagePreservingThumbnail } from "./lockup-merge";
 
-type MutateLockupViewModelInPlaceParams = Prettify<LockupPair & {
-  preserveContentImage: boolean;
-}>;
+type MutateLockupViewModelInPlaceParams = Prettify<
+  LockupPair & {
+    preserveContentImage: boolean;
+  }
+>;
 
 export function mutateLockupViewModelInPlace({
   existing,
@@ -19,18 +21,19 @@ export function mutateLockupViewModelInPlace({
 
   const mergedContentImage = preserveContentImage
     ? mergeContentImagePreservingThumbnail({
-      existing: preservedContentImage,
-      incoming: incoming.contentImage
-    })
+        existing: preservedContentImage,
+        incoming: incoming.contentImage
+      })
     : existing.contentImage;
   existing.contentImage = contentImageWithPaintedBadge({
     painted: preservedContentImage,
     contentImage: mergedContentImage
   });
 
-  const isAvatarRestoreNeeded = incomingAvatarImage === undefined
-    && existingAvatarImage !== undefined
-    && existing.metadata?.lockupMetadataViewModel !== undefined;
+  const isAvatarRestoreNeeded =
+    incomingAvatarImage === undefined &&
+    existingAvatarImage !== undefined &&
+    existing.metadata?.lockupMetadataViewModel !== undefined;
   if (!isAvatarRestoreNeeded) {
     return;
   }

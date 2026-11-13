@@ -28,10 +28,8 @@ export function findNewlyInsertedElements(newVideoIds: Set<string>) {
 
 export function findRemovedViewportTiles(newContents: Prettify<InnerTubeRichGridItem>[]) {
   const newInlineIds = new Set(newContents.map(videoIdFromRichItem).filter(Boolean));
-  return [...document.querySelectorAll<HTMLElement>(GRID_ITEM_SELECTOR)]
-    .filter(isInViewport)
-    .filter(elItem => {
-      const videoId = isPolymerElement(elItem) ? videoIdFromData(elItem.data) : "";
-      return !!videoId && !newInlineIds.has(videoId);
-    });
+  return [...document.querySelectorAll<HTMLElement>(GRID_ITEM_SELECTOR)].filter(isInViewport).filter(elItem => {
+    const videoId = isPolymerElement(elItem) ? videoIdFromData(elItem.data) : "";
+    return !!videoId && !newInlineIds.has(videoId);
+  });
 }

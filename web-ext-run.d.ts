@@ -12,15 +12,19 @@ declare module "web-ext-run" {
   }
 
   interface FirefoxRdpClient {
-    request(request: string | {
-      to: string;
-      type: string;
-      options?: unknown;
-    }): Promise<{
-      tabs?: Array<{
+    request(
+      request:
+        | string
+        | {
+            to: string;
+            type: string;
+            options?: unknown;
+          }
+    ): Promise<{
+      tabs?: {
         actor: string;
         url?: string;
-      }>;
+      }[];
       frame?: { actor?: string };
     }>;
   }

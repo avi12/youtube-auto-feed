@@ -31,24 +31,28 @@ function buildPreservedAvatarMetadata({ existing, incoming }: Prettify<LockupPai
   };
 }
 
-type MergeLockupViewModelParams = Prettify<LockupPair & {
-  forcePreserveContentImage?: boolean;
-}>;
+type MergeLockupViewModelParams = Prettify<
+  LockupPair & {
+    forcePreserveContentImage?: boolean;
+  }
+>;
 
 export function mergeLockupViewModel({
   existing,
   incoming,
   forcePreserveContentImage = false
 }: MergeLockupViewModelParams) {
-  const isThumbnailPreservationNeeded = forcePreserveContentImage || hasSameThumbnail({
-    existing,
-    incoming
-  });
+  const isThumbnailPreservationNeeded =
+    forcePreserveContentImage ||
+    hasSameThumbnail({
+      existing,
+      incoming
+    });
   const mergedContentImage = isThumbnailPreservationNeeded
     ? mergeContentImagePreservingThumbnail({
-      existing: existing.contentImage,
-      incoming: incoming.contentImage
-    })
+        existing: existing.contentImage,
+        incoming: incoming.contentImage
+      })
     : incoming.contentImage;
   return {
     ...incoming,

@@ -37,19 +37,25 @@ export function isLockupMetadataShapeMatching({ refs, fresh }: Prettify<LockupTe
 }
 
 function pairMetadataParts({ refs, fresh }: Prettify<LockupTextChange>) {
-  if (!isLockupMetadataShapeMatching({
-    refs,
-    fresh
-  })) {
+  if (
+    !isLockupMetadataShapeMatching({
+      refs,
+      fresh
+    })
+  ) {
     return [];
   }
 
   return refs.elMetadataParts.flatMap((elPart, i) => {
     const part = fresh.metadataParts[i];
-    return part ? [{
-      elPart,
-      part
-    }] : [];
+    return part
+      ? [
+          {
+            elPart,
+            part
+          }
+        ]
+      : [];
   });
 }
 

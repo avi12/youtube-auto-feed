@@ -12,8 +12,7 @@ export function isDomContentReady() {
   const elShelf = document.querySelector<HTMLElement>("ytd-rich-shelf-renderer");
   if (elShelf) {
     const elItem = elShelf.querySelector<PolymerElement>(RICH_ITEM_SELECTOR);
-    const isShelfItemHydrated = !!elItem
-      && richItemDataSchema.safeParse(elItem.data).success;
+    const isShelfItemHydrated = !!elItem && richItemDataSchema.safeParse(elItem.data).success;
     if (isShelfItemHydrated) {
       return true;
     }
@@ -22,9 +21,10 @@ export function isDomContentReady() {
   const elGridContents = document.querySelector("ytd-rich-grid-renderer > #contents");
   if (elGridContents) {
     for (const elChild of elGridContents.children) {
-      const isHydratedGridItem = elChild.tagName === "YTD-RICH-ITEM-RENDERER"
-        && isPolymerElement(elChild)
-        && richItemDataSchema.safeParse(elChild.data).success;
+      const isHydratedGridItem =
+        elChild.tagName === "YTD-RICH-ITEM-RENDERER" &&
+        isPolymerElement(elChild) &&
+        richItemDataSchema.safeParse(elChild.data).success;
       if (isHydratedGridItem) {
         return true;
       }

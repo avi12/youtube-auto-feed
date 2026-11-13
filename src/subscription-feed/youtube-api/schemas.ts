@@ -16,11 +16,7 @@ export {
 
 export { guideResponseSchema } from "./schemas-guide";
 
-export {
-  relatedChipDataSchema,
-  relatedSectionDataSchema,
-  watchNextResponseSchema
-} from "./schemas-watch";
+export { relatedChipDataSchema, relatedSectionDataSchema, watchNextResponseSchema } from "./schemas-watch";
 
 export {
   browseContentsSchema,

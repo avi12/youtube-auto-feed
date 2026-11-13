@@ -55,8 +55,8 @@ export function applyPolymerUpdate({ elItem, rawRenderer }: ApplyPolymerUpdatePa
     return;
   }
 
-  const isShortsLockupSwap = isShortsLockupViewModel(content.shortsLockupViewModel)
-    && isShortsLockupViewModel(rawRenderer);
+  const isShortsLockupSwap =
+    isShortsLockupViewModel(content.shortsLockupViewModel) && isShortsLockupViewModel(rawRenderer);
   if (isShortsLockupSwap) {
     const elShortsLockup = elItem.querySelector<HTMLElement>("yt-shorts-lockup-view-model");
     if (elShortsLockup && shortsLockupHostSchema.safeParse(elShortsLockup).success) {

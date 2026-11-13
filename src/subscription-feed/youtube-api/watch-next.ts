@@ -49,12 +49,12 @@ export async function fetchWatchNext({ videoId, selectedChipToken, displayedRela
 
   const firstPage = selectedChipToken ? chipPage : relatedPageFromWatchNext(response);
   // Each draw of a page varies a little in length, so the pages on screen are counted in whole pages.
-  const related: Prettify<VideoSnapshot>[] = [...firstPage?.related ?? []];
+  const related: Prettify<VideoSnapshot>[] = [...(firstPage?.related ?? [])];
   const pageCount = Math.min(MAX_RELATED_PAGES, Math.round(displayedRelatedCount / Math.max(related.length, 1)));
   let continuationToken = firstPage?.continuationToken ?? null;
   for (let iPage = 1; iPage < pageCount && continuationToken; iPage++) {
     const page = await fetchRelatedContinuation(continuationToken);
-    related.push(...page?.related ?? []);
+    related.push(...(page?.related ?? []));
     continuationToken = page?.continuationToken ?? null;
   }
 

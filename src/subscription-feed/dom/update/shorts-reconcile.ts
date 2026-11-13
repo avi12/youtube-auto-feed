@@ -21,8 +21,9 @@ import { crossfadeThumbnail, findThumbnailImgInItem, healedThumbnailUrl, isTileH
 function shortsTileElements() {
   const tiles: HTMLElement[] = [];
   for (const elItem of document.querySelectorAll<HTMLElement>(RICH_ITEM_SELECTOR)) {
-    const isShortsTile = isPolymerElement(elItem)
-      && elItem.querySelector("ytm-shorts-lockup-view-model-v2, ytm-shorts-lockup-view-model") !== null;
+    const isShortsTile =
+      isPolymerElement(elItem) &&
+      elItem.querySelector("ytm-shorts-lockup-view-model-v2, ytm-shorts-lockup-view-model") !== null;
     if (isShortsTile) {
       tiles.push(elItem);
     }
@@ -45,15 +46,18 @@ async function reconcileShortsTile({ elItem, fresh }: ReconcileShortsTileParams)
   const elImg = findThumbnailImgInItem(elItem);
   const paintedUrl = elImg?.getAttribute("src") ?? "";
   const freshThumbnailUrl = healedThumbnailUrl(fresh.thumbnailUrl);
-  const isPictureStale = !!elImg && isThumbnailChanged({
-    previousUrl: paintedUrl,
-    freshUrl: freshThumbnailUrl,
-    freshStatus: fresh.status
-  });
+  const isPictureStale =
+    !!elImg &&
+    isThumbnailChanged({
+      previousUrl: paintedUrl,
+      freshUrl: freshThumbnailUrl,
+      freshStatus: fresh.status
+    });
 
-  const isTextStale = textElements.length > 0
-    || (fresh.title !== "" && rendered.title !== fresh.title)
-    || rendered.viewCountText !== fresh.viewCountText;
+  const isTextStale =
+    textElements.length > 0 ||
+    (fresh.title !== "" && rendered.title !== fresh.title) ||
+    rendered.viewCountText !== fresh.viewCountText;
   if (!isTextStale && !isPictureStale) {
     return;
   }

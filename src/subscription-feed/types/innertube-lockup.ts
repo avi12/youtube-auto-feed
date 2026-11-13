@@ -51,11 +51,11 @@ export interface LockupViewModel {
   contentImage?: {
     thumbnailViewModel?: {
       image?: {
-        sources?: Array<{
+        sources?: {
           url: string;
           width?: number;
           height?: number;
-        }>;
+        }[];
       };
       overlays?: LockupThumbnailOverlay[];
     };
@@ -64,18 +64,18 @@ export interface LockupViewModel {
     lockupMetadataViewModel?: {
       title?: { content?: string };
       metadata?: {
-        contentMetadataViewModel?: { metadataRows?: Array<{ metadataParts?: LockupMetadataPart[] }> };
+        contentMetadataViewModel?: { metadataRows?: { metadataParts?: LockupMetadataPart[] }[] };
       };
       image?: {
         decoratedAvatarViewModel?: {
           avatar?: {
             avatarViewModel?: {
               image?: {
-                sources?: Array<{
+                sources?: {
                   url: string;
                   width?: number;
                   height?: number;
-                }>;
+                }[];
               };
             };
           };

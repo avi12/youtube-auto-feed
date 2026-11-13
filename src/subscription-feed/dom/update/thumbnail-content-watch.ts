@@ -112,7 +112,7 @@ export async function crossfadeChangedThumbnail({
     return false;
   }
 
-  const previousHash = previousBuffer && await hashBytes(previousBuffer);
+  const previousHash = previousBuffer && (await hashBytes(previousBuffer));
   const freshHash = await hashBytes(freshBuffer);
   const isSamePicture = !!previousHash && !!freshHash && previousHash === freshHash;
   if (isSamePicture) {
@@ -180,7 +180,7 @@ async function healPlaceholderThumbnail({ elImg, url }: VisibleThumbnail) {
     return;
   }
 
-  if (await decodedWidth(buffer) <= elImg.naturalWidth) {
+  if ((await decodedWidth(buffer)) <= elImg.naturalWidth) {
     return;
   }
 
@@ -204,7 +204,7 @@ export async function reconcileVisibleThumbnails({ contentHashes }: ReconcileVis
 
     const { elImg, url } = visible;
     const buffer = await fetchThumbnailBytes(url);
-    const hash = buffer && await hashBytes(buffer);
+    const hash = buffer && (await hashBytes(buffer));
     if (!buffer || !hash) {
       continue;
     }

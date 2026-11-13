@@ -21,8 +21,10 @@ function elementMatchesVideoId({ elItem, videoId }: ElementMatchesVideoIdParams)
 export function findItemElements(videoId: string) {
   const elRichItems = document.querySelectorAll<PolymerElement>(RICH_ITEM_SELECTOR);
   const elGridVideos = document.querySelectorAll<PolymerElement>("ytd-grid-video-renderer");
-  return [...elRichItems, ...elGridVideos].filter(elItem => elementMatchesVideoId({
-    elItem,
-    videoId
-  }));
+  return [...elRichItems, ...elGridVideos].filter(elItem =>
+    elementMatchesVideoId({
+      elItem,
+      videoId
+    })
+  );
 }

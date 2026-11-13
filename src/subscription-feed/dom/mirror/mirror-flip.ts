@@ -4,8 +4,8 @@ import { coverBlankImages, observeAndCoverBlankImages } from "./mirror-blank-cov
 import {
   REBIND_FRAME_POLL_MAX,
   REBIND_MICROTASK_POLL_MAX,
-  SURVIVOR_SHIFT_MS,
-  type SetContentsParams
+  type SetContentsParams,
+  SURVIVOR_SHIFT_MS
 } from "./mirror-constants";
 import { clearReflowImageCovers, preCoverReflowImages } from "./mirror-cover";
 import { coverNewlyInsertedTiles } from "./mirror-cover-new";
@@ -19,9 +19,13 @@ import { repaintInlineThumbnails } from "./mirror-thumbnails";
 const MILLISECONDS_PER_FRAME = 16;
 const GLIDE_FRAME_BUFFER = 2;
 
-export async function setContentsWithFlip(
-  { elGrid, newContents, newlyInsertedIds, newThumbnailUrls, removalGhosts }: SetContentsParams
-) {
+export async function setContentsWithFlip({
+  elGrid,
+  newContents,
+  newlyInsertedIds,
+  newThumbnailUrls,
+  removalGhosts
+}: SetContentsParams) {
   if (!isPolymerElement(elGrid)) {
     return;
   }
@@ -43,7 +47,8 @@ export async function setContentsWithFlip(
       repaintInlineThumbnails();
       coverBlankImages();
       resolve();
-    }));
+    })
+  );
 
   function newTilesPending() {
     return newlyInsertedIds.size > 0 && !areInsertedTilesPresent(newlyInsertedIds);

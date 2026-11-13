@@ -41,13 +41,8 @@ export function collectAllVideoSnapshots(data: unknown) {
       continue;
     }
 
-    const {
-      videoRenderer,
-      gridVideoRenderer,
-      lockupViewModel,
-      shortsLockupViewModel,
-      channelVideoPlayerRenderer
-    } = node;
+    const { videoRenderer, gridVideoRenderer, lockupViewModel, shortsLockupViewModel, channelVideoPlayerRenderer } =
+      node;
     if (isVideoRenderer(videoRenderer)) {
       add(
         parseRenderer({

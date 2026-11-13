@@ -3,7 +3,8 @@ import type { VideoSnapshot } from "../../types/video";
 import { applyWithDissolve } from "./dissolve";
 import { mutateLockupMetadata } from "./lockup-model";
 import { rebuildPolymerRenderer } from "./polymer-rebuild";
-import { applyLockupTextChanges, changingLockupTextElements, collectLockupTextElements } from "./text-fields";
+import type { changingLockupTextElements, collectLockupTextElements } from "./text-fields";
+import { applyLockupTextChanges } from "./text-fields";
 import { applyProgressBarUpdate } from "./thumbnail";
 
 interface AnimatedLockupChangesParams {

@@ -1,5 +1,6 @@
-import { strToU8, unzipSync, zipSync } from "fflate";
 import { readFile, writeFile } from "node:fs/promises";
+
+import { strToU8, unzipSync, zipSync } from "fflate";
 import { defineConfig } from "wxt";
 
 // A store's source zip is reviewed by humans who must reproduce the build, so it ships build (not
@@ -61,9 +62,13 @@ export default defineConfig({
     permissions: ["storage"],
     // Floor set by MAIN-world content scripts declared via "world": "MAIN" (Chromium 111 = Opera 97,
     // Firefox 128). Secondary features used - CSS translate/scale and structuredClone - need less.
-    ...browser === "chrome" && { minimum_chrome_version: "111" },
-    ...browser === "opera" && { minimum_opera_version: "97" },
-    ...browser === "firefox" && {
+    ...(browser === "chrome" && {
+      minimum_chrome_version: "111"
+    }),
+    ...(browser === "opera" && {
+      minimum_opera_version: "97"
+    }),
+    ...(browser === "firefox" && {
       // Reuse the popup as the extension's options page so it has a standalone settings entry in
       // about:addons (add open_in_new_tab: true to open it as a full tab instead of the inline frame).
       options_ui: {
@@ -78,7 +83,7 @@ export default defineConfig({
           }
         }
       }
-    }
+    })
   }),
   modules: ["@wxt-dev/module-svelte"],
   srcDir: "src",
@@ -112,8 +117,12 @@ export default defineConfig({
     }
   },
   vite: () => ({
-    build: { sourcemap: false },
+    build: {
+      sourcemap: false
+    },
     // Strips the __ytafDebug inspection bridge from store builds; the dev server overrides this to true.
-    define: { __YTAF_DEBUG__: "false" }
+    define: {
+      __YTAF_DEBUG__: "false"
+    }
   })
 });

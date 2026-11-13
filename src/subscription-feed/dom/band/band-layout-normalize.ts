@@ -5,8 +5,7 @@ import { RICH_ITEM_SELECTOR } from "../mirror/mirror-constants";
 import { videoIdFromRichItem } from "../rich-item";
 
 function waitForPolymerToFinishRendering() {
-  return new Promise<void>(resolve =>
-    requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
+  return new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve())));
 }
 
 export async function normalizeCollapsedShelfRows() {
@@ -31,9 +30,7 @@ export async function normalizeCollapsedShelfRows() {
     }
 
     const firstRowTop = Math.round(elFirstVisibleItem.getBoundingClientRect().top);
-    const overflowItems = visibleItems.filter(
-      elItem => Math.round(elItem.getBoundingClientRect().top) !== firstRowTop
-    );
+    const overflowItems = visibleItems.filter(elItem => Math.round(elItem.getBoundingClientRect().top) !== firstRowTop);
     if (overflowItems.length === 0) {
       continue;
     }

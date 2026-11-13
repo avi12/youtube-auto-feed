@@ -44,8 +44,7 @@ export function isCollaborativeRichItem(item: Prettify<InnerTubeRichGridItem>) {
     return false;
   }
 
-  const stackedChannelAvatars =
-    lockupViewModel.metadata?.lockupMetadataViewModel?.image?.avatarStackViewModel?.avatars;
+  const stackedChannelAvatars = lockupViewModel.metadata?.lockupMetadataViewModel?.image?.avatarStackViewModel?.avatars;
   return (stackedChannelAvatars?.length ?? 0) > 1;
 }
 
@@ -55,8 +54,11 @@ export function avatarUrlFromContent(content: Prettify<InnerTubeRichItemContent>
     return "";
   }
 
-  return lockupViewModel.metadata?.lockupMetadataViewModel?.image
-    ?.decoratedAvatarViewModel?.avatar?.avatarViewModel?.image?.sources?.at(-1)?.url ?? "";
+  return (
+    lockupViewModel.metadata?.lockupMetadataViewModel?.image?.decoratedAvatarViewModel?.avatar?.avatarViewModel?.image?.sources?.at(
+      -1
+    )?.url ?? ""
+  );
 }
 
 // Answers with the healed URL, never the raw model one: every caller paints this or compares it with
@@ -126,11 +128,13 @@ export function isThumbnailUrlRotated({ previousUrl, freshUrl, freshStatus }: Is
     return false;
   }
 
-  return !isThumbnailChanged({
-    previousUrl,
-    freshUrl,
-    freshStatus
-  }) && previousUrl !== freshUrl;
+  return (
+    !isThumbnailChanged({
+      previousUrl,
+      freshUrl,
+      freshStatus
+    }) && previousUrl !== freshUrl
+  );
 }
 
 export function thumbnailUrlFromRichItem(item: Prettify<InnerTubeRichGridItem>) {

@@ -43,10 +43,13 @@ async function refreshShorts({ videoId }: RefreshVideoPageParams) {
     selectedChipToken: null,
     displayedRelatedCount: 0
   });
-  if (watchNext && isStillShowing({
-    videoId,
-    watchNext
-  })) {
+  if (
+    watchNext &&
+    isStillShowing({
+      videoId,
+      watchNext
+    })
+  ) {
     applyShortsTitle({
       videoId,
       title: textFromInnerTubeText(watchNext.title)
@@ -71,10 +74,13 @@ async function refreshWatchPage({ videoId, isPictureCheckDue }: RefreshVideoPage
     selectedChipToken: selectedRelatedChipToken(),
     displayedRelatedCount: relatedSections().flatMap(relatedLockupElements).length
   });
-  if (!watchNext || !isStillShowing({
-    videoId,
-    watchNext
-  })) {
+  if (
+    !watchNext ||
+    !isStillShowing({
+      videoId,
+      watchNext
+    })
+  ) {
     return;
   }
 

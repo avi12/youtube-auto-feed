@@ -10,7 +10,8 @@ const THUMBNAIL_LARGE_CLASS = "ytThumbnailViewModelLarge";
 const BOTTOM_OVERLAY_HOST_CLASS = "ytThumbnailBottomOverlayViewModelHost";
 const PROGRESS_BAR_HOST_CLASS = "ytThumbnailOverlayProgressBarHost";
 const PROGRESS_BAR_HOST_LARGE_CLASS = "ytThumbnailOverlayProgressBarHostLarge";
-const PROGRESS_BAR_TRACK_CLASS = "ytThumbnailOverlayProgressBarHostWatchedProgressBar ytThumbnailOverlayProgressBarHostUseLegacyBar";
+const PROGRESS_BAR_TRACK_CLASS =
+  "ytThumbnailOverlayProgressBarHostWatchedProgressBar ytThumbnailOverlayProgressBarHostUseLegacyBar";
 const PROGRESS_BAR_SEGMENT_CLASS = "ytThumbnailOverlayProgressBarHostWatchedProgressBarSegment";
 
 type FindImgInYtImagesParams = Prettify<{
@@ -20,8 +21,8 @@ type FindImgInYtImagesParams = Prettify<{
 
 function findImgInYtImages({ root, selector }: FindImgInYtImagesParams) {
   for (const elYtImage of root.querySelectorAll<HTMLElement>(selector)) {
-    const elImg = elYtImage.shadowRoot?.querySelector<HTMLImageElement>("img")
-      ?? elYtImage.querySelector<HTMLImageElement>("img");
+    const elImg =
+      elYtImage.shadowRoot?.querySelector<HTMLImageElement>("img") ?? elYtImage.querySelector<HTMLImageElement>("img");
     if (elImg) {
       return elImg;
     }

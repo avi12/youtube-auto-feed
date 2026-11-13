@@ -26,14 +26,18 @@ const viewportLabel = process.argv[2] ?? "full";
 
 // ── CDP connection ───────────────────────────────────────────────────────────
 
-interface CdpTarget { type: string;
+interface CdpTarget {
+  type: string;
   url: string;
-  webSocketDebuggerUrl: string; }
+  webSocketDebuggerUrl: string;
+}
 type CdpJsonValue = string | number | boolean | null | CdpJsonValue[] | { [key: string]: CdpJsonValue };
-interface CdpMsg { id: number;
+interface CdpMsg {
+  id: number;
   result?: {
     result?: { value?: CdpJsonValue };
-  }; }
+  };
+}
 
 async function fetchTargets(): Promise<CdpTarget[]> {
   const raw: unknown = await (await fetch(`http://localhost:${CDP_PORT}/json`)).json();
@@ -86,23 +90,27 @@ type Cdp = ReturnType<typeof openCdp>;
 
 // ── Test reporter ────────────────────────────────────────────────────────────
 
-interface Result { name: string;
+interface Result {
+  name: string;
   pass: boolean;
-  detail: string; }
+  detail: string;
+}
 const results: Result[] = [];
 function pass(name: string, detail = "") {
   results.push({
     name,
     pass: true,
     detail
-  }); console.log(`  ✅ PASS  ${name}${detail ? `  (${detail})` : ""}`);
+  });
+  console.log(`  ✅ PASS  ${name}${detail ? `  (${detail})` : ""}`);
 }
 function fail(name: string, detail: string) {
   results.push({
     name,
     pass: false,
     detail
-  }); console.log(`  ❌ FAIL  ${name}  — ${detail}`);
+  });
+  console.log(`  ❌ FAIL  ${name}  — ${detail}`);
 }
 function skip(name: string, reason: string) {
   console.log(`  ⏭  SKIP  ${name}  — ${reason}`);
@@ -113,10 +121,14 @@ function section(title: string) {
 
 // ── Page-context types shared in evals ──────────────────────────────────────
 
-interface Band { title: string;
-  videoIds: string[]; }
-interface Viewport { width: number;
-  height: number; }
+interface Band {
+  title: string;
+  videoIds: string[];
+}
+interface Viewport {
+  width: number;
+  height: number;
+}
 
 // Reads band structure from the extension-managed DOM.
 // Inline items may use content.lockupViewModel with videoRenderer-shaped data
@@ -171,13 +183,15 @@ function buildBrowsePayload(contents: BrowseContentItem[]) {
   return {
     contents: {
       twoColumnBrowseResultsRenderer: {
-        tabs: [{
-          tabRenderer: {
-            content: {
-              richGridRenderer: { contents }
+        tabs: [
+          {
+            tabRenderer: {
+              content: {
+                richGridRenderer: { contents }
+              }
             }
           }
-        }]
+        ]
       }
     }
   };
@@ -200,7 +214,8 @@ async function testNewVideoDetection(cdp: Cdp) {
   const inlineBand = bands.find(band => band.title === "");
   const targetId = inlineBand?.videoIds[0];
   if (!targetId) {
-    skip("New video detection", "No inline videos in current layout"); return;
+    skip("New video detection", "No inline videos in current layout");
+    return;
   }
 
   const removed = await cdp.evalAsync<boolean>(
@@ -221,7 +236,8 @@ async function testNewVideoDetection(cdp: Cdp) {
   }`
   );
   if (!removed) {
-    fail("New video detection", `Could not remove ${targetId} from DOM`); return;
+    fail("New video detection", `Could not remove ${targetId} from DOM`);
+    return;
   }
 
   console.log(`     Removed ${targetId} from DOM. Waiting ${POLL_WAIT_MS}ms for poll re-detection…`);
@@ -240,7 +256,8 @@ async function testNewVideoDetection(cdp: Cdp) {
   }`
   );
   if (!isBack) {
-    fail("New video detection", `${targetId} not re-added after ${POLL_WAIT_MS}ms`); return;
+    fail("New video detection", `${targetId} not re-added after ${POLL_WAIT_MS}ms`);
+    return;
   }
 
   const bandsAfter = await cdp.evalAsync<Band[]>(PARSE_BANDS);
@@ -264,7 +281,8 @@ async function testLiveTransition(cdp: Cdp) {
   // Use the 3rd inline video so it's clearly not already at front
   const guineaPigId = inlineBand?.videoIds[2];
   if (!guineaPigId) {
-    skip("Upcoming→Live transition", "Fewer than 3 inline videos"); return;
+    skip("Upcoming→Live transition", "Fewer than 3 inline videos");
+    return;
   }
 
   // Include all inline IDs so absent-video counters don't accumulate across
@@ -274,17 +292,24 @@ async function testLiveTransition(cdp: Cdp) {
   function buildInlineContents(guineaPigBadge: "upcoming" | "live") {
     return sampleIds.map(id => {
       const baseRenderer = buildMinimalVideoRenderer(id);
-      const renderer = id === guineaPigId
-        ? {
-          ...baseRenderer,
-          badges: [{
-            metadataBadgeRenderer: { style: guineaPigBadge === "upcoming" ? "BADGE_STYLE_TYPE_UPCOMING" : "BADGE_STYLE_TYPE_LIVE_NOW" }
-          }],
-          thumbnailOverlays: [{
-            thumbnailOverlayTimeStatusRenderer: { style: guineaPigBadge === "upcoming" ? "UPCOMING" : "LIVE" }
-          }]
-        }
-        : baseRenderer;
+      const renderer =
+        id === guineaPigId
+          ? {
+              ...baseRenderer,
+              badges: [
+                {
+                  metadataBadgeRenderer: {
+                    style: guineaPigBadge === "upcoming" ? "BADGE_STYLE_TYPE_UPCOMING" : "BADGE_STYLE_TYPE_LIVE_NOW"
+                  }
+                }
+              ],
+              thumbnailOverlays: [
+                {
+                  thumbnailOverlayTimeStatusRenderer: { style: guineaPigBadge === "upcoming" ? "UPCOMING" : "LIVE" }
+                }
+              ]
+            }
+          : baseRenderer;
       return {
         richItemRenderer: {
           content: { videoRenderer: renderer }
@@ -361,8 +386,7 @@ function permutations<T>(arr: T[]): T[][] {
     return [arr];
   }
 
-  return arr.flatMap((item, i) =>
-    permutations([...arr.slice(0, i), ...arr.slice(i + 1)]).map(rest => [item, ...rest]));
+  return arr.flatMap((item, i) => permutations([...arr.slice(0, i), ...arr.slice(i + 1)]).map(rest => [item, ...rest]));
 }
 
 function buildMinimalVideoRenderer(videoId: string) {
@@ -406,7 +430,8 @@ async function testLayoutReordering(cdp: Cdp) {
   const namedBands = bands.filter(band => band.title !== "");
   const inlineBand = bands.find(band => band.title === "");
   if (namedBands.length === 0) {
-    skip("Layout reordering", "No named sections found — inline-only layout"); return;
+    skip("Layout reordering", "No named sections found — inline-only layout");
+    return;
   }
 
   const layoutLabel = namedBands.map(band => `"${band.title}"`).join(" → ");
@@ -451,7 +476,10 @@ async function testLayoutReordering(cdp: Cdp) {
     if (JSON.stringify(actualSectionTitles) === JSON.stringify(expectedSectionTitles)) {
       pass(`Layout: ${layoutName}`, `sections in DOM: [${actualSectionTitles.join(", ")}]`);
     } else {
-      fail(`Layout: ${layoutName}`, `expected [${expectedSectionTitles.join(", ")}] got [${actualSectionTitles.join(", ")}]`);
+      fail(
+        `Layout: ${layoutName}`,
+        `expected [${expectedSectionTitles.join(", ")}] got [${actualSectionTitles.join(", ")}]`
+      );
     }
   }
 
@@ -465,7 +493,8 @@ async function testLayoutReordering(cdp: Cdp) {
 const targets = await fetchTargets();
 const subTab = targets.find(target => target.type === "page" && target.url.includes("youtube.com/feed/subscriptions"));
 if (!subTab) {
-  console.error("❌  No YouTube subscriptions tab found."); process.exit(1);
+  console.error("❌  No YouTube subscriptions tab found.");
+  process.exit(1);
 }
 
 console.log(`\n╔══════════════════════════════════════════════════════╗`);

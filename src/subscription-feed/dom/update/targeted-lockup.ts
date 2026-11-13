@@ -8,9 +8,11 @@ import type { TargetedUpdateParams } from "./targeted-types";
 import { changingLockupTextElements, collectLockupTextElements, isLockupMetadataShapeMatching } from "./text-fields";
 import { crossfadeChangedThumbnail, findThumbnailImg } from "./thumbnail";
 
-type ApplyTargetedLockupUpdateParams = Prettify<TargetedUpdateParams & {
-  elLockup: HTMLElement;
-}>;
+type ApplyTargetedLockupUpdateParams = Prettify<
+  TargetedUpdateParams & {
+    elLockup: HTMLElement;
+  }
+>;
 
 export async function applyTargetedLockupUpdate({
   videoId,
@@ -20,10 +22,12 @@ export async function applyTargetedLockupUpdate({
   fresh
 }: ApplyTargetedLockupUpdateParams) {
   const refs = collectLockupTextElements(elLockup);
-  if (!isLockupMetadataShapeMatching({
-    refs,
-    fresh
-  })) {
+  if (
+    !isLockupMetadataShapeMatching({
+      refs,
+      fresh
+    })
+  ) {
     rebuildPolymerRenderer({
       videoId,
       elItem,
@@ -63,12 +67,14 @@ export async function applyTargetedLockupUpdate({
   }
 
   // Hovered tiles never reach this point - the callers defer the whole update until unhover.
-  const isThumbnailSwapping = !!elImg && await crossfadeChangedThumbnail({
-    elImg,
-    previousUrl: previous.thumbnailUrl,
-    freshUrl: newUrl,
-    isSamePathRotation: isThumbnailQueryRotated
-  });
+  const isThumbnailSwapping =
+    !!elImg &&
+    (await crossfadeChangedThumbnail({
+      elImg,
+      previousUrl: previous.thumbnailUrl,
+      freshUrl: newUrl,
+      isSamePathRotation: isThumbnailQueryRotated
+    }));
 
   const isWatchProgressChanged = previous.watchProgressPercent !== watchProgressPercent;
   const isAnimatable = textElements.length > 0 || isThumbnailSwapping;

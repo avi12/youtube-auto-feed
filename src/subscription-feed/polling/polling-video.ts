@@ -18,11 +18,12 @@ export function createVideoPageHandlers(context: MonitorContext) {
 
   async function refreshVideoPageNow() {
     const videoId = videoIdFromLocation();
-    const isRefreshEligible = state.monitorMode === "video"
-      && isVideoPageMonitorWanted()
-      && !!videoId
-      && !state.isApplyingChanges
-      && !document.hidden;
+    const isRefreshEligible =
+      state.monitorMode === "video" &&
+      isVideoPageMonitorWanted() &&
+      !!videoId &&
+      !state.isApplyingChanges &&
+      !document.hidden;
     if (!isRefreshEligible) {
       return;
     }

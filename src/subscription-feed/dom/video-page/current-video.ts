@@ -56,7 +56,9 @@ export function refreshNativeVideoMetadata(videoId: string) {
           apiUrl: UPDATED_METADATA_API_URL
         }
       },
-      updatedMetadataEndpoint: { videoId }
+      updatedMetadataEndpoint: {
+        videoId
+      }
     }
   );
 }
@@ -76,7 +78,9 @@ export function applyWatchTitle(title: Prettify<InnerTubeText>) {
   }
 
   elFlexy.resolveCommand({
-    updateTitleAction: { title }
+    updateTitleAction: {
+      title
+    }
   });
   updatePageTitle(freshTitle);
   triggerAnimation({
@@ -93,9 +97,8 @@ export function applySubscriberCount(subscriberCountText: Prettify<InnerTubeText
 
   const ownerData = ownerDataSchema.safeParse(elOwner.data);
   const freshText = textFromInnerTubeText(subscriberCountText);
-  const isCountChanged = ownerData.success
-    && freshText !== ""
-    && textFromInnerTubeText(ownerData.data.subscriberCountText) !== freshText;
+  const isCountChanged =
+    ownerData.success && freshText !== "" && textFromInnerTubeText(ownerData.data.subscriberCountText) !== freshText;
   if (!isCountChanged) {
     return;
   }

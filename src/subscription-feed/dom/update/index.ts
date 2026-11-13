@@ -18,11 +18,13 @@ type ApplyOrScheduleParams = Prettify<{
 
 function applyOrScheduleUpdate({ videoId, elItem, fresh, previous }: ApplyOrScheduleParams) {
   if (isInViewport(elItem)) {
-    if (isSwapHeldOffByHover({
-      elItem,
-      fresh,
-      previous
-    })) {
+    if (
+      isSwapHeldOffByHover({
+        elItem,
+        fresh,
+        previous
+      })
+    ) {
       return false;
     }
 

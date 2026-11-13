@@ -14,7 +14,7 @@ export function collectRichShelfVideos(snapshot: Map<string, Prettify<VideoSnaps
     }
 
     const shelfData = elShelf.data;
-    const sectionTitle = isRichShelfRenderer(shelfData) ? shelfData.title?.runs?.[0]?.text ?? "" : "";
+    const sectionTitle = isRichShelfRenderer(shelfData) ? (shelfData.title?.runs?.[0]?.text ?? "") : "";
     for (const elItem of elShelf.querySelectorAll<HTMLElement>(RICH_ITEM_SELECTOR)) {
       addRichItemToSnapshot({
         elItem,
@@ -33,7 +33,7 @@ export function collectLegacyShelfVideos(snapshot: Map<string, Prettify<VideoSna
     }
 
     const shelfData = elShelf.data;
-    const sectionTitle = isShelfRenderer(shelfData) ? shelfData.title?.runs?.[0]?.text ?? "" : "";
+    const sectionTitle = isShelfRenderer(shelfData) ? (shelfData.title?.runs?.[0]?.text ?? "") : "";
     for (const elItem of elShelf.querySelectorAll<PolymerElement>("ytd-grid-video-renderer")) {
       const rawRenderer = elItem.data;
       if (!isVideoRenderer(rawRenderer)) {

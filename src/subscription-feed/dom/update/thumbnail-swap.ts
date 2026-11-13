@@ -10,7 +10,10 @@ import { healedThumbnailUrl } from "./thumbnail-heal";
 async function preloadImage(url: string) {
   const elPreloader = new Image();
   elPreloader.src = url;
-  return elPreloader.decode().then(() => true).catch(() => false);
+  return elPreloader
+    .decode()
+    .then(() => true)
+    .catch(() => false);
 }
 
 // The overlay holding the outgoing picture; it removes itself once faded out.

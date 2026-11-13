@@ -12,19 +12,13 @@
  *   pnpm exec tsx scripts/dev-server.ts --firefox.no-extension - Firefox (no extension)
  */
 
-import chokidar from "chokidar";
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
-import {
-  createWriteStream,
-  existsSync,
-  cpSync,
-  mkdirSync,
-  readFileSync,
-  writeFileSync
-} from "node:fs";
+import { createWriteStream, existsSync, cpSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir, platform } from "node:os";
 import { resolve, join, dirname, isAbsolute } from "node:path";
 import { format, parseArgs } from "node:util";
+
+import chokidar from "chokidar";
 import webExtRun from "web-ext-run";
 import { consoleStream as webExtConsoleStream } from "web-ext-run/util/logger";
 import { build } from "wxt";
@@ -33,8 +27,8 @@ import { build } from "wxt";
 
 const CHROMIUM_VENDORS = ["edge", "chrome"] as const;
 const ALL_VENDORS = [...CHROMIUM_VENDORS, "firefox"] as const;
-type ChromiumVendor = typeof CHROMIUM_VENDORS[number];
-type Vendor = typeof ALL_VENDORS[number];
+type ChromiumVendor = (typeof CHROMIUM_VENDORS)[number];
+type Vendor = (typeof ALL_VENDORS)[number];
 
 interface BrowserSpec {
   vendor: Vendor;
@@ -118,7 +112,9 @@ const USER_PROFILES_DIR = resolve(PROJECT_ROOT, "user-profiles");
 
 mkdirSync(dirname(LOG_FILE_PATH), { recursive: true });
 const logStream = createWriteStream(LOG_FILE_PATH, { flags: "a" });
-logStream.write(`\n========== session start ${new Date().toISOString()} pid=${process.pid} node=${process.version} ==========\n`);
+logStream.write(
+  `\n========== session start ${new Date().toISOString()} pid=${process.pid} node=${process.version} ==========\n`
+);
 
 function writeToLog(prefix: string, args: unknown[]) {
   logStream.write(`[${new Date().toISOString()}] [${prefix}] ${format(...args)}\n`);
@@ -156,10 +152,13 @@ const CDP_BOOT_POLL_ATTEMPTS = 20;
 const CDP_BOOT_POLL_INTERVAL_MS = 500;
 const CDP_COMMAND_TIMEOUT_MS = 5000;
 
-const CHROMIUM_CONFIG: Record<ChromiumVendor, {
-  profileDir: string;
-  cdpPort: number;
-}> = {
+const CHROMIUM_CONFIG: Record<
+  ChromiumVendor,
+  {
+    profileDir: string;
+    cdpPort: number;
+  }
+> = {
   edge: {
     profileDir: join(USER_PROFILES_DIR, "edge"),
     cdpPort: 9232
@@ -258,9 +257,7 @@ function findDefaultFirefoxProfilePath() {
     return isAbsolute(installDefault) ? installDefault : join(firefoxDataPath, installDefault);
   }
 
-  const defaultSection = sections.find(
-    section => /^\[Profile\d/m.test(section) && /^Default=1$/m.test(section)
-  );
+  const defaultSection = sections.find(section => /^\[Profile\d/m.test(section) && /^Default=1$/m.test(section));
   const pathMatch = defaultSection?.match(/^Path=(.+)$/m);
   if (!pathMatch) {
     return null;
@@ -342,34 +339,43 @@ function firstExistingPath(candidates: string[]) {
 function edgeBinaryPath() {
   const { "PROGRAMFILES(X86)": pf86 = "", PROGRAMFILES = "" } = process.env;
   switch (platform()) {
-    case "win32": return join(pf86 || PROGRAMFILES, "Microsoft", "Edge", "Application", "msedge.exe");
-    case "darwin": return "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge";
-    default: return "/usr/bin/microsoft-edge";
+    case "win32":
+      return join(pf86 || PROGRAMFILES, "Microsoft", "Edge", "Application", "msedge.exe");
+    case "darwin":
+      return "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge";
+    default:
+      return "/usr/bin/microsoft-edge";
   }
 }
 
 function chromeBinaryPath() {
   const { "PROGRAMFILES(X86)": pf86 = "", PROGRAMFILES = "", LOCALAPPDATA = "" } = process.env;
   switch (platform()) {
-    case "win32": return firstExistingPath([
-      join(PROGRAMFILES, "Google", "Chrome", "Application", "chrome.exe"),
-      join(pf86, "Google", "Chrome", "Application", "chrome.exe"),
-      join(LOCALAPPDATA, "Google", "Chrome", "Application", "chrome.exe")
-    ]);
-    case "darwin": return "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
-    default: return "/usr/bin/google-chrome";
+    case "win32":
+      return firstExistingPath([
+        join(PROGRAMFILES, "Google", "Chrome", "Application", "chrome.exe"),
+        join(pf86, "Google", "Chrome", "Application", "chrome.exe"),
+        join(LOCALAPPDATA, "Google", "Chrome", "Application", "chrome.exe")
+      ]);
+    case "darwin":
+      return "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+    default:
+      return "/usr/bin/google-chrome";
   }
 }
 
 function firefoxBinaryPath() {
   const { "PROGRAMFILES(X86)": pf86 = "", PROGRAMFILES = "" } = process.env;
   switch (platform()) {
-    case "win32": return firstExistingPath([
-      join(PROGRAMFILES, "Mozilla Firefox", "firefox.exe"),
-      join(pf86, "Mozilla Firefox", "firefox.exe")
-    ]);
-    case "darwin": return "/Applications/Firefox.app/Contents/MacOS/firefox";
-    default: return "/usr/bin/firefox";
+    case "win32":
+      return firstExistingPath([
+        join(PROGRAMFILES, "Mozilla Firefox", "firefox.exe"),
+        join(pf86, "Mozilla Firefox", "firefox.exe")
+      ]);
+    case "darwin":
+      return "/Applications/Firefox.app/Contents/MacOS/firefox";
+    default:
+      return "/usr/bin/firefox";
   }
 }
 
@@ -581,17 +587,20 @@ async function launchChromium(spec: BrowserSpec & { vendor: ChromiumVendor }): P
     "--mute-audio"
   ];
   if (spec.withExtension) {
-    const runner = await webExtRun.cmd.run({
-      target: "chromium",
-      sourceDir: CHROMIUM_OUTPUT_DIR,
-      startUrl: [START_URL],
-      keepProfileChanges: true,
-      chromiumProfile: profileDir,
-      chromiumBinary: binary,
-      args: sharedArgs,
-      noReload: true,
-      noInput: true
-    }, { shouldExitProgram: false });
+    const runner = await webExtRun.cmd.run(
+      {
+        target: "chromium",
+        sourceDir: CHROMIUM_OUTPUT_DIR,
+        startUrl: [START_URL],
+        keepProfileChanges: true,
+        chromiumProfile: profileDir,
+        chromiumBinary: binary,
+        args: sharedArgs,
+        noReload: true,
+        noInput: true
+      },
+      { shouldExitProgram: false }
+    );
 
     console.log(`${spec.vendor} launched with extension sideloaded.`);
     await waitForCdpReady(cdpPort);
@@ -604,13 +613,11 @@ async function launchChromium(spec: BrowserSpec & { vendor: ChromiumVendor }): P
     };
   }
 
-  const child = spawn(binary, [
-    `--user-data-dir=${profileDir}`,
-    ...sharedArgs,
-    "--no-first-run",
-    "--no-default-browser-check",
-    START_URL
-  ], { stdio: "ignore" });
+  const child = spawn(
+    binary,
+    [`--user-data-dir=${profileDir}`, ...sharedArgs, "--no-first-run", "--no-default-browser-check", START_URL],
+    { stdio: "ignore" }
+  );
   child.on("error", error => console.error(`${spec.vendor} failed to launch:`, error));
   child.on("exit", (code, signal) => console.warn(`${spec.vendor} child exited (code=${code}, signal=${signal})`));
   console.log(`${spec.vendor} launched without extension (pid=${child.pid}).`);
@@ -628,16 +635,19 @@ async function launchFirefox(spec: BrowserSpec): Promise<BrowserHandle> {
   killExistingFirefoxInstances();
   const profileDirectory = setupFirefoxProfile();
   if (spec.withExtension) {
-    const runner = await webExtRun.cmd.run({
-      target: "firefox-desktop",
-      sourceDir: FIREFOX_OUTPUT_DIR,
-      startUrl: [START_URL],
-      keepProfileChanges: true,
-      firefoxProfile: profileDirectory,
-      args: [`--lang=${LANG}`, "--marionette"],
-      noReload: true,
-      noInput: true
-    }, { shouldExitProgram: false });
+    const runner = await webExtRun.cmd.run(
+      {
+        target: "firefox-desktop",
+        sourceDir: FIREFOX_OUTPUT_DIR,
+        startUrl: [START_URL],
+        keepProfileChanges: true,
+        firefoxProfile: profileDirectory,
+        args: [`--lang=${LANG}`, "--marionette"],
+        noReload: true,
+        noInput: true
+      },
+      { shouldExitProgram: false }
+    );
 
     console.log("firefox launched with extension sideloaded.");
 
@@ -649,11 +659,9 @@ async function launchFirefox(spec: BrowserSpec): Promise<BrowserHandle> {
     };
   }
 
-  const child = spawn(firefoxBinaryPath(), [
-    "--profile", profileDirectory,
-    "--new-instance",
-    START_URL
-  ], { stdio: "ignore" });
+  const child = spawn(firefoxBinaryPath(), ["--profile", profileDirectory, "--new-instance", START_URL], {
+    stdio: "ignore"
+  });
   child.on("error", error => console.error("firefox failed to launch:", error));
   child.on("exit", (code, signal) => console.warn(`firefox child exited (code=${code}, signal=${signal})`));
   console.log(`firefox launched without extension (pid=${child.pid}).`);

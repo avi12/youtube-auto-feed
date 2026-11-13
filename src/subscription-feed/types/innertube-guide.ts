@@ -11,14 +11,14 @@ export interface InnerTubeGuideChannelEntry {
 }
 
 export interface InnerTubeGuideResponse {
-  items?: Array<{
+  items?: {
     guideSubscriptionsSectionRenderer?: {
-      items?: Array<{
+      items?: {
         guideEntryRenderer?: InnerTubeGuideChannelEntry;
         guideCollapsibleEntryRenderer?: {
           expandableItems?: Array<{ guideEntryRenderer?: InnerTubeGuideChannelEntry }>;
         };
-      }>;
+      }[];
     };
-  }>;
+  }[];
 }

@@ -3,7 +3,9 @@ import { thumbnailContainerInItem, thumbnailImgsInItem } from "./mirror-elements
 import { positionRemovalGhost } from "./mirror-ghost-position";
 
 function thumbnailUrlInItem(elTile: HTMLElement) {
-  return thumbnailImgsInItem(elTile).map(elImg => elImg.currentSrc || elImg.src).find(Boolean);
+  return thumbnailImgsInItem(elTile)
+    .map(elImg => elImg.currentSrc || elImg.src)
+    .find(Boolean);
 }
 
 export function thumbnailGhost(elTile: HTMLElement) {

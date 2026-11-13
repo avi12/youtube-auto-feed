@@ -28,7 +28,7 @@
     block-size: 100%;
     inline-size: 100%;
     margin: 0;
-    opacity: 0%;
+    opacity: 0;
     cursor: pointer;
   }
 
@@ -68,7 +68,7 @@
     inline-size: 40px;
     border-radius: var(--md-corner-full);
     background: var(--md-on-surface);
-    opacity: 0%;
+    opacity: 0;
     pointer-events: none;
     transition: opacity var(--ytaf-dur-state) var(--md-ease-standard);
     translate: -50% -50%;

@@ -142,9 +142,9 @@ async function isRemovable({ video, subscribed, budget }: IsRemovableParams) {
   const isLookupNeeded = video.lockupChannelIds.length === 0 || video.isAbsent;
   const resolved = isLookupNeeded
     ? await lookupVideoChannel({
-      videoId: video.videoId,
-      budget
-    })
+        videoId: video.videoId,
+        budget
+      })
     : null;
   if (resolved && !resolved.isAvailable) {
     return true;
@@ -226,9 +226,7 @@ export async function pruneUnsubscribedShelfVideos(apiContents: Prettify<InnerTu
       })
     }))
   );
-  const removableVideoIds = new Set(
-    verdicts.filter(verdict => verdict.isRemovable).map(verdict => verdict.videoId)
-  );
+  const removableVideoIds = new Set(verdicts.filter(verdict => verdict.isRemovable).map(verdict => verdict.videoId));
   if (removableVideoIds.size === 0) {
     return;
   }

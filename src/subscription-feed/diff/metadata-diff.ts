@@ -5,9 +5,13 @@ import type { Prettify } from "../types/prettify";
 import type { MetadataPart, VideoSnapshot } from "../types/video";
 
 function isMetadataPartsChanged(previousParts: MetadataPart[], freshParts: MetadataPart[]) {
-  return previousParts.length !== freshParts.length
-    || freshParts.some(({ text, accessibilityLabel }, i) =>
-      previousParts[i]?.text !== text || previousParts[i]?.accessibilityLabel !== accessibilityLabel);
+  return (
+    previousParts.length !== freshParts.length ||
+    freshParts.some(
+      ({ text, accessibilityLabel }, i) =>
+        previousParts[i]?.text !== text || previousParts[i]?.accessibilityLabel !== accessibilityLabel
+    )
+  );
 }
 
 type HasMetadataChangeParams = Prettify<{
@@ -16,23 +20,25 @@ type HasMetadataChangeParams = Prettify<{
 }>;
 
 export function hasMetadataChange({ previous, fresh }: HasMetadataChangeParams) {
-  return previous.title !== fresh.title
-    || isThumbnailChanged({
+  return (
+    previous.title !== fresh.title ||
+    isThumbnailChanged({
       previousUrl: previous.thumbnailUrl,
       freshUrl: fresh.thumbnailUrl,
       freshStatus: fresh.status
-    })
-    || isThumbnailUrlRotated({
+    }) ||
+    isThumbnailUrlRotated({
       previousUrl: previous.thumbnailUrl,
       freshUrl: fresh.thumbnailUrl,
       freshStatus: fresh.status
-    })
-    || previous.status !== fresh.status
-    || previous.viewCountText !== fresh.viewCountText
-    || previous.publishedTimeText !== fresh.publishedTimeText
-    || isMetadataPartsChanged(previous.metadataParts, fresh.metadataParts)
-    || previous.isChannelLive !== fresh.isChannelLive
-    || previous.watchProgressPercent !== fresh.watchProgressPercent;
+    }) ||
+    previous.status !== fresh.status ||
+    previous.viewCountText !== fresh.viewCountText ||
+    previous.publishedTimeText !== fresh.publishedTimeText ||
+    isMetadataPartsChanged(previous.metadataParts, fresh.metadataParts) ||
+    previous.isChannelLive !== fresh.isChannelLive ||
+    previous.watchProgressPercent !== fresh.watchProgressPercent
+  );
 }
 
 type StickyWatchProgressParams = Prettify<{
@@ -43,9 +49,8 @@ type StickyWatchProgressParams = Prettify<{
 // YouTube inconsistently drops the watch-progress overlay; carry the last value
 // forward so the tile isn't rebuilt and flickered.
 export function withStickyWatchProgress({ fresh, previous }: StickyWatchProgressParams) {
-  const isCarryForwardNeeded = fresh.watchProgressPercent === null
-    && previous !== undefined
-    && previous.watchProgressPercent !== null;
+  const isCarryForwardNeeded =
+    fresh.watchProgressPercent === null && previous !== undefined && previous.watchProgressPercent !== null;
   if (!isCarryForwardNeeded) {
     return fresh;
   }
@@ -134,10 +139,13 @@ export function applyGenericMetadataUpdates(freshSnapshots: Prettify<VideoSnapsh
   const changedVideos: Prettify<VideoSnapshot>[] = [];
   for (const fresh of freshSnapshots) {
     const previous = domSnapshot.get(fresh.videoId);
-    if (previous && hasMetadataChange({
-      previous,
-      fresh
-    })) {
+    if (
+      previous &&
+      hasMetadataChange({
+        previous,
+        fresh
+      })
+    ) {
       changedVideos.push(fresh);
     }
   }

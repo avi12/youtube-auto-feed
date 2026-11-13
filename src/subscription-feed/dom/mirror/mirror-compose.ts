@@ -51,8 +51,9 @@ export function composeNewContents({ apiContents, currentContents }: ComposeNewC
     retainedDroppedIds
   });
 
-  const isUnchanged = targetBand.length === currentBand.length
-    && targetBand.every((item, i) => videoIdFromRichItem(item) === currentBand[i]?.videoId);
+  const isUnchanged =
+    targetBand.length === currentBand.length &&
+    targetBand.every((item, i) => videoIdFromRichItem(item) === currentBand[i]?.videoId);
   if (isUnchanged) {
     return currentContents;
   }

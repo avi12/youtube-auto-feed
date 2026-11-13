@@ -1,10 +1,10 @@
 import type { InnerTubeRichGridItem } from "../../types/innertube";
 import type { Prettify } from "../../types/prettify";
 
-export type InlineBandEntry = {
+export interface InlineBandEntry {
   videoId: string;
   item: Prettify<InnerTubeRichGridItem>;
-};
+}
 
 type MergeBandParams = Prettify<{
   currentBand: InlineBandEntry[];

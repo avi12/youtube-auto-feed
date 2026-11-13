@@ -40,7 +40,9 @@ export default defineContentScript({
         const isSubscriptionsFeed = requestBody.includes(SUBSCRIPTIONS_BROWSE_ID) && !isOwnRequest(headers);
         if (isSubscriptionsFeed) {
           const response = await originalFetch(input, init);
-          response.clone().json()
+          response
+            .clone()
+            .json()
             .then(data => feedMessenger.sendMessage("browseResponse", data))
             .catch(() => {});
           return response;

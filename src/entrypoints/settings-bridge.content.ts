@@ -1,3 +1,5 @@
+import { storage } from "#imports";
+
 import {
   defaultSettings,
   type FeedSettings,
@@ -7,7 +9,6 @@ import {
 } from "../shared/settings";
 import { settingsMessenger } from "../shared/settings-messaging";
 import { loadStoredSettings } from "../shared/settings-storage";
-import { storage } from "#imports";
 
 // ISOLATED-world bridge: the only context with browser.storage access. It answers MAIN's startup
 // "getSettings" pull and broadcasts every change so the MAIN-world mirror stays in sync.
@@ -39,7 +40,8 @@ export default defineContentScript({
 
     for (const name of SETTING_NAMES) {
       storage.watch<boolean>(SETTING_STORAGE_KEYS[name], value =>
-        applySettingChange(settingChange(name, value ?? defaults[name])));
+        applySettingChange(settingChange(name, value ?? defaults[name]))
+      );
     }
     broadcastSettings();
   }

@@ -5,9 +5,9 @@ import {
   NEW_THUMBNAIL_DECODE_CAP_FRAMES,
   REBIND_FRAME_POLL_MAX,
   REBIND_MICROTASK_POLL_MAX,
+  type RichItemElement,
   THUMBNAIL_REASSERT_FRAMES_MAX,
-  THUMBNAIL_STABLE_FRAMES,
-  type RichItemElement
+  THUMBNAIL_STABLE_FRAMES
 } from "./mirror-constants";
 import { avatarImgInItem, thumbnailImgsInItem } from "./mirror-elements";
 import { areInsertedTilesPresent } from "./mirror-entrances";
@@ -27,11 +27,13 @@ export async function awaitNewThumbnailsReady(thumbnailUrls: Iterable<string>) {
 
   let isReady = false;
   const decodes = urls.map(decodeThumbnail);
-  Promise.all(decodes).then(() => {
-    isReady = true;
-  }).catch(() => {
-    isReady = true;
-  });
+  Promise.all(decodes)
+    .then(() => {
+      isReady = true;
+    })
+    .catch(() => {
+      isReady = true;
+    });
 
   for (let iFrame = 0; iFrame < NEW_THUMBNAIL_DECODE_CAP_FRAMES && !isReady; iFrame++) {
     await nextFrame();

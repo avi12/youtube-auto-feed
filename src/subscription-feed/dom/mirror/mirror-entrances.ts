@@ -32,10 +32,14 @@ export function animateNewEntrances(newlyInsertedIds: Set<string>) {
 export function playEntrance(elItem: HTMLElement) {
   elItem.style.zIndex = "1";
   elItem.classList.add("ytaf-new");
-  elItem.addEventListener("animationend", () => {
-    elItem.classList.remove("ytaf-new");
-    elItem.style.zIndex = "";
-  }, { once: true });
+  elItem.addEventListener(
+    "animationend",
+    () => {
+      elItem.classList.remove("ytaf-new");
+      elItem.style.zIndex = "";
+    },
+    { once: true }
+  );
 }
 
 export function hideNewInsertedTiles(newlyInsertedIds: Set<string>) {

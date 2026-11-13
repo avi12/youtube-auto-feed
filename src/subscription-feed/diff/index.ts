@@ -31,7 +31,8 @@ export async function detectAndApplyChanges({
     }
 
     freshMap.set(
-      video.videoId, withStickyWatchProgress({
+      video.videoId,
+      withStickyWatchProgress({
         fresh: video,
         previous: previousSnapshot.get(video.videoId)
       })

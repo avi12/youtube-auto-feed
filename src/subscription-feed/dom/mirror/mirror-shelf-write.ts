@@ -122,7 +122,10 @@ type AnimateShelfWriteParams = Prettify<{
   insertedVideoIds: Set<string>;
 }>;
 
-function enterInsertedTiles({ elShelf, insertedVideoIds }: Pick<AnimateShelfWriteParams, "elShelf" | "insertedVideoIds">) {
+function enterInsertedTiles({
+  elShelf,
+  insertedVideoIds
+}: Pick<AnimateShelfWriteParams, "elShelf" | "insertedVideoIds">) {
   for (const elItem of visibleShelfItems(elShelf)) {
     const videoId = shelfItemId(elItem);
     if (videoId && insertedVideoIds.has(videoId)) {
@@ -170,11 +173,13 @@ export async function animateShelfWrite({
 
   // Write inside a frame, then invert in the microtask that follows (before the browser paints the
   // rebound layout). A synchronous pin does not establish the transition baseline on Firefox.
-  await new Promise<void>(resolve => requestAnimationFrame(() => {
-    elShelf.set("data.contents", contents);
-    flushPolymerRender();
-    resolve();
-  }));
+  await new Promise<void>(resolve =>
+    requestAnimationFrame(() => {
+      elShelf.set("data.contents", contents);
+      flushPolymerRender();
+      resolve();
+    })
+  );
   const elGliders = pinSurvivors({
     elShelf,
     elContents,
@@ -243,15 +248,20 @@ function releaseSurvivors(elGliders: HTMLElement[]) {
 
 function releaseEntrants(elEntrants: HTMLElement[]) {
   for (const elItem of elEntrants) {
-    elItem.style.transition = `translate ${SURVIVOR_SHIFT_MS}ms ${SURVIVOR_GLIDE_EASING}, `
-      + `opacity ${SURVIVOR_SHIFT_MS}ms ${SURVIVOR_GLIDE_EASING}`;
+    elItem.style.transition =
+      `translate ${SURVIVOR_SHIFT_MS}ms ${SURVIVOR_GLIDE_EASING}, ` +
+      `opacity ${SURVIVOR_SHIFT_MS}ms ${SURVIVOR_GLIDE_EASING}`;
     elItem.style.translate = "";
     elItem.style.opacity = "";
-    elItem.addEventListener("transitionend", () => {
-      elItem.style.transition = "";
-      elItem.style.translate = "";
-      elItem.style.opacity = "";
-    }, { once: true });
+    elItem.addEventListener(
+      "transitionend",
+      () => {
+        elItem.style.transition = "";
+        elItem.style.translate = "";
+        elItem.style.opacity = "";
+      },
+      { once: true }
+    );
   }
 }
 

@@ -1,6 +1,7 @@
+import { storage } from "#imports";
+
 import { defaultSettings, feedSettingsSchema, SETTING_NAMES, SETTING_STORAGE_KEYS } from "./settings";
 import { z } from "./zod";
-import { storage } from "#imports";
 
 // Only storage-capable contexts (popup, ISOLATED bridge) may import this.
 const booleanSettingSchema = z.boolean();

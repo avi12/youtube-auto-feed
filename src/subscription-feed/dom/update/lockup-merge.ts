@@ -26,7 +26,10 @@ type MergeContentImagePreservingThumbnailParams = Prettify<{
   incoming: LockupViewModel["contentImage"];
 }>;
 
-export function mergeContentImagePreservingThumbnail({ existing, incoming }: MergeContentImagePreservingThumbnailParams): LockupViewModel["contentImage"] {
+export function mergeContentImagePreservingThumbnail({
+  existing,
+  incoming
+}: MergeContentImagePreservingThumbnailParams): LockupViewModel["contentImage"] {
   if (!existing) {
     return incoming;
   }

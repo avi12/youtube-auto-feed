@@ -24,22 +24,24 @@ export async function applyTargetedGenericUpdate({
   const isShorts = !!elItem.querySelector("ytm-shorts-lockup-view-model-v2, ytm-shorts-lockup-view-model");
   const textElements = isShorts
     ? changingShortsTextElements({
-      elItem,
-      fresh
-    })
+        elItem,
+        fresh
+      })
     : changingLegacyTextElements({
-      elItem,
-      fresh
-    });
+        elItem,
+        fresh
+      });
   const applyText = isShorts
-    ? () => updateShortsTextFields({
-      elItem,
-      fresh
-    })
-    : () => updateLegacyRendererTextFields({
-      elItem,
-      fresh
-    });
+    ? () =>
+        updateShortsTextFields({
+          elItem,
+          fresh
+        })
+    : () =>
+        updateLegacyRendererTextFields({
+          elItem,
+          fresh
+        });
 
   const isThumbnailChanging = isThumbnailChanged({
     previousUrl: previous.thumbnailUrl,
@@ -63,12 +65,14 @@ export async function applyTargetedGenericUpdate({
   }
 
   // Hovered tiles never reach this point - the callers defer the whole update until unhover.
-  const isThumbnailSwapping = !!elImg && await crossfadeChangedThumbnail({
-    elImg,
-    previousUrl: previous.thumbnailUrl,
-    freshUrl: thumbnailUrl,
-    isSamePathRotation: isThumbnailQueryRotated
-  });
+  const isThumbnailSwapping =
+    !!elImg &&
+    (await crossfadeChangedThumbnail({
+      elImg,
+      previousUrl: previous.thumbnailUrl,
+      freshUrl: thumbnailUrl,
+      isSamePathRotation: isThumbnailQueryRotated
+    }));
 
   const isAnimatable = textElements.length > 0 || isThumbnailSwapping;
   if (!isAnimatable) {

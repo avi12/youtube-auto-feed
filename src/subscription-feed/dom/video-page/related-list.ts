@@ -47,7 +47,7 @@ export function relatedSections() {
 
 // The live model, read through the guard rather than a parse: the lockups are mutated in place.
 export function relatedSectionContents(elSection: PolymerElement) {
-  return isRelatedSectionData(elSection.data) ? elSection.data.contents ?? [] : [];
+  return isRelatedSectionData(elSection.data) ? (elSection.data.contents ?? []) : [];
 }
 
 function modelLockupsByVideoId(elSection: PolymerElement) {
@@ -98,11 +98,13 @@ export function selectedRelatedChipToken() {
   return elChip?.data.navigationEndpoint?.continuationCommand?.token ?? null;
 }
 
-type ApplyRelatedTileUpdateParams = Prettify<RelatedTile & {
-  previous: Prettify<VideoSnapshot>;
-  fresh: Prettify<VideoSnapshot>;
-  incoming: Prettify<LockupViewModel>;
-}>;
+type ApplyRelatedTileUpdateParams = Prettify<
+  RelatedTile & {
+    previous: Prettify<VideoSnapshot>;
+    fresh: Prettify<VideoSnapshot>;
+    incoming: Prettify<LockupViewModel>;
+  }
+>;
 
 async function applyRelatedTileUpdate({ elLockup, lockup, previous, fresh, incoming }: ApplyRelatedTileUpdateParams) {
   const refs = collectLockupTextElements(elLockup);
@@ -117,12 +119,14 @@ async function applyRelatedTileUpdate({ elLockup, lockup, previous, fresh, incom
   };
   const isThumbnailQueryRotated = isThumbnailUrlRotated(thumbnailUrls);
   const elImg = isThumbnailChanged(thumbnailUrls) || isThumbnailQueryRotated ? findThumbnailImg(elLockup) : null;
-  const isThumbnailSwapping = !!elImg && await crossfadeChangedThumbnail({
-    elImg,
-    previousUrl: previous.thumbnailUrl,
-    freshUrl: fresh.thumbnailUrl,
-    isSamePathRotation: isThumbnailQueryRotated
-  });
+  const isThumbnailSwapping =
+    !!elImg &&
+    (await crossfadeChangedThumbnail({
+      elImg,
+      previousUrl: previous.thumbnailUrl,
+      freshUrl: fresh.thumbnailUrl,
+      isSamePathRotation: isThumbnailQueryRotated
+    }));
 
   applyWithDissolve({
     elements: textElements,
@@ -155,20 +159,29 @@ export async function applyRelatedUpdates(freshSnapshots: Prettify<VideoSnapshot
   for (const fresh of freshSnapshots) {
     const tile = tiles.get(fresh.videoId);
     const incoming = isLockupViewModel(fresh.rawRenderer) ? fresh.rawRenderer : null;
-    const previous = tile ? parseLockupViewModel({
-      lockup: tile.lockup,
-      sectionTitle: "",
-      bandIndex: 0
-    }) : null;
-    const isUpdatable = !!tile && !!incoming && !!previous && hasMetadataChange({
-      previous,
-      fresh
-    });
-    if (!isUpdatable || isSwapHeldOffByHover({
-      elItem: tile.elLockup,
-      fresh,
-      previous
-    })) {
+    const previous = tile
+      ? parseLockupViewModel({
+          lockup: tile.lockup,
+          sectionTitle: "",
+          bandIndex: 0
+        })
+      : null;
+    const isUpdatable =
+      !!tile &&
+      !!incoming &&
+      !!previous &&
+      hasMetadataChange({
+        previous,
+        fresh
+      });
+    if (
+      !isUpdatable ||
+      isSwapHeldOffByHover({
+        elItem: tile.elLockup,
+        fresh,
+        previous
+      })
+    ) {
       continue;
     }
 

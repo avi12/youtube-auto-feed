@@ -6,10 +6,10 @@ import { richShelfDataSchema } from "../../youtube-api/schemas";
 import { buildMergedVideoRenderer } from "./merged-video-renderer";
 import type { ApplyToContainerParams } from "./polymer-sync-types";
 
-type ShelfListItem = {
+interface ShelfListItem {
   videoRenderer?: InnerTubeVideoRenderer;
   gridVideoRenderer?: InnerTubeVideoRenderer;
-};
+}
 
 type FindMatchingRendererKeyParams = Prettify<{
   item: ShelfListItem;
@@ -49,7 +49,8 @@ export function applyToLegacyShelfModels({ videoId, rawRenderer, forcePreserveCo
         }
 
         elShelf.set(
-          `data.content.${listKey}.items.${iItem}.${rendererKey}`, buildMergedVideoRenderer({
+          `data.content.${listKey}.items.${iItem}.${rendererKey}`,
+          buildMergedVideoRenderer({
             existing: item[rendererKey] ?? null,
             incoming: rawRenderer,
             forcePreserveContentImage

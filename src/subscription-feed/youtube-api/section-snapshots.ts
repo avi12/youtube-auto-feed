@@ -19,13 +19,8 @@ export function collectRichSectionSnapshots({
   if (richShelfRenderer) {
     const { title, contents } = richShelfRenderer;
     for (const richItem of contents) {
-      const {
-        videoRenderer,
-        gridVideoRenderer,
-        richGridMediaRenderer,
-        lockupViewModel,
-        shortsLockupViewModel
-      } = richItem.richItemRenderer?.content ?? {};
+      const { videoRenderer, gridVideoRenderer, richGridMediaRenderer, lockupViewModel, shortsLockupViewModel } =
+        richItem.richItemRenderer?.content ?? {};
       pushSnapshot({
         sectionTitle: title.runs[0]?.text ?? "",
         bandIndex,
@@ -42,9 +37,7 @@ export function collectRichSectionSnapshots({
 
   if (shelfRenderer) {
     const { title, content } = shelfRenderer;
-    const shelfItems = content?.horizontalListRenderer?.items
-      ?? content?.gridRenderer?.items
-      ?? [];
+    const shelfItems = content?.horizontalListRenderer?.items ?? content?.gridRenderer?.items ?? [];
     for (const shelfItem of shelfItems) {
       pushSnapshot({
         sectionTitle: title.runs[0]?.text ?? "",
@@ -83,9 +76,7 @@ export function collectSectionListSnapshots({ tabContent, pushSnapshot }: Pretti
       }
 
       const { title, content } = shelf;
-      const shelfItems = content?.horizontalListRenderer?.items
-        ?? content?.gridRenderer?.items
-        ?? [];
+      const shelfItems = content?.horizontalListRenderer?.items ?? content?.gridRenderer?.items ?? [];
       for (const shelfItem of shelfItems) {
         pushSnapshot({
           sectionTitle: title.runs[0]?.text ?? "",

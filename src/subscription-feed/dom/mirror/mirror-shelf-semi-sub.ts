@@ -24,13 +24,15 @@ type ShelfMerge = Prettify<{
   insertedVideoIds: Set<string>;
 }>;
 
-function groupByTitle<TValue>(entries: {
-  title: string;
-  value: TValue;
-}[]) {
+function groupByTitle<TValue>(
+  entries: {
+    title: string;
+    value: TValue;
+  }[]
+) {
   const groups = new Map<string, TValue[]>();
   for (const { title, value } of entries) {
-    groups.set(title, [...groups.get(title) ?? [], value]);
+    groups.set(title, [...(groups.get(title) ?? []), value]);
   }
   return groups;
 }
@@ -40,10 +42,12 @@ function apiShelvesByTitle(apiContents: RichGridItem[]) {
     apiContents.flatMap(item => {
       const richShelf = item.richSectionRenderer?.content?.richShelfRenderer;
       return richShelf
-        ? [{
-          title: textFromInnerTubeText(richShelf.title),
-          value: richShelf.contents
-        }]
+        ? [
+            {
+              title: textFromInnerTubeText(richShelf.title),
+              value: richShelf.contents
+            }
+          ]
         : [];
     })
   );
@@ -51,19 +55,20 @@ function apiShelvesByTitle(apiContents: RichGridItem[]) {
 
 function domShelvesByTitle() {
   return groupByTitle(
-    usableShelves().flatMap(elShelf => isRichShelfData(elShelf.data)
-      ? [{
-        title: textFromInnerTubeText(elShelf.data.title),
-        value: elShelf
-      }]
-      : [])
+    usableShelves().flatMap(elShelf =>
+      isRichShelfData(elShelf.data)
+        ? [
+            {
+              title: textFromInnerTubeText(elShelf.data.title),
+              value: elShelf
+            }
+          ]
+        : []
+    )
   );
 }
 
-function containsVideo({ contents, videoId }: {
-  contents: RichGridItem[];
-  videoId: string;
-}) {
+function containsVideo({ contents, videoId }: { contents: RichGridItem[]; videoId: string }) {
   return contents.some(item => videoIdFromRichItem(item) === videoId);
 }
 
@@ -101,17 +106,19 @@ function mergeSemiSubscribedVideos({ currentContents, apiContents = [], hiddenVi
     return hiddenVideoIds.has(videoId) || isDropped;
   }
 
-  const removedVideoIds = new Set(currentContents
-    .filter(isUnlisted)
-    .flatMap(item => videoIdFromRichItem(item) ?? []));
+  const removedVideoIds = new Set(currentContents.filter(isUnlisted).flatMap(item => videoIdFromRichItem(item) ?? []));
   let contents = currentContents.filter(item => !removedVideoIds.has(videoIdFromRichItem(item) ?? ""));
   const insertedVideoIds = new Set<string>();
   for (const [iApiItem, apiItem] of apiContents.entries()) {
     const videoId = videoIdFromRichItem(apiItem);
-    const isJoining = !!videoId && isSemiSubscribedRichItem(apiItem) && !hiddenVideoIds.has(videoId) && !containsVideo({
-      contents,
-      videoId
-    });
+    const isJoining =
+      !!videoId &&
+      isSemiSubscribedRichItem(apiItem) &&
+      !hiddenVideoIds.has(videoId) &&
+      !containsVideo({
+        contents,
+        videoId
+      });
     if (!isJoining) {
       continue;
     }
@@ -121,7 +128,9 @@ function mergeSemiSubscribedVideos({ currentContents, apiContents = [], hiddenVi
         contents,
         apiContents,
         iApiItem
-      }), 0, apiItem
+      }),
+      0,
+      apiItem
     );
     insertedVideoIds.add(videoId);
   }

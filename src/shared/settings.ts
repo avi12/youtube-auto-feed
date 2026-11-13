@@ -1,5 +1,6 @@
-import { z } from "./zod";
 import type { StorageItemKey } from "wxt/utils/storage";
+
+import { z } from "./zod";
 
 export const feedSettingsSchema = z.object({
   isExtensionEnabled: z.boolean(),

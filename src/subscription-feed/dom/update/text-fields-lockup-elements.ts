@@ -3,8 +3,8 @@ import type { Prettify } from "../../types/prettify";
 const TITLE_SELECTOR_LOCKUP = ".ytLockupMetadataViewModelTitle span.ytAttributedStringHost";
 const TITLE_HEADING_SELECTOR_LOCKUP = ".ytLockupMetadataViewModelHeadingReset";
 const TITLE_LINK_SELECTOR_LOCKUP = "a.ytLockupMetadataViewModelTitle";
-const METADATA_PART_SELECTOR_LOCKUP
-  = "yt-lockup-metadata-view-model .ytContentMetadataViewModelMetadataRow > span.ytContentMetadataViewModelMetadataText";
+const METADATA_PART_SELECTOR_LOCKUP =
+  "yt-lockup-metadata-view-model .ytContentMetadataViewModelMetadataRow > span.ytContentMetadataViewModelMetadataText";
 
 export interface LockupTextElements {
   elTitle: HTMLElement | null;

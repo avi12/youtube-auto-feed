@@ -1,9 +1,11 @@
 import type { PolymerElement } from "../types/polymer";
 
 declare global {
-  var Polymer: {
-    flush?: () => void;
-  } | undefined;
+  var Polymer:
+    | {
+        flush?: () => void;
+      }
+    | undefined;
 }
 
 export function isPolymerElement(element: Element): element is PolymerElement {
@@ -34,8 +36,12 @@ export interface IronDropdownElement extends HTMLElement {
 }
 
 export function isIronDropdown(target: EventTarget | undefined): target is IronDropdownElement {
-  return target instanceof HTMLElement
-    && "positionTarget" in target
-    && "refit" in target && typeof target.refit === "function"
-    && "close" in target && typeof target.close === "function";
+  return (
+    target instanceof HTMLElement &&
+    "positionTarget" in target &&
+    "refit" in target &&
+    typeof target.refit === "function" &&
+    "close" in target &&
+    typeof target.close === "function"
+  );
 }

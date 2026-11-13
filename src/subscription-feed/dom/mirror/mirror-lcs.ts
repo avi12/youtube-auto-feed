@@ -8,10 +8,7 @@ type LongestCommonSubsequenceParams = Prettify<{
 export function longestCommonSubsequence({ leftIds, rightIds }: LongestCommonSubsequenceParams) {
   const leftCount = leftIds.length;
   const rightCount = rightIds.length;
-  const suffixLengths = Array.from(
-    { length: leftCount + 1 },
-    () => Array.from({ length: rightCount + 1 }, () => 0)
-  );
+  const suffixLengths = Array.from({ length: leftCount + 1 }, () => Array.from({ length: rightCount + 1 }, () => 0));
   function suffixLengthAt(iLeft: number, iRight: number) {
     return suffixLengths[iLeft]?.[iRight] ?? 0;
   }
@@ -19,9 +16,10 @@ export function longestCommonSubsequence({ leftIds, rightIds }: LongestCommonSub
   for (let iLeft = leftCount - 1; iLeft >= 0; iLeft--) {
     const suffixRow = suffixLengths[iLeft] ?? [];
     for (let iRight = rightCount - 1; iRight >= 0; iRight--) {
-      suffixRow[iRight] = leftIds[iLeft] === rightIds[iRight]
-        ? suffixLengthAt(iLeft + 1, iRight + 1) + 1
-        : Math.max(suffixLengthAt(iLeft + 1, iRight), suffixLengthAt(iLeft, iRight + 1));
+      suffixRow[iRight] =
+        leftIds[iLeft] === rightIds[iRight]
+          ? suffixLengthAt(iLeft + 1, iRight + 1) + 1
+          : Math.max(suffixLengthAt(iLeft + 1, iRight), suffixLengthAt(iLeft, iRight + 1));
     }
   }
 

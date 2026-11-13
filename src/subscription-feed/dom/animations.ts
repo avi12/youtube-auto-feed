@@ -2,7 +2,7 @@ import { isAnimationsEnabled } from "../settings-state";
 import type { Prettify } from "../types/prettify";
 
 const animationClasses = ["ytaf-new", "ytaf-updated"] as const;
-type AnimationClass = typeof animationClasses[number];
+type AnimationClass = (typeof animationClasses)[number];
 
 type TriggerAnimationParams = Prettify<{
   elTarget: HTMLElement;
@@ -17,11 +17,7 @@ export function triggerAnimation({ elTarget, animationClass }: TriggerAnimationP
   elTarget.classList.remove(...animationClasses);
   requestAnimationFrame(() => {
     elTarget.classList.add(animationClass);
-    elTarget.addEventListener(
-      "animationend",
-      () => elTarget.classList.remove(animationClass),
-      { once: true }
-    );
+    elTarget.addEventListener("animationend", () => elTarget.classList.remove(animationClass), { once: true });
   });
 }
 

@@ -63,6 +63,7 @@ export function recordReflowZoneRects() {
 }
 
 export function usableShelves() {
-  return [...document.querySelectorAll<PolymerElement>("ytd-rich-shelf-renderer")]
-    .filter(elShelf => richShelfDataSchema.safeParse(elShelf.data).success);
+  return [...document.querySelectorAll<PolymerElement>("ytd-rich-shelf-renderer")].filter(
+    elShelf => richShelfDataSchema.safeParse(elShelf.data).success
+  );
 }

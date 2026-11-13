@@ -11,14 +11,18 @@ export enum BadgeStyle {
   Upcoming = "BADGE_STYLE_TYPE_UPCOMING"
 }
 
-export interface InnerTubeMetadataBadge { metadataBadgeRenderer?: { style: BadgeStyle } }
+export interface InnerTubeMetadataBadge {
+  metadataBadgeRenderer?: { style: BadgeStyle };
+}
 
 export enum OverlayStyle {
   Live = "LIVE",
   Upcoming = "UPCOMING"
 }
 
-export interface InnerTubeThumbnailOverlay { thumbnailOverlayTimeStatusRenderer?: { style: OverlayStyle } }
+export interface InnerTubeThumbnailOverlay {
+  thumbnailOverlayTimeStatusRenderer?: { style: OverlayStyle };
+}
 
 export interface InnerTubeReelWatchEndpoint {
   videoId: string;
@@ -32,11 +36,11 @@ export interface InnerTubeReelWatchEndpoint {
 export interface InnerTubeUpcomingEventData {
   startTime?: string;
   isReminderSet?: boolean;
-  upcomingEventText?: { runs?: Array<{ text: string }> };
+  upcomingEventText?: { runs?: { text: string }[] };
 }
 
 export interface InnerTubeText {
-  runs?: Array<{ text: string }>;
+  runs?: { text: string }[];
   simpleText?: string;
 }
 
@@ -51,7 +55,7 @@ export interface ChannelVideoPlayerRenderer {
 export interface InnerTubeVideoRenderer {
   videoId: string;
   title: {
-    runs?: Array<{ text: string }>;
+    runs?: { text: string }[];
     simpleText?: string;
   };
   thumbnail: { thumbnails: InnerTubeThumbnail[] };
@@ -59,7 +63,7 @@ export interface InnerTubeVideoRenderer {
   thumbnailOverlays?: InnerTubeThumbnailOverlay[];
   viewCountText?: {
     simpleText?: string;
-    runs?: Array<{ text: string }>;
+    runs?: { text: string }[];
   };
   shortViewCountText?: { simpleText?: string };
   publishedTimeText?: { simpleText?: string };

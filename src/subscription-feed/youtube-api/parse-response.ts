@@ -22,8 +22,7 @@ export function extractApiSectionOrder(data: Prettify<InnerTubeBrowseResponse>) 
     const tabContent = data.contents.twoColumnBrowseResultsRenderer.tabs[0]?.tabRenderer.content;
     for (const gridItem of tabContent?.richGridRenderer?.contents ?? []) {
       const { richShelfRenderer, shelfRenderer } = gridItem.richSectionRenderer?.content ?? {};
-      const title = richShelfRenderer?.title?.runs?.[0]?.text
-                ?? shelfRenderer?.title?.runs?.[0]?.text;
+      const title = richShelfRenderer?.title?.runs?.[0]?.text ?? shelfRenderer?.title?.runs?.[0]?.text;
       if (!title) {
         continue;
       }
@@ -67,13 +66,8 @@ export function parseApiResponse(data: Prettify<InnerTubeBrowseResponse>) {
           pushSnapshot
         }));
       } else if (gridItem.richItemRenderer) {
-        const {
-          videoRenderer,
-          gridVideoRenderer,
-          richGridMediaRenderer,
-          lockupViewModel,
-          shortsLockupViewModel
-        } = gridItem.richItemRenderer.content;
+        const { videoRenderer, gridVideoRenderer, richGridMediaRenderer, lockupViewModel, shortsLockupViewModel } =
+          gridItem.richItemRenderer.content;
         pushSnapshot({
           sectionTitle: currentSectionTitle,
           bandIndex: currentBandIndex,

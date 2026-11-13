@@ -46,11 +46,15 @@ function coverImgWhileBlank({ elImg, url }: CoverImgWhileBlankParams) {
   elImg.style.backgroundImage = `url("${url}")`;
   elImg.style.backgroundSize = "cover";
   elImg.style.backgroundPosition = "center";
-  elImg.addEventListener("load", () => {
-    elImg.style.backgroundImage = "";
-    elImg.style.backgroundSize = "";
-    elImg.style.backgroundPosition = "";
-  }, { once: true });
+  elImg.addEventListener(
+    "load",
+    () => {
+      elImg.style.backgroundImage = "";
+      elImg.style.backgroundSize = "";
+      elImg.style.backgroundPosition = "";
+    },
+    { once: true }
+  );
 }
 
 export function observeAndCoverBlankImages(elGrid: HTMLElement) {

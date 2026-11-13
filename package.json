@@ -1,33 +1,32 @@
 {
   "name": "youtube-auto-feed",
-  "description": "Keeps your YouTube subscriptions feed current as videos are published, removed, or change state - no page reload needed.",
-  "private": false,
   "version": "0.2.3",
+  "private": false,
+  "description": "Keeps your YouTube subscriptions feed current as videos are published, removed, or change state - no page reload needed.",
+  "keywords": [
+    "browser-extension",
+    "feed",
+    "live-feed",
+    "manifest-v3",
+    "subscriptions",
+    "wxt",
+    "youtube"
+  ],
+  "homepage": "https://github.com/avi12/youtube-auto-feed",
+  "bugs": {
+    "url": "https://github.com/avi12/youtube-auto-feed/issues"
+  },
   "license": "GPL-3.0-or-later",
   "author": "Avi (https://avi12.com)",
-  "homepage": "https://github.com/avi12/youtube-auto-feed",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/avi12/youtube-auto-feed.git"
   },
-  "bugs": {
-    "url": "https://github.com/avi12/youtube-auto-feed/issues"
-  },
-  "keywords": [
-    "youtube",
-    "subscriptions",
-    "feed",
-    "browser-extension",
-    "wxt",
-    "manifest-v3",
-    "live-feed"
-  ],
+  "type": "module",
   "sideEffects": [
     "**/*.css",
     "**/*.svelte"
   ],
-  "packageManager": "pnpm@11.10.0+sha512.0b7f8b98060031904c017e3a41eb187a16d40eeb829b95c4f8cb03681761fc4ab53dd219115b9b447f4dce1a05a214764461e7d3703392a9f32f9511ce8c86c8",
-  "type": "module",
   "scripts": {
     "dev": "tsx scripts/dev-server.ts",
     "dev:edge-chrome-no-extension": "tsx scripts/dev-server.ts --edge --chrome.no-extension",
@@ -50,40 +49,41 @@
     "lint:fix": "avi12-lint --fix",
     "svelte:check": "svelte-check --tsconfig ./tsconfig.json"
   },
+  "dependencies": {
+    "@webext-core/messaging": "^4.0.0",
+    "zod": "^4.6.7"
+  },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "7.3.1",
+    "@types/node": "^26.6.5",
     "@wxt-dev/module-svelte": "2.0.5",
+    "avi12-lint": "github:avi12/lint-config#v0.4.14&path:/packages/avi12-lint",
     "chokidar": "^5.0.0",
     "crx3": "2.0.0",
     "eslint": "^10.12.0",
+    "eslint-config-avi12": "github:avi12/lint-config#v0.4.14&path:/packages/eslint-config",
     "eslint-plugin-svelte": "3.23.1",
+    "fallow": "2.103.0",
+    "fallow-config-avi12": "github:avi12/lint-config#v0.4.14&path:/packages/fallow-config",
     "fflate": "^0.8.3",
+    "oxfmt": "^0.78.0",
+    "oxfmt-config-avi12": "github:avi12/lint-config#v0.4.14&path:/packages/oxfmt-config",
     "oxlint": "1.90.0",
+    "oxlint-config-avi12": "github:avi12/lint-config#v0.4.14&path:/packages/oxlint-config",
+    "oxlint-plugin-naming": "github:avi12/lint-config#v0.4.14&path:/packages/oxlint-plugin-naming",
     "postcss": "^8.5.30",
     "postcss-html": "^2.0.0",
     "stylelint": "^17.16.0",
+    "stylelint-config-avi12": "github:avi12/lint-config#v0.4.14&path:/packages/stylelint-config",
     "svelte": "5.57.2",
+    "svelte-check": "^4.7.6",
     "svelte-eslint-parser": "1.9.0",
     "tsx": "^4.23.15",
     "typescript": "^6.0.3",
     "vite": "^8.3.4",
+    "vitest": "^5.0.4",
     "web-ext-run": "^0.2.4",
-    "wxt": "^0.21.4",
-    "avi12-lint": "github:avi12/lint-config#v0.4.14&path:/packages/avi12-lint",
-    "eslint-config-avi12": "github:avi12/lint-config#v0.4.14&path:/packages/eslint-config",
-    "fallow": "2.103.0",
-    "fallow-config-avi12": "github:avi12/lint-config#v0.4.14&path:/packages/fallow-config",
-    "oxfmt": "^0.78.0",
-    "oxfmt-config-avi12": "github:avi12/lint-config#v0.4.14&path:/packages/oxfmt-config",
-    "oxlint-config-avi12": "github:avi12/lint-config#v0.4.14&path:/packages/oxlint-config",
-    "oxlint-plugin-naming": "github:avi12/lint-config#v0.4.14&path:/packages/oxlint-plugin-naming",
-    "stylelint-config-avi12": "github:avi12/lint-config#v0.4.14&path:/packages/stylelint-config",
-    "svelte-check": "^4.7.6",
-    "@types/node": "^26.6.5",
-    "vitest": "^5.0.4"
+    "wxt": "^0.21.4"
   },
-  "dependencies": {
-    "@webext-core/messaging": "^4.0.0",
-    "zod": "^4.6.7"
-  }
+  "packageManager": "pnpm@11.10.0+sha512.0b7f8b98060031904c017e3a41eb187a16d40eeb829b95c4f8cb03681761fc4ab53dd219115b9b447f4dce1a05a214764461e7d3703392a9f32f9511ce8c86c8"
 }

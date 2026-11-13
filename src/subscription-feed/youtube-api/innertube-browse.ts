@@ -11,6 +11,8 @@ const SUBSCRIPTIONS_BROWSE_ID = "FEsubscriptions";
 export async function fetchSubscriptionsBrowse() {
   return postInnerTube({
     endpoint: InnerTubeEndpoint.Browse,
-    payload: { browseId: SUBSCRIPTIONS_BROWSE_ID }
+    payload: {
+      browseId: SUBSCRIPTIONS_BROWSE_ID
+    }
   });
 }

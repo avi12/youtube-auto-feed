@@ -28,21 +28,27 @@ export const channelVideoPlayerRendererSchema = z.looseObject({
 export const reelWatchEndpointSchema = z.looseObject({ videoId: z.string() });
 
 export const shortsOnTapSchema = z.looseObject({
-  innertubeCommand: z.looseObject({
-    reelWatchEndpoint: reelWatchEndpointSchema.optional()
-  }).optional()
+  innertubeCommand: z
+    .looseObject({
+      reelWatchEndpoint: reelWatchEndpointSchema.optional()
+    })
+    .optional()
 });
 
 export const richItemContentSchema = z.looseObject({
   videoRenderer: videoRendererSchema.optional(),
   gridVideoRenderer: videoRendererSchema.optional(),
-  richGridMediaRenderer: z.looseObject({
-    content: z.looseObject({ videoRenderer: videoRendererSchema.optional() }).optional()
-  }).optional(),
-  lockupViewModel: z.looseObject({
-    contentId: z.string().optional(),
-    videoId: z.string().optional()
-  }).optional(),
+  richGridMediaRenderer: z
+    .looseObject({
+      content: z.looseObject({ videoRenderer: videoRendererSchema.optional() }).optional()
+    })
+    .optional(),
+  lockupViewModel: z
+    .looseObject({
+      contentId: z.string().optional(),
+      videoId: z.string().optional()
+    })
+    .optional(),
   shortsLockupViewModel: z.looseObject({ onTap: shortsOnTapSchema.optional() }).optional()
 });
 
@@ -51,9 +57,7 @@ const richItemRendererSchema = z.looseObject({
   yssSemiSubscribed: z.boolean().optional()
 });
 
-export const richShelfContentsSchema = z.array(
-  z.looseObject({ richItemRenderer: richItemRendererSchema.optional() })
-);
+export const richShelfContentsSchema = z.array(z.looseObject({ richItemRenderer: richItemRendererSchema.optional() }));
 
 const shelfItemsSchema = z.array(richItemContentSchema);
 
@@ -74,17 +78,25 @@ export const shelfRendererInnerSchema = z.looseObject({
 
 const richGridItemSchema = z.looseObject({
   richItemRenderer: richItemRendererSchema.optional(),
-  richSectionRenderer: z.looseObject({
-    content: z.looseObject({
-      richShelfRenderer: richShelfRendererInnerSchema.optional(),
-      shelfRenderer: shelfRendererInnerSchema.optional()
-    }).optional()
-  }).optional(),
-  continuationItemRenderer: z.looseObject({
-    continuationEndpoint: z.looseObject({
-      continuationCommand: z.looseObject({ token: z.string().optional() }).optional()
-    }).optional()
-  }).optional()
+  richSectionRenderer: z
+    .looseObject({
+      content: z
+        .looseObject({
+          richShelfRenderer: richShelfRendererInnerSchema.optional(),
+          shelfRenderer: shelfRendererInnerSchema.optional()
+        })
+        .optional()
+    })
+    .optional(),
+  continuationItemRenderer: z
+    .looseObject({
+      continuationEndpoint: z
+        .looseObject({
+          continuationCommand: z.looseObject({ token: z.string().optional() }).optional()
+        })
+        .optional()
+    })
+    .optional()
 });
 
 export const richGridContentsSchema = z.array(richGridItemSchema);

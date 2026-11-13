@@ -35,13 +35,14 @@ export function applyRichItemContentUpdate({
 
   const existingLockup = existing?.lockupViewModel;
   if (isLockupViewModel(rawRenderer) || existingLockup !== undefined) {
-    const merged = isLockupViewModel(rawRenderer) && isLockupViewModel(existingLockup)
-      ? mergeLockupViewModel({
-        existing: existingLockup,
-        incoming: rawRenderer,
-        forcePreserveContentImage
-      })
-      : rawRenderer;
+    const merged =
+      isLockupViewModel(rawRenderer) && isLockupViewModel(existingLockup)
+        ? mergeLockupViewModel({
+            existing: existingLockup,
+            incoming: rawRenderer,
+            forcePreserveContentImage
+          })
+        : rawRenderer;
     elElement.set(`${basePath}.lockupViewModel`, merged);
     return;
   }
@@ -54,7 +55,8 @@ export function applyRichItemContentUpdate({
   const existingGridVideoRenderer = existing?.gridVideoRenderer;
   if (existingGridVideoRenderer) {
     elElement.set(
-      `${basePath}.gridVideoRenderer`, buildMergedVideoRenderer({
+      `${basePath}.gridVideoRenderer`,
+      buildMergedVideoRenderer({
         existing: existingGridVideoRenderer,
         incoming: rawRenderer,
         forcePreserveContentImage
@@ -64,7 +66,8 @@ export function applyRichItemContentUpdate({
   }
 
   elElement.set(
-    `${basePath}.videoRenderer`, buildMergedVideoRenderer({
+    `${basePath}.videoRenderer`,
+    buildMergedVideoRenderer({
       existing: existing?.videoRenderer ?? null,
       incoming: rawRenderer,
       forcePreserveContentImage

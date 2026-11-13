@@ -1,20 +1,14 @@
 // Expands named types into their object shape in IDE hover tooltips.
 type Primitive = null | undefined | string | number | boolean | symbol | bigint;
 type NonRecursiveType =
-        | Primitive
-        | void
-        | Date
-        | RegExp
-        | ((...args: never) => unknown)
-        | (new (...args: never) => unknown)
-        | Promise<unknown>;
-type SkipPrettify =
-        | NonRecursiveType
-        | ArrayBuffer
-        | ArrayBufferView
-        | Blob
-        | File
-        | EventTarget;
+  | Primitive
+  | void
+  | Date
+  | RegExp
+  | ((...args: never) => unknown)
+  | (new (...args: never) => unknown)
+  | Promise<unknown>;
+type SkipPrettify = NonRecursiveType | ArrayBuffer | ArrayBufferView | Blob | File | EventTarget;
 
 export type Prettify<T> = T extends SkipPrettify
   ? T

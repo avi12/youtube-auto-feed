@@ -33,9 +33,7 @@ function ownGlides(elGlider: Element) {
   return document.getAnimations().filter(animation => {
     const { effect } = animation;
     const target = effect && "target" in effect ? effect.target : null;
-    return target === elGlider
-      && "transitionProperty" in animation
-      && animation.transitionProperty === GLIDE_PROPERTY;
+    return target === elGlider && "transitionProperty" in animation && animation.transitionProperty === GLIDE_PROPERTY;
   });
 }
 
@@ -46,7 +44,10 @@ export function isInGlide(elGlider: HTMLElement) {
 // Settles to whether the glide reached its end; a newer pin cancels it.
 export async function waitForGlide(elGlider: Element) {
   const glides = ownGlides(elGlider);
-  return Promise.all(glides.map(glide => glide.finished)).then(() => true, () => false);
+  return Promise.all(glides.map(glide => glide.finished)).then(
+    () => true,
+    () => false
+  );
 }
 
 const latestGlides = new WeakMap<HTMLElement, symbol>();

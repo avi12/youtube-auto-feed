@@ -93,7 +93,10 @@ export function createLifecycleHandlers(context: MonitorContext) {
     }
 
     context.clearPolling();
-    context.fetchFreshVideos().finally(() => context.restartPolling()).catch(() => {});
+    context
+      .fetchFreshVideos()
+      .finally(() => context.restartPolling())
+      .catch(() => {});
   }
 
   return {

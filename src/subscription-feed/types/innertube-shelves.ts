@@ -13,26 +13,26 @@ export interface InnerTubeRichItemContent {
 }
 
 export interface InnerTubeRichShelfRenderer {
-  title: { runs: Array<{ text: string }> };
-  contents: Array<{
+  title: { runs: { text: string }[] };
+  contents: {
     richItemRenderer?: { content: InnerTubeRichItemContent };
-  }>;
+  }[];
 }
 
 export interface InnerTubeShelfRenderer {
-  title: { runs: Array<{ text: string }> };
+  title: { runs: { text: string }[] };
   content: {
     horizontalListRenderer?: {
-      items: Array<{
+      items: {
         videoRenderer?: InnerTubeVideoRenderer;
         gridVideoRenderer?: InnerTubeVideoRenderer;
-      }>;
+      }[];
     };
     gridRenderer?: {
-      items: Array<{
+      items: {
         videoRenderer?: InnerTubeVideoRenderer;
         gridVideoRenderer?: InnerTubeVideoRenderer;
-      }>;
+      }[];
     };
   };
 }
@@ -80,7 +80,7 @@ export interface InnerTubeRichGridItem {
 export interface InnerTubeBrowseResponse {
   contents: {
     twoColumnBrowseResultsRenderer: {
-      tabs: Array<{
+      tabs: {
         tabRenderer: {
           content: {
             richGridRenderer?: {
@@ -88,12 +88,14 @@ export interface InnerTubeBrowseResponse {
               // Set by YouTube Semi-Subscribe: the videos it hides, left out of the contents
               yssHiddenVideoIds?: string[];
             };
-            sectionListRenderer?: { contents: Array<{
-              itemSectionRenderer?: { contents: Array<{ shelfRenderer?: InnerTubeShelfRenderer }> };
-            }>; };
+            sectionListRenderer?: {
+              contents: {
+                itemSectionRenderer?: { contents: Array<{ shelfRenderer?: InnerTubeShelfRenderer }> };
+              }[];
+            };
           };
         };
-      }>;
+      }[];
     };
   };
 }

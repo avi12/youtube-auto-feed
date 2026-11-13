@@ -95,8 +95,7 @@ export function healedThumbnailUrl(url: string) {
 }
 
 function isPlaceholderDecode(elImg: HTMLImageElement) {
-  return elImg.naturalWidth === PLACEHOLDER_THUMBNAIL_WIDTH
-    && elImg.naturalHeight === PLACEHOLDER_THUMBNAIL_HEIGHT;
+  return elImg.naturalWidth === PLACEHOLDER_THUMBNAIL_WIDTH && elImg.naturalHeight === PLACEHOLDER_THUMBNAIL_HEIGHT;
 }
 
 function healFailedThumbnail(e: Event) {

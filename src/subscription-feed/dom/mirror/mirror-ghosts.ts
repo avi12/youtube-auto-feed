@@ -1,13 +1,12 @@
 import { SURVIVOR_GLIDE_EASING, SURVIVOR_SHIFT_MS } from "./mirror-constants";
-import { REMOVAL_GHOST_ATTR, positionRemovalGhost } from "./mirror-ghost-position";
+import { positionRemovalGhost, REMOVAL_GHOST_ATTR } from "./mirror-ghost-position";
 import { paintGhostThumbnailBackground, thumbnailGhost } from "./mirror-ghost-thumbnails";
 
 // A leaving tile's node is reused by Polymer the instant the shorter contents are written, so instead
 // of animating it out we clone a fixed-position snapshot ("ghost") that survives the write and dissolves
 // in place. Cloning the view-model keeps thumbnail and metadata together; a legacy renderer that can't
 // be cloned falls back to a thumbnail-only ghost.
-const GHOST_CLONEABLE_SELECTOR =
-  "yt-lockup-view-model, ytm-shorts-lockup-view-model-v2, ytm-shorts-lockup-view-model";
+const GHOST_CLONEABLE_SELECTOR = "yt-lockup-view-model, ytm-shorts-lockup-view-model-v2, ytm-shorts-lockup-view-model";
 
 export function createRemovalGhosts(elRemovedTiles: HTMLElement[]) {
   const ghosts: HTMLElement[] = [];

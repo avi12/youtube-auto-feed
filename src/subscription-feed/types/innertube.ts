@@ -32,10 +32,7 @@ export type {
   WatchNextFeedItem
 } from "./innertube-watch";
 
-export type {
-  InnerTubeGuideChannelEntry,
-  InnerTubeGuideResponse
-} from "./innertube-guide";
+export type { InnerTubeGuideChannelEntry, InnerTubeGuideResponse } from "./innertube-guide";
 
 export type {
   InnerTubeBrowseResponse,

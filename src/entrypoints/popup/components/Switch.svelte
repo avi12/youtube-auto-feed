@@ -37,7 +37,7 @@
     inset: 0;
     border-radius: inherit;
     background: var(--md-on-surface);
-    opacity: 0%;
+    opacity: 0;
     pointer-events: none;
     transition: opacity var(--ytaf-dur-state) var(--md-ease-standard);
   }

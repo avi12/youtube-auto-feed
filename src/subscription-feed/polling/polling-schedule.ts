@@ -47,7 +47,10 @@ export function createScheduleHandlers(context: MonitorContext) {
     }
 
     clearPolling();
-    context.fetchFreshVideos().finally(() => restartPolling()).catch(() => {});
+    context
+      .fetchFreshVideos()
+      .finally(() => restartPolling())
+      .catch(() => {});
   }
 
   function pausePolling() {
