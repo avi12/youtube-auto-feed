@@ -1,3 +1,4 @@
+import { toHex } from "@/shared/hex";
 import { isInViewport } from "@/subscription-feed/dom/animations";
 import { GRID_ITEM_SELECTOR, type RichItemElement } from "@/subscription-feed/dom/mirror/mirror-constants";
 import { thumbnailUrlFromContent } from "@/subscription-feed/dom/rich-item";
@@ -38,7 +39,7 @@ async function hashBytes(buffer: ArrayBuffer) {
     return null;
   }
 
-  return [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, "0")).join("");
+  return toHex(digest);
 }
 
 type SwapToBytesParams = Prettify<{

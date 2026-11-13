@@ -126,7 +126,8 @@ async function applyRelatedTileUpdate({ elLockup, lockup, previous, fresh, incom
     freshStatus: fresh.status
   };
   const isThumbnailQueryRotated = isThumbnailUrlRotated(thumbnailUrls);
-  const elImg = isThumbnailChanged(thumbnailUrls) || isThumbnailQueryRotated ? findThumbnailImg(elLockup) : null;
+  const isThumbnailChanging = isThumbnailChanged(thumbnailUrls);
+  const elImg = isThumbnailChanging || isThumbnailQueryRotated ? findThumbnailImg(elLockup) : null;
   const isThumbnailSwapping =
     !!elImg &&
     (await crossfadeChangedThumbnail({
@@ -182,8 +183,11 @@ export async function applyRelatedUpdates(freshSnapshots: Prettify<VideoSnapshot
         previous,
         fresh
       });
+    if (!isUpdatable) {
+      continue;
+    }
+
     if (
-      !isUpdatable ||
       isSwapHeldOffByHover({
         elItem: tile.elLockup,
         fresh,

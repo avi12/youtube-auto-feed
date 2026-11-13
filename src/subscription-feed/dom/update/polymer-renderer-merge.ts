@@ -37,8 +37,9 @@ export function applyRichItemContentUpdate({
   const existingLockup = existing?.lockupViewModel;
   const hasLockupSource = isLockupViewModel(rawRenderer) || existingLockup !== undefined;
   if (hasLockupSource) {
+    const isMergeable = isLockupViewModel(rawRenderer) && isLockupViewModel(existingLockup);
     const merged =
-      isLockupViewModel(rawRenderer) && isLockupViewModel(existingLockup)
+      isMergeable
         ? mergeLockupViewModel({
             existing: existingLockup,
             incoming: rawRenderer,

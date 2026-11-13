@@ -88,9 +88,7 @@ export function collectAllVideoSnapshots(data: unknown) {
       add(parseChannelVideoPlayer(channelVideoPlayerRenderer));
     }
 
-    for (const key in node) {
-      stack.push(node[key]);
-    }
+    stack.push(...Object.values(node));
   }
 
   return snapshots;

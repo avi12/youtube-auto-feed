@@ -60,10 +60,11 @@ function imageSourceArea({ width = 0, height = 0 }: Prettify<ImageSource>) {
 // `thumbnailViewModel.thumbnailViewModel.image.sources`. YouTube paints the largest source.
 export function thumbnailUrlFromShortsLockup({ thumbnail, thumbnailViewModel }: Prettify<ShortsLockupViewModel>) {
   const sources = thumbnail?.sources ?? thumbnailViewModel?.thumbnailViewModel?.image?.sources ?? [];
-  const largest = sources.reduce<Prettify<ImageSource> | null>(
-    (best, source) => (best !== null && imageSourceArea(best) > imageSourceArea(source) ? best : source),
-    null
-  );
+  let largest: Prettify<ImageSource> | null = null;
+  for (const source of sources) {
+    const isBestLarger = largest !== null && imageSourceArea(largest) > imageSourceArea(source);
+    largest = isBestLarger ? largest : source;
+  }
   return largest?.url ?? "";
 }
 

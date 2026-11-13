@@ -97,10 +97,13 @@ function refreshedDetail({ text, shownVersions, fresh }: RefreshedDetailParams) 
     [shown.viewCountText, fresh.viewCountText],
     [shown.publishedTimeText, fresh.publishedTimeText]
   ] as const;
-  return parts.reduce((refreshed, [shownPart, freshPart]) => {
+  let refreshed = text;
+  for (const [shownPart, freshPart] of parts) {
     const isPartRefreshable = isPartShown(refreshed, shownPart) && freshPart !== "";
-    return isPartRefreshable ? refreshed.replace(shownPart, freshPart) : refreshed;
-  }, text);
+    refreshed = isPartRefreshable ? refreshed.replace(shownPart, freshPart) : refreshed;
+  }
+
+  return refreshed;
 }
 
 function pathOf(url: string) {
@@ -196,7 +199,12 @@ export async function refreshEndScreenPictures(isRecheckDue: boolean) {
 
   const elImages = readEndScreenTiles().flatMap(({ elTile, layout }) => {
     const elImage = elTile.querySelector<HTMLElement>(layout.imageSelector);
-    return elImage?.checkVisibility() && !checkedPictures.has(elImage) ? [elImage] : [];
+    if (!elImage) {
+      return [];
+    }
+
+    const isUnchecked = elImage.checkVisibility() && !checkedPictures.has(elImage);
+    return isUnchecked ? [elImage] : [];
   });
   for (const elImage of elImages) {
     checkedPictures.add(elImage);

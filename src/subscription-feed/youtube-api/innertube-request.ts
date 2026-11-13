@@ -5,6 +5,7 @@
 // channels - rather than failing outright. The marker header keeps the fetch interceptor from
 // mirroring these calls back to the monitor as if YouTube had made them.
 
+import { toHex } from "@/shared/hex";
 import { OWN_REQUEST_MARKER_HEADER } from "@/shared/own-request";
 import type { Prettify } from "@/subscription-feed/types/prettify";
 
@@ -36,10 +37,6 @@ function readApisidCookie() {
     }
   }
   return null;
-}
-
-function toHex(buffer: ArrayBuffer) {
-  return [...new Uint8Array(buffer)].map(byte => byte.toString(16).padStart(2, "0")).join("");
 }
 
 // The signature is SHA-1 over "<seconds> <APISID> <origin>", sent under both the first- and
