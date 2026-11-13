@@ -1,0 +1,74 @@
+/**
+ * Validates the decode-gate mechanism (awaitNewThumbnailsReady): a COLD thumbnail URL must make the
+ * gate wait frames until it decodes; a CACHED URL must pass ~instantly. Mirrors the production logic.
+ */
+import net from "net";
+
+const FF_PORT = parseInt(process.argv[2] ?? "56517", 10);
+
+const js = `
+(async () => {
+  const img0 = document.querySelector('ytd-rich-grid-renderer img[src*="i.ytimg.com"], ytd-rich-grid-renderer img[src*="ggpht"], ytd-rich-grid-renderer img');
+  const baseUrl = [...document.querySelectorAll('ytd-rich-grid-renderer img')].map(i => i.src).find(s => s && s.includes('ytimg.com'));
+  if (!baseUrl) { window.__r = JSON.stringify({ error: 'no thumbnail url found' }); return; }
+
+  const nextFrame = () => new Promise(r => requestAnimationFrame(() => r()));
+  const CAP = 180;
+
+  async function gate(urls) {
+    let ready = false, frames = 0;
+    Promise.all(urls.map(u => { const img = new Image(); img.src = u; return img.decode().catch(() => {}); })).then(() => { ready = true; });
+    for (; frames < CAP && !ready; frames++) await nextFrame();
+    return frames;
+  }
+
+  // Cold: cache-bust the real thumbnail so the browser must fetch it.
+  const coldUrl = baseUrl + (baseUrl.includes('?') ? '&' : '?') + 'ytafcold=' + Math.floor(performance.now()) + Math.random().toString(36).slice(2);
+  const coldFrames = await gate([coldUrl]);
+  // Confirm the cold image is now decoded/cached.
+  const probeImg = new Image(); probeImg.src = coldUrl;
+  await probeImg.decode().catch(() => {});
+  const coldDecoded = probeImg.naturalWidth > 0;
+
+  // Cached: the same URL we just warmed should now pass instantly.
+  const cachedFrames = await gate([coldUrl]);
+
+  // Also: a URL already in the live feed (warm) should pass instantly.
+  const warmFrames = await gate([baseUrl]);
+
+  window.__r = JSON.stringify({
+    coldFramesWaited: coldFrames, coldDecoded,
+    cachedFramesWaited: cachedFrames, warmFramesWaited: warmFrames,
+    interpretation: coldFrames > cachedFrames && coldDecoded ? 'GATE WORKS: cold waits + decodes, cached instant' : 'CHECK'
+  });
+})();
+"ok"
+`;
+
+const result = await evalDirectAsync(FF_PORT, js);
+console.log(JSON.stringify(result, null, 2));
+
+function evalDirectAsync(port, code) {
+  return new Promise((resolve, reject) => {
+    const socket = net.createConnection({ port, host: "127.0.0.1" });
+    let rawBuf = Buffer.alloc(0);
+    let consoleActor = null, phase = "init";
+    function send(obj) { const j = JSON.stringify(obj); const b = Buffer.from(j); socket.write(`${b.byteLength}:${j}`); }
+    function rp() { const p = []; while (true) { const s = rawBuf.toString("utf8"), c = s.indexOf(":"); if (c === -1) break; const len = parseInt(s.slice(0, c), 10); if (isNaN(len)) { rawBuf = Buffer.from(s.slice(c + 1)); continue; } const body = Buffer.from(s.slice(c + 1)); if (body.byteLength < len) break; rawBuf = body.slice(len); try { p.push(JSON.parse(body.slice(0, len).toString())); } catch (_) {} } return p; }
+    function xs(r) { if (typeof r === "string" && r && r !== "ok") return r; if (r?.value && typeof r.value === "string" && r.value !== "ok") return r.value; return null; }
+    function poll() { send({ to: consoleActor, type: "evaluateJSAsync", text: "window.__r || ''" }); }
+    function handle(pkt) {
+      if (pkt.error) { socket.destroy(); reject(new Error(pkt.error)); return; }
+      if (phase === "init" && pkt.applicationType) { phase = "listing"; send({ to: "root", type: "listTabs" }); return; }
+      if (phase === "listing" && pkt.tabs) { phase = "targeting"; const t = pkt.tabs.find(t => t.url?.includes("youtube.com/feed/subscriptions")) ?? pkt.tabs[0]; send({ to: t.actor, type: "getTarget" }); return; }
+      if (phase === "targeting" && pkt.frame?.consoleActor) { phase = "running"; consoleActor = pkt.frame.consoleActor; send({ to: consoleActor, type: "evaluateJSAsync", text: `window.__r = undefined; ${code}` }); return; }
+      if (pkt.type === "evaluationResult") {
+        if (phase === "running") { phase = "polling"; setTimeout(poll, 200); return; }
+        if (phase === "polling") { const raw = xs(pkt.result); if (raw) { socket.destroy(); try { resolve(JSON.parse(raw)); } catch (_) { resolve(raw); } } else setTimeout(poll, 150); }
+      }
+    }
+    socket.on("data", chunk => { rawBuf = Buffer.concat([rawBuf, chunk]); for (const p of rp()) handle(p); });
+    socket.on("error", reject);
+    setTimeout(() => { socket.destroy(); reject(new Error("Timeout")); }, 30000);
+  });
+}
