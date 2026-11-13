@@ -117,3 +117,8 @@ export function preloadSnapshotThumbnails(snapshots: VideoSnapshot[]) {
     img.src = thumbnailUrl;
   }
 }
+
+export interface HandlerDeps {
+  state: MonitorState;
+  getContext: () => MonitorContext;
+}

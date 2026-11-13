@@ -14,15 +14,18 @@ import { createMonitorState, type MonitorContext } from "./polling-state";
 import { createVideoPageHandlers } from "./polling-video";
 
 export function createSubscriptionMonitor() {
-  const context = { state: createMonitorState() } as MonitorContext;
-
-  Object.assign(context, createApplyHandlers(context));
-  Object.assign(context, createFetchHandlers(context));
-  Object.assign(context, createScheduleHandlers(context));
-  Object.assign(context, createBaselineHandlers(context));
-  Object.assign(context, createGenericPageHandlers(context));
-  Object.assign(context, createVideoPageHandlers(context));
-  Object.assign(context, createLifecycleHandlers(context));
+  const state = createMonitorState();
+  const deps = { state, getContext: () => context };
+  const context: MonitorContext = {
+    state,
+    ...createApplyHandlers(deps),
+    ...createFetchHandlers(deps),
+    ...createScheduleHandlers(deps),
+    ...createBaselineHandlers(deps),
+    ...createGenericPageHandlers(deps),
+    ...createVideoPageHandlers(deps),
+    ...createLifecycleHandlers(deps)
+  };
   startThumbnailHealer();
   startNewBadgeDismissal();
   startOpenMenuTracking();

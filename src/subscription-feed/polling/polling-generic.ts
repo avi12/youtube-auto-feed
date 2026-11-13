@@ -1,17 +1,16 @@
 import { isGenericContentReady } from "@/subscription-feed/readiness";
 
-import { METADATA_POLL_INTERVAL_MS, type MonitorContext } from "./polling-state";
+import { METADATA_POLL_INTERVAL_MS, type HandlerDeps } from "./polling-state";
 
 // Light monitor for every non-subscription page: just the 10s metadata reconcile + thumbnail watch
 // and visibility pause - no 5s feed poll, mirror, band layout, or orphan cleanup.
-export function createGenericPageHandlers(context: MonitorContext) {
-  const { state } = context;
+export function createGenericPageHandlers({ state, getContext }: HandlerDeps) {
 
   function startLightMonitoring() {
-    document.addEventListener("visibilitychange", context.handlePageFocus);
-    context.fetchAndApplyGenericMetadata().catch(() => {});
+    document.addEventListener("visibilitychange", getContext().handlePageFocus);
+    getContext().fetchAndApplyGenericMetadata().catch(() => {});
     state.metadataPollingTimer = setInterval(() => {
-      context.fetchAndApplyGenericMetadata().catch(() => {});
+      getContext().fetchAndApplyGenericMetadata().catch(() => {});
     }, METADATA_POLL_INTERVAL_MS);
   }
 

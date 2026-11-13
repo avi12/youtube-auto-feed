@@ -1,9 +1,8 @@
 import { isOnSubscriptionsPage } from "@/subscription-feed/utils/subscriptions-page";
 
-import { INITIAL_POLL_DELAY_MS, type MonitorContext, POLL_INTERVAL_MS } from "./polling-state";
+import { INITIAL_POLL_DELAY_MS, type HandlerDeps, POLL_INTERVAL_MS } from "./polling-state";
 
-export function createScheduleHandlers(context: MonitorContext) {
-  const { state } = context;
+export function createScheduleHandlers({ state, getContext }: HandlerDeps) {
 
   function clearPolling() {
     if (state.pollingDelayTimer !== null) {
@@ -22,9 +21,9 @@ export function createScheduleHandlers(context: MonitorContext) {
     // Wait out the initial delay, then poll the full feed every 5s.
     state.pollingDelayTimer = setTimeout(() => {
       state.pollingDelayTimer = null;
-      context.fetchFreshVideos().catch(() => {});
+      getContext().fetchFreshVideos().catch(() => {});
       state.pollingTimer = setInterval(() => {
-        context.fetchFreshVideos().catch(() => {});
+        getContext().fetchFreshVideos().catch(() => {});
       }, POLL_INTERVAL_MS);
     }, INITIAL_POLL_DELAY_MS);
   }
@@ -48,7 +47,7 @@ export function createScheduleHandlers(context: MonitorContext) {
     }
 
     clearPolling();
-    context
+    getContext()
       .fetchFreshVideos()
       .finally(() => restartPolling())
       .catch(() => {});

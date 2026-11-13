@@ -23,13 +23,5 @@
     "tmp/**",
     "screenshots/**",
     "patches/**"
-  ],
-  "overrides": [
-    {
-      "files": ["src/subscription-feed/polling/polling.ts"],
-      "rules": {
-        "typescript/consistent-type-assertions": "off"
-      }
-    }
   ]
 }

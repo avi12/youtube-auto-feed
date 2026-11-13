@@ -11,13 +11,12 @@ import {
 
 import {
   type ApplyChangesParams,
-  type MonitorContext,
+  type HandlerDeps,
   preloadSnapshotThumbnails,
   rebuildBaselineFromDom
 } from "./polling-state";
 
-export function createApplyHandlers(context: MonitorContext) {
-  const { state } = context;
+export function createApplyHandlers({ state, getContext }: HandlerDeps) {
 
   async function applyChanges({ payload, isInitialLoad = false }: ApplyChangesParams) {
     if (state.isApplyingChanges) {

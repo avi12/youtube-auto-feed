@@ -2,10 +2,9 @@ import { normalizeCollapsedShelfRows } from "@/subscription-feed/dom/band/band-l
 import { resetLazyUpdates } from "@/subscription-feed/dom/lazy/lazy-update";
 import { isDomContentReady } from "@/subscription-feed/readiness";
 
-import { type MonitorContext, PENDING_SNAPSHOT_STALE_MS, rebuildBaselineFromDom } from "./polling-state";
+import { type HandlerDeps, PENDING_SNAPSHOT_STALE_MS, rebuildBaselineFromDom } from "./polling-state";
 
-export function createBaselineHandlers(context: MonitorContext) {
-  const { state } = context;
+export function createBaselineHandlers({ state, getContext }: HandlerDeps) {
 
   async function applyDomBaseline() {
     state.isDomReady = true;
@@ -19,7 +18,7 @@ export function createBaselineHandlers(context: MonitorContext) {
     if (state.pendingApiSnapshots !== null) {
       const pending = state.pendingApiSnapshots;
       state.pendingApiSnapshots = null;
-      await context.applyChanges({
+      await getContext().applyChanges({
         payload: pending,
         isInitialLoad: false
       });

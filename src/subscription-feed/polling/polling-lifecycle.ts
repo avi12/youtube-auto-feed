@@ -3,20 +3,19 @@ import { cleanOrphanedGridItems } from "@/subscription-feed/dom/cleanup/orphan-c
 import { resetLazyUpdates } from "@/subscription-feed/dom/lazy/lazy-update";
 import { isOnSubscriptionsPage, isOnVideoPage } from "@/subscription-feed/utils/subscriptions-page";
 
-import { METADATA_POLL_INTERVAL_MS, type MonitorContext, ORPHAN_CLEANUP_INTERVAL_MS } from "./polling-state";
+import { METADATA_POLL_INTERVAL_MS, type HandlerDeps, ORPHAN_CLEANUP_INTERVAL_MS } from "./polling-state";
 
-export function createLifecycleHandlers(context: MonitorContext) {
-  const { state } = context;
+export function createLifecycleHandlers({ state, getContext }: HandlerDeps) {
 
   function startMonitoring() {
-    document.addEventListener("visibilitychange", context.handlePageFocus);
+    document.addEventListener("visibilitychange", getContext().handlePageFocus);
     state.cancelBroadcastListener = ytafChannel.onMessage({
       type: "subscription-change",
-      handler: context.handleSubscriptionChange
+      handler: getContext().handleSubscriptionChange
     });
-    context.restartPolling();
+    getContext().restartPolling();
     state.metadataPollingTimer = setInterval(() => {
-      context.fetchAndApplyMetadataUpdates().catch(() => {});
+      getContext().fetchAndApplyMetadataUpdates().catch(() => {});
     }, METADATA_POLL_INTERVAL_MS);
     state.orphanCleanupTimer = setInterval(() => {
       const isCleanableNow = state.isDomReady && !state.isApplyingChanges && state.isEnabled;
@@ -28,16 +27,16 @@ export function createLifecycleHandlers(context: MonitorContext) {
 
   function stopMonitoring() {
     if (state.monitorMode === "video") {
-      context.stopVideoMonitoring();
+      getContext().stopVideoMonitoring();
     }
 
     state.monitorMode = null;
     resetLazyUpdates();
-    document.removeEventListener("visibilitychange", context.handlePageFocus);
+    document.removeEventListener("visibilitychange", getContext().handlePageFocus);
     state.cancelBroadcastListener?.();
     state.cancelBroadcastListener = null;
 
-    context.clearPolling();
+    getContext().clearPolling();
 
     if (state.metadataPollingTimer !== null) {
       clearInterval(state.metadataPollingTimer);
@@ -60,7 +59,7 @@ export function createLifecycleHandlers(context: MonitorContext) {
 
     if (isOnSubscriptionsPage()) {
       state.monitorMode = "feed";
-      context.initializePage();
+      getContext().initializePage();
       startMonitoring();
       return;
     }
@@ -68,12 +67,12 @@ export function createLifecycleHandlers(context: MonitorContext) {
     // Refetching a watch page every poll gets the video soft-blocked for the session, so the light
     // updater stays off video pages; the opt-in video monitor reads them from InnerTube instead.
     if (isOnVideoPage()) {
-      context.initializeVideoPage();
+      getContext().initializeVideoPage();
       return;
     }
 
     state.monitorMode = "light";
-    context.initializeGenericPage();
+    getContext().initializeGenericPage();
   }
 
   function setEnabled(isNowEnabled: boolean) {
@@ -89,14 +88,14 @@ export function createLifecycleHandlers(context: MonitorContext) {
     }
 
     if (!state.isEnabled) {
-      context.clearPolling();
+      getContext().clearPolling();
       return;
     }
 
-    context.clearPolling();
-    context
+    getContext().clearPolling();
+    getContext()
       .fetchFreshVideos()
-      .finally(() => context.restartPolling())
+      .finally(() => getContext().restartPolling())
       .catch(() => {});
   }
 

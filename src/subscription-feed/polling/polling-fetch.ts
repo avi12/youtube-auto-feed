@@ -7,10 +7,9 @@ import { isOnSubscriptionsPage } from "@/subscription-feed/utils/subscriptions-p
 import { fetchInitialVideos, fetchPageVideos } from "@/subscription-feed/youtube-api/fetch";
 import { invalidateSubscriptionCache } from "@/subscription-feed/youtube-api/subscribed-channels";
 
-import { type MonitorContext, preloadSnapshotThumbnails } from "./polling-state";
+import { type HandlerDeps, preloadSnapshotThumbnails } from "./polling-state";
 
-export function createFetchHandlers(context: MonitorContext) {
-  const { state } = context;
+export function createFetchHandlers({ state, getContext }: HandlerDeps) {
 
   async function fetchFreshVideos(isInitialLoad = false) {
     const isPollEligible = isOnSubscriptionsPage() && state.isDomReady && state.isEnabled;
@@ -26,7 +25,7 @@ export function createFetchHandlers(context: MonitorContext) {
     preloadSnapshotThumbnails(result.snapshots);
 
     try {
-      const isLayoutChange = await context.applyChanges({
+      const isLayoutChange = await getContext().applyChanges({
         payload: result,
         isInitialLoad
       });
