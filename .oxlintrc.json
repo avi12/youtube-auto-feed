@@ -22,7 +22,6 @@
     "user-profiles/**",
     "tmp/**",
     "screenshots/**",
-    "scripts/**",
     "patches/**"
   ],
   "overrides": [
