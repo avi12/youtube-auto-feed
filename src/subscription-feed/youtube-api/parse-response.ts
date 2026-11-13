@@ -6,7 +6,7 @@ import { collectRichSectionSnapshots, collectSectionListSnapshots } from "./sect
 import { type AnyRendererParams, collectSnapshot } from "./snapshot-collect";
 
 // The mirror walks raw contents to keep richSectionRenderer wrapping that flat snapshots would lose.
-export function extractApiContents(data: Prettify<InnerTubeBrowseResponse>): Prettify<InnerTubeRichGridItem>[] {
+export function extractApiContents(data: Prettify<InnerTubeBrowseResponse>) {
   const tabContent = data.contents.twoColumnBrowseResultsRenderer?.tabs?.[0]?.tabRenderer?.content;
   return tabContent?.richGridRenderer?.contents ?? [];
 }

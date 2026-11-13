@@ -3,7 +3,7 @@ import { isInnerTubeBrowseResponse } from "./guards";
 import { fetchSubscriptionsBrowse } from "./innertube-browse";
 import { extractApiContents, extractApiSectionOrder, extractHiddenVideoIds, parseApiResponse } from "./parse-response";
 
-function parseInitialData(html: string): unknown {
+function parseInitialData(html: string) {
   const initialDataJson = /var ytInitialData = (.+?);<\/script>/s.exec(html)?.[1];
   if (!initialDataJson) {
     return null;

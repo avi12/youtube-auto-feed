@@ -26,7 +26,7 @@ function prefersReducedMotion() {
   return matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
-export function defaultSettings(): FeedSettings {
+export function defaultSettings() {
   return {
     isExtensionEnabled: true,
     isAnimationsEnabled: !prefersReducedMotion(),

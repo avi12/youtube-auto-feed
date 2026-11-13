@@ -14,7 +14,7 @@ export interface LockupTextElements {
   elMetadataParts: HTMLElement[];
 }
 
-export function collectLockupTextElements(elLockup: HTMLElement): Prettify<LockupTextElements> {
+export function collectLockupTextElements(elLockup: HTMLElement) {
   const elTitle = elLockup.querySelector<HTMLElement>(TITLE_SELECTOR_LOCKUP);
   const elHeading = elLockup.querySelector<HTMLElement>(TITLE_HEADING_SELECTOR_LOCKUP);
   const elTitleLink = elLockup.querySelector<HTMLAnchorElement>(TITLE_LINK_SELECTOR_LOCKUP);

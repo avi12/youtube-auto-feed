@@ -52,7 +52,7 @@ interface HealableThumbnail {
   fallbackUrl: string;
 }
 
-function healableThumbnailFrom(src: string): HealableThumbnail | null {
+function healableThumbnailFrom(src: string) {
   const match = THUMBNAIL_URL_PATTERN.exec(src);
   const videoId = match?.[1];
   const file = match?.[2];

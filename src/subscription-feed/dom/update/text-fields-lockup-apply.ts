@@ -61,9 +61,12 @@ function pairMetadataParts({ refs, fresh }: Prettify<LockupTextChange>) {
 }
 
 // A part's text sits in its innermost element; a channel byline nests it in a link that must survive.
-function innermostElement(elNode: Element): Element {
-  const elOnlyChild = elNode.childElementCount === 1 ? elNode.firstElementChild : null;
-  return elOnlyChild ? innermostElement(elOnlyChild) : elNode;
+function innermostElement(elNode: Element) {
+  let elInnermost = elNode;
+  while (elInnermost.childElementCount === 1 && elInnermost.firstElementChild) {
+    elInnermost = elInnermost.firstElementChild;
+  }
+  return elInnermost;
 }
 
 export function applyLockupTextChanges({ refs, fresh }: Prettify<LockupTextChange>) {

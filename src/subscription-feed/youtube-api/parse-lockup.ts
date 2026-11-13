@@ -6,7 +6,7 @@ import { videoIdFromLockup } from "@/subscription-feed/utils/video-id";
 import { statusFromLockup } from "./guards";
 import type { ParseVideoParams } from "./parse-video-params";
 
-function watchProgressFromLockup(lockup: Prettify<LockupViewModel>): number | null {
+function watchProgressFromLockup(lockup: Prettify<LockupViewModel>) {
   for (const overlay of lockup.contentImage?.thumbnailViewModel?.overlays ?? []) {
     const progress = overlay.thumbnailBottomOverlayViewModel?.progressBar?.thumbnailOverlayProgressBarViewModel;
     if (typeof progress?.startPercent === "number") {

@@ -40,7 +40,7 @@ const NEW_BADGE_LIFETIME_MS = 10 * 60 * 1000;
 export const badgeExpiryByVideoId = new Map<string, number>();
 export const seenVideoIds = new Set<string>();
 
-function newBadgeOverlay(): LockupThumbnailOverlay {
+function newBadgeOverlay() {
   const text = newBadgeText();
   return {
     thumbnailOverlayBadgeViewModel: {

@@ -45,7 +45,7 @@ export interface MonitorState {
   lastThumbnailWatchTime: number;
 }
 
-export function createMonitorState(): MonitorState {
+export function createMonitorState() {
   return {
     lastSnapshot: new Map(),
     monitorMode: null,
