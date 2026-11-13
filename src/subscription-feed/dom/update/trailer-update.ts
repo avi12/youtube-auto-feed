@@ -26,9 +26,18 @@ export function applyTrailerUpdate({ elTrailer, fresh }: ApplyTrailerUpdateParam
       changed.push(elNode);
     }
   }
-  noteChange({ elNode: elTitle, text: fresh.title });
-  noteChange({ elNode: elViews, text: fresh.viewCountText });
-  noteChange({ elNode: elPublished, text: fresh.publishedTimeText });
+  noteChange({
+    elNode: elTitle,
+    text: fresh.title
+  });
+  noteChange({
+    elNode: elViews,
+    text: fresh.viewCountText
+  });
+  noteChange({
+    elNode: elPublished,
+    text: fresh.publishedTimeText
+  });
 
   if (changed.length === 0) {
     return;

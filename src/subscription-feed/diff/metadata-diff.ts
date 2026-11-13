@@ -4,7 +4,13 @@ import { batchUpdateVideosInDom, reconcileShortsMetadata } from "@/subscription-
 import type { Prettify } from "@/subscription-feed/types/prettify";
 import type { MetadataPart, VideoSnapshot } from "@/subscription-feed/types/video";
 
-function isMetadataPartsChanged({ previousParts, freshParts }: { previousParts: MetadataPart[]; freshParts: MetadataPart[] }) {
+function isMetadataPartsChanged({
+  previousParts,
+  freshParts
+}: {
+  previousParts: MetadataPart[];
+  freshParts: MetadataPart[];
+}) {
   return (
     previousParts.length !== freshParts.length ||
     freshParts.some(
@@ -35,7 +41,10 @@ export function hasMetadataChange({ previous, fresh }: HasMetadataChangeParams) 
     previous.status !== fresh.status ||
     previous.viewCountText !== fresh.viewCountText ||
     previous.publishedTimeText !== fresh.publishedTimeText ||
-    isMetadataPartsChanged({ previousParts: previous.metadataParts, freshParts: fresh.metadataParts }) ||
+    isMetadataPartsChanged({
+      previousParts: previous.metadataParts,
+      freshParts: fresh.metadataParts
+    }) ||
     previous.isChannelLive !== fresh.isChannelLive ||
     previous.watchProgressPercent !== fresh.watchProgressPercent
   );

@@ -18,8 +18,20 @@ export function longestCommonSubsequence({ leftIds, rightIds }: LongestCommonSub
     for (let iRight = rightCount - 1; iRight >= 0; iRight--) {
       suffixRow[iRight] =
         leftIds[iLeft] === rightIds[iRight]
-          ? suffixLengthAt({ iLeft: iLeft + 1, iRight: iRight + 1 }) + 1
-          : Math.max(suffixLengthAt({ iLeft: iLeft + 1, iRight: iRight }), suffixLengthAt({ iLeft: iLeft, iRight: iRight + 1 }));
+          ? suffixLengthAt({
+              iLeft: iLeft + 1,
+              iRight: iRight + 1
+            }) + 1
+          : Math.max(
+              suffixLengthAt({
+                iLeft: iLeft + 1,
+                iRight
+              }),
+              suffixLengthAt({
+                iLeft,
+                iRight: iRight + 1
+              })
+            );
     }
   }
 
@@ -32,7 +44,16 @@ export function longestCommonSubsequence({ leftIds, rightIds }: LongestCommonSub
       sequence.push(leftId);
       iLeft++;
       iRight++;
-    } else if (suffixLengthAt({ iLeft: iLeft + 1, iRight: iRight }) >= suffixLengthAt({ iLeft: iLeft, iRight: iRight + 1 })) {
+    } else if (
+      suffixLengthAt({
+        iLeft: iLeft + 1,
+        iRight
+      }) >=
+      suffixLengthAt({
+        iLeft,
+        iRight: iRight + 1
+      })
+    ) {
       iLeft++;
     } else {
       iRight++;

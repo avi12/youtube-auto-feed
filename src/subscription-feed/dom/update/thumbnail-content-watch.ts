@@ -68,8 +68,11 @@ async function swapToBytes({ elImg, buffer, url }: SwapToBytesParams) {
 // fresh bytes with themselves. An uncached copy counts as changed - crossfading into an identical picture
 // is visually a no-op, while missing a real change leaves the picture stale.
 export async function fetchChangedThumbnailBytes(url: string) {
-  const paintedBuffer = await fetchThumbnailBytes({ url: url });
-  const freshBuffer = await fetchThumbnailBytes({ url: url, isForcedReload: true });
+  const paintedBuffer = await fetchThumbnailBytes({ url });
+  const freshBuffer = await fetchThumbnailBytes({
+    url,
+    isForcedReload: true
+  });
   if (!freshBuffer) {
     return null;
   }
@@ -174,7 +177,10 @@ async function decodedWidth(buffer: ArrayBuffer) {
 }
 
 async function healPlaceholderThumbnail({ elImg, url }: VisibleThumbnail) {
-  const buffer = await fetchThumbnailBytes({ url: url, isForcedReload: true });
+  const buffer = await fetchThumbnailBytes({
+    url,
+    isForcedReload: true
+  });
   // The URL stopped serving rather than still being processed, so no amount of re-fetching will grow
   // this picture: fall back to the standard path and stop asking for the dead one.
   if (!buffer) {
@@ -205,7 +211,7 @@ export async function reconcileVisibleThumbnails({ contentHashes }: ReconcileVis
     }
 
     const { elImg, url } = visible;
-    const buffer = await fetchThumbnailBytes({ url: url });
+    const buffer = await fetchThumbnailBytes({ url });
     const hash = buffer && (await hashBytes(buffer));
     if (!buffer || !hash) {
       continue;

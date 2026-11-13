@@ -112,7 +112,10 @@ export default defineConfig({
       // store reviewer can reproduce the build from this zip.
       const buildInstructions = buildInstructionsFor(browser);
       if (buildInstructions) {
-        await injectBuildInstructions({ zipPath: sourcesZipPath, content: buildInstructions });
+        await injectBuildInstructions({
+          zipPath: sourcesZipPath,
+          content: buildInstructions
+        });
       }
     }
   },

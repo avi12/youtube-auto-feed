@@ -40,21 +40,33 @@ function matchingShelfEntries({ shelfData, videoId }: { shelfData: PolymerElemen
         videoId
       });
       if (rendererKey) {
-        entries.push({ listKey, iItem, item, rendererKey });
+        entries.push({
+          listKey,
+          iItem,
+          item,
+          rendererKey
+        });
       }
     }
   }
   return entries;
 }
 
-export function applyToLegacyShelfModels({ videoId, rawRenderer, isContentImagePreserveForced }: ApplyToContainerParams) {
+export function applyToLegacyShelfModels({
+  videoId,
+  rawRenderer,
+  isContentImagePreserveForced
+}: ApplyToContainerParams) {
   for (const elShelf of document.querySelectorAll<PolymerElement>("ytd-shelf-renderer")) {
     const isLegacyShelfUsable = richShelfDataSchema.safeParse(elShelf.data).success;
     if (!isLegacyShelfUsable) {
       continue;
     }
 
-    for (const { listKey, iItem, item, rendererKey } of matchingShelfEntries({ shelfData: elShelf.data, videoId })) {
+    for (const { listKey, iItem, item, rendererKey } of matchingShelfEntries({
+      shelfData: elShelf.data,
+      videoId
+    })) {
       elShelf.set(
         `data.content.${listKey}.items.${iItem}.${rendererKey}`,
         buildMergedVideoRenderer({

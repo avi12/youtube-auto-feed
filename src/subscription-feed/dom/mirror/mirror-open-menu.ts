@@ -102,7 +102,10 @@ function findMenuTarget({ menu, menuRect }: FindMenuTargetParams) {
         elCandidate => videoIdFromData(elCandidate.data) === videoId
       );
   function distanceFromMenu({ elButton }: MenuTarget) {
-    return distanceBetweenCenters({ left: elButton.getBoundingClientRect(), right: menuRect });
+    return distanceBetweenCenters({
+      left: elButton.getBoundingClientRect(),
+      right: menuRect
+    });
   }
 
   const [nearest] = elCandidates

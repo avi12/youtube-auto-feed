@@ -47,7 +47,6 @@ const DEFAULT_FILE_BY_FAMILY = [
 
 const deadThumbnailPaths = new Set<string>();
 
-
 function healableThumbnailFrom(src: string) {
   const match = THUMBNAIL_URL_PATTERN.exec(src);
   const videoId = match?.[1];

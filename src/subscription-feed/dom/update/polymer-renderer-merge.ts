@@ -38,14 +38,13 @@ export function applyRichItemContentUpdate({
   const hasLockupSource = isLockupViewModel(rawRenderer) || existingLockup !== undefined;
   if (hasLockupSource) {
     const isMergeable = isLockupViewModel(rawRenderer) && isLockupViewModel(existingLockup);
-    const merged =
-      isMergeable
-        ? mergeLockupViewModel({
-            existing: existingLockup,
-            incoming: rawRenderer,
-            isContentImagePreserveForced
-          })
-        : rawRenderer;
+    const merged = isMergeable
+      ? mergeLockupViewModel({
+          existing: existingLockup,
+          incoming: rawRenderer,
+          isContentImagePreserveForced
+        })
+      : rawRenderer;
     elElement.set(`${basePath}.lockupViewModel`, merged);
     return;
   }

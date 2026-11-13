@@ -93,7 +93,11 @@ export function installDevBridge(context: MonitorContext) {
     videoPagePoll: context.refreshVideoPage,
     watchThumbnails: () => reconcileVisibleThumbnails({ contentHashes: state.thumbnailContentHashes }),
     snapshot: videoId => state.lastSnapshot.get(videoId),
-    inspect: videoId => inspectVideo({ state, videoId }),
+    inspect: videoId =>
+      inspectVideo({
+        state,
+        videoId
+      }),
     state,
     context,
     absenceCountByVideoId,

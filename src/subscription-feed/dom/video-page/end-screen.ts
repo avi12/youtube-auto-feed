@@ -87,7 +87,15 @@ type RefreshedDetailParams = Prettify<{
 
 function refreshedDetail({ text, shownVersions, fresh }: RefreshedDetailParams) {
   const shown = shownVersions.find(
-    version => isPartShown({ text: text, part: version.viewCountText }) || isPartShown({ text: text, part: version.publishedTimeText })
+    version =>
+      isPartShown({
+        text,
+        part: version.viewCountText
+      }) ||
+      isPartShown({
+        text,
+        part: version.publishedTimeText
+      })
   );
   if (!shown) {
     return text;
@@ -99,7 +107,11 @@ function refreshedDetail({ text, shownVersions, fresh }: RefreshedDetailParams) 
   ] as const;
   let refreshed = text;
   for (const [shownPart, freshPart] of parts) {
-    const isPartRefreshable = isPartShown({ text: refreshed, part: shownPart }) && freshPart !== "";
+    const isPartRefreshable =
+      isPartShown({
+        text: refreshed,
+        part: shownPart
+      }) && freshPart !== "";
     refreshed = isPartRefreshable ? refreshed.replace(shownPart, freshPart) : refreshed;
   }
 

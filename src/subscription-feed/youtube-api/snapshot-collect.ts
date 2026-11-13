@@ -53,7 +53,10 @@ function mergeDuplicateWatchProgress({
 
   snapshots[iKept] = {
     ...kept,
-    watchProgressPercent: furthestWatchProgress({ first: kept.watchProgressPercent, second: duplicate.watchProgressPercent })
+    watchProgressPercent: furthestWatchProgress({
+      first: kept.watchProgressPercent,
+      second: duplicate.watchProgressPercent
+    })
   };
 }
 

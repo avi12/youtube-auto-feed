@@ -58,7 +58,10 @@ export function repaintInlineThumbnails() {
 
     const thumbnailUrl = thumbnailUrlFromContent(content);
     if (thumbnailUrl) {
-      for (const elImg of staleThumbnailImgs({ elItem, thumbnailUrl })) {
+      for (const elImg of staleThumbnailImgs({
+        elItem,
+        thumbnailUrl
+      })) {
         elImg.src = thumbnailUrl;
         correctionCount++;
       }
