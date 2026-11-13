@@ -16,7 +16,7 @@ import {
   rebuildBaselineFromDom
 } from "./polling-state";
 
-export function createApplyHandlers({ state, getContext }: HandlerDeps) {
+export function createApplyHandlers({ state }: HandlerDeps) {
 
   async function applyChanges({ payload, isInitialLoad = false }: ApplyChangesParams) {
     if (state.isApplyingChanges) {
