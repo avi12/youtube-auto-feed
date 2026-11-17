@@ -7,7 +7,9 @@
     "@wxt-dev/module-svelte",
     "chokidar",
     "postcss-html",
+    "svelte-check",
     "svelte-eslint-parser",
+    "tsrs",
     "web-ext-run"
   ]
 }
