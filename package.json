@@ -28,10 +28,13 @@
     "**/*.svelte"
   ],
   "scripts": {
-    "dev": "tsx scripts/dev-server.ts",
-    "dev:edge-chrome-no-extension": "tsx scripts/dev-server.ts --edge --chrome.no-extension",
-    "dev:edge": "tsx scripts/dev-server.ts --edge",
-    "dev:edge-firefox-chrome-no-extension": "tsx scripts/dev-server.ts --edge --chrome.no-extension --firefox",
+    "dev": "bun run devtool dev",
+    "dev:edge-chrome-no-extension": "bun run devtool dev --edge --chrome.no-extension",
+    "dev:edge": "bun run devtool dev --edge",
+    "dev:edge-firefox-chrome-no-extension": "bun run devtool dev --edge --chrome.no-extension --firefox",
+    "devtool": "cargo run --release --quiet --manifest-path tools/Cargo.toml --",
+    "dev-server:test": "cargo test --manifest-path dev-server/Cargo.toml",
+    "tools:test": "cargo test --manifest-path tools/Cargo.toml",
     "build": "wxt build",
     "build:firefox": "bun run build -b firefox --mv3",
     "build:opera": "bun run build -b opera",
@@ -57,7 +60,6 @@
     "@sveltejs/vite-plugin-svelte": "7.3.1",
     "@types/node": "^26.6.5",
     "@wxt-dev/module-svelte": "2.0.5",
-    "chokidar": "^5.0.0",
     "crx3": "2.0.0",
     "eslint": "^10.12.0",
     "eslint-plugin-svelte": "3.23.1",
@@ -80,7 +82,6 @@
     "typescript-eslint": "^8.72.1",
     "vite": "^8.3.4",
     "vitest": "^5.0.4",
-    "web-ext-run": "^0.2.4",
     "wxt": "^0.21.4"
   },
   "packageManager": "bun@1.4.5",

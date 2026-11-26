@@ -26,7 +26,9 @@ globalThis.reloadExtension = async function (name) {
   });
   const extension = extensions.find(candidate => candidate.name === name);
   if (!extension) {
-    throw new Error(`${name} is not installed - load the build once with "Load unpacked" on the extensions page; the dev profile keeps it`);
+    throw new Error(
+      `${name} is not installed - load the build once with "Load unpacked" on the extensions page; the dev profile keeps it`
+    );
   }
 
   await call({

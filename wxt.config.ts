@@ -55,6 +55,10 @@ async function injectBuildInstructions({ zipPath, content }: { zipPath: string; 
   await writeFile(zipPath, zipSync(entries));
 }
 
+// Set by the dev server: inline source maps the browser's debugger can always load, and the
+// __ytafDebug inspection bridge, which store builds strip.
+const IS_DEV_SERVER = !!process.env.WXT_DEV_SERVER;
+
 export default defineConfig({
   manifest: ({ browser }) => ({
     name: "YouTube Auto Feed",
@@ -113,11 +117,10 @@ export default defineConfig({
   },
   vite: () => ({
     build: {
-      sourcemap: false
+      sourcemap: IS_DEV_SERVER ? "inline" : false
     },
-    // Strips the __ytafDebug inspection bridge from store builds; the dev server overrides this to true.
     define: {
-      __YTAF_DEBUG__: "false"
+      __YTAF_DEBUG__: JSON.stringify(IS_DEV_SERVER)
     }
   })
 });

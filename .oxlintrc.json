@@ -25,6 +25,8 @@
     "user-profiles/**",
     "tmp/**",
     "screenshots/**",
-    "patches/**"
+    "patches/**",
+    "dev-server/target/**",
+    "tools/target/**"
   ]
 }

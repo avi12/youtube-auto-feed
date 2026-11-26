@@ -1,15 +1,14 @@
 {
   "$schema": "./node_modules/fallow/schema.json",
   "extends": ["./node_modules/lint-config/packages/fallow-config/fallow.json"],
+  "entry": ["dev-server/assets/*.js", "tools/assets/*.mjs"],
   "ignoreDependencies": [
     "@googleapis/drive",
     "@sveltejs/vite-plugin-svelte",
     "@wxt-dev/module-svelte",
-    "chokidar",
     "postcss-html",
     "svelte-check",
     "svelte-eslint-parser",
-    "tsrs",
-    "web-ext-run"
+    "tsrs"
   ]
 }
