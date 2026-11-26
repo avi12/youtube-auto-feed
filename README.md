@@ -39,6 +39,7 @@ You'll want:
 
 - Node.js 22.13 or newer (runs the Node tooling)
 - [Bun](https://bun.com) 1.4.5 (the version's pinned in `package.json` under `packageManager`)
+- [Rust](https://rustup.rs) (builds and runs the dev server)
 
 Grab the dependencies and fire up the dev server:
 
@@ -46,6 +47,8 @@ Grab the dependencies and fire up the dev server:
 bun install
 bun run dev
 ```
+
+Branded Chrome may ignore command-line sideloading: if the extension is missing there, load `.output/chrome-mv3` once with "Load unpacked" in the dev profile.
 
 ## Build
 

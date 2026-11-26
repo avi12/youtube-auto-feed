@@ -16,13 +16,14 @@ Requirements:
 
 - Node.js 20 or newer
 - Bun 1.4.5 (pinned in `package.json` under `packageManager`)
+- [Rust](https://rustup.rs), for the dev server
 
 ```sh
 bun install
 bun run dev
 ```
 
-`bun run dev` launches the supported browsers through `web-ext-run` and reloads on rebuild.
+`bun run dev` launches Edge with the extension and reloads it and the YouTube tabs on every save. A change to the dev server also needs `cargo clippy --all-targets` and `cargo test` to pass in `dev-server/` and `tools/`.
 
 ## Before opening a pull request
 
