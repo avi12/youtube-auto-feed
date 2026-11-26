@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/fallow/schema.json",
-  "extends": ["./node_modules/fallow-config-avi12/fallow.json"],
+  "extends": ["./node_modules/lint-config/packages/fallow-config/fallow.json"],
   "ignoreDependencies": [
     "@googleapis/drive",
     "@sveltejs/vite-plugin-svelte",
