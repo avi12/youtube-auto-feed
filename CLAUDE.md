@@ -18,7 +18,7 @@ A browser extension that keeps the YouTube subscriptions feed (`/feed/subscripti
 - Tile menus follow grid ownership: ytaf's open-menu tracking is inert while ytaf is switched off, and it yields a menu the moment another extension re-points the dropdown's anchor. The shared popup dropdown is left clean at rest - no inline `translate` or `transition` - since a peer reads either as a glide in flight.
 - Videos tagged `richItemRenderer.yssSemiSubscribed: true` belong to YouTube Semi-Subscribe, which lists them in the `/browse` response at their initial place. The extension never prunes them; in a rich shelf it adds one when the response lists it and removes it once that shelf in the response drops it. Videos semi-sub hides from subscribed channels are left out of the response and named in `richGridRenderer.yssHiddenVideoIds`; those leave the Latest band and every shelf at once, skipping the grace a briefly missing video gets. The contract version is announced as `globalThis.__ytafHonorsSemiSubTags` (1 = tags, 2 = hidden ids), which semi-sub checks before relying on either.
 - **Section structure is read-only.** The extension may only append or remove videos within sections. It must not reorder, move, merge, dismantle, or tail-pin section markers. Whatever section order YouTube emits is what gets rendered, including repeats.
-- Dev server: `pnpm dev` is the supported path. It launches Edge through `web-ext-run` and reloads via `runner.reloadAllExtensions()`. Direct `--load-extension` Edge launch with manual `chrome.runtime.reload()` over CDP silently disables the extension on every content-script rebuild.
+- Dev server: `bun run dev` is the supported path. It launches Edge through `web-ext-run` and reloads via `runner.reloadAllExtensions()`. Direct `--load-extension` Edge launch with manual `chrome.runtime.reload()` over CDP silently disables the extension on every content-script rebuild.
 
 # Layout ordering
 
@@ -40,7 +40,7 @@ Contract: **section markers stay exactly where YouTube placed them; the extensio
 
 # Stack
 
-- pnpm + tsx (Node)
+- Bun + tsx (Node)
 - WXT extension framework
 - TypeScript (100% type safety, let TypeScript infer types)
 - @webext-core/messaging for message passing
@@ -141,7 +141,7 @@ Compare output band-by-band: same section names, same counts, Chrome's IDs prese
 
 # Workflow
 
-- After each modification, run `pnpm lint` across the project
+- After each modification, run `bun run lint` across the project
 - Commit messages must be short and to the point
 
 # Hardcoded values

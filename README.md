@@ -37,25 +37,25 @@ Works on Chromium (Chrome, Edge, Opera) and Firefox, both on Manifest V3.
 
 You'll want:
 
-- Node.js 22.13 or newer (required by the pinned pnpm version)
-- pnpm (grab it from the [pnpm installation page](https://pnpm.io/installation); the version's pinned in `package.json` under `packageManager`)
+- Node.js 22.13 or newer (runs the Node tooling)
+- [Bun](https://bun.com) 1.4.5 (the version's pinned in `package.json` under `packageManager`)
 
 Grab the dependencies and fire up the dev server:
 
 ```sh
-pnpm install
-pnpm dev
+bun install
+bun run dev
 ```
 
 ## Build
 
 ```sh
-pnpm build            # Chrome (default)
-pnpm build:firefox    # Firefox MV3
-pnpm build:opera      # Opera
+bun run build            # Chrome (default)
+bun run build:firefox    # Firefox MV3
+bun run build:opera      # Opera
 
-pnpm zip              # bundle up an uploadable zip for whatever you just built
-pnpm crx              # zip Chrome and pack a signed .crx (key kept in the gitignored keys/)
+bun run zip              # bundle up an uploadable zip for whatever you just built
+bun run crx              # zip Chrome and pack a signed .crx (key kept in the gitignored keys/)
 ```
 
 ## License

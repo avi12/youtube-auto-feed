@@ -161,7 +161,7 @@ These are hard constraints - breaking them corrupts the live feed:
 
 ## Dev + verification
 
-`pnpm dev` launches the supported dev loop (Edge via web-ext, auto-reload on save). The
+`bun run dev` launches the supported dev loop (Edge via web-ext, auto-reload on save). The
 extension targets Chromium (Chrome / Edge / Opera) and Firefox MV3; per-target minimum
 browser versions are declared in `wxt.config.ts`. Because the page is live YouTube, changes
 are verified by comparing the extension's grid against a no-extension browser as ground

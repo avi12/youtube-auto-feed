@@ -15,18 +15,18 @@ This extension works by mirroring YouTube's own private InnerTube `/browse` resp
 Requirements:
 
 - Node.js 20 or newer
-- pnpm (pinned in `package.json` under `packageManager`; run `corepack enable` to use it)
+- Bun 1.4.5 (pinned in `package.json` under `packageManager`)
 
 ```sh
-pnpm install
-pnpm dev
+bun install
+bun run dev
 ```
 
-`pnpm dev` launches the supported browsers through `web-ext-run` and reloads on rebuild.
+`bun run dev` launches the supported browsers through `web-ext-run` and reloads on rebuild.
 
 ## Before opening a pull request
 
-- Run `pnpm lint` and `pnpm compile` and make sure both pass.
+- Run `bun run lint` and `bun run compile` and make sure both pass.
 - Keep changes focused; match the surrounding code's style and naming.
 - Verify behaviour against a real subscriptions feed. Compare the extension's output against a browser without the extension (that is the ground truth) - every video must land in the same section, with the same per-section counts.
 
