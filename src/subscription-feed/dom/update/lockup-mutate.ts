@@ -1,4 +1,5 @@
 import { z } from "@/shared/zod";
+import { createGuard } from "@/shared/zod-guard";
 import { GRID_SELECTOR } from "@/subscription-feed/dom/mirror/mirror-constants";
 import { findRichItemIndex } from "@/subscription-feed/dom/rich-item";
 import type { LockupViewModel } from "@/subscription-feed/types/innertube";
@@ -10,7 +11,6 @@ import {
   isRichShelfData,
   type RichGridData
 } from "@/subscription-feed/youtube-api/guards";
-import { richItemContentSchema } from "@/subscription-feed/youtube-api/schemas";
 
 import { mutateLockupViewModelInPlace } from "./lockup-mutate-in-place";
 
@@ -24,9 +24,7 @@ type MutateLockupMetadataParams = Prettify<{
   preserveContentImage: boolean;
 }>;
 
-const itemDataSchema = z.looseObject({
-  content: richItemContentSchema.optional().catch(undefined)
-});
+const isLockupItemData = createGuard(z.looseObject({ content: z.looseObject({ lockupViewModel: z.unknown() }) }));
 
 type MutateLockupsInContainersParams = Prettify<{
   selector: string;
@@ -69,9 +67,8 @@ export function mutateLockupMetadata({ videoId, elItem, incoming, preserveConten
     });
   }
 
-  const itemDataParse = itemDataSchema.safeParse(elItem.data);
-  if (itemDataParse.success) {
-    mutateOne(itemDataParse.data.content?.lockupViewModel);
+  if (isLockupItemData(elItem.data)) {
+    mutateOne(elItem.data.content.lockupViewModel);
   }
 
   mutateLockupsInContainers({
