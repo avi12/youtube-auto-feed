@@ -1,3 +1,5 @@
+import { isHtmlElement } from "@/shared/dom-guards";
+
 import { SURVIVOR_GLIDE_EASING, SURVIVOR_SHIFT_MS } from "./mirror-constants";
 import { positionRemovalGhost, REMOVAL_GHOST_ATTR } from "./mirror-ghost-position";
 import { paintGhostThumbnailBackground, thumbnailGhost } from "./mirror-ghost-thumbnails";
@@ -35,7 +37,7 @@ function cloneTileGhost(elTile: HTMLElement) {
   }
 
   const elGhost = elContent.cloneNode(true);
-  if (!(elGhost instanceof HTMLElement)) {
+  if (!isHtmlElement(elGhost)) {
     return null;
   }
 

@@ -1,3 +1,4 @@
+import { isHtmlElement } from "@/shared/dom-guards";
 import { applyUpdate, isSwapHeldOffByHover } from "@/subscription-feed/dom/update/apply-targeted";
 import type { PolymerElement } from "@/subscription-feed/types/polymer";
 import type { Prettify } from "@/subscription-feed/types/prettify";
@@ -61,7 +62,7 @@ export function ensureObserver() {
   intersectionObserver = new IntersectionObserver(
     entries => {
       for (const { isIntersecting, target } of entries) {
-        const isObservationEligible = isIntersecting && target instanceof HTMLElement;
+        const isObservationEligible = isIntersecting && isHtmlElement(target);
         if (!isObservationEligible) {
           continue;
         }

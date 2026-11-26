@@ -31,6 +31,8 @@
 // the microtask checkpoint, so that exchange never yields to a frame - the tab freezes and the
 // renderer is killed.
 
+import { isImageElement } from "@/shared/dom-guards";
+
 const THUMBNAIL_URL_PATTERN = /^https?:\/\/i\.ytimg\.com\/vi\/([^/]+)\/([^?]+)/;
 const PLACEHOLDER_THUMBNAIL_WIDTH = 120;
 const PLACEHOLDER_THUMBNAIL_HEIGHT = 90;
@@ -96,7 +98,7 @@ function isPlaceholderDecode(elImg: HTMLImageElement) {
 
 function healFailedThumbnail(event: Event) {
   const elImg = event.target;
-  if (!(elImg instanceof HTMLImageElement)) {
+  if (!isImageElement(elImg)) {
     return;
   }
 
@@ -105,7 +107,7 @@ function healFailedThumbnail(event: Event) {
 
 function healPlaceholderThumbnailPaint(event: Event) {
   const elImg = event.target;
-  const isNotPlaceholder = !(elImg instanceof HTMLImageElement) || !isPlaceholderDecode(elImg);
+  const isNotPlaceholder = !isImageElement(elImg) || !isPlaceholderDecode(elImg);
   if (isNotPlaceholder) {
     return;
   }
@@ -129,7 +131,7 @@ export function startThumbnailHealer() {
 
   const observer = new MutationObserver(records => {
     for (const { target } of records) {
-      if (target instanceof HTMLImageElement) {
+      if (isImageElement(target)) {
         redirectKnownDeadThumbnail(target);
       }
     }

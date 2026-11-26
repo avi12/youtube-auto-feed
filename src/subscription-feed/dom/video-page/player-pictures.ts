@@ -1,3 +1,4 @@
+import { isVideoElement } from "@/shared/dom-guards";
 import { crossfadeBackgroundImage, fetchChangedThumbnailBytes } from "@/subscription-feed/dom/update/thumbnail";
 
 // The player paints its pictures - the poster shown before playback starts, the suggestions on its end
@@ -27,7 +28,7 @@ export function isPlayerInMode(...modes: PlayerMode[]) {
 }
 
 export function isMainPlayerVideo(target: EventTarget | null) {
-  return target instanceof HTMLVideoElement && !!target.closest(PLAYER_SELECTOR);
+  return isVideoElement(target) && !!target.closest(PLAYER_SELECTOR);
 }
 
 export function paintedBackgroundUrl(elImage: HTMLElement) {

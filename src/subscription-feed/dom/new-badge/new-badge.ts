@@ -1,3 +1,4 @@
+import { isElement } from "@/shared/dom-guards";
 import {
   GRID_SELECTOR,
   RICH_ITEM_SELECTOR,
@@ -218,7 +219,7 @@ function repaintNewBadges() {
 
 function dismissBadgeOfPressedVideo(event: Event) {
   const elTarget = event.target;
-  if (!(elTarget instanceof Element)) {
+  if (!isElement(elTarget)) {
     return;
   }
 

@@ -1,3 +1,4 @@
+import { isAnchorElement } from "@/shared/dom-guards";
 import { applyWithDissolve, setNodeTextIfChanged } from "@/subscription-feed/dom/update/dissolve";
 import { crossfadeBackgroundImage } from "@/subscription-feed/dom/update/thumbnail";
 import type { Prettify } from "@/subscription-feed/types/prettify";
@@ -61,7 +62,7 @@ function readEndScreenTiles() {
   const tiles: EndScreenTile[] = [];
   for (const layout of END_SCREEN_TILE_LAYOUTS) {
     for (const elTile of elPlayer?.querySelectorAll<HTMLElement>(layout.tileSelector) ?? []) {
-      const href = elTile instanceof HTMLAnchorElement ? elTile.href : elTile.querySelector("a")?.href;
+      const href = isAnchorElement(elTile) ? elTile.href : elTile.querySelector("a")?.href;
       const videoId = videoIdFromWatchHref(href);
       if (videoId) {
         tiles.push({

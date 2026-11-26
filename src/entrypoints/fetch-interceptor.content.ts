@@ -1,7 +1,9 @@
+import { isRequest } from "@/shared/dom-guards";
 import { feedMessenger } from "@/shared/feed-messaging";
 import { ytafChannel } from "@/shared/messaging";
 import { OWN_REQUEST_MARKER_HEADER } from "@/shared/own-request";
 import { z } from "@/shared/zod";
+import { createGuard } from "@/shared/zod-guard";
 
 declare global {
   // Exposed so the CDP test harness can inject browse responses through the interceptor's messenger.
@@ -17,11 +19,7 @@ const SUBSCRIPTION_ENDPOINT = "/youtubei/v1/subscription/";
 const SUBSCRIPTIONS_BROWSE_ID = "FEsubscriptions";
 
 const requestBodySchema = z.string().catch("");
-const ownRequestSchema = z.looseObject({ [OWN_REQUEST_MARKER_HEADER]: z.string() });
-
-function isOwnRequest(headers: HeadersInit | undefined) {
-  return ownRequestSchema.safeParse(headers).success;
-}
+const isOwnRequest = createGuard(z.looseObject({ [OWN_REQUEST_MARKER_HEADER]: z.string() }));
 
 export default defineContentScript({
   matches: ["https://www.youtube.com/*"],
@@ -33,7 +31,7 @@ export default defineContentScript({
     const originalFetch = fetch.bind(globalThis);
 
     globalThis.fetch = async (input, init) => {
-      const url = input instanceof Request ? input.url : String(input);
+      const url = isRequest(input) ? input.url : String(input);
       if (url.includes(BROWSE_ENDPOINT)) {
         const { body, headers } = init ?? {};
         const requestBody = requestBodySchema.parse(body);

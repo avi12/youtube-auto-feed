@@ -1,3 +1,6 @@
+import { isHtmlElement } from "@/shared/dom-guards";
+import { z } from "@/shared/zod";
+import { createGuard, METHOD_SCHEMA } from "@/shared/zod-guard";
 import type { PolymerElement } from "@/subscription-feed/types/polymer";
 
 declare global {
@@ -23,8 +26,10 @@ interface CommandResolverElement extends HTMLElement {
   resolveCommand(command: object): unknown;
 }
 
+const isCommandResolverShape = createGuard(z.looseObject({ resolveCommand: METHOD_SCHEMA }));
+
 export function isCommandResolver(element: Element): element is CommandResolverElement {
-  return "resolveCommand" in element && typeof element.resolveCommand === "function";
+  return isCommandResolverShape(element);
 }
 
 // YouTube's popup menus: fixed-position overlays aligned to the element that opened them.
@@ -35,13 +40,13 @@ export interface IronDropdownElement extends HTMLElement {
   close(): void;
 }
 
+const isIronDropdownShape = createGuard(
+  z.looseObject({
+    refit: METHOD_SCHEMA,
+    close: METHOD_SCHEMA
+  })
+);
+
 export function isIronDropdown(target: EventTarget | undefined): target is IronDropdownElement {
-  return (
-    target instanceof HTMLElement &&
-    "positionTarget" in target &&
-    "refit" in target &&
-    typeof target.refit === "function" &&
-    "close" in target &&
-    typeof target.close === "function"
-  );
+  return isHtmlElement(target) && isIronDropdownShape(target);
 }
