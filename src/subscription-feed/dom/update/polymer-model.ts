@@ -1,4 +1,5 @@
 import { z } from "@/shared/zod";
+import { createGuard } from "@/shared/zod-guard";
 import type {
   InnerTubeVideoRenderer,
   LockupViewModel,
@@ -18,8 +19,8 @@ export { syncGridModelItem } from "./polymer-sync-model";
 // Polymer re-renders all copies. applyPolymerUpdate is the preferred entry for element-bound updates.
 
 const itemDataSchema = z.looseObject({ content: richItemContentSchema.optional().catch(undefined) });
-const lockupHostSchema = z.looseObject({ lockupViewModel: z.looseObject({}) });
-const shortsLockupHostSchema = z.looseObject({ shortsLockupViewModel: z.looseObject({}) });
+const isLockupHost = createGuard(z.looseObject({ lockupViewModel: z.looseObject({}) }));
+const isShortsLockupHost = createGuard(z.looseObject({ shortsLockupViewModel: z.looseObject({}) }));
 
 type ApplyPolymerUpdateParams = Prettify<{
   elItem: Prettify<PolymerElement>;
@@ -47,7 +48,7 @@ export function applyPolymerUpdate({ elItem, rawRenderer }: ApplyPolymerUpdatePa
       incoming: rawRenderer
     });
     const elLockup = elItem.querySelector<HTMLElement>("yt-lockup-view-model");
-    if (elLockup && lockupHostSchema.safeParse(elLockup).success) {
+    if (elLockup && isLockupHost(elLockup)) {
       Object.assign(elLockup, { lockupViewModel: merged });
       return;
     }
@@ -66,7 +67,7 @@ export function applyPolymerUpdate({ elItem, rawRenderer }: ApplyPolymerUpdatePa
     isShortsLockupViewModel(content.shortsLockupViewModel) && isShortsLockupViewModel(rawRenderer);
   if (isShortsLockupSwap) {
     const elShortsLockup = elItem.querySelector<HTMLElement>("yt-shorts-lockup-view-model");
-    if (elShortsLockup && shortsLockupHostSchema.safeParse(elShortsLockup).success) {
+    if (elShortsLockup && isShortsLockupHost(elShortsLockup)) {
       Object.assign(elShortsLockup, { shortsLockupViewModel: rawRenderer });
       return;
     }

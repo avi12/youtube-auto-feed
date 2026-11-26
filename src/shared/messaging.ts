@@ -1,6 +1,7 @@
 import type { Prettify } from "@/subscription-feed/types/prettify";
 
 import { z } from "./zod";
+import { createGuard } from "./zod-guard";
 
 const CHANNEL_NAME = "ytaf";
 
@@ -9,9 +10,7 @@ const ytafEnvelopeSchema = z.object({ type: z.literal("subscription-change") });
 type YtafEnvelope = z.infer<typeof ytafEnvelopeSchema>;
 type YtafMessage = YtafEnvelope["type"];
 
-function isYtafEnvelope(value: unknown): value is YtafEnvelope {
-  return ytafEnvelopeSchema.safeParse(value).success;
-}
+const isYtafEnvelope = createGuard(ytafEnvelopeSchema);
 
 type OnMessageParams = Prettify<{
   type: YtafMessage;

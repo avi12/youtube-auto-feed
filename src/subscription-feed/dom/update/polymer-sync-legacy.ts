@@ -1,8 +1,7 @@
 import type { InnerTubeVideoRenderer } from "@/subscription-feed/types/innertube";
 import type { PolymerElement } from "@/subscription-feed/types/polymer";
 import type { Prettify } from "@/subscription-feed/types/prettify";
-import { isShelfRenderer } from "@/subscription-feed/youtube-api/guards";
-import { richShelfDataSchema } from "@/subscription-feed/youtube-api/schemas";
+import { isRichShelfData, isShelfRenderer } from "@/subscription-feed/youtube-api/guards";
 
 import { buildMergedVideoRenderer } from "./merged-video-renderer";
 import type { ApplyToContainerParams } from "./polymer-sync-types";
@@ -58,7 +57,7 @@ export function applyToLegacyShelfModels({
   isContentImagePreserveForced
 }: ApplyToContainerParams) {
   for (const elShelf of document.querySelectorAll<PolymerElement>("ytd-shelf-renderer")) {
-    const isLegacyShelfUsable = richShelfDataSchema.safeParse(elShelf.data).success;
+    const isLegacyShelfUsable = isRichShelfData(elShelf.data);
     if (!isLegacyShelfUsable) {
       continue;
     }

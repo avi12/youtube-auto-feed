@@ -1,18 +1,19 @@
+import { createGuard } from "@/shared/zod-guard";
+
 import { GRID_SELECTOR, RICH_ITEM_SELECTOR } from "./dom/mirror/mirror-constants";
 import type { PolymerElement } from "./types/polymer";
 import { isPolymerElement } from "./utils/polymer";
-import {
-  channelVideoPlayerRendererSchema,
-  gridDataSchema,
-  gridVideoDataSchema,
-  richItemDataSchema
-} from "./youtube-api/schemas";
+import { isChannelVideoPlayerRenderer, isRichGridData } from "./youtube-api/guards";
+import { gridVideoDataSchema, richItemDataSchema } from "./youtube-api/schemas";
+
+const isRichItemData = createGuard(richItemDataSchema);
+const isGridVideoData = createGuard(gridVideoDataSchema);
 
 export function isDomContentReady() {
   const elShelf = document.querySelector<HTMLElement>("ytd-rich-shelf-renderer");
   if (elShelf) {
     const elItem = elShelf.querySelector<PolymerElement>(RICH_ITEM_SELECTOR);
-    const isShelfItemHydrated = !!elItem && richItemDataSchema.safeParse(elItem.data).success;
+    const isShelfItemHydrated = !!elItem && isRichItemData(elItem.data);
     if (isShelfItemHydrated) {
       return true;
     }
@@ -22,9 +23,7 @@ export function isDomContentReady() {
   if (elGridContents) {
     for (const elChild of elGridContents.children) {
       const isHydratedGridItem =
-        elChild.tagName === "YTD-RICH-ITEM-RENDERER" &&
-        isPolymerElement(elChild) &&
-        richItemDataSchema.safeParse(elChild.data).success;
+        elChild.tagName === "YTD-RICH-ITEM-RENDERER" && isPolymerElement(elChild) && isRichItemData(elChild.data);
       if (isHydratedGridItem) {
         return true;
       }
@@ -33,9 +32,8 @@ export function isDomContentReady() {
 
   const elGrid = document.querySelector<PolymerElement>(GRID_SELECTOR);
   if (elGrid) {
-    const gridDataParsed = gridDataSchema.safeParse(elGrid.data);
-    if (gridDataParsed.success) {
-      const { contents } = gridDataParsed.data;
+    if (isRichGridData(elGrid.data)) {
+      const { contents } = elGrid.data;
       const isContentsPresent = Array.isArray(contents) && contents.length > 0;
       if (isContentsPresent) {
         return true;
@@ -44,7 +42,7 @@ export function isDomContentReady() {
   }
 
   const elGridItem = document.querySelector<PolymerElement>("ytd-grid-video-renderer");
-  return !!elGridItem && gridVideoDataSchema.safeParse(elGridItem.data).success;
+  return !!elGridItem && isGridVideoData(elGridItem.data);
 }
 
 // Readiness for the page-agnostic metadata updater: the subscriptions/rich grid is hydrated, or a
@@ -56,5 +54,5 @@ export function isGenericContentReady() {
   }
 
   const elTrailer = document.querySelector<PolymerElement>("ytd-channel-video-player-renderer");
-  return !!elTrailer && channelVideoPlayerRendererSchema.safeParse(elTrailer.data).success;
+  return !!elTrailer && isChannelVideoPlayerRenderer(elTrailer.data);
 }

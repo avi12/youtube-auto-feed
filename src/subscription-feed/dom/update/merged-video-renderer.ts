@@ -1,4 +1,5 @@
 import { z } from "@/shared/zod";
+import { createGuard } from "@/shared/zod-guard";
 import type {
   InnerTubeVideoRenderer,
   LockupViewModel,
@@ -8,11 +9,7 @@ import type { Prettify } from "@/subscription-feed/types/prettify";
 import { isVideoRenderer } from "@/subscription-feed/youtube-api/guards";
 import { thumbnailSchema } from "@/subscription-feed/youtube-api/schemas";
 
-const rendererThumbnailSchema = z.looseObject({ thumbnails: z.array(thumbnailSchema) });
-
-function isRendererThumbnail(value: unknown): value is InnerTubeVideoRenderer["thumbnail"] {
-  return rendererThumbnailSchema.safeParse(value).success;
-}
+const isRendererThumbnail = createGuard(z.looseObject({ thumbnails: z.array(thumbnailSchema) }));
 
 type BuildMergedVideoRendererParams = Prettify<{
   existing: Prettify<InnerTubeVideoRenderer> | Record<string, unknown> | null;
