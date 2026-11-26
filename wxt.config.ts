@@ -11,14 +11,14 @@ YouTube Auto Feed is built with the WXT framework (https://wxt.dev).
 
 ## Requirements
 - Node.js 22.13 or newer
-- pnpm (the exact version is pinned in package.json "packageManager"; run \`corepack enable\` to use it)
+- Bun (the exact version is pinned in package.json "packageManager"; run \`corepack enable\` to use it)
 
 ## Steps
 1. Extract this source archive
-2. Install dependencies: \`pnpm install\`
-3. Build the Firefox extension: \`pnpm build:firefox\`
+2. Install dependencies: \`bun install\`
+3. Build the Firefox extension: \`bun run build:firefox\`
 
-The unpacked build is written to .output/firefox-mv3/; \`pnpm zip:firefox\` produces the uploadable zip.
+The unpacked build is written to .output/firefox-mv3/; \`bun run zip:firefox\` produces the uploadable zip.
 `;
 
 const BUILD_INSTRUCTIONS_OPERA = `# Build instructions
@@ -27,12 +27,12 @@ YouTube Auto Feed is built with the WXT framework (https://wxt.dev).
 
 ## Requirements
 - Node.js 22.13 or newer
-- pnpm (the exact version is pinned in package.json "packageManager"; run \`corepack enable\` to use it)
+- Bun (the exact version is pinned in package.json "packageManager"; run \`corepack enable\` to use it)
 
 ## Steps
 1. Extract this source archive
-2. Install dependencies: \`pnpm install\`
-3. Build the Opera extension: \`pnpm build -b opera\`
+2. Install dependencies: \`bun install\`
+3. Build the Opera extension: \`bun run build -b opera\`
 
 The unpacked build is written to .output/opera-mv3/.
 `;
@@ -93,15 +93,7 @@ export default defineConfig({
     // build inputs - the package manifests with the lockfile and dependency patches, the README, the WXT
     // config and src/. Everything else (dev scripts, lint configs, generated output, credentials, ...)
     // stays out because only these are allowed in.
-    includeSources: [
-      "package.json",
-      "pnpm-lock.yaml",
-      "pnpm-workspace.yaml",
-      "patches/**",
-      "README.md",
-      "wxt.config.ts",
-      "src/**"
-    ],
+    includeSources: ["package.json", "bun.lock", "patches/**", "README.md", "wxt.config.ts", "src/**"],
     sourcesTemplate: "{{name}}-{{version}}-{{browser}}-source.zip"
   },
   hooks: {

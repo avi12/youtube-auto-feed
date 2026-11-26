@@ -4,12 +4,12 @@
  * extensions, and reloads YouTube tabs in every launched Chromium browser.
  *
  * Usage examples:
- *   pnpm dev                                              - Edge (sideloaded)            [default]
- *   pnpm exec tsx scripts/dev-server.ts --chrome          - Chrome (sideloaded)
- *   pnpm exec tsx scripts/dev-server.ts --edge --chrome   - Edge + Chrome (both sideloaded)
- *   pnpm dev:edge-chrome-no-extension                     - Edge (sideloaded) + Chrome (no ext)
- *   pnpm exec tsx scripts/dev-server.ts --firefox         - Firefox (sideloaded)
- *   pnpm exec tsx scripts/dev-server.ts --firefox.no-extension - Firefox (no extension)
+ *   bun run dev                                              - Edge (sideloaded)            [default]
+ *   bunx tsx scripts/dev-server.ts --chrome          - Chrome (sideloaded)
+ *   bunx tsx scripts/dev-server.ts --edge --chrome   - Edge + Chrome (both sideloaded)
+ *   bun run dev:edge-chrome-no-extension                     - Edge (sideloaded) + Chrome (no ext)
+ *   bunx tsx scripts/dev-server.ts --firefox         - Firefox (sideloaded)
+ *   bunx tsx scripts/dev-server.ts --firefox.no-extension - Firefox (no extension)
  */
 
 import { type ChildProcess, spawn, spawnSync } from "node:child_process";
