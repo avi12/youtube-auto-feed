@@ -11,7 +11,8 @@ import { channelHandleFromUrl } from "./channel-handle";
 // a transient or restriction-only failure - only a definitive 404 or a known-unsubscribed channel does.
 
 const NOT_FOUND = 404;
-const oembedSchema = z.looseObject({ author_url: z.string().optional() });
+/** The oEmbed payload, or null when the request failed or the body is not one */
+const oembedSchema = z.looseObject({ author_url: z.string().optional() }).nullable().catch(null);
 
 export async function fetchVideoChannel(videoId: string) {
   const response = await fetch(
@@ -24,8 +25,8 @@ export async function fetchVideoChannel(videoId: string) {
     };
   }
 
-  const parsed = oembedSchema.safeParse(response?.ok ? await response.json().catch(() => null) : null);
-  const handle = parsed.success ? channelHandleFromUrl(parsed.data.author_url) : null;
+  const oembed = oembedSchema.parse(response?.ok ? await response.json().catch(() => null) : null);
+  const handle = oembed ? channelHandleFromUrl(oembed.author_url) : null;
   return {
     handle,
     isAvailable: true

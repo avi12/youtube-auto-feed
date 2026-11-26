@@ -2,7 +2,7 @@ import { z } from "@/shared/zod";
 import { isVideoRenderer } from "@/subscription-feed/youtube-api/guards";
 import { richItemContentSchema } from "@/subscription-feed/youtube-api/schemas";
 
-const nonEmptyStringSchema = z.string().min(1);
+const nonEmptyStringOrNullSchema = z.string().min(1).nullable().catch(null);
 
 interface LockupIdentity {
   contentId?: string;
@@ -51,8 +51,7 @@ export function videoIdFromLockup({ contentId, videoId }: LockupIdentity) {
 }
 
 function nonEmptyStringOrNull(value: unknown) {
-  const parsed = nonEmptyStringSchema.safeParse(value);
-  return parsed.success ? parsed.data : null;
+  return nonEmptyStringOrNullSchema.parse(value);
 }
 
 export const WATCH_VIDEO_ID_PARAM = "v";

@@ -10,8 +10,8 @@ export async function loadStoredSettings() {
   const defaults = defaultSettings();
   const entries = await Promise.all(
     SETTING_NAMES.map(async name => {
-      const parsed = booleanSettingSchema.safeParse(await storage.getItem(SETTING_STORAGE_KEYS[name]));
-      return [name, parsed.success ? parsed.data : defaults[name]];
+      const stored = await storage.getItem(SETTING_STORAGE_KEYS[name]);
+      return [name, booleanSettingSchema.catch(defaults[name]).parse(stored)];
     })
   );
   return feedSettingsSchema.parse(Object.fromEntries(entries));
