@@ -1,6 +1,7 @@
 //! The dev browsers: which ones a session runs, what differs between them, and how each is
 //! launched.
 
+mod cft;
 pub(crate) mod chromium;
 pub(crate) mod driver;
 pub(crate) mod firefox;
@@ -62,6 +63,21 @@ pub(crate) struct Spec {
 }
 
 impl Spec {
+    /// Branded Chrome 137+ ignores `--load-extension`, so a Chrome carrying the extension is
+    /// Chrome for Testing.
+    pub(crate) fn is_chrome_for_testing(self) -> bool {
+        self.vendor == Vendor::Chromium(Chromium::Chrome) && self.is_extension_loaded
+    }
+
+    /// The dev profile's folder name. Chrome for Testing keeps its own: its version moves apart
+    /// from the installed Chrome's, which would damage a shared profile.
+    pub(crate) fn profile_name(self) -> &'static str {
+        if self.is_chrome_for_testing() {
+            return "chrome-for-testing";
+        }
+        self.vendor.flag()
+    }
+
     /// `edge`, or `chrome.no-extension` for a browser without the extension.
     pub(crate) fn label(self) -> String {
         if self.is_extension_loaded {
@@ -100,6 +116,7 @@ impl BuildTarget {
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct Launch<'a> {
     pub(crate) spec: Spec,
+    pub(crate) project_root: &'a Path,
     pub(crate) profile_directory: &'a Path,
     /// The build sideloaded when the spec loads the extension.
     pub(crate) extension_directory: &'a Path,
@@ -132,6 +149,18 @@ mod tests {
         assert_eq!(
             (edge.label(), chrome.label()),
             ("edge".to_owned(), "chrome.no-extension".to_owned())
+        );
+    }
+
+    #[test]
+    fn only_a_chrome_with_the_extension_is_chrome_for_testing() {
+        let chrome = |is_extension_loaded| Spec {
+            vendor: Vendor::Chromium(Chromium::Chrome),
+            is_extension_loaded,
+        };
+        assert_eq!(
+            (chrome(true).profile_name(), chrome(false).profile_name()),
+            ("chrome-for-testing", "chrome")
         );
     }
 

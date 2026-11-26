@@ -48,7 +48,7 @@ bun install
 bun run dev
 ```
 
-Branded Chrome may ignore command-line sideloading: if the extension is missing there, load `.output/chrome-mv3` once with "Load unpacked" in the dev profile.
+Branded Chrome no longer sideloads from the command line, so a Chrome with the extension (`bun run devtool dev --chrome`) is Chrome for Testing, downloaded into `.chrome-for-testing/` on first use. Its profile is `user-profiles/chrome-for-testing`; sign in to YouTube there once.
 
 ## Build
 

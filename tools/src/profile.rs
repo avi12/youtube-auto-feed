@@ -10,7 +10,7 @@ use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 
 pub(crate) use self::processes::stop_on_profile as stop_leftover_instances;
-use crate::browser::Vendor;
+use crate::browser::Spec;
 use crate::error::Result;
 use crate::launcher::log_event;
 
@@ -59,10 +59,10 @@ impl Environment {
 }
 
 /// The profile directory of one browser, kept across sessions so its sign-ins survive.
-pub(crate) fn directory(project_root: &Path, vendor: Vendor) -> PathBuf {
+pub(crate) fn directory(project_root: &Path, spec: Spec) -> PathBuf {
     project_root
         .join(USER_PROFILES_DIRECTORY)
-        .join(vendor.flag())
+        .join(spec.profile_name())
 }
 
 /// Runs `seed` unless `sentinel` exists, then creates it, so a profile is seeded only once and

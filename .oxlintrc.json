@@ -27,6 +27,7 @@
     "screenshots/**",
     "patches/**",
     "dev-server/target/**",
-    "tools/target/**"
+    "tools/target/**",
+    ".chrome-for-testing/**"
   ]
 }

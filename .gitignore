@@ -11,6 +11,7 @@ yarn-error.log*
 lerna-debug.log*
 
 node_modules/
+.chrome-for-testing/
 .output/
 stats.html
 stats-*.json

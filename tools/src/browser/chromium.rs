@@ -1,10 +1,11 @@
-//! The installed Edge and Chrome, on fixed debug ports and their own dev profiles.
+//! Edge, Chrome and Chrome for Testing, on fixed debug ports and their own dev profiles.
 
 use std::path::PathBuf;
 
 use dev_hot::driver::cdp::{CdpClient, CHROME_EXTENSIONS_PAGE, EDGE_EXTENSIONS_PAGE};
 use tokio::process::Child;
 
+use crate::browser::cft::ensure_chrome;
 use crate::browser::driver::{Driver, Protocol};
 use crate::browser::manifest::Manifest;
 use crate::browser::startup::{require_port, wait_until_listening};
@@ -76,7 +77,12 @@ pub(crate) async fn launch(browser: Chromium, launch: Launch<'_>) -> Result<(Chi
         is_extension_loaded,
     )?;
     let port = require_port(install.cdp_port, &format!("{} CDP", install.name))?;
-    let mut invocation = Invocation::new(find_binary(&install, &launch)?).args([
+    let binary = if launch.spec.is_chrome_for_testing() {
+        ensure_chrome(launch.project_root).await?
+    } else {
+        find_binary(&install, &launch)?
+    };
+    let mut invocation = Invocation::new(binary).args([
         format!("--user-data-dir={}", launch.profile_directory.display()),
         "--remote-debugging-address=127.0.0.1".to_owned(),
         format!("--remote-debugging-port={}", port.get()),

@@ -156,7 +156,7 @@ pub(crate) async fn run(args: DevArgs) -> Result<()> {
 
     let environment = Environment::read(&project_root);
     for spec in &specs {
-        let directory = profile::directory(&project_root, spec.vendor);
+        let directory = profile::directory(&project_root, *spec);
         profile::stop_leftover_instances(&directory).await?;
     }
 
@@ -169,11 +169,12 @@ pub(crate) async fn run(args: DevArgs) -> Result<()> {
 
     let mut browsers = Browsers::default();
     for spec in specs {
-        let profile_directory = profile::directory(&project_root, spec.vendor);
+        let profile_directory = profile::directory(&project_root, spec);
         let extension_directory = spec.vendor.build_target().output_directory(&project_root);
         browsers
             .launch(Launch {
                 spec,
+                project_root: &project_root,
                 profile_directory: &profile_directory,
                 extension_directory: &extension_directory,
                 environment: &environment,

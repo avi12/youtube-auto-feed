@@ -1,4 +1,4 @@
 {
   "extends": ["lint-config/stylelint"],
-  "ignoreFiles": ["user-profiles/**"]
+  "ignoreFiles": ["user-profiles/**", ".chrome-for-testing/**"]
 }
