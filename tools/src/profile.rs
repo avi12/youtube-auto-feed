@@ -30,21 +30,31 @@ const WINDOWS_SHARING_ERRORS: [i32; 2] = [32, 33];
 #[derive(Debug, Default)]
 pub(crate) struct Environment(BTreeMap<String, String>);
 
+/// Windows variable names ignore case, and shells disagree on it (Git Bash says `PROGRAMFILES`).
+fn variable_key(name: &str) -> String {
+    if cfg!(windows) {
+        return name.to_ascii_uppercase();
+    }
+    name.to_owned()
+}
+
 impl Environment {
     pub(crate) fn read(project_root: &Path) -> Self {
-        let mut variables: BTreeMap<String, String> = env::vars().collect();
+        let mut variables: BTreeMap<String, String> = env::vars()
+            .map(|(name, value)| (variable_key(&name), value))
+            .collect();
         let files = ENV_FILES_MOST_SPECIFIC_FIRST
             .iter()
             .filter_map(|file| dotenvy::from_path_iter(project_root.join(file)).ok());
         for (name, value) in files.flatten().flatten() {
-            variables.entry(name).or_insert(value);
+            variables.entry(variable_key(&name)).or_insert(value);
         }
         Self(variables)
     }
 
     pub(crate) fn get(&self, name: &str) -> Option<&str> {
         self.0
-            .get(name)
+            .get(&variable_key(name))
             .map(String::as_str)
             .filter(|value| !value.is_empty())
     }
@@ -115,6 +125,16 @@ fn is_locked(error: &std::io::Error) -> bool {
 #[cfg(test)]
 mod tests {
     use crate::profile::*;
+
+    #[cfg(windows)]
+    #[test]
+    fn variable_names_ignore_case() {
+        let environment = Environment(BTreeMap::from([(
+            variable_key("PROGRAMFILES"),
+            "a".to_owned(),
+        )]));
+        assert_eq!(environment.get("ProgramFiles"), Some("a"));
+    }
 
     #[test]
     fn only_existing_files_are_cloned() -> Result<()> {
