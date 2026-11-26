@@ -4,7 +4,7 @@ use std::fmt;
 
 use serde::Deserialize;
 
-use crate::driver::YOUTUBE_ORIGIN;
+use crate::driver::{BLANK_URL, YOUTUBE_ORIGIN};
 
 /// The id of a CDP target, as `/json/list` reports it.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Deserialize)]
@@ -62,6 +62,11 @@ pub fn is_youtube_tab(target: &CdpTarget) -> bool {
         && target.debugger_url().is_some()
 }
 
+/// Whether a target is an empty page tab.
+pub fn is_blank_tab(target: &CdpTarget) -> bool {
+    target.kind == TargetKind::Page && target.url == BLANK_URL
+}
+
 #[cfg(test)]
 mod tests {
     use crate::driver::cdp::target::*;
@@ -92,6 +97,17 @@ mod tests {
             socket
         )));
         assert!(!is_youtube_tab(&target(TargetKind::Page, youtube, None)));
+    }
+
+    #[test]
+    fn only_empty_page_tabs_are_blank() {
+        assert!(is_blank_tab(&target(TargetKind::Page, BLANK_URL, None)));
+        assert!(!is_blank_tab(&target(TargetKind::Other, BLANK_URL, None)));
+        assert!(!is_blank_tab(&target(
+            TargetKind::Page,
+            YOUTUBE_ORIGIN,
+            None
+        )));
     }
 
     #[test]

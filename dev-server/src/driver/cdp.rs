@@ -15,7 +15,7 @@ use tokio::time::sleep;
 
 use self::http::Verb;
 use self::session::{is_closed, Session};
-pub use self::target::{is_youtube_tab, CdpTarget, TargetId, TargetKind};
+pub use self::target::{is_blank_tab, is_youtube_tab, CdpTarget, TargetId, TargetKind};
 use crate::driver::BrowserDriver;
 use crate::error::{Error, Result};
 use crate::types::Port;
@@ -53,6 +53,18 @@ impl CdpClient {
     pub async fn list_targets(&self) -> Result<Vec<CdpTarget>> {
         let list = http::request(self.port, Verb::Get, "/json/list").await?;
         Ok(serde_json::from_str(&list)?)
+    }
+
+    /// Opens `url` in a new tab and closes the blank tabs the browser started with.
+    pub async fn open_in_place_of_blank_tabs(&self, url: &str) -> Result<()> {
+        let blank_tabs = self.list_targets().await?.into_iter().filter(is_blank_tab);
+        let path = format!("/json/new?{url}");
+        http::request(self.port, Verb::Put, &path).await?;
+        for tab in blank_tabs {
+            let close = format!("/json/close/{}", tab.id);
+            http::request(self.port, Verb::Get, &close).await?;
+        }
+        Ok(())
     }
 }
 

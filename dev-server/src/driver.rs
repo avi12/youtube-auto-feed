@@ -11,6 +11,8 @@ use crate::error::Result;
 
 /// The prefix of every page the extension runs on.
 pub const YOUTUBE_ORIGIN: &str = "https://www.youtube.com/";
+/// The empty page a browser starts on while its extension is not ready yet.
+pub const BLANK_URL: &str = "about:blank";
 
 /// Reload operations on a running browser.
 pub trait BrowserDriver: Send + Sync {

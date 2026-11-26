@@ -3,6 +3,7 @@
 use std::path::PathBuf;
 
 use dev_hot::driver::cdp::{CdpClient, CHROME_EXTENSIONS_PAGE, EDGE_EXTENSIONS_PAGE};
+use dev_hot::driver::{BrowserDriver, BLANK_URL};
 use tokio::process::Child;
 
 use crate::browser::cft::ensure_chrome;
@@ -101,15 +102,22 @@ pub(crate) async fn launch(browser: Chromium, launch: Launch<'_>) -> Result<(Chi
             .arg(LOAD_EXTENSION_SWITCH_FEATURE);
         extension_name = Manifest::read(launch.extension_directory)?.name;
     }
-    let mut child = invocation.arg(START_URL).spawn_kill_on_drop()?;
+    // A page opened while the extension still loads misses its document_start scripts
+    let first_url = if is_extension_loaded {
+        BLANK_URL
+    } else {
+        START_URL
+    };
+    let mut child = invocation.arg(first_url).spawn_kill_on_drop()?;
     wait_until_listening(&mut child, LISTENING_MARKER).await?;
+    let client = CdpClient::new(port, extension_name, install.extensions_page);
+    if is_extension_loaded {
+        client.reload_extension().await?;
+        client.open_in_place_of_blank_tabs(START_URL).await?;
+    }
     let driver = Driver {
         label: launch.spec.label(),
-        protocol: Protocol::Cdp(CdpClient::new(
-            port,
-            extension_name,
-            install.extensions_page,
-        )),
+        protocol: Protocol::Cdp(client),
         is_extension_loaded,
     };
     Ok((child, driver))
