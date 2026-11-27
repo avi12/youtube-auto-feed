@@ -7,8 +7,8 @@ Made by [Avi](https://avi12.com)
 ## Install
 
 ![Chrome Web Store users](https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Fchromewebstore.google.com%2Fdetail%2Fjcdebdlnakhdinkindpogcehnhggbfad&search=%28%5B0-9%5D%5B0-9%2C%5D%2A%29%20users&replace=%241&labelColor=f1f3f4&color=white&label=Chrome%20Web%20Store%20users&style=flat-square&logo=googlechrome&logoColor=4285F4)\
-![Firefox Add-ons users](https://img.shields.io/amo/users/youtube-auto-feed@avi12.com?labelColor=f1f3f4&color=white&label=Firefox%20Add-ons%20users&style=flat-square&logo=firefoxbrowser)\
-![Opera Add-ons users](https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Faddons.opera.com%2Fextensions%2Fdetails%2Fyoutube-auto-feed%2F&search=Downloads%3C%2Fdt%3E%3Cdd%3E%28%5B0-9%2C%5D%2B%29%3C%2Fdd%3E&replace=%241&labelColor=f1f3f4&color=white&label=Opera%20Add-ons%20users&style=flat-square&logo=opera&logoColor=FF1B2D)
+![Firefox Add-ons users](https://img.shields.io/amo/users/youtube-auto-feed@avi12.com?labelColor=f1f3f4&color=white&label=Firefox%20Add-ons%20users%E2%A0%80%E3%85%A4&style=flat-square&logo=firefoxbrowser)\
+![Opera Add-ons users](https://img.shields.io/badge/dynamic/regex?url=https%3A%2F%2Faddons.opera.com%2Fextensions%2Fdetails%2Fyoutube-auto-feed%2F&search=Downloads%3C%2Fdt%3E%3Cdd%3E%28%5B0-9%2C%5D%2B%29%3C%2Fdd%3E&replace=%241&labelColor=f1f3f4&color=white&label=Opera%20Add-ons%20users%E2%A0%80%E2%A0%80%E2%A0%80&style=flat-square&logo=opera&logoColor=FF1B2D)
 
 ## Features
 
