@@ -12,7 +12,7 @@ import { loadStoredSettings } from "@/shared/settings-storage";
 // ISOLATED-world bridge: the only context with browser.storage access. It answers MAIN's startup
 // "getSettings" pull and broadcasts every change so the MAIN-world mirror stays in sync.
 export default defineContentScript({
-  matches: ["https://www.youtube.com/*"],
+  matches: ["https://www.youtube.com/*", "https://m.youtube.com/*"],
   runAt: "document_start",
   async main() {
     const defaults = defaultSettings();
