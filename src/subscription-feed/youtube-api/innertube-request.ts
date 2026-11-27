@@ -15,7 +15,7 @@ export enum InnerTubeEndpoint {
   Next = "/youtubei/v1/next?prettyPrint=false"
 }
 
-const YOUTUBE_ORIGIN = "https://www.youtube.com";
+const WEB_CLIENT_NAME_ID = 1;
 const APISID_COOKIE_NAMES = ["SAPISID", "__Secure-3PAPISID", "__Secure-1PAPISID"] as const;
 
 function readCookie(name: string) {
@@ -49,7 +49,7 @@ async function buildAuthorization() {
 
   const seconds = Math.floor(Date.now() / 1000);
   const digest = await crypto.subtle
-    .digest("SHA-1", new TextEncoder().encode(`${seconds} ${apisid} ${YOUTUBE_ORIGIN}`))
+    .digest("SHA-1", new TextEncoder().encode(`${seconds} ${apisid} ${location.origin}`))
     .catch(() => null);
   if (!digest) {
     return null;
@@ -69,9 +69,9 @@ async function buildHeaders(clientVersion: string) {
     "Content-Type": "application/json",
     [OWN_REQUEST_MARKER_HEADER]: "1",
     Authorization: authorization,
-    "X-Origin": YOUTUBE_ORIGIN,
+    "X-Origin": location.origin,
     "X-Goog-AuthUser": ytcfg?.get("SESSION_INDEX") ?? "0",
-    "X-Youtube-Client-Name": "1",
+    "X-Youtube-Client-Name": String(ytcfg?.get("INNERTUBE_CONTEXT_CLIENT_NAME") ?? WEB_CLIENT_NAME_ID),
     "X-Youtube-Client-Version": clientVersion
   };
 

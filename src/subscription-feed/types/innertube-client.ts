@@ -57,6 +57,7 @@ interface InnerTubeContext {
 
 interface YouTubeInnertubeConfig {
   INNERTUBE_CLIENT_VERSION?: string;
+  INNERTUBE_CONTEXT_CLIENT_NAME?: number;
   INNERTUBE_CONTEXT?: InnerTubeContext;
   INNERTUBE_API_KEY?: string;
   HL?: string;
