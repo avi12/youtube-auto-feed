@@ -17,6 +17,7 @@ Made by [Avi](https://avi12.com)
 - Removed videos vanish; edited titles and thumbnails refresh themselves
 - Leaves YouTube's sections exactly how it laid them out
 - Optional "Live video pages": while you watch, the title, view count, subscriber count and the recommended videos (beside the player and on the end screen) keep themselves current, and deleted recommendations slide out
+- Works on your phone too: on Firefox for Android the mobile site's feed stays live, and the videos you scrolled to stay put
 - Chills out when the tab is hidden, and doesn't collect any of your data
 
 ## How it works
