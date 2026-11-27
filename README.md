@@ -25,13 +25,14 @@ It piggybacks on YouTube's own InnerTube `/browse` response for the feed and che
 
 ## Browser support
 
-Works on Chromium (Chrome, Edge, Opera) and Firefox, both on Manifest V3.
+Works on Chromium (Chrome, Edge, Opera) and Firefox, both on Manifest V3. On Firefox for Android it keeps the mobile site's (`m.youtube.com`) subscriptions feed live too.
 
-| Browser       | Minimum version |
-| ------------- | --------------- |
-| Chrome / Edge | 111             |
-| Opera         | 97              |
-| Firefox       | 142             |
+| Browser             | Minimum version |
+| ------------------- | --------------- |
+| Chrome / Edge       | 111             |
+| Opera               | 97              |
+| Firefox             | 142             |
+| Firefox for Android | 142             |
 
 ## Development
 
