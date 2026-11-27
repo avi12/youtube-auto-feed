@@ -93,6 +93,15 @@ export default defineConfig({
     })
   }),
   modules: ["@wxt-dev/module-svelte"],
+  // Build the popup's markup node by node: the default parses it through innerHTML, which AMO's
+  // linter flags
+  svelte: {
+    vite: {
+      compilerOptions: {
+        fragments: "tree"
+      }
+    }
+  },
   srcDir: "src",
   publicDir: "src/public",
   zip: {
