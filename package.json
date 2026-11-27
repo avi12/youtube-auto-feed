@@ -1,6 +1,6 @@
 {
   "name": "youtube-auto-feed",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "private": false,
   "description": "Keeps your YouTube subscriptions feed current as videos are published, removed, or change state - no page reload needed.",
   "keywords": [
